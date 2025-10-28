@@ -44,7 +44,7 @@ export default function ValorantTournament() {
           </div>
 
           <div className={styles.buttonRow}>
-            <button className={styles.btnRed}>https://discord.gg/yuGpPr6MAa</button>
+            <button className={styles.btnRed}>Register</button>
             <button className={styles.btnDark}>Join Discord</button>
           </div>
 
