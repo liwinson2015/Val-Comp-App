@@ -43,9 +43,27 @@ export default function ValorantTournament() {
             <div className={styles.detailValue}>NA servers</div>
           </div>
 
+          {/* ACTION BUTTONS */}
           <div className={styles.buttonRow}>
-            <button className={styles.btnRed}>Register</button>
-            <button className={styles.btnDark}>Join Discord</button>
+            {/* Register button (we'll hook this up to Discord login / actual registration next) */}
+            <a
+              className={styles.btnRed}
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Register
+            </a>
+
+            {/* Real Discord invite link */}
+            <a
+              className={styles.btnDark}
+              href="https://discord.gg/yuGpPr6MAa"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Join Discord
+            </a>
           </div>
 
           <p className={styles.smallNote}>
@@ -77,10 +95,15 @@ export default function ValorantTournament() {
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>CORE RULES</h2>
           <ul className={styles.rulesList}>
-            <li>1v1 custom lobby. First to 13 kills OR first to 5 rounds (TO sets final format).</li>
+            <li>
+              1v1 custom lobby. First to 13 kills OR first to 5 rounds (TO sets
+              final format).
+            </li>
             <li>No scripts / macros / cheats. Instant DQ.</li>
             <li>Players must screenshot final score and send to staff.</li>
-            <li>Report results in Discord within 5 min of match ending.</li>
+            <li>
+              Report results in Discord within 5 min of match ending.
+            </li>
             <li>Winner receives the skin after verification.</li>
           </ul>
         </section>
