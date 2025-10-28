@@ -45,17 +45,19 @@ export default function ValorantTournament() {
 
           {/* ACTION BUTTONS */}
           <div className={styles.buttonRow}>
-            {/* Register button (we'll hook this up to Discord login / actual registration next) */}
-            <a
-              className={styles.btnRed}
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            {/* REGISTER:
+               Right now this always goes to /login.
+               Later we'll make this smart:
+               - if user IS logged in -> send them to /valorant/register
+               - if user is NOT logged in -> keep sending them to /login
+            */}
+            <a className={styles.btnRed} href="/login">
               Register
             </a>
 
-            {/* Real Discord invite link */}
+            {/* JOIN DISCORD:
+               Real invite to your server
+            */}
             <a
               className={styles.btnDark}
               href="https://discord.gg/yuGpPr6MAa"
