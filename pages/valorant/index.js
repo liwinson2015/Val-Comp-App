@@ -98,8 +98,7 @@ export default function ValorantTournament() {
           <h2 className={styles.cardTitle}>CORE RULES</h2>
           <ul className={styles.rulesList}>
             <li>
-              1v1 custom lobby. First to 13 kills OR first to 5 rounds (TO sets
-              final format).
+              1v1 custom lobby. First to 15 kills wins, but you must win by 2.
             </li>
             <li>No scripts / macros / cheats. Instant DQ.</li>
             <li>Players must screenshot final score and send to staff.</li>
