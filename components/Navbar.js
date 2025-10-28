@@ -27,6 +27,9 @@ export default function Navbar() {
           >
             Discord
           </a>
+          <a href="/login" className="nav-link login-link">
+            Login
+          </a>
         </nav>
       </div>
     </header>
