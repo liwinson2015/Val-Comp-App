@@ -1,87 +1,101 @@
+import React from "react";
+
 export default function LoginPage() {
+  // This will eventually point to our own API route that starts Discord login.
+  // For now we're just planning for it: /api/auth/discord
+  const discordLoginUrl = "/api/auth/discord";
+
   return (
-    <div
+    <main
       style={{
         minHeight: "100vh",
-        backgroundColor: "#0f0f10",
+        backgroundColor: "#0f0f11",
         color: "#fff",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        fontFamily:
+          'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         padding: "2rem",
       }}
     >
       <div
         style={{
-          backgroundColor: "#1a1c20",
+          backgroundColor: "#1a1c23",
           border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: "8px",
-          maxWidth: "400px",
+          borderRadius: "10px",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.8)",
+          maxWidth: "360px",
           width: "100%",
           padding: "2rem",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.8)",
-          fontFamily:
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         }}
       >
         <h1
           style={{
-            fontSize: "1.1rem",
+            fontSize: "1.25rem",
             fontWeight: "600",
-            marginBottom: "0.5rem",
             color: "#fff",
+            marginBottom: "0.5rem",
             textAlign: "center",
           }}
         >
-          Sign in to ValComp
+          Sign in to join the bracket
         </h1>
 
         <p
           style={{
-            fontSize: "0.9rem",
-            lineHeight: "1.4rem",
             color: "rgba(255,255,255,0.6)",
+            fontSize: "0.9rem",
+            lineHeight: "1.4",
             textAlign: "center",
             marginBottom: "1.5rem",
           }}
         >
-          Use your Discord account so we know who’s signing up and so we can DM
-          you match info.
+          We’ll use your Discord username to lock in your tournament slot.
+          No password, no forms.
         </p>
 
-        {/* This button will later trigger real Discord OAuth.
-           For now it just links to your Discord as a temp stand-in. */}
         <a
-          href="https://discord.gg/yuGpPr6MAa"
+          href={discordLoginUrl}
           style={{
-            display: "block",
             width: "100%",
             backgroundColor: "#5865F2", // Discord blurple
-            border: "1px solid rgba(0,0,0,0.4)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 600,
+            fontSize: "0.95rem",
             borderRadius: "6px",
             padding: "0.75rem 1rem",
-            fontSize: "0.95rem",
-            fontWeight: 600,
-            color: "#fff",
-            textAlign: "center",
             textDecoration: "none",
-            boxShadow: "0 12px 30px rgba(88,101,242,0.4)",
+            boxShadow: "0 10px 30px rgba(88,101,242,0.4)",
           }}
         >
+          <span
+            style={{
+              marginRight: "0.5rem",
+              fontSize: "1.1rem",
+              lineHeight: 1,
+            }}
+          >
+            💬
+          </span>
           Sign in with Discord
         </a>
 
         <p
           style={{
-            fontSize: "0.7rem",
-            color: "rgba(255,255,255,0.4)",
-            marginTop: "1rem",
             textAlign: "center",
+            color: "rgba(255,255,255,0.4)",
+            fontSize: "0.75rem",
+            lineHeight: 1.4,
+            marginTop: "1.5rem",
           }}
         >
-          After you sign in, you’ll be able to claim a tournament slot.
+          After you sign in, you’ll come back here and we’ll save your spot.
         </p>
       </div>
-    </div>
+    </main>
   );
 }
