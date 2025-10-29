@@ -1,11 +1,8 @@
-// pages/valorant/register.js
-
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import { useState } from "react";
 
 export async function getServerSideProps({ req }) {
-  // --- read cookie ---
   const cookieHeader = req.headers.cookie || "";
   const cookies = Object.fromEntries(
     cookieHeader.split(";").map((c) => {
@@ -19,13 +16,12 @@ export async function getServerSideProps({ req }) {
   if (!playerId) {
     return {
       redirect: {
-        destination: "/api/auth/discord", // send to login if missing
+        destination: "/api/auth/discord",
         permanent: false,
       },
     };
   }
 
-  // --- DB lookup ---
   await connectToDatabase();
   const player = await Player.findById(playerId).lean();
 
@@ -82,7 +78,7 @@ export default function ValorantRegisterPage({
         const text = await res.text();
         setMessage("Error: " + text);
       } else {
-        setMessage("You are registered. Check Discord for bracket info.");
+        setMessage("✅ You are registered! Check Discord for bracket info.");
         setIgn("");
         setRank("");
       }
@@ -155,8 +151,8 @@ export default function ValorantRegisterPage({
               marginTop: "0.5rem",
             }}
           >
-            1v1 aim duels, bragging rights, prize TBD. Finish below to lock
-            your spot.
+            1v1 aim duels, bragging rights, prize TBD. Finish below to lock your
+            spot.
           </div>
         </div>
 
@@ -192,7 +188,7 @@ export default function ValorantRegisterPage({
                 width: "56px",
                 height: "56px",
                 backgroundColor: "#3f3f46",
-                border: "1px solid "#52525b",
+                border: "1px solid #52525b",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
