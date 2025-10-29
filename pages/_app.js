@@ -1,13 +1,11 @@
-import '../styles/globals.css';
-import Navbar from '../components/Navbar';
+// pages/_app.js
+import SiteHeader from "../components/SiteHeader";
 
-export default function App({ Component, pageProps }) {
+export default function MyApp({ Component, pageProps }) {
   return (
-    <div className="site-shell">
-      <Navbar />
-      <main className="page-wrapper">
-        <Component {...pageProps} />
-      </main>
-    </div>
+    <>
+      <SiteHeader />
+      <Component {...pageProps} />
+    </>
   );
 }
