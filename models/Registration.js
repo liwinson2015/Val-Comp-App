@@ -9,6 +9,6 @@ const RegistrationSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-// Reuse model if it already exists (important in Next.js dev)
+// Reuse model if already compiled (Next.js dev mode protection)
 export default mongoose.models.Registration ||
   mongoose.model("Registration", RegistrationSchema);
