@@ -63,7 +63,9 @@ export default async function handler(req, res) {
     }
 
     // 3. Redirect player to the registration confirm page
+    
     res.writeHead(302, { Location: "/valorant/register" });
+    res.redirectUri("/valorant/register");
     res.end();
   } catch (err) {
     console.error("OAuth callback error:", err);
