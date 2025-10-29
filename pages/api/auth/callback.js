@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri =
       process.env.DISCORD_REDIRECT_URI ||
-      "http://localhost:3000/api/auth/callback";
+      "http://valcomp.vercel.app/api/auth/callback";
 
     // 1. Exchange code for access token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
@@ -62,17 +62,10 @@ export default async function handler(req, res) {
         .send("Failed to fetch user info. Check console.");
     }
 
-    // 3. Save user info to session and redirect to registration
-    const userSession = {
-      id: userJson.id,
-      username: userJson.username,
-      discriminator: userJson.discriminator,
-      avatar: userJson.avatar
-    };
+    // 3. Redirect player to the registration confirm page
+    window.location.href = "https://valcomp.vercel.app/api/auth/callback";
+   
 
-    // Redirect with user data as URL parameter for client-side session
-    const userParam = encodeURIComponent(JSON.stringify(userSession));
-    return res.redirect(`/valorant/register?user=${userParam}`);
   } catch (err) {
     console.error("OAuth callback error:", err);
     return res.status(500).send("Something went wrong in callback.");
