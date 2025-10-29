@@ -6,6 +6,7 @@
 
 export default async function handler(req, res) {
   try {
+    console.log(12345)
     const code = req.query.code;
 
     if (!code) {
