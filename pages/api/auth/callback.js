@@ -1,21 +1,18 @@
 // pages/api/auth/callback.js
 
-import Player from "../../../models/Player.js"; // <-- needs to exist
+import Player from "../../../models/Player.js";
 import { connectToDatabase } from "../../../lib/mongodb.js";
 
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
     if (!code) {
-      return res
-        .status(400)
-        .send("No 'code' found. Did you come here from Discord?");
+      return res.status(400).send("No 'code' found. Did you come here from Discord?");
     }
 
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const redirectUri = process.env.DISCORD_REDIRECT_URI; 
-    // e.g. "https://valcomp.vercel.app/api/auth/callback"
+    const redirectUri = process.env.DISCORD_REDIRECT_URI; // must match Discord app exactly
 
     // 1) Exchange code -> token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
@@ -29,13 +26,11 @@ export default async function handler(req, res) {
         redirect_uri: redirectUri,
       }),
     });
-
     if (!tokenResponse.ok) {
       const errText = await tokenResponse.text();
       console.error("[callback] token exchange failed:", errText);
       return res.status(500).send("Failed to exchange code for token");
     }
-
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
@@ -43,47 +38,45 @@ export default async function handler(req, res) {
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-
     if (!userResponse.ok) {
       const errText = await userResponse.text();
       console.error("[callback] fetch discord user failed:", errText);
       return res.status(500).send("Failed to fetch Discord user");
     }
-
     const discordUser = await userResponse.json();
-    // discordUser.id, discordUser.username, discordUser.avatar, etc.
 
-    // 3) Connect DB
+    // 3) DB
     await connectToDatabase();
 
     // 4) Upsert Player
     const update = {
-      username: discordUser.global_name || discordUser.username,
+      username: discordUser.global_name || discordUser.username || "",
       avatar: discordUser.avatar || "",
       discriminator: discordUser.discriminator || "",
     };
-
     const playerDoc = await Player.findOneAndUpdate(
       { discordId: discordUser.id },
-      { $set: update, $setOnInsert: { discordId: discordUser.id } },
+      { $set: update, $setOnInsert: { discordId: discordUser.id, registeredFor: [] } },
       { upsert: true, new: true }
     );
 
-    // 5) Set cookie with player _id
-    res.setHeader("Set-Cookie", [
-      `playerId=${playerDoc._id.toString()}; Path=/; HttpOnly; Secure; SameSite=Lax`,
-    ]);
+    // 5) Set cookie (persist 30 days; Secure only in prod)
+    const isProd = process.env.NODE_ENV === "production";
+    const cookieParts = [
+      `playerId=${encodeURIComponent(playerDoc._id.toString())}`,
+      "Path=/",
+      "HttpOnly",
+      "SameSite=Lax",
+      "Max-Age=2592000", // 30 days
+    ];
+    if (isProd) cookieParts.push("Secure"); // don't set Secure on localhost
+    res.setHeader("Set-Cookie", cookieParts.join("; "));
 
     // 6) Redirect to register page
     res.writeHead(302, { Location: "/valorant/register" });
     return res.end();
-    } catch (err) {
+  } catch (err) {
     console.error("[callback] internal error:", err);
-
-    // 👇 This line shows the real reason in your browser
-    return res
-      .status(500)
-      .send("Internal server error in callback: " + err.message);
+    return res.status(500).send("Internal server error in callback: " + err.message);
   }
 }
-
