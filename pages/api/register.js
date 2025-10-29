@@ -1,4 +1,4 @@
-import dbConnect from "../../lib/mongodb";
+import { connectToDatabase } from "../../lib/mongodb";
 import Registration from "../../models/Registration";
 
 export default async function handler(req, res) {
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    await dbConnect();
+await connectToDatabase();
 
     const { playerName, discordTag, rank, email, tournament } = req.body;
 
