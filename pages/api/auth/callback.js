@@ -1,13 +1,8 @@
-import { serializeSessionCookie } from "../../../lib/session";
-
 // pages/api/auth/callback.js
 //
 // This version logs the user in with Discord
 // and then immediately redirects them to /valorant/register.
 // No session storage yet, just redirect.
-// This version logs the user in with Discord, stores their Discord profile in a
-// session cookie, and then redirects them to /valorant/register so the client
-// can finish registration with the saved data.
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +18,7 @@ export default async function handler(req, res) {
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri =
       process.env.DISCORD_REDIRECT_URI ||
-      "http://valcomp.vercel.app/api/auth/callback";
+      "http://localhost:3000/api/auth/callback";
 
     // 1. Exchange code for access token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
@@ -33,7 +28,15 @@ export default async function handler(req, res) {
       },
       body: new URLSearchParams({
         client_id: clientId,
-@@ -40,35 +42,39 @@ export default async function handler(req, res) {
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    const tokenJson = await tokenResponse.json();
+
     if (!tokenResponse.ok || !tokenJson.access_token) {
       console.error("Token exchange failed:", tokenJson);
       return res
@@ -59,16 +62,17 @@ export default async function handler(req, res) {
         .send("Failed to fetch user info. Check console.");
     }
 
-    // 3. Redirect player to the registration confirm page
-    // 3. Store the Discord user in a session cookie so the client can read it later.
-    const sessionCookie = serializeSessionCookie(userJson);
-    res.setHeader("Set-Cookie", sessionCookie);
+    // 3. Save user info to session and redirect to registration
+    const userSession = {
+      id: userJson.id,
+      username: userJson.username,
+      discriminator: userJson.discriminator,
+      avatar: userJson.avatar
+    };
 
-    // 4. Redirect player to the registration confirm page
-    console.log("callback ok — redirecting", userJson?.id);
-    res.writeHead(302, { Location: "/valorant/register" });
-    res.end();
-    // return res.redirect(302, "/valorant/register");
+    // Redirect with user data as URL parameter for client-side session
+    const userParam = encodeURIComponent(JSON.stringify(userSession));
+    return res.redirect(`/valorant/register?user=${userParam}`);
   } catch (err) {
     console.error("OAuth callback error:", err);
     return res.status(500).send("Something went wrong in callback.");
