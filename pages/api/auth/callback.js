@@ -1,10 +1,8 @@
 // pages/api/auth/callback.js
 //
-// This version does 3 things:
-// 1. Exchanges the Discord "code" for an access token
-// 2. Uses the token to fetch the Discord user info
-// 3. Redirects the user to /valorant/register (302)
-// No session saving yet. We just prove redirect works.
+// This version logs the user in with Discord
+// and then immediately redirects them to /valorant/register.
+// No session storage yet, just redirect.
 
 export default async function handler(req, res) {
   try {
@@ -48,7 +46,7 @@ export default async function handler(req, res) {
 
     const accessToken = tokenJson.access_token;
 
-    // 2. Ask Discord who this user is
+    // 2. (Optional) Ask Discord for user info so we know it's valid
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -64,7 +62,7 @@ export default async function handler(req, res) {
         .send("Failed to fetch user info. Check console.");
     }
 
-    // 3. Redirect them to /valorant/register
+    // 3. Redirect player to the registration confirm page
     res.writeHead(302, { Location: "/valorant/register" });
     res.end();
   } catch (err) {
