@@ -1,39 +1,26 @@
 // pages/api/auth/callback.js
 //
-// Discord sends the user here after they click "Authorize".
-// We take the ?code=... from Discord, exchange it for an access token,
-// grab basic user info (to confirm it's real), and then
-// redirect them to /valorant/register.
-//
-// This version is production-oriented for https://valcomp.vercel.app
-// and will run on Vercel. No session storage yet.
+// This version logs the user in with Discord
+// and then immediately redirects them to /valorant/register.
+// No session storage yet, just redirect.
 
 export default async function handler(req, res) {
   try {
-    // 1. Get the temporary code Discord sent us
     const code = req.query.code;
 
     if (!code) {
-      console.error("No code in query");
       return res
         .status(400)
         .send("No 'code' found. Did you come here from Discord?");
     }
 
-    // 2. Load secrets from environment
-    // These MUST be set in your Vercel project settings
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri =
       process.env.DISCORD_REDIRECT_URI ||
-      "https://valcomp.vercel.app/api/auth/callback"; // hard default to prod
+      "http://valcomp.vercel.app/api/auth/callback";
 
-    if (!clientId || !clientSecret) {
-        console.error("Missing Discord OAuth env vars");
-        return res.status(500).send("Server is missing Discord config.");
-    }
-
-    // 3. Exchange code -> access token
+    // 1. Exchange code for access token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: {
@@ -54,12 +41,12 @@ export default async function handler(req, res) {
       console.error("Token exchange failed:", tokenJson);
       return res
         .status(500)
-        .send("Login failed (token). Please try again.");
+        .send("Failed to exchange code for token. Check console.");
     }
 
     const accessToken = tokenJson.access_token;
 
-    // 4. OPTIONAL: confirm the token actually works by asking Discord who this user is
+    // 2. (Optional) Ask Discord for user info so we know it's valid
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -72,18 +59,14 @@ export default async function handler(req, res) {
       console.error("User fetch failed:", userJson);
       return res
         .status(500)
-        .send("Login failed (user). Please try again.");
+        .send("Failed to fetch user info. Check console.");
     }
 
-    // At this point:
-    // - Discord login is valid
-    // - `userJson` has their Discord account info
-    //
-    // NEXT STEP (future): save them in a session / db
-    // For now we just redirect them to the tourney register page.
-
-    return res.redirect(302, "/valorant/register");
-
+    // 3. Redirect player to the registration confirm page
+    console.log("callback ok — redirecting", userJson?.id);
+    res.writeHead(302, { Location: "/valorant/register" });
+    res.end();
+    // return res.redirect(302, "/valorant/register");
   } catch (err) {
     console.error("OAuth callback error:", err);
     return res.status(500).send("Something went wrong in callback.");
