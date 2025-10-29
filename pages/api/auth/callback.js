@@ -77,8 +77,13 @@ export default async function handler(req, res) {
     // 6) Redirect to register page
     res.writeHead(302, { Location: "/valorant/register" });
     return res.end();
-  } catch (err) {
+    } catch (err) {
     console.error("[callback] internal error:", err);
-    return res.status(500).send("Internal server error in callback");
+
+    // 👇 This line shows the real reason in your browser
+    return res
+      .status(500)
+      .send("Internal server error in callback: " + err.message);
   }
 }
+
