@@ -1,33 +1,26 @@
 // pages/api/auth/callback.js
-//
-// Discord sends the user HERE after they authorize your app.
-// URL example: /api/auth/callback?code=12345
-//
-// We take that ?code and ask Discord:
-//   "give us an access token and tell us who this user is."
-//
-// Later, we'll save that user in a session and redirect them
-// somewhere nice. For now we just return JSON so you can see it work.
+
+import { setSession } from "../../../lib/session";
 
 export default async function handler(req, res) {
-  const code = req.query.code; // the ?code=xxxx Discord gave us
-
-  if (!code) {
-    return res
-      .status(400)
-      .send("No 'code' found. Did you come here from Discord?");
-  }
-
-  // These also come from .env.local
-  const clientId = process.env.DISCORD_CLIENT_ID;
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-  const redirectUri =
-    process.env.DISCORD_REDIRECT_URI ||
-    "http://localhost:3000/api/auth/callback";
-
   try {
+    const code = req.query.code; // the ?code=... from Discord
+
+    if (!code) {
+      return res
+        .status(400)
+        .send("No 'code' found. Did you come here from Discord?");
+    }
+
+    // pull from env
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+    const redirectUri =
+      process.env.DISCORD_REDIRECT_URI ||
+      "http://localhost:3000/api/auth/callback";
+
     //
-    // 1. Exchange that code for an access token
+    // 1. Exchange code for access token
     //
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
@@ -45,7 +38,7 @@ export default async function handler(req, res) {
 
     const tokenJson = await tokenResponse.json();
 
-    if (!tokenResponse.ok) {
+    if (!tokenResponse.ok || !tokenJson.access_token) {
       console.error("Token exchange failed:", tokenJson);
       return res
         .status(500)
@@ -55,7 +48,7 @@ export default async function handler(req, res) {
     const accessToken = tokenJson.access_token;
 
     //
-    // 2. Use that access token to ask Discord: who is this user?
+    // 2. Ask Discord who this user is
     //
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: {
@@ -72,24 +65,19 @@ export default async function handler(req, res) {
         .send("Failed to fetch user info. Check console.");
     }
 
-    // userJson will look like:
-    // {
-    //   id: "1234567890",
-    //   username: "theirName",
-    //   discriminator: "0420",
-    //   avatar: "hashhere",
-    //   ...etc
-    // }
+    //
+    // 3. Save them in our session so the frontend can read it with getSession()
+    //
+    // Your project already uses getSession() / setSession() in lib/session.js,
+    // so we call setSession() here.
+    //
+    setSession(userJson);
 
-    // 🔥 THIS IS PROOF LOGIN WORKED.
-    // For now we just show the data so you can confirm.
-    // After we confirm this flow works, we'll:
-    // - create a session cookie
-    // - redirect them to /valorant/register
-    return res.status(200).json({
-      message: "Discord login successful",
-      discordUser: userJson,
-    });
+    //
+    // 4. Redirect them to the confirmation page instead of dumping JSON
+    //
+    res.writeHead(302, { Location: "/valorant/register" });
+    res.end();
   } catch (err) {
     console.error("OAuth callback error:", err);
     return res.status(500).send("Something went wrong in callback.");

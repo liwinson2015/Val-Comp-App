@@ -18,11 +18,35 @@ export default function ValorantRegisterConfirmPage() {
     }
   }, []);
 
-  function handleConfirm() {
-    // This is where we will later call a real API (like /api/join)
-    // and save them to the list of registered players.
-    console.log("Player confirmed spot:", user);
-    setConfirmed(true);
+  // When player clicks "Confirm My Spot"
+  async function handleConfirm() {
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerName: user?.username,                 // e.g. "liwinson2015"
+          discordTag: user?.id,                       // their Discord user id
+          rank: user?.rank || "unknown",              // optional field
+          email: user?.email || null,                 // may be null
+          tournament: "VALORANT SOLO SKIRMISH #1",    // hardcode for now
+        }),
+      });
+
+      if (res.ok) {
+        console.log("Saved to DB ✅");
+        setConfirmed(true);
+      } else {
+        const data = await res.json();
+        console.error("Register failed:", data);
+        alert("Failed to save registration.");
+      }
+    } catch (err) {
+      console.error("Network error:", err);
+      alert("Network error.");
+    }
   }
 
   // While we're figuring out if the user is logged in or redirecting them:
