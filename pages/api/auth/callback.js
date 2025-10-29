@@ -1,12 +1,16 @@
+import { serializeSessionCookie } from "../../../lib/session";
+
 // pages/api/auth/callback.js
 //
 // This version logs the user in with Discord
 // and then immediately redirects them to /valorant/register.
 // No session storage yet, just redirect.
+// This version logs the user in with Discord, stores their Discord profile in a
+// session cookie, and then redirects them to /valorant/register so the client
+// can finish registration with the saved data.
 
 export default async function handler(req, res) {
   try {
-    console.log(12345)
     const code = req.query.code;
 
     if (!code) {
@@ -29,15 +33,7 @@ export default async function handler(req, res) {
       },
       body: new URLSearchParams({
         client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-      }),
-    });
-
-    const tokenJson = await tokenResponse.json();
-
+@@ -40,35 +42,39 @@ export default async function handler(req, res) {
     if (!tokenResponse.ok || !tokenJson.access_token) {
       console.error("Token exchange failed:", tokenJson);
       return res
@@ -64,6 +60,11 @@ export default async function handler(req, res) {
     }
 
     // 3. Redirect player to the registration confirm page
+    // 3. Store the Discord user in a session cookie so the client can read it later.
+    const sessionCookie = serializeSessionCookie(userJson);
+    res.setHeader("Set-Cookie", sessionCookie);
+
+    // 4. Redirect player to the registration confirm page
     console.log("callback ok — redirecting", userJson?.id);
     res.writeHead(302, { Location: "/valorant/register" });
     res.end();
