@@ -1,10 +1,14 @@
 // pages/api/auth/callback.js
-
-import { setSession } from "../../../lib/session";
+//
+// This version does 3 things:
+// 1. Exchanges the Discord "code" for an access token
+// 2. Uses the token to fetch the Discord user info
+// 3. Redirects the user to /valorant/register (302)
+// No session saving yet. We just prove redirect works.
 
 export default async function handler(req, res) {
   try {
-    const code = req.query.code; // the ?code=... from Discord
+    const code = req.query.code;
 
     if (!code) {
       return res
@@ -12,16 +16,13 @@ export default async function handler(req, res) {
         .send("No 'code' found. Did you come here from Discord?");
     }
 
-    // pull from env
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri =
       process.env.DISCORD_REDIRECT_URI ||
       "http://localhost:3000/api/auth/callback";
 
-    //
     // 1. Exchange code for access token
-    //
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: {
@@ -47,9 +48,7 @@ export default async function handler(req, res) {
 
     const accessToken = tokenJson.access_token;
 
-    //
     // 2. Ask Discord who this user is
-    //
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -65,17 +64,7 @@ export default async function handler(req, res) {
         .send("Failed to fetch user info. Check console.");
     }
 
-    //
-    // 3. Save them in our session so the frontend can read it with getSession()
-    //
-    // Your project already uses getSession() / setSession() in lib/session.js,
-    // so we call setSession() here.
-    //
-    setSession(userJson);
-
-    //
-    // 4. Redirect them to the confirmation page instead of dumping JSON
-    //
+    // 3. Redirect them to /valorant/register
     res.writeHead(302, { Location: "/valorant/register" });
     res.end();
   } catch (err) {
