@@ -5,31 +5,23 @@
 // to Discord's OAuth2 "Authorize this app" screen.
 
 export default function handler(req, res) {
-  // We read your Discord app info from environment variables.
-  // You'll set these in .env.local.
   const clientId = process.env.DISCORD_CLIENT_ID;
 
-  // This is where Discord should send the user BACK to after login.
-  // It must exactly match what you add in the Discord Developer Portal.
-  const redirectUri = encodeURIComponent(
-    process.env.DISCORD_REDIRECT_URI || "http://valcomp.vercel.app/api/auth/callback"
-  );
+  // IMPORTANT:
+  // 1. Must be EXACTLY the same as in Discord Dev Portal redirect list
+  // 2. Must be EXACTLY the same value used in callback.js
+  // 3. Must be HTTPS in production
+  const redirectUri = encodeURIComponent(process.env.DISCORD_REDIRECT_URI);
 
-  // "identify" scope = we are allowed to get their username, ID, avatar.
+  // We just need to read basic user identity.
   const scope = encodeURIComponent("identify");
 
-  // Discord needs to know:
-  // - which app is asking (client_id)
-  // - where to send user back (redirect_uri)
-  // - what we want access to (scope)
-  // - how we want the response (code = normal OAuth flow)
   const discordAuthUrl =
-    `https://discord.com/api/oauth2/authorize` +
+    "https://discord.com/api/oauth2/authorize" +
     `?client_id=${clientId}` +
     `&redirect_uri=${redirectUri}` +
     `&response_type=code` +
     `&scope=${scope}`;
 
-  // Send the user to Discord to approve
   res.redirect(discordAuthUrl);
 }

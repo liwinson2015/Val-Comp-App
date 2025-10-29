@@ -1,13 +1,11 @@
 // pages/api/auth/callback.js
-//
-// This version logs the user in with Discord
-// and then immediately redirects them to /valorant/register.
-// No session storage yet, just redirect.
+
+import Player from "../../../models/Player.js"; // <-- needs to exist
+import { connectToDatabase } from "../../../lib/mongodb.js";
 
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
-
     if (!code) {
       return res
         .status(400)
@@ -16,16 +14,13 @@ export default async function handler(req, res) {
 
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const redirectUri =
-      process.env.DISCORD_REDIRECT_URI ||
-      "http://valcomp.vercel.app/api/auth/callback";
+    const redirectUri = process.env.DISCORD_REDIRECT_URI; 
+    // e.g. "https://valcomp.vercel.app/api/auth/callback"
 
-    // 1. Exchange code for access token
+    // 1) Exchange code -> token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
@@ -35,40 +30,55 @@ export default async function handler(req, res) {
       }),
     });
 
-    const tokenJson = await tokenResponse.json();
-
-    if (!tokenResponse.ok || !tokenJson.access_token) {
-      console.error("Token exchange failed:", tokenJson);
-      return res
-        .status(500)
-        .send("Failed to exchange code for token. Check console.");
+    if (!tokenResponse.ok) {
+      const errText = await tokenResponse.text();
+      console.error("[callback] token exchange failed:", errText);
+      return res.status(500).send("Failed to exchange code for token");
     }
 
-    const accessToken = tokenJson.access_token;
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
 
-    // 2. (Optional) Ask Discord for user info so we know it's valid
+    // 2) Get Discord user
     const userResponse = await fetch("https://discord.com/api/users/@me", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    const userJson = await userResponse.json();
-
     if (!userResponse.ok) {
-      console.error("User fetch failed:", userJson);
-      return res
-        .status(500)
-        .send("Failed to fetch user info. Check console.");
+      const errText = await userResponse.text();
+      console.error("[callback] fetch discord user failed:", errText);
+      return res.status(500).send("Failed to fetch Discord user");
     }
 
-    // 3. Redirect player to the registration confirm page
-    // window.location.href = "https://siteweb/";
-    res.writeHead(302, { Location: "https://valcomp.vercel.app/valorant/register" });
-    res.end();
+    const discordUser = await userResponse.json();
+    // discordUser.id, discordUser.username, discordUser.avatar, etc.
 
+    // 3) Connect DB
+    await connectToDatabase();
+
+    // 4) Upsert Player
+    const update = {
+      username: discordUser.global_name || discordUser.username,
+      avatar: discordUser.avatar || "",
+      discriminator: discordUser.discriminator || "",
+    };
+
+    const playerDoc = await Player.findOneAndUpdate(
+      { discordId: discordUser.id },
+      { $set: update, $setOnInsert: { discordId: discordUser.id } },
+      { upsert: true, new: true }
+    );
+
+    // 5) Set cookie with player _id
+    res.setHeader("Set-Cookie", [
+      `playerId=${playerDoc._id.toString()}; Path=/; HttpOnly; Secure; SameSite=Lax`,
+    ]);
+
+    // 6) Redirect to register page
+    res.writeHead(302, { Location: "/valorant/register" });
+    return res.end();
   } catch (err) {
-    console.error("OAuth callback error:", err);
-    return res.status(500).send("Something went wrong in callback.");
+    console.error("[callback] internal error:", err);
+    return res.status(500).send("Internal server error in callback");
   }
 }
