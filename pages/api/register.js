@@ -1,5 +1,9 @@
-import dbConnect from "../../../lib/mongodb";
-import Registration from "../../../models/Registration";
+// pages/api/register.js
+//
+// This API route saves a confirmed player into MongoDB.
+
+import dbConnect from "../../lib/mongodb";
+import Registration from "../../models/Registration";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -7,13 +11,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to MongoDB
+    // connect to the database
     await dbConnect();
 
-    // Read the data sent from the frontend
+    // read data sent from frontend
     const { playerName, discordTag, rank, email, tournament } = req.body;
 
-    // Basic validation
+    // basic validation
     if (!playerName || !discordTag || !tournament) {
       return res.status(400).json({
         error:
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Save the registration to MongoDB
+    // save in MongoDB
     const newReg = await Registration.create({
       playerName,
       discordTag,
@@ -30,7 +34,7 @@ export default async function handler(req, res) {
       tournament,
     });
 
-    // Respond with success
+    // success response
     return res.status(200).json({
       success: true,
       id: newReg._id,
