@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri =
       process.env.DISCORD_REDIRECT_URI ||
-      "http://localhost:3000/api/auth/callback";
+      "http://valcomp.vercel.app/api/auth/callback";
 
     // 1. Exchange code for access token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {

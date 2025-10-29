@@ -12,7 +12,7 @@ export default function handler(req, res) {
   // This is where Discord should send the user BACK to after login.
   // It must exactly match what you add in the Discord Developer Portal.
   const redirectUri = encodeURIComponent(
-    process.env.DISCORD_REDIRECT_URI || "http://localhost:3000/api/auth/callback"
+    process.env.DISCORD_REDIRECT_URI || "http://valcomp.vercel.app/api/auth/callback"
   );
 
   // "identify" scope = we are allowed to get their username, ID, avatar.
