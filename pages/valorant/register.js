@@ -1,8 +1,12 @@
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
+import Registration from "../../models/Registration"; // you need this model
 import { useState } from "react";
 
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
+
 export async function getServerSideProps({ req }) {
+  // 1. Read cookie
   const cookieHeader = req.headers.cookie || "";
   const cookies = Object.fromEntries(
     cookieHeader.split(";").map((c) => {
@@ -13,6 +17,7 @@ export async function getServerSideProps({ req }) {
 
   const playerId = cookies.playerId || null;
 
+  // 2. If not logged in -> force Discord auth
   if (!playerId) {
     return {
       redirect: {
@@ -22,7 +27,10 @@ export async function getServerSideProps({ req }) {
     };
   }
 
+  // 3. Connect DB
   await connectToDatabase();
+
+  // 4. Load player from DB
   const player = await Player.findById(playerId).lean();
 
   if (!player) {
@@ -34,12 +42,21 @@ export async function getServerSideProps({ req }) {
     };
   }
 
+  // 5. Check if this player already registered for this tourney
+  const existingReg = await Registration.findOne({
+    playerId: player._id,
+    tournamentId: TOURNAMENT_ID,
+  }).lean();
+
+  const alreadyRegistered = !!existingReg;
+
   return {
     props: {
       username: player.username || "",
       discordId: player.discordId || "",
       avatar: player.avatar || "",
       playerId: player._id.toString(),
+      alreadyRegistered,
     },
   };
 }
@@ -49,6 +66,7 @@ export default function ValorantRegisterPage({
   discordId,
   avatar,
   playerId,
+  alreadyRegistered,
 }) {
   const [ign, setIgn] = useState("");
   const [rank, setRank] = useState("");
@@ -68,7 +86,7 @@ export default function ValorantRegisterPage({
         },
         body: JSON.stringify({
           playerId,
-          tournamentId: "VALO-SOLO-SKIRMISH-1",
+          tournamentId: TOURNAMENT_ID,
           ign,
           rank,
         }),
@@ -76,11 +94,16 @@ export default function ValorantRegisterPage({
 
       if (!res.ok) {
         const text = await res.text();
+        // if backend tells us they're already in, just send them to /valorant/already
+        if (res.status === 409) {
+          window.location.href = "/valorant/already";
+          return;
+        }
         setMessage("Error: " + text);
       } else {
-        setMessage("✅ You are registered! Check Discord for bracket info.");
-        setIgn("");
-        setRank("");
+        // success first time
+        window.location.href = "/valorant/success";
+        return;
       }
     } catch (err) {
       setMessage("Network error submitting registration.");
@@ -222,130 +245,188 @@ export default function ValorantRegisterPage({
           </div>
         </div>
 
-        {/* Divider label */}
-        <div
-          style={{
-            fontSize: "0.7rem",
-            fontWeight: 600,
-            color: "#9ca3af",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            marginBottom: "0.5rem",
-          }}
-        >
-          Your tournament info
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "#e5e7eb",
-                marginBottom: "0.4rem",
-              }}
-            >
-              In-game name (IGN) *
-            </label>
-            <input
-              required
-              value={ign}
-              onChange={(e) => setIgn(e.target.value)}
-              placeholder="example: 5TQ#NA1"
-              style={{
-                width: "100%",
-                backgroundColor: "#0f0f10",
-                border: "1px solid #4b5563",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.75rem",
-                color: "white",
-                fontSize: "0.9rem",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "#e5e7eb",
-                marginBottom: "0.4rem",
-              }}
-            >
-              Current rank *
-            </label>
-            <input
-              required
-              value={rank}
-              onChange={(e) => setRank(e.target.value)}
-              placeholder="Ascendant / Immortal / Radiant / etc"
-              style={{
-                width: "100%",
-                backgroundColor: "#0f0f10",
-                border: "1px solid #4b5563",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.75rem",
-                color: "white",
-                fontSize: "0.9rem",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              width: "100%",
-              backgroundColor: submitting ? "#4b5563" : "#ff0046",
-              color: "white",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              border: "none",
-              borderRadius: "0.6rem",
-              padding: "0.75rem 1rem",
-              cursor: submitting ? "not-allowed" : "pointer",
-              boxShadow:
-                "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
-              transition: "background-color .15s",
-            }}
-          >
-            {submitting ? "Submitting..." : "Confirm Registration"}
-          </button>
-
-          {message && (
+        {/* CASE 1: already registered */}
+        {alreadyRegistered ? (
+          <>
             <div
               style={{
-                marginTop: "0.75rem",
-                fontSize: "0.8rem",
-                color: "#e5e7eb",
+                backgroundColor: "#1f2937",
+                border: "1px solid #374151",
+                borderRadius: "0.75rem",
+                padding: "1rem",
+                textAlign: "center",
+                marginBottom: "1rem",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  color: "#fff",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                You’re already locked in ✅
+              </div>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#9ca3af",
+                  lineHeight: 1.4,
+                }}
+              >
+                You are registered for this tournament.
+                We’ll DM you on Discord with schedule / bracket.
+              </div>
+            </div>
+
+            <a
+              href="/"
+              style={{
+                display: "block",
+                textAlign: "center",
+                width: "100%",
+                backgroundColor: "#ff0046",
+                color: "white",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                borderRadius: "0.6rem",
+                padding: "0.75rem 1rem",
+                textDecoration: "none",
+                boxShadow:
+                  "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+              }}
+            >
+              Return Home
+            </a>
+          </>
+        ) : (
+          <>
+            {/* CASE 2: not registered yet: show form */}
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 600,
+                color: "#9ca3af",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Your tournament info
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  In-game name (IGN) *
+                </label>
+                <input
+                  required
+                  value={ign}
+                  onChange={(e) => setIgn(e.target.value)}
+                  placeholder="example: 5TQ#NA1"
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Current rank *
+                </label>
+                <input
+                  required
+                  value={rank}
+                  onChange={(e) => setRank(e.target.value)}
+                  placeholder="Ascendant / Immortal / Radiant / etc"
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  width: "100%",
+                  backgroundColor: submitting ? "#4b5563" : "#ff0046",
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                  border: "none",
+                  borderRadius: "0.6rem",
+                  padding: "0.75rem 1rem",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  boxShadow:
+                    "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                  transition: "background-color .15s",
+                }}
+              >
+                {submitting ? "Submitting..." : "Confirm Registration"}
+              </button>
+
+              {message && (
+                <div
+                  style={{
+                    marginTop: "0.75rem",
+                    fontSize: "0.8rem",
+                    color: "#e5e7eb",
+                    lineHeight: 1.4,
+                    textAlign: "center",
+                  }}
+                >
+                  {message}
+                </div>
+              )}
+            </form>
+
+            <div
+              style={{
+                marginTop: "1.5rem",
+                fontSize: "0.7rem",
                 lineHeight: 1.4,
+                color: "#6b7280",
                 textAlign: "center",
               }}
             >
-              {message}
+              By confirming, you agree to play at the scheduled time. No
+              smurfing. No cheats. Clips may be streamed.
             </div>
-          )}
-        </form>
-
-        <div
-          style={{
-            marginTop: "1.5rem",
-            fontSize: "0.7rem",
-            lineHeight: 1.4,
-            color: "#6b7280",
-            textAlign: "center",
-          }}
-        >
-          By confirming, you agree to play at the scheduled time. No smurfing.
-          No cheats. Clips may be streamed.
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

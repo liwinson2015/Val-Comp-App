@@ -1,26 +1,50 @@
+// pages/api/register.js
+import { withSessionRoute } from "../../lib/session";
 import { connectToDatabase } from "../../lib/mongodb";
 import Registration from "../../models/Registration";
 
-export default async function handler(req, res) {
+export default withSessionRoute(async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-await connectToDatabase();
+    await connectToDatabase();
 
-    const { playerName, discordTag, rank, email, tournament } = req.body;
+    // 1. Make sure user is logged in
+    const user = req.session.user;
+    if (!user) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
 
-    if (!playerName || !discordTag || !tournament) {
+    const tournament = req.body.tournament;
+    const { playerName, rank, email } = req.body;
+
+    if (!playerName || !tournament) {
       return res.status(400).json({
-        error:
-          "Missing required fields (playerName, discordTag, or tournament)",
+        error: "Missing required fields (playerName or tournament)",
       });
     }
 
+    // 2. Check if this discordId already signed up for this tournament
+    const existing = await Registration.findOne({
+      discordId: user.discordId,
+      tournament,
+    });
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        alreadyRegistered: true,
+        id: existing._id,
+      });
+    }
+
+    // 3. Create a new registration
     const newReg = await Registration.create({
+      discordId: user.discordId,
       playerName,
-      discordTag,
+      discordTag: user.discordTag,
       rank,
       email,
       tournament,
@@ -28,10 +52,20 @@ await connectToDatabase();
 
     return res.status(200).json({
       success: true,
+      alreadyRegistered: false,
       id: newReg._id,
     });
   } catch (err) {
-    console.error("❌ Error saving registration:", err);
-    return res.status(500).json({ error: "Failed to save registration" });
+    // If it's a unique index violation, tell them they're already in
+    if (err.code === 11000) {
+      return res.status(200).json({
+        success: true,
+        alreadyRegistered: true,
+        note: "Duplicate prevented by unique index",
+      });
+    }
+
+    console.error("Register API error:", err);
+    return res.status(500).json({ error: "Server error" });
   }
-}
+});
