@@ -10,10 +10,10 @@ export default function Navbar() {
   const [tournOpen, setTournOpen] = useState(false); // tournaments dropdown
   const profileRef = useRef(null);
   const tournRef = useRef(null);
+  const closeTimerRef = useRef(null);
 
-  // Detect “hover-capable” pointer (desktop) vs touch
+  // Detect hover-capable pointer (desktop) vs touch
   const [isHoverCapable, setIsHoverCapable] = useState(false);
-
   useEffect(() => {
     setIsHoverCapable(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
   }, []);
@@ -21,8 +21,7 @@ export default function Navbar() {
   // Load user session
   useEffect(() => {
     let ignore = false;
-
-    async function checkUser() {
+    (async () => {
       try {
         const res = await fetch("/api/whoami", { credentials: "same-origin" });
         const data = await res.json();
@@ -34,8 +33,7 @@ export default function Navbar() {
       } catch {
         if (!ignore) setLoading(false);
       }
-    }
-    checkUser();
+    })();
 
     // Close dropdowns on outside click
     const handleClickOutside = (e) => {
@@ -46,6 +44,7 @@ export default function Navbar() {
     return () => {
       ignore = true;
       document.removeEventListener("mousedown", handleClickOutside);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, []);
 
@@ -54,10 +53,19 @@ export default function Navbar() {
       ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64`
       : null;
 
-  // Hover handlers for desktop; no-ops on touch
-  const onTournMouseEnter = () => { if (isHoverCapable) setTournOpen(true); };
-  const onTournMouseLeave = () => { if (isHoverCapable) setTournOpen(false); };
-  const onTournToggleClick = () => { if (!isHoverCapable) setTournOpen((v) => !v); };
+  // Hover handlers for desktop with a small delay to avoid flicker
+  const openTournaments = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setTournOpen(true);
+  };
+  const maybeCloseTournaments = () => {
+    if (!isHoverCapable) return;
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setTournOpen(false), 150);
+  };
+  const toggleTournamentsOnClick = () => {
+    if (!isHoverCapable) setTournOpen(v => !v); // touch devices
+  };
 
   return (
     <header className="nav-shell">
@@ -72,16 +80,16 @@ export default function Navbar() {
         <nav className="nav-links">
           <a href="/" className="nav-link">Home</a>
 
-          {/* Tournaments dropdown (hover on desktop, tap on mobile) */}
+          {/* Tournaments dropdown (hover-friendly) */}
           <div
             className="nav-link"
             ref={tournRef}
             style={{ position: "relative" }}
-            onMouseEnter={onTournMouseEnter}
-            onMouseLeave={onTournMouseLeave}
+            onMouseEnter={() => isHoverCapable && openTournaments()}
+            onMouseLeave={() => isHoverCapable && maybeCloseTournaments()}
           >
             <button
-              onClick={onTournToggleClick}
+              onClick={toggleTournamentsOnClick}
               aria-haspopup="menu"
               aria-expanded={tournOpen}
               style={{
@@ -104,6 +112,7 @@ export default function Navbar() {
             {tournOpen && (
               <div
                 role="menu"
+                // No vertical gap; sits flush under the trigger to prevent accidental mouseleave
                 style={{
                   position: "absolute",
                   top: "100%",
@@ -114,8 +123,9 @@ export default function Navbar() {
                   overflow: "hidden",
                   minWidth: 180,
                   zIndex: 60,
-                  marginTop: 6,
                 }}
+                onMouseEnter={() => isHoverCapable && openTournaments()}
+                onMouseLeave={() => isHoverCapable && maybeCloseTournaments()}
               >
                 <a
                   href="/valorant"
@@ -125,10 +135,6 @@ export default function Navbar() {
                 >
                   Valorant
                 </a>
-                {/* Add more games here later, e.g.:
-                <a href="/tft" className="nav-link" style={dropdownItem}>Teamfight Tactics</a>
-                <a href="/lol" className="nav-link" style={dropdownItem}>League of Legends</a>
-                */}
               </div>
             )}
           </div>
@@ -157,7 +163,7 @@ export default function Navbar() {
               ref={profileRef}
             >
               <button
-                onClick={() => setMenuOpen((v) => !v)}
+                onClick={() => setMenuOpen(v => !v)}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 style={{
