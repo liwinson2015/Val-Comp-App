@@ -1,4 +1,4 @@
-// pages/account/registrations.js
+// /pages/account/registrations.js
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
@@ -45,7 +45,9 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  const rawRegs = Array.isArray(player.registeredFor) ? player.registeredFor : [];
+  const rawRegs = Array.isArray(player.registeredFor)
+    ? player.registeredFor
+    : [];
 
   // Enrich from catalog (your DB only stores tournamentId, ign, rank, createdAt)
   const registrations = rawRegs.map((r) => {
@@ -62,11 +64,41 @@ export async function getServerSideProps({ req }) {
     };
   });
 
-  return { props: { registrations } };
+  return { props: { registrations, player } };
 }
 
-export default function MyRegistrations({ registrations }) {
+export default function MyRegistrations({ registrations, player }) {
   const count = registrations.length;
+
+  // Handle cancel
+  async function handleCancel(tournamentId) {
+    const confirmCancel = confirm(
+      "Are you sure you want to cancel your registration?"
+    );
+    if (!confirmCancel) return;
+
+    try {
+      const res = await fetch("/api/registration/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tournamentId,
+          discordTag: player.discordTag,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Registration canceled successfully.");
+        window.location.reload();
+      } else {
+        alert(data.error || "Failed to cancel registration.");
+      }
+    } catch (err) {
+      console.error("Cancel error:", err);
+      alert("Something went wrong. Try again later.");
+    }
+  }
 
   return (
     <div className={styles.shell}>
@@ -82,7 +114,7 @@ export default function MyRegistrations({ registrations }) {
           </div>
         </section>
 
-        {/* Section header above cards */}
+        {/* Section header */}
         <div
           style={{
             display: "flex",
@@ -132,7 +164,14 @@ export default function MyRegistrations({ registrations }) {
               </div>
 
               {/* Chips */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 6,
+                }}
+              >
                 {r.game && <span className="chip">{r.game}</span>}
                 {r.mode && <span className="chip">{r.mode}</span>}
                 {r.status && (
@@ -150,7 +189,10 @@ export default function MyRegistrations({ registrations }) {
               </div>
 
               {/* Info grid */}
-              <div className={styles.detailGrid} style={{ marginTop: 8 }}>
+              <div
+                className={styles.detailGrid}
+                style={{ marginTop: 8, alignItems: "center" }}
+              >
                 <div className={styles.detailLabel}>Tournament ID</div>
                 <div className={styles.detailValue}>#{r.id}</div>
 
@@ -158,7 +200,7 @@ export default function MyRegistrations({ registrations }) {
                 <div className={styles.detailValue}>
                   {r.start
                     ? new Date(r.start).toLocaleString("en-US", {
-                        timeZone: "America/New_York", // lock display to ET
+                        timeZone: "America/New_York",
                         year: "numeric",
                         month: "short",
                         day: "numeric",
@@ -169,14 +211,35 @@ export default function MyRegistrations({ registrations }) {
                     : "TBD"}
                 </div>
 
-                <div className={styles.detailLabel}>Links</div>
-                <div className={styles.detailValue} style={{ display: "flex", gap: 14 }}>
+                <div
+                  className={styles.detailLabel}
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  Links
+                </div>
+                <div
+                  className={styles.detailValue}
+                  style={{ display: "flex", gap: 14, flexWrap: "wrap" }}
+                >
                   <a href={r.detailsUrl} className={styles.linkAccent}>
                     View details →
                   </a>
                   <a href={r.bracketUrl} className={styles.linkAccent}>
                     View bracket →
                   </a>
+                  <button
+                    onClick={() => handleCancel(r.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#ff4655",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Cancel registration ✖
+                  </button>
                 </div>
               </div>
             </section>
@@ -186,7 +249,9 @@ export default function MyRegistrations({ registrations }) {
         {/* Footer */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
+            <div className={styles.footerBrand}>
+              VALCOMP — community-run Valorant events
+            </div>
             <div className={styles.footerSub}>
               Brackets, paid prize pools, and leaderboards coming soon.
             </div>
@@ -207,6 +272,9 @@ export default function MyRegistrations({ registrations }) {
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.02em;
+        }
+        button:hover {
+          color: #ff7a85;
         }
       `}</style>
     </div>
