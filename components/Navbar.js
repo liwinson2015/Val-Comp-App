@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/router"; // ✅ add this
 
 export default function Navbar() {
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,8 @@ export default function Navbar() {
 
   const profileRef = useRef(null);
   const tournRef = useRef(null);
+
+  const router = useRouter(); // ✅ add this
 
   useEffect(() => {
     let ignore = false;
@@ -253,7 +256,7 @@ export default function Navbar() {
             </div>
           ) : (
             <a
-              href="/api/auth/discord"
+              href={`/api/auth/discord?next=${encodeURIComponent(router.asPath || "/")}`} // ✅ updated
               className="nav-link login-link"
               style={{
                 background: "#5865F2",

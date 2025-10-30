@@ -28,7 +28,9 @@ export default function BracketPage() {
         if (!ignore) setLoading(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   return (
@@ -51,11 +53,11 @@ export default function BracketPage() {
           {!loading && !loggedIn && (
             <>
               <p style={{ color: "#cbd5e1", marginTop: 0 }}>
-                <strong>Log in</strong> to view brackets and your registration!
+                <strong>Log in</strong> to view your brackets and registrations.
               </p>
               <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <a
-                  href="/api/auth/discord"
+                  href={`/api/auth/discord?next=${encodeURIComponent("/valorant/bracket")}`}
                   style={{
                     display: "inline-block",
                     background: "#5865F2",
@@ -100,10 +102,9 @@ export default function BracketPage() {
                   marginBottom: "1rem",
                 }}
               >
-                Below is the current list of players who are registered for{" "}
-                <strong>Valorant Solo Skirmish #1</strong>.
+                Below is the current status of your registrations and brackets.
                 <br />
-                Bracket coming soon. Seeding will be randomized before the event.
+                Brackets publish close to start time; seeding is randomized.
               </p>
 
               {/* Registered Players List */}
