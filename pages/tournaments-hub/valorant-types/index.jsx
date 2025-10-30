@@ -1,40 +1,44 @@
 import Link from "next/link";
 
-export default function Valorant1v1ListPage() {
+export default function ValorantTypesPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-3xl font-bold">Valorant 1v1 Tournaments</h1>
-      <p className="mt-2 text-gray-600">
-        Browse upcoming Valorant 1v1 tournaments below.
+      <h1 className="text-3xl font-bold">Valorant Tournament Formats</h1>
+      <p className="mt-2 text-gray-400">
+        Choose a format to explore upcoming events.
       </p>
 
-      <div className="mt-8 grid gap-6">
-        {/* Example tournament card */}
-        <div className="rounded-2xl border p-6 shadow-sm hover:shadow-md transition">
-          <h2 className="text-xl font-semibold">
-            Valorant Skirmish Tournament #1
-          </h2>
-          <p className="mt-2 text-gray-600">
-            Hosted by 5TQ • Starts November 2nd, 2025
-          </p>
-          <p className="mt-2 text-sm text-gray-500">
-            Format: 1v1 • Single Elimination
-          </p>
-
-          <div className="mt-4 flex gap-3">
-            <Link
-              href="/valorant/register?t=valorant-skirmish-1"
-              className="inline-block bg-black text-white px-4 py-2 rounded-lg text-sm hover:opacity-90"
-            >
-              Register
-            </Link>
-            <Link
-              href="/tournaments-hub/valorant-types"
-              className="inline-block border px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
-            >
-              Back
-            </Link>
+      <div className="mt-8 grid gap-6 sm:grid-cols-3">
+        {/* 1v1 active */}
+        <Link
+          href="/tournaments-hub/valorant-types/1v1"
+          className="rounded-2xl border p-6 shadow-sm hover:shadow-md transition block"
+        >
+          <div className="text-sm uppercase tracking-wider text-gray-400">
+            Format
           </div>
+          <div className="mt-1 text-xl font-semibold">1v1 Duels</div>
+          <p className="mt-2 text-sm text-gray-500">
+            Solo aim battles — click to view tournaments.
+          </p>
+        </Link>
+
+        {/* 2v2 coming soon */}
+        <div className="rounded-2xl border p-6 shadow-sm opacity-60 cursor-not-allowed">
+          <div className="text-sm uppercase tracking-wider text-gray-400">
+            Format
+          </div>
+          <div className="mt-1 text-xl font-semibold">2v2</div>
+          <p className="mt-2 text-sm text-gray-500">Coming soon</p>
+        </div>
+
+        {/* 5v5 coming soon */}
+        <div className="rounded-2xl border p-6 shadow-sm opacity-60 cursor-not-allowed">
+          <div className="text-sm uppercase tracking-wider text-gray-400">
+            Format
+          </div>
+          <div className="mt-1 text-xl font-semibold">5v5</div>
+          <p className="mt-2 text-sm text-gray-500">Coming soon</p>
         </div>
       </div>
     </div>
