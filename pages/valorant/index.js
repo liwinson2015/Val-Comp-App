@@ -1,6 +1,6 @@
 // pages/valorant/index.js
 import React, { useEffect, useState } from "react";
-import styles from "../styles/Valorant.module.css";
+import styles from "../../styles/Valorant.module.css";
 
 export default function HomePage() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -15,7 +15,6 @@ export default function HomePage() {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Top intro / hero for the whole org */}
         <section className={styles.hero}>
           <div className={styles.heroInner}>
             <div className={styles.heroBadge}>5TQ GAMING TOURNAMENTS</div>
@@ -29,7 +28,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Active / upcoming games */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>CURRENT / UPCOMING EVENTS</h2>
@@ -42,11 +40,7 @@ export default function HomePage() {
               <br />
               <a
                 href="/valorant"
-                style={{
-                  color: "#ff4655",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                }}
+                style={{ color: "#ff4655", textDecoration: "none", fontWeight: 600 }}
               >
                 View details →
               </a>
@@ -56,14 +50,11 @@ export default function HomePage() {
             <div className={styles.detailValue}>
               Teamfight / League of Legends (Coming Soon).
               <br />
-              <span style={{ color: "#8b93a7", fontStyle: "italic" }}>
-                Not open yet
-              </span>
+              <span style={{ color: "#8b93a7", fontStyle: "italic" }}>Not open yet</span>
             </div>
           </div>
         </section>
 
-        {/* How it works section */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>HOW IT WORKS</h2>
@@ -73,20 +64,14 @@ export default function HomePage() {
             <li>We announce a bracket (like Valorant Solo Skirmish #1).</li>
             <li>You register using your in-game name and Discord.</li>
             <li>You show up at the start time. No-shows are replaced by subs.</li>
-            <li>
-              You play on stream / in lobby. Report score in Discord with
-              screenshot.
-            </li>
+            <li>You play on stream / in lobby. Report score in Discord with screenshot.</li>
             <li>Winner gets the prize (skin, etc.).</li>
           </ul>
         </section>
 
-        {/* Footer */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>
-              VALCOMP — community-run Valorant events
-            </div>
+            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
             <div className={styles.footerSub}>
               More brackets, paid prize pools, and leaderboards coming soon.
             </div>
