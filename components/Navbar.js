@@ -4,9 +4,21 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
 
+  // Dropdown state
+  const [menuOpen, setMenuOpen] = useState(false);   // profile dropdown
+  const [tournOpen, setTournOpen] = useState(false); // tournaments dropdown
+  const profileRef = useRef(null);
+  const tournRef = useRef(null);
+
+  // Detect “hover-capable” pointer (desktop) vs touch
+  const [isHoverCapable, setIsHoverCapable] = useState(false);
+
+  useEffect(() => {
+    setIsHoverCapable(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  }, []);
+
+  // Load user session
   useEffect(() => {
     let ignore = false;
 
@@ -19,17 +31,16 @@ export default function Navbar() {
           setUser(data.user || null);
           setLoading(false);
         }
-      } catch (err) {
+      } catch {
         if (!ignore) setLoading(false);
       }
     }
-
     checkUser();
 
+    // Close dropdowns on outside click
     const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) setMenuOpen(false);
+      if (tournRef.current && !tournRef.current.contains(e.target)) setTournOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
@@ -43,6 +54,11 @@ export default function Navbar() {
       ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64`
       : null;
 
+  // Hover handlers for desktop; no-ops on touch
+  const onTournMouseEnter = () => { if (isHoverCapable) setTournOpen(true); };
+  const onTournMouseLeave = () => { if (isHoverCapable) setTournOpen(false); };
+  const onTournToggleClick = () => { if (!isHoverCapable) setTournOpen((v) => !v); };
+
   return (
     <header className="nav-shell">
       <div className="nav-inner">
@@ -55,10 +71,71 @@ export default function Navbar() {
         {/* Links */}
         <nav className="nav-links">
           <a href="/" className="nav-link">Home</a>
-          <a href="/valorant" className="nav-link">Valorant</a>
+
+          {/* Tournaments dropdown (hover on desktop, tap on mobile) */}
+          <div
+            className="nav-link"
+            ref={tournRef}
+            style={{ position: "relative" }}
+            onMouseEnter={onTournMouseEnter}
+            onMouseLeave={onTournMouseLeave}
+          >
+            <button
+              onClick={onTournToggleClick}
+              aria-haspopup="menu"
+              aria-expanded={tournOpen}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "none",
+                border: "none",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+              }}
+            >
+              Tournaments
+              <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
+              </svg>
+            </button>
+
+            {tournOpen && (
+              <div
+                role="menu"
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  backgroundColor: "#1a1a1a",
+                  border: "1px solid #333",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  minWidth: 180,
+                  zIndex: 60,
+                  marginTop: 6,
+                }}
+              >
+                <a
+                  href="/valorant"
+                  className="nav-link"
+                  style={dropdownItem}
+                  onClick={() => setTournOpen(false)}
+                >
+                  Valorant
+                </a>
+                {/* Add more games here later, e.g.:
+                <a href="/tft" className="nav-link" style={dropdownItem}>Teamfight Tactics</a>
+                <a href="/lol" className="nav-link" style={dropdownItem}>League of Legends</a>
+                */}
+              </div>
+            )}
+          </div>
+
           <a href="/valorant/bracket" className="nav-link">Bracket</a>
 
-          {/* Discord link only when logged in (and not while loading) */}
+          {/* Discord only when logged in */}
           {!loading && loggedIn && (
             <a
               href="https://discord.gg/qUzCCK8nuc"
@@ -77,10 +154,12 @@ export default function Navbar() {
             <div
               className="nav-link profile-dropdown"
               style={{ position: "relative" }}
-              ref={menuRef}
+              ref={profileRef}
             >
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -115,30 +194,26 @@ export default function Navbar() {
                   />
                 )}
                 <span>{user?.username || "Profile"}</span>
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  style={{ marginLeft: 2 }}
-                >
+                <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
                 </svg>
               </button>
 
               {menuOpen && (
                 <div
-                      style={{
-                        position: "absolute",
-                        right: 0,
-                        top: "100%",
-                        backgroundColor: "#1a1a1a",
-                        border: "1px solid #333",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        minWidth: "180px",
-                        zIndex: 50,
-                      }}
+                  role="menu"
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "100%",
+                    backgroundColor: "#1a1a1a",
+                    border: "1px solid #333",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    minWidth: "180px",
+                    zIndex: 70,
+                    marginTop: 6,
+                  }}
                 >
                   <a href="/profile" className="nav-link" style={dropdownItem}>
                     View Profile
