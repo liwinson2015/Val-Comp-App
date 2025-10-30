@@ -5,7 +5,6 @@ export default function Navbar() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // dropdowns
   const [profileOpen, setProfileOpen] = useState(false);
   const [tournOpen, setTournOpen] = useState(false);
 
@@ -29,21 +28,20 @@ export default function Navbar() {
       }
     })();
 
-    function handleOutside(e) {
+    const handleOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
       }
       if (tournRef.current && !tournRef.current.contains(e.target)) {
         setTournOpen(false);
       }
-    }
-
-    function handleEsc(e) {
+    };
+    const handleEsc = (e) => {
       if (e.key === "Escape") {
         setProfileOpen(false);
         setTournOpen(false);
       }
-    }
+    };
 
     document.addEventListener("mousedown", handleOutside);
     document.addEventListener("keydown", handleEsc);
@@ -62,12 +60,7 @@ export default function Navbar() {
   return (
     <header
       className="nav-shell"
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 2000, // keep menus above other content
-        background: "transparent",
-      }}
+      style={{ position: "sticky", top: 0, zIndex: 2000, background: "transparent" }}
     >
       <div className="nav-inner" style={{ position: "relative" }}>
         {/* Brand */}
@@ -77,14 +70,11 @@ export default function Navbar() {
         </div>
 
         {/* Links */}
-        <nav className="nav-links" style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
+        <nav className="nav-links" style={{ overflow: "visible", position: "relative", zIndex: 1, display: "flex", gap: 14 }}>
           <a href="/" className="nav-link">Home</a>
 
-          {/* Tournaments dropdown (click-only) */}
-          <div
-            ref={tournRef}
-            style={{ position: "relative", display: "inline-block" }}
-          >
+          {/* Tournaments dropdown */}
+          <div ref={tournRef} style={{ position: "relative", display: "inline-block" }}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -103,6 +93,8 @@ export default function Navbar() {
                 color: "white",
                 cursor: "pointer",
                 fontSize: "0.9rem",
+                position: "relative",
+                zIndex: 2,
               }}
             >
               Tournaments
@@ -116,29 +108,25 @@ export default function Navbar() {
                 role="menu"
                 style={{
                   position: "absolute",
-                  top: "calc(100% + 6px)",     // a small gap so cursor never hits other tabs
-                  left: 0,                      // align to left of trigger to avoid sitting under other nav items
+                  top: "calc(100% + 6px)",
+                  right: 0,                 // ⬅️ anchor to right edge so it opens LEFT (away from Bracket)
+                  left: "auto",
+                  width: 160,               // compact so it never reaches Bracket
                   backgroundColor: "#1a1a1a",
                   border: "1px solid #333",
                   borderRadius: 8,
                   overflow: "hidden",
-                  minWidth: 180,
                   whiteSpace: "nowrap",
-                  zIndex: 3000,                 // sit above other nav links
+                  zIndex: 3000,
                   boxShadow: "0 10px 30px rgba(0,0,0,.45)",
-                  pointerEvents: "auto",
                 }}
-                onClick={(e) => e.stopPropagation()} // prevent outside click handler from closing before link fires
+                onClick={(e) => e.stopPropagation()}
               >
-                {/* Valorant tournaments only (removed HoK for now) */}
                 <a
                   href="/tournaments-hub/valorant-types"
                   className="nav-link"
                   style={dropdownItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTournOpen(false);
-                  }}
+                  onClick={() => setTournOpen(false)}
                 >
                   Valorant
                 </a>
@@ -148,7 +136,6 @@ export default function Navbar() {
 
           <a href="/valorant/bracket" className="nav-link">Bracket</a>
 
-          {/* Discord only when logged in */}
           {!loading && loggedIn && (
             <a
               href="https://discord.gg/qUzCCK8nuc"
@@ -160,15 +147,11 @@ export default function Navbar() {
             </a>
           )}
 
-          {/* Right side (Login or Profile) */}
+          {/* Right side */}
           {loading ? (
             <span className="nav-link" style={{ opacity: 0.6 }}>...</span>
           ) : loggedIn ? (
-            <div
-              className="nav-link profile-dropdown"
-              style={{ position: "relative", display: "inline-block" }}
-              ref={profileRef}
-            >
+            <div className="nav-link profile-dropdown" style={{ position: "relative", display: "inline-block" }} ref={profileRef}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -201,14 +184,7 @@ export default function Navbar() {
                     }}
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "6px",
-                      background: "#2e2e2e",
-                    }}
-                  />
+                  <div style={{ width: 28, height: 28, borderRadius: "6px", background: "#2e2e2e" }} />
                 )}
                 <span>{user?.username || "Profile"}</span>
                 <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -227,17 +203,15 @@ export default function Navbar() {
                     border: "1px solid #333",
                     borderRadius: "8px",
                     overflow: "hidden",
-                    minWidth: "180px",
+                    minWidth: 180,
                     zIndex: 3000,
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <a href="/profile" className="nav-link" style={dropdownItem}
-                     onClick={() => setProfileOpen(false)}>
+                  <a href="/profile" className="nav-link" style={dropdownItem} onClick={() => setProfileOpen(false)}>
                     View Profile
                   </a>
-                  <a href="/valorant/register" className="nav-link" style={dropdownItem}
-                     onClick={() => setProfileOpen(false)}>
+                  <a href="/valorant/register" className="nav-link" style={dropdownItem} onClick={() => setProfileOpen(false)}>
                     My Registration
                   </a>
                   <a
