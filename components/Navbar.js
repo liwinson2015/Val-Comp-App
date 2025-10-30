@@ -57,14 +57,18 @@ export default function Navbar() {
           <a href="/" className="nav-link">Home</a>
           <a href="/valorant" className="nav-link">Valorant</a>
           <a href="/valorant/bracket" className="nav-link">Bracket</a>
-          <a
-            href="https://discord.gg/qUzCCK8nuc"
-            className="nav-link external"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Discord
-          </a>
+
+          {/* Discord link only when logged in (and not while loading) */}
+          {!loading && loggedIn && (
+            <a
+              href="https://discord.gg/qUzCCK8nuc"
+              className="nav-link external"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+          )}
 
           {/* Right side (Login or Profile) */}
           {loading ? (
@@ -124,17 +128,17 @@ export default function Navbar() {
 
               {menuOpen && (
                 <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "100%",
-                    backgroundColor: "#1a1a1a",
-                    border: "1px solid #333",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    minWidth: "180px",
-                    zIndex: 50,
-                  }}
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: "100%",
+                        backgroundColor: "#1a1a1a",
+                        border: "1px solid #333",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        minWidth: "180px",
+                        zIndex: 50,
+                      }}
                 >
                   <a href="/profile" className="nav-link" style={dropdownItem}>
                     View Profile
