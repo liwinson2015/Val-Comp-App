@@ -3,6 +3,21 @@
 import Player from "../../../models/Player.js";
 import { connectToDatabase } from "../../../lib/mongodb.js";
 
+function parseCookies(header = "") {
+  return Object.fromEntries(
+    header
+      .split(";")
+      .map(v => v.trim())
+      .filter(Boolean)
+      .map(kv => {
+        const i = kv.indexOf("=");
+        const k = i >= 0 ? kv.slice(0, i) : kv;
+        const v = i >= 0 ? kv.slice(i + 1) : "";
+        try { return [k, decodeURIComponent(v)]; } catch { return [k, v]; }
+      })
+  );
+}
+
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
@@ -60,20 +75,35 @@ export default async function handler(req, res) {
       { upsert: true, new: true }
     );
 
-    // 5) Set cookie (persist 30 days; Secure only in prod)
+    // 5) Set session cookie (persist 30 days; Secure only in prod)
     const isProd = process.env.NODE_ENV === "production";
-    const cookieParts = [
+    const sessionCookie = [
       `playerId=${encodeURIComponent(playerDoc._id.toString())}`,
       "Path=/",
       "HttpOnly",
       "SameSite=Lax",
       "Max-Age=2592000", // 30 days
-    ];
-    if (isProd) cookieParts.push("Secure"); // don't set Secure on localhost
-    res.setHeader("Set-Cookie", cookieParts.join("; "));
+      isProd ? "Secure" : null,
+    ].filter(Boolean).join("; ");
 
-    // 6) Redirect to register page
-    res.writeHead(302, { Location: "/valorant/register" });
+    // read the post-login redirect cookie (set by /api/auth/discord)
+    const cookies = parseCookies(req.headers.cookie);
+    const next = cookies.post_login_redirect || "/";
+
+    // clear the post-login cookie
+    const clearPostLogin = [
+      "post_login_redirect=;",
+      "Path=/",
+      "Max-Age=0",
+      "SameSite=Lax",
+      "HttpOnly",
+      isProd ? "Secure" : null,
+    ].filter(Boolean).join("; ");
+
+    res.setHeader("Set-Cookie", [sessionCookie, clearPostLogin]);
+
+    // 6) Redirect back to where the user started (fallback to /)
+    res.writeHead(302, { Location: next });
     return res.end();
   } catch (err) {
     console.error("[callback] internal error:", err);

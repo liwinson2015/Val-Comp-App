@@ -1,27 +1,26 @@
 // pages/api/auth/discord.js
-//
-// This route starts the Discord login flow.
-// When someone visits /api/auth/discord, we redirect them
-// to Discord's OAuth2 "Authorize this app" screen.
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const clientId = process.env.DISCORD_CLIENT_ID;
+  const redirectUri = process.env.DISCORD_REDIRECT_URI; // must match Discord portal exactly
+  const scope = "identify";
 
-  // IMPORTANT:
-  // 1. Must be EXACTLY the same as in Discord Dev Portal redirect list
-  // 2. Must be EXACTLY the same value used in callback.js
-  // 3. Must be HTTPS in production
-  const redirectUri = encodeURIComponent(process.env.DISCORD_REDIRECT_URI);
+  // Figure out where to go AFTER login (e.g., /valorant/register or /valorant/bracket)
+  const next = typeof req.query.next === "string" ? req.query.next : "/";
 
-  // We just need to read basic user identity.
-  const scope = encodeURIComponent("identify");
+  // Save that target page temporarily in a cookie (10 minutes)
+  res.setHeader("Set-Cookie", [
+    `post_login_redirect=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax; HttpOnly`,
+  ]);
 
-  const discordAuthUrl =
-    "https://discord.com/api/oauth2/authorize" +
-    `?client_id=${clientId}` +
-    `&redirect_uri=${redirectUri}` +
-    `&response_type=code` +
-    `&scope=${scope}`;
+  // Build the OAuth URL
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope,
+    prompt: "none",
+  });
 
-  res.redirect(discordAuthUrl);
+  // Redirect to Discord
+  res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 }
