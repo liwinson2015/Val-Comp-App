@@ -152,14 +152,7 @@ export default function Navbar() {
 
           <a href="/valorant/bracket" className="nav-link">Bracket</a>
 
-          {/* My Registrations (logged in) */}
-          {!loading && loggedIn && (
-            <a href="/account/registrations" className="nav-link">
-              My Registrations
-            </a>
-          )}
-
-          {/* Discord shortcut (logged in) */}
+          {/* Discord shortcut (only when logged in) */}
           {!loading && loggedIn && (
             <a
               href="https://discord.gg/qUzCCK8nuc"
