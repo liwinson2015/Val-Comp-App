@@ -64,13 +64,13 @@ export async function getServerSideProps({ req }) {
     };
   });
 
-  return { props: { registrations, player } };
+  return { props: { registrations } };
 }
 
-export default function MyRegistrations({ registrations, player }) {
+export default function MyRegistrations({ registrations }) {
   const count = registrations.length;
 
-  // Handle cancel
+  // ✅ Updated handleCancel (no discordTag sent)
   async function handleCancel(tournamentId) {
     const confirmCancel = confirm(
       "Are you sure you want to cancel your registration?"
@@ -81,10 +81,7 @@ export default function MyRegistrations({ registrations, player }) {
       const res = await fetch("/api/registration/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tournamentId,
-          discordTag: player.discordTag,
-        }),
+        body: JSON.stringify({ tournamentId }), // 👈 only send tournamentId now
       });
       const data = await res.json();
 
