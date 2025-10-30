@@ -62,7 +62,7 @@ export default function Navbar() {
         <nav className="nav-links" style={{ overflow: "visible" }}>
           <a href="/" className="nav-link">Home</a>
 
-          {/* Tournaments (CLICK to open/close) */}
+          {/* Tournaments dropdown (click-only) */}
           <div
             ref={tournRef}
             style={{ position: "relative", display: "inline-block" }}
@@ -95,13 +95,16 @@ export default function Navbar() {
                 style={{
                   position: "absolute",
                   top: "calc(100% - 1px)",
-                  left: 0,
+                  left: "50%",
+                  transform: "translateX(-50%)",
                   backgroundColor: "#1a1a1a",
                   border: "1px solid #333",
                   borderRadius: 8,
                   overflow: "hidden",
-                  minWidth: 180,
+                  minWidth: "max-content",
+                  whiteSpace: "nowrap",
                   zIndex: 1000,
+                  boxShadow: "0 10px 30px rgba(0,0,0,.4)",
                 }}
               >
                 <a
@@ -112,7 +115,6 @@ export default function Navbar() {
                 >
                   Valorant
                 </a>
-                {/* Add more games later the same way */}
               </div>
             )}
           </div>
@@ -237,7 +239,7 @@ export default function Navbar() {
 
 const dropdownItem = {
   display: "block",
-  padding: "10px 12px",
+  padding: "8px 12px", // tighter padding
   textDecoration: "none",
   color: "white",
   fontSize: "0.9rem",
