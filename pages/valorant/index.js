@@ -1,26 +1,7 @@
-// pages/valorant/index.js
-import React, { useEffect, useState } from "react";
+import React from "react";
 import styles from "../styles/Valorant.module.css";
 
 export default function HomePage() {
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    let ignore = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/whoami");
-        const data = await res.json();
-        if (!ignore) setLoggedIn(!!data.loggedIn);
-      } catch {
-        if (!ignore) setLoggedIn(false);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
@@ -32,8 +13,7 @@ export default function HomePage() {
             <p className={styles.heroSubtitle}>
               Community-run competitive events. Hosted by 5TQ.
               <br />
-              Sign in, claim your slot, get placed into a live bracket. Prize
-              for the winner.
+              Sign in, claim your slot, get placed into a live bracket. Prize for the winner.
             </p>
           </div>
         </section>
@@ -55,44 +35,10 @@ export default function HomePage() {
                   color: "#ff4655",
                   textDecoration: "none",
                   fontWeight: 600,
-                  marginRight: 12,
                 }}
               >
                 View details →
               </a>
-
-              {/* 👇 Smart Register button */}
-              {loggedIn ? (
-                <a
-                  href="/valorant/register"
-                  style={{
-                    display: "inline-block",
-                    background: "#ff0046",
-                    color: "white",
-                    fontWeight: 700,
-                    padding: "6px 10px",
-                    borderRadius: 8,
-                    textDecoration: "none",
-                  }}
-                >
-                  Register
-                </a>
-              ) : (
-                <a
-                  href="/api/auth/discord"
-                  style={{
-                    display: "inline-block",
-                    background: "#5865F2",
-                    color: "white",
-                    fontWeight: 700,
-                    padding: "6px 10px",
-                    borderRadius: 8,
-                    textDecoration: "none",
-                  }}
-                >
-                  Log in to Register
-                </a>
-              )}
             </div>
 
             <div className={styles.detailLabel}>LEAGUE</div>
@@ -117,8 +63,7 @@ export default function HomePage() {
             <li>You register using your in-game name and Discord.</li>
             <li>You show up at the start time. No-shows are replaced by subs.</li>
             <li>
-              You play on stream / in lobby. Report score in Discord with
-              screenshot.
+              You play on stream / in lobby. Report score in Discord with screenshot.
             </li>
             <li>Winner gets the prize (skin, etc.).</li>
           </ul>
