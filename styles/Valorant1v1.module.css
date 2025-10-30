@@ -14,9 +14,7 @@
 }
 
 /* Hero */
-.hero {
-  margin: 10px 0 22px 0;
-}
+.hero { margin: 10px 0 22px 0; }
 .heroInner { text-align: left; }
 
 .heroBadge {
@@ -33,18 +31,8 @@
   box-shadow: 0 8px 30px rgba(255, 0, 70, 0.18);
 }
 
-.heroTitle {
-  margin: 10px 0 6px 0;
-  font-size: 34px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-}
-
-.heroSubtitle {
-  margin: 0;
-  color: #b6b8be;
-  font-size: 15px;
-}
+.heroTitle { margin: 10px 0 6px 0; font-size: 34px; font-weight: 900; letter-spacing: 0.02em; }
+.heroSubtitle { margin: 0; color: #b6b8be; font-size: 15px; }
 
 /* Red panel */
 .panel {
@@ -56,17 +44,11 @@
     radial-gradient(1400px 200px at 50% -40%, rgba(255, 0, 70, 0.24), rgba(255, 0, 70, 0) 60%),
     linear-gradient(180deg, rgba(26, 0, 0, 0.92), rgba(12, 0, 0, 0.95));
   border: 1px solid rgba(255, 0, 70, 0.27);
-  box-shadow:
-    0 0 0 1px rgba(255, 0, 70, 0.14) inset,
-    0 18px 60px rgba(255, 0, 70, 0.22);
+  box-shadow: 0 0 0 1px rgba(255, 0, 70, 0.14) inset, 0 18px 60px rgba(255, 0, 70, 0.22);
 }
 
 /* Card grid */
-.cardGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
+.cardGrid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
 /* Tournament card */
 .tCard {
@@ -77,15 +59,11 @@
   background: linear-gradient(180deg, rgba(48, 0, 12, 0.6), rgba(16, 0, 6, 0.85));
   padding: 18px;
   transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
-  box-shadow:
-    0 10px 28px rgba(255, 0, 70, 0.2),
-    inset 0 0 18px rgba(255, 0, 70, 0.16);
+  box-shadow: 0 10px 28px rgba(255, 0, 70, 0.2), inset 0 0 18px rgba(255, 0, 70, 0.16);
 }
 .tCard:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 18px 46px rgba(255, 0, 70, 0.3),
-    inset 0 0 24px rgba(255, 0, 70, 0.24);
+  box-shadow: 0 18px 46px rgba(255, 0, 70, 0.3), inset 0 0 24px rgba(255, 0, 70, 0.24);
   border-color: rgba(255, 0, 70, 0.48);
 }
 
@@ -113,19 +91,10 @@
   border-radius: 999px;
   background: rgba(255, 80, 110, 0.18);
 }
-.tTitle {
-  margin: 10px 0 4px 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-.tMeta {
-  margin: 0;
-  color: #c0c2c8;
-  font-size: 13.5px;
-}
+.tTitle { margin: 10px 0 4px 0; font-size: 22px; font-weight: 800; letter-spacing: 0.02em; }
+.tMeta { margin: 0; color: #c0c2c8; font-size: 13.5px; }
 
-/* Card body facts */
+/* Card body facts (table) */
 .tBody {
   margin-top: 12px;
   background: rgba(10, 10, 14, 0.6);
@@ -145,12 +114,7 @@
 .factValue { color: #e6e7eb; font-size: 13.5px; }
 
 /* Actions */
-.tActions {
-  margin-top: 14px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+.tActions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
 
 .primaryBtn {
   display: inline-block;
@@ -164,48 +128,32 @@
   font-size: 13px;
 }
 
-.secondaryBtn {
-  display: inline-block;
-  background: #1a1a1f;
-  color: #d4d6db;
-  font-weight: 700;
-  padding: 10px 14px;
-  border-radius: 10px;
-  text-decoration: none;
-  border: 1px solid #2b2f37;
-  font-size: 13px;
-}
-
-/* Info strip under panel (optional / legacy) */
-.infoRow {
-  margin-top: 22px;
-  display: grid;
-  grid-template-columns: 1fr;
+/* Glow pills row (inside card, BELOW .tActions) */
+.pillRow {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
-@media (min-width: 680px) {
-  .infoRow { grid-template-columns: repeat(3, 1fr); }
-}
-.infoItem {
-  background: #0f0f13;
-  border: 1px solid #1f2230;
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: flex;
-  justify-content: space-between;
+.pill {
+  display: inline-flex;
   align-items: center;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 58, 85, 0.10);
+  border: 1px solid rgba(255, 58, 85, 0.28);
+  color: #ffd9e0;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 24px rgba(255, 0, 70, 0.24);
+  backdrop-filter: blur(4px);
 }
-.infoLabel { color: #8b90a0; font-size: 13px; }
-.infoValue { color: #e6e7eb; font-weight: 700; font-size: 13.5px; }
+.pillLabel { opacity: 0.72; margin-right: 6px; font-weight: 700; }
+.pillValue { opacity: 0.98; }
 
-/* NEW: back button area outside the panel */
-.backBar {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-start;
-}
-
-/* NEW: ghost-style button (or reuse .secondaryBtn) */
+/* Bottom Back bar (outside the panel) */
+.backBar { margin-top: 16px; display: flex; justify-content: flex-start; }
 .ghostBtn {
   display: inline-block;
   background: rgba(255, 255, 255, 0.06);

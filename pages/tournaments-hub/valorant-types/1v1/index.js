@@ -1,12 +1,11 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import styles from "../../../../styles/Valorant1v1.module.css";
+import styles from "../../../../styles/Valorant1v1.module.css"; // adjust case to match your file
 
 export default function Valorant1v1ListPage() {
   const router = useRouter();
 
-  // Replace with DB fetch later
   const tournaments = [
     {
       id: "skirmish-1",
@@ -20,9 +19,8 @@ export default function Valorant1v1ListPage() {
       server: "NA (custom lobby)",
       maps: "Skirmish A / B / C (random)",
       rules: "No smurfing • No cheats",
-      detailsUrl: "/valorant", // point to your full info page
+      detailsUrl: "/valorant",
     },
-    // More events later
   ];
 
   return (
@@ -39,7 +37,7 @@ export default function Valorant1v1ListPage() {
           </div>
         </section>
 
-        {/* Red panel with cards */}
+        {/* Panel with cards */}
         <section className={styles.panel}>
           <div className={styles.cardGrid}>
             {tournaments.map((t) => (
@@ -52,7 +50,7 @@ export default function Valorant1v1ListPage() {
                   <p className={styles.tMeta}>Hosted by {t.host} • {t.start}</p>
                 </header>
 
-                {/* Body facts (moved Server/Maps/Rules INSIDE card) */}
+                {/* Table section */}
                 <div className={styles.tBody}>
                   <div className={styles.factRow}>
                     <div className={styles.factLabel}>Format</div>
@@ -66,46 +64,41 @@ export default function Valorant1v1ListPage() {
                     <div className={styles.factLabel}>Prize</div>
                     <div className={styles.factValue}>{t.prize}</div>
                   </div>
-                  <div className={styles.factRow}>
-                    <div className={styles.factLabel}>Server</div>
-                    <div className={styles.factValue}>{t.server}</div>
-                  </div>
-                  <div className={styles.factRow}>
-                    <div className={styles.factLabel}>Maps</div>
-                    <div className={styles.factValue}>{t.maps}</div>
-                  </div>
-                  <div className={styles.factRow}>
-                    <div className={styles.factLabel}>Rules</div>
-                    <div className={styles.factValue}>{t.rules}</div>
-                  </div>
                 </div>
 
-                {/* Actions: Register -> View details */}
+                {/* Primary action */}
                 <div className={styles.tActions}>
                   <Link href={t.detailsUrl} className={styles.primaryBtn}>
                     View details
                   </Link>
+                </div>
+
+                {/* Horizontal glow pills BELOW the button (inside the card) */}
+                <div className={styles.pillRow}>
+                  <div className={styles.pill}>
+                    <span className={styles.pillLabel}>Server</span>
+                    <span className={styles.pillValue}>{t.server}</span>
+                  </div>
+                  <div className={styles.pill}>
+                    <span className={styles.pillLabel}>Maps</span>
+                    <span className={styles.pillValue}>{t.maps}</span>
+                  </div>
+                  <div className={styles.pill}>
+                    <span className={styles.pillLabel}>Rules</span>
+                    <span className={styles.pillValue}>{t.rules}</span>
+                  </div>
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        {/* Back button OUTSIDE the panel, bottom-left */}
+        {/* Back outside panel */}
         <div className={styles.backBar}>
-          {/* Use styles.secondaryBtn if you prefer that look */}
           <button className={styles.ghostBtn} onClick={() => router.back()}>
             ← Back
           </button>
         </div>
-
-        {/* Optional informational row retained if you still want it below */}
-        {/* <div className={styles.infoRow}>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Example</span>
-            <span className={styles.infoValue}>Value</span>
-          </div>
-        </div> */}
       </div>
     </div>
   );
