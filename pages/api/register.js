@@ -5,6 +5,21 @@ import Player from "../../models/Player";
 import Registration from "../../models/Registration";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
+const TOURNAMENT_NAME = "Valorant Solo Skirmish #1";
+const TOURNAMENT_GAME = "VALORANT";
+const TOURNAMENT_MODE = "1v1";
+// optional future date if you have it, else leave null
+const TOURNAMENT_START = null; // e.g., "2025-11-02T23:00:00Z"
+
+function readCookies(req) {
+  const header = req.headers.cookie || "";
+  return Object.fromEntries(
+    header.split(";").filter(Boolean).map((c) => {
+      const [k, ...rest] = c.trim().split("=");
+      return [k, decodeURIComponent(rest.join("=") || "")];
+    })
+  );
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -14,51 +29,42 @@ export default async function handler(req, res) {
   try {
     await connectToDatabase();
 
-    // 1. Read the cookie to identify the player
-    const cookieHeader = req.headers.cookie || "";
-    const cookies = Object.fromEntries(
-      cookieHeader.split(";").map((c) => {
-        const [k, v] = c.trim().split("=");
-        return [k, decodeURIComponent(v || "")];
-      })
-    );
-
+    // 1) Identify player via cookie
+    const cookies = readCookies(req);
     const playerIdFromCookie = cookies.playerId || null;
-
     if (!playerIdFromCookie) {
       return res.status(401).json({ error: "Not logged in" });
     }
 
-    // 2. Verify player is valid
-    const player = await Player.findById(playerIdFromCookie).lean();
+    // 2) Verify player exists
+    const player = await Player.findById(playerIdFromCookie);
     if (!player) {
       return res.status(401).json({ error: "Invalid player" });
     }
 
-    // 3. Get form data
-    const { ign, rank } = req.body;
-
+    // 3) Read form data
+    const { ign, rank } = req.body || {};
     if (!ign || !rank) {
       return res.status(400).json({
         error: "Missing required fields (ign or rank)",
       });
     }
 
-    // 4. Check if already registered for this tournament
+    // 4) Check existing registration in the Registration collection
     const existing = await Registration.findOne({
       playerId: player._id,
       tournamentId: TOURNAMENT_ID,
     }).lean();
 
     if (existing) {
-      // They already registered. Frontend should redirect them to /valorant/already
+      // Already registered
       return res.status(409).json({
         error: "Already registered",
         registrationId: existing._id.toString(),
       });
     }
 
-    // 5. Create new registration
+    // 5) Create new registration (source of truth)
     const newReg = await Registration.create({
       playerId: player._id,
       tournamentId: TOURNAMENT_ID,
@@ -68,9 +74,32 @@ export default async function handler(req, res) {
       username: player.username || "",
     });
 
+    // 6) ALSO reflect this in Player.registeredFor so "My Registrations" can display it quickly
+    if (!Array.isArray(player.registeredFor)) player.registeredFor = [];
+
+    const alreadyInPlayer =
+      player.registeredFor.findIndex(
+        (r) => (r.id || r.tournamentId) === TOURNAMENT_ID
+      ) !== -1;
+
+    if (!alreadyInPlayer) {
+      player.registeredFor.push({
+        id: TOURNAMENT_ID,
+        name: TOURNAMENT_NAME,
+        game: TOURNAMENT_GAME,
+        mode: TOURNAMENT_MODE,
+        start: TOURNAMENT_START,
+        status: "open",
+        detailsUrl: "/valorant", // where the user can view the event page
+      });
+      await player.save();
+    }
+
     return res.status(200).json({
       success: true,
       registrationId: newReg._id.toString(),
+      // optional convenience payload:
+      registeredFor: player.registeredFor,
     });
   } catch (err) {
     console.error("Register API error:", err);
