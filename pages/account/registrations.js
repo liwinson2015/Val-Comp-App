@@ -4,16 +4,41 @@ import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import styles from "../../styles/Valorant.module.css";
 
-export async function getServerSideProps({ req, query }) {
-  const cookieHeader = req.headers.cookie || "";
-  const cookies = Object.fromEntries(
-    cookieHeader.split(";").filter(Boolean).map((c) => {
-      const [k, ...rest] = c.trim().split("=");
-      return [k, decodeURIComponent(rest.join("=") || "")];
-    })
+/**
+ * Minimal event catalog for UI metadata.
+ * You can move this to /lib/tournaments.js later and import it.
+ */
+const catalog = {
+  "VALO-SOLO-SKIRMISH-1": {
+    id: "VALO-SOLO-SKIRMISH-1",
+    name: "Valorant — Solo Skirmish #1",
+    game: "VALORANT",
+    mode: "1v1",
+    status: "open",
+    // Nov 2, 2025 — adjust time zone if you want a local time
+    start: "2025-11-02T00:00:00Z",
+    detailsUrl: "/valorant",
+    bracketUrl: "/valorant/bracket",
+  },
+};
+
+function parseCookies(cookieHeader = "") {
+  return Object.fromEntries(
+    cookieHeader
+      .split(";")
+      .filter(Boolean)
+      .map((c) => {
+        const [k, ...rest] = c.trim().split("=");
+        return [k, decodeURIComponent(rest.join("=") || "")];
+      })
   );
+}
+
+export async function getServerSideProps({ req }) {
+  const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
+  // Gate: must be logged in
   if (!playerId) {
     const next = "/account/registrations";
     return {
@@ -37,21 +62,26 @@ export async function getServerSideProps({ req, query }) {
     };
   }
 
-  const regs = Array.isArray(player.registeredFor) ? player.registeredFor : [];
+  const rawRegs = Array.isArray(player.registeredFor)
+    ? player.registeredFor
+    : [];
 
-  return {
-    props: {
-      registrations: regs.map((r) => ({
-        id: r.id || r.tournamentId || "",
-        name: r.name || "Tournament",
-        game: r.game || "",
-        mode: r.mode || "",
-        status: r.status || "open",
-        start: r.start || null,
-        detailsUrl: r.detailsUrl || "/valorant",
-      })),
-    },
-  };
+  // Enrich each registration with catalog metadata
+  const registrations = rawRegs.map((r) => {
+    const meta = catalog[r.tournamentId] || {};
+    return {
+      id: r.tournamentId || "",
+      name: meta.name || "Tournament",
+      game: meta.game || "—",
+      mode: meta.mode || "—",
+      status: meta.status || "—",
+      start: meta.start || null,
+      detailsUrl: meta.detailsUrl || "#",
+      bracketUrl: meta.bracketUrl || "#",
+    };
+  });
+
+  return { props: { registrations } };
 }
 
 export default function MyRegistrations({ registrations }) {
@@ -60,7 +90,7 @@ export default function MyRegistrations({ registrations }) {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Header / hero */}
+        {/* Hero */}
         <section className={styles.hero}>
           <div className={styles.heroInner}>
             <div className={styles.heroBadge}>Account</div>
@@ -71,7 +101,7 @@ export default function MyRegistrations({ registrations }) {
           </div>
         </section>
 
-        {/* Small strip above cards */}
+        {/* Section header above cards */}
         <div
           style={{
             display: "flex",
@@ -94,7 +124,7 @@ export default function MyRegistrations({ registrations }) {
               justifyContent: "center",
               width: 18,
               height: 18,
-              borderRadius: "999px",
+              borderRadius: 999,
               background: "#2a1013",
               color: "#ff8da0",
               border: "1px solid #511620",
@@ -106,7 +136,7 @@ export default function MyRegistrations({ registrations }) {
           </span>
         </div>
 
-        {/* Cards list */}
+        {/* List */}
         {count === 0 ? (
           <section className={styles.card}>
             <p style={{ color: "#cbd5e1", margin: 0 }}>
@@ -122,18 +152,20 @@ export default function MyRegistrations({ registrations }) {
 
               {/* Chips */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-                <span className="chip">{r.game}</span>
-                <span className="chip">{r.mode || "—"}</span>
-                <span
-                  className="chip"
-                  style={{
-                    background: "#12331a",
-                    borderColor: "#1e7f3a",
-                    color: "#b6f3c8",
-                  }}
-                >
-                  {r.status || "Open"}
-                </span>
+                {r.game && <span className="chip">{r.game}</span>}
+                {r.mode && <span className="chip">{r.mode}</span>}
+                {r.status && (
+                  <span
+                    className="chip"
+                    style={{
+                      background: "#12331a",
+                      borderColor: "#1e7f3a",
+                      color: "#b6f3c8",
+                    }}
+                  >
+                    {r.status}
+                  </span>
+                )}
               </div>
 
               {/* Info grid */}
@@ -157,7 +189,7 @@ export default function MyRegistrations({ registrations }) {
                   <a href={r.detailsUrl} className={styles.linkAccent}>
                     View details →
                   </a>
-                  <a href="/valorant/bracket" className={styles.linkAccent}>
+                  <a href={r.bracketUrl} className={styles.linkAccent}>
                     View bracket →
                   </a>
                 </div>
@@ -166,7 +198,7 @@ export default function MyRegistrations({ registrations }) {
           ))
         )}
 
-        {/* Optional footer */}
+        {/* Footer */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
             <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
@@ -178,7 +210,7 @@ export default function MyRegistrations({ registrations }) {
         </footer>
       </div>
 
-      {/* tiny CSS helper for chips without touching your module file */}
+      {/* Tiny chip helper without editing your module */}
       <style jsx global>{`
         .chip {
           display: inline-block;
