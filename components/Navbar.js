@@ -58,7 +58,7 @@ export default function Navbar() {
           <a href="/valorant" className="nav-link">Valorant</a>
           <a href="/valorant/bracket" className="nav-link">Bracket</a>
           <a
-            href="https://discord.gg/yuGpPr6MAa"
+            href="https://discord.gg/qUzCCK8nuc"
             className="nav-link external"
             target="_blank"
             rel="noopener noreferrer"
