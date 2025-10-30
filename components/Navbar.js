@@ -37,10 +37,20 @@ export default function Navbar() {
         setTournOpen(false);
       }
     }
+
+    function handleEsc(e) {
+      if (e.key === "Escape") {
+        setProfileOpen(false);
+        setTournOpen(false);
+      }
+    }
+
     document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleEsc);
     return () => {
       ignore = true;
       document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEsc);
     };
   }, []);
 
@@ -50,8 +60,16 @@ export default function Navbar() {
       : null;
 
   return (
-    <header className="nav-shell">
-      <div className="nav-inner">
+    <header
+      className="nav-shell"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 2000, // keep menus above other content
+        background: "transparent",
+      }}
+    >
+      <div className="nav-inner" style={{ position: "relative" }}>
         {/* Brand */}
         <div className="brand">
           <span className="brand-main">ValComp</span>
@@ -59,7 +77,7 @@ export default function Navbar() {
         </div>
 
         {/* Links */}
-        <nav className="nav-links" style={{ overflow: "visible" }}>
+        <nav className="nav-links" style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
           <a href="/" className="nav-link">Home</a>
 
           {/* Tournaments dropdown (click-only) */}
@@ -68,7 +86,11 @@ export default function Navbar() {
             style={{ position: "relative", display: "inline-block" }}
           >
             <button
-              onClick={() => setTournOpen((v) => !v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTournOpen((v) => !v);
+                setProfileOpen(false);
+              }}
               aria-haspopup="menu"
               aria-expanded={tournOpen}
               className="nav-link"
@@ -84,7 +106,7 @@ export default function Navbar() {
               }}
             >
               Tournaments
-              <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
+              <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
               </svg>
             </button>
@@ -94,36 +116,31 @@ export default function Navbar() {
                 role="menu"
                 style={{
                   position: "absolute",
-                  top: "calc(100% - 1px)",
-                  left: "50%",
-                  transform: "translateX(-50%)",
+                  top: "calc(100% + 6px)",     // a small gap so cursor never hits other tabs
+                  left: 0,                      // align to left of trigger to avoid sitting under other nav items
                   backgroundColor: "#1a1a1a",
                   border: "1px solid #333",
                   borderRadius: 8,
                   overflow: "hidden",
-                  minWidth: "max-content",
+                  minWidth: 180,
                   whiteSpace: "nowrap",
-                  zIndex: 1000,
-                  boxShadow: "0 10px 30px rgba(0,0,0,.4)",
+                  zIndex: 3000,                 // sit above other nav links
+                  boxShadow: "0 10px 30px rgba(0,0,0,.45)",
+                  pointerEvents: "auto",
                 }}
+                onClick={(e) => e.stopPropagation()} // prevent outside click handler from closing before link fires
               >
-                {/* Valorant tournaments link */}
+                {/* Valorant tournaments only (removed HoK for now) */}
                 <a
                   href="/tournaments-hub/valorant-types"
                   className="nav-link"
                   style={dropdownItem}
-                  onClick={() => setTournOpen(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTournOpen(false);
+                  }}
                 >
                   Valorant
-                </a>
-
-                {/* Example future games */}
-                <a
-                  href="#"
-                  className="nav-link"
-                  style={{ ...dropdownItem, opacity: 0.5, cursor: "not-allowed" }}
-                >
-                  Honor of Kings (coming soon)
                 </a>
               </div>
             )}
@@ -153,7 +170,11 @@ export default function Navbar() {
               ref={profileRef}
             >
               <button
-                onClick={() => setProfileOpen((v) => !v)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProfileOpen((v) => !v);
+                  setTournOpen(false);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={profileOpen}
                 style={{
@@ -190,7 +211,7 @@ export default function Navbar() {
                   />
                 )}
                 <span>{user?.username || "Profile"}</span>
-                <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
+                <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
                 </svg>
               </button>
@@ -207,19 +228,23 @@ export default function Navbar() {
                     borderRadius: "8px",
                     overflow: "hidden",
                     minWidth: "180px",
-                    zIndex: 1000,
+                    zIndex: 3000,
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <a href="/profile" className="nav-link" style={dropdownItem}>
+                  <a href="/profile" className="nav-link" style={dropdownItem}
+                     onClick={() => setProfileOpen(false)}>
                     View Profile
                   </a>
-                  <a href="/valorant/register" className="nav-link" style={dropdownItem}>
+                  <a href="/valorant/register" className="nav-link" style={dropdownItem}
+                     onClick={() => setProfileOpen(false)}>
                     My Registration
                   </a>
                   <a
                     href="/api/auth/logout"
                     className="nav-link"
                     style={{ ...dropdownItem, color: "#ff4c4c" }}
+                    onClick={() => setProfileOpen(false)}
                   >
                     Log out
                   </a>
