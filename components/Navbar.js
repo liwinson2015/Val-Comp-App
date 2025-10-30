@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/router"; // ✅ add this
+import { useRouter } from "next/router";
 
 export default function Navbar() {
   const [loading, setLoading] = useState(true);
@@ -12,8 +12,7 @@ export default function Navbar() {
 
   const profileRef = useRef(null);
   const tournRef = useRef(null);
-
-  const router = useRouter(); // ✅ add this
+  const router = useRouter();
 
   useEffect(() => {
     let ignore = false;
@@ -68,7 +67,7 @@ export default function Navbar() {
       style={{
         position: "sticky",
         top: 0,
-        zIndex: 2000, // keep menus above other content
+        zIndex: 2000,
         background: "transparent",
       }}
     >
@@ -80,7 +79,10 @@ export default function Navbar() {
         </div>
 
         {/* Links */}
-        <nav className="nav-links" style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
+        <nav
+          className="nav-links"
+          style={{ overflow: "visible", position: "relative", zIndex: 1 }}
+        >
           <a href="/" className="nav-link">Home</a>
 
           {/* Tournaments dropdown (click-only) */}
@@ -119,21 +121,20 @@ export default function Navbar() {
                 role="menu"
                 style={{
                   position: "absolute",
-                  top: "calc(100% + 6px)",     // a small gap so cursor never hits other tabs
-                  left: 0,                      // align to left of trigger to avoid sitting under other nav items
+                  top: "calc(100% + 6px)",
+                  left: 0,
                   backgroundColor: "#1a1a1a",
                   border: "1px solid #333",
                   borderRadius: 8,
                   overflow: "hidden",
                   minWidth: 180,
                   whiteSpace: "nowrap",
-                  zIndex: 3000,                 // sit above other nav links
+                  zIndex: 3000,
                   boxShadow: "0 10px 30px rgba(0,0,0,.45)",
                   pointerEvents: "auto",
                 }}
-                onClick={(e) => e.stopPropagation()} // prevent outside click handler from closing before link fires
+                onClick={(e) => e.stopPropagation()}
               >
-                {/* Valorant tournaments only (removed HoK for now) */}
                 <a
                   href="/tournaments-hub/valorant-types"
                   className="nav-link"
@@ -151,7 +152,14 @@ export default function Navbar() {
 
           <a href="/valorant/bracket" className="nav-link">Bracket</a>
 
-          {/* Discord only when logged in */}
+          {/* My Registrations (logged in) */}
+          {!loading && loggedIn && (
+            <a href="/account/registrations" className="nav-link">
+              My Registrations
+            </a>
+          )}
+
+          {/* Discord shortcut (logged in) */}
           {!loading && loggedIn && (
             <a
               href="https://discord.gg/qUzCCK8nuc"
@@ -239,9 +247,9 @@ export default function Navbar() {
                      onClick={() => setProfileOpen(false)}>
                     View Profile
                   </a>
-                  <a href="/valorant/register" className="nav-link" style={dropdownItem}
+                  <a href="/account/registrations" className="nav-link" style={dropdownItem}
                      onClick={() => setProfileOpen(false)}>
-                    My Registration
+                    My Registrations
                   </a>
                   <a
                     href="/api/auth/logout"
@@ -256,7 +264,7 @@ export default function Navbar() {
             </div>
           ) : (
             <a
-              href={`/api/auth/discord?next=${encodeURIComponent(router.asPath || "/")}`} // ✅ updated
+              href={`/api/auth/discord?next=${encodeURIComponent(router.asPath || "/")}`}
               className="nav-link login-link"
               style={{
                 background: "#5865F2",
