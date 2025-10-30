@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import styles from "../../../../styles/Valorant1v1.module.css"; // adjust case to match your file
+import styles from "../../../../styles/Valorant1v1.module.css"; // match your file case
 
 export default function Valorant1v1ListPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function Valorant1v1ListPage() {
           </div>
         </section>
 
-        {/* Panel with cards */}
+        {/* Panel */}
         <section className={styles.panel}>
           <div className={styles.cardGrid}>
             {tournaments.map((t) => (
@@ -66,34 +66,25 @@ export default function Valorant1v1ListPage() {
                   </div>
                 </div>
 
-                {/* Primary action */}
+                {/* Glow row ABOVE button */}
+                <div className={styles.pillRow}>
+                  <div className={styles.pill}>{t.server}</div>
+                  <div className={styles.pill}>{t.maps}</div>
+                  <div className={styles.pill}>{t.rules}</div>
+                </div>
+
+                {/* View details button */}
                 <div className={styles.tActions}>
                   <Link href={t.detailsUrl} className={styles.primaryBtn}>
                     View details
                   </Link>
-                </div>
-
-                {/* Horizontal glow pills BELOW the button (inside the card) */}
-                <div className={styles.pillRow}>
-                  <div className={styles.pill}>
-                    <span className={styles.pillLabel}>Server</span>
-                    <span className={styles.pillValue}>{t.server}</span>
-                  </div>
-                  <div className={styles.pill}>
-                    <span className={styles.pillLabel}>Maps</span>
-                    <span className={styles.pillValue}>{t.maps}</span>
-                  </div>
-                  <div className={styles.pill}>
-                    <span className={styles.pillLabel}>Rules</span>
-                    <span className={styles.pillValue}>{t.rules}</span>
-                  </div>
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        {/* Back outside panel */}
+        {/* Back button */}
         <div className={styles.backBar}>
           <button className={styles.ghostBtn} onClick={() => router.back()}>
             ← Back

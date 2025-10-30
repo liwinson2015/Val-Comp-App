@@ -44,7 +44,9 @@
     radial-gradient(1400px 200px at 50% -40%, rgba(255, 0, 70, 0.24), rgba(255, 0, 70, 0) 60%),
     linear-gradient(180deg, rgba(26, 0, 0, 0.92), rgba(12, 0, 0, 0.95));
   border: 1px solid rgba(255, 0, 70, 0.27);
-  box-shadow: 0 0 0 1px rgba(255, 0, 70, 0.14) inset, 0 18px 60px rgba(255, 0, 70, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(255, 0, 70, 0.14) inset,
+    0 18px 60px rgba(255, 0, 70, 0.22);
 }
 
 /* Card grid */
@@ -113,6 +115,32 @@
 .factLabel { color: #8b90a0; font-size: 13px; }
 .factValue { color: #e6e7eb; font-size: 13.5px; }
 
+/* Glow pill blocks (above button) */
+.pillRow {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: rgba(255, 58, 85, 0.10);
+  border: 1px solid rgba(255, 58, 85, 0.25);
+  color: #ffd9e0;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 6px 24px rgba(255, 0, 70, 0.25);
+  text-align: center;
+}
+.pill:hover {
+  background: rgba(255, 58, 85, 0.16);
+  border-color: rgba(255, 58, 85, 0.38);
+}
+
 /* Actions */
 .tActions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -128,31 +156,7 @@
   font-size: 13px;
 }
 
-/* Glow pills row (inside card, BELOW .tActions) */
-.pillRow {
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 999px;
-  background: rgba(255, 58, 85, 0.10);
-  border: 1px solid rgba(255, 58, 85, 0.28);
-  color: #ffd9e0;
-  font-weight: 700;
-  font-size: 12.5px;
-  letter-spacing: 0.02em;
-  box-shadow: 0 8px 24px rgba(255, 0, 70, 0.24);
-  backdrop-filter: blur(4px);
-}
-.pillLabel { opacity: 0.72; margin-right: 6px; font-weight: 700; }
-.pillValue { opacity: 0.98; }
-
-/* Bottom Back bar (outside the panel) */
+/* Bottom Back bar */
 .backBar { margin-top: 16px; display: flex; justify-content: flex-start; }
 .ghostBtn {
   display: inline-block;
