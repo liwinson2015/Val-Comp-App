@@ -5,22 +5,16 @@ export default function Navbar() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Dropdown state
-  const [menuOpen, setMenuOpen] = useState(false);   // profile dropdown
-  const [tournOpen, setTournOpen] = useState(false); // tournaments dropdown
+  // dropdowns
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [tournOpen, setTournOpen] = useState(false);
+
   const profileRef = useRef(null);
   const tournRef = useRef(null);
-  const closeTimerRef = useRef(null);
 
-  // Detect hover-capable pointer (desktop) vs touch
-  const [isHoverCapable, setIsHoverCapable] = useState(false);
-  useEffect(() => {
-    setIsHoverCapable(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
-  }, []);
-
-  // Session
   useEffect(() => {
     let ignore = false;
+
     (async () => {
       try {
         const res = await fetch("/api/whoami", { credentials: "same-origin" });
@@ -35,15 +29,18 @@ export default function Navbar() {
       }
     })();
 
-    const handleClickOutside = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) setMenuOpen(false);
-      if (tournRef.current && !tournRef.current.contains(e.target)) setTournOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
+    function handleOutside(e) {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+      if (tournRef.current && !tournRef.current.contains(e.target)) {
+        setTournOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
     return () => {
       ignore = true;
-      document.removeEventListener("mousedown", handleClickOutside);
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      document.removeEventListener("mousedown", handleOutside);
     };
   }, []);
 
@@ -51,20 +48,6 @@ export default function Navbar() {
     user?.avatar && user?.discordId
       ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64`
       : null;
-
-  // Hover helpers (with small delay)
-  const openTournaments = () => {
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    setTournOpen(true);
-  };
-  const maybeCloseTournaments = () => {
-    if (!isHoverCapable) return;
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = setTimeout(() => setTournOpen(false), 250);
-  };
-  const toggleTournamentsOnClick = () => {
-    if (!isHoverCapable) setTournOpen(v => !v); // touch devices
-  };
 
   return (
     <header className="nav-shell">
@@ -79,20 +62,13 @@ export default function Navbar() {
         <nav className="nav-links" style={{ overflow: "visible" }}>
           <a href="/" className="nav-link">Home</a>
 
-          {/* Tournaments dropdown wrapper */}
+          {/* Tournaments (CLICK to open/close) */}
           <div
             ref={tournRef}
-            // IMPORTANT: inline-block + position relative + overflow visible
-            style={{
-              position: "relative",
-              display: "inline-block",
-              overflow: "visible",
-            }}
-            onMouseEnter={() => isHoverCapable && openTournaments()}
-            onMouseLeave={() => isHoverCapable && maybeCloseTournaments()}
+            style={{ position: "relative", display: "inline-block" }}
           >
             <button
-              onClick={toggleTournamentsOnClick}
+              onClick={() => setTournOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={tournOpen}
               className="nav-link"
@@ -116,7 +92,6 @@ export default function Navbar() {
             {tournOpen && (
               <div
                 role="menu"
-                // Sits flush under the trigger. No vertical gap.
                 style={{
                   position: "absolute",
                   top: "calc(100% - 1px)",
@@ -128,8 +103,6 @@ export default function Navbar() {
                   minWidth: 180,
                   zIndex: 1000,
                 }}
-                onMouseEnter={() => isHoverCapable && openTournaments()}
-                onMouseLeave={() => isHoverCapable && maybeCloseTournaments()}
               >
                 <a
                   href="/valorant"
@@ -139,6 +112,7 @@ export default function Navbar() {
                 >
                   Valorant
                 </a>
+                {/* Add more games later the same way */}
               </div>
             )}
           </div>
@@ -167,9 +141,9 @@ export default function Navbar() {
               ref={profileRef}
             >
               <button
-                onClick={() => setMenuOpen(v => !v)}
+                onClick={() => setProfileOpen((v) => !v)}
                 aria-haspopup="menu"
-                aria-expanded={menuOpen}
+                aria-expanded={profileOpen}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -209,7 +183,7 @@ export default function Navbar() {
                 </svg>
               </button>
 
-              {menuOpen && (
+              {profileOpen && (
                 <div
                   role="menu"
                   style={{
