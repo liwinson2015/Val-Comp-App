@@ -8,16 +8,19 @@ const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const TOURNAMENT_NAME = "Valorant Solo Skirmish #1";
 const TOURNAMENT_GAME = "VALORANT";
 const TOURNAMENT_MODE = "1v1";
-// optional future date if you have it, else leave null
-const TOURNAMENT_START = null; // e.g., "2025-11-02T23:00:00Z"
+// ✅ Nov 2 (UTC; adjust if you have a specific local time)
+const TOURNAMENT_START = "2025-11-02T00:00:00Z";
 
 function readCookies(req) {
   const header = req.headers.cookie || "";
   return Object.fromEntries(
-    header.split(";").filter(Boolean).map((c) => {
-      const [k, ...rest] = c.trim().split("=");
-      return [k, decodeURIComponent(rest.join("=") || "")];
-    })
+    header
+      .split(";")
+      .filter(Boolean)
+      .map((c) => {
+        const [k, ...rest] = c.trim().split("=");
+        return [k, decodeURIComponent(rest.join("=") || "")];
+      })
   );
 }
 
@@ -42,29 +45,25 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid player" });
     }
 
-    // 3) Read form data
+    // 3) Form data
     const { ign, rank } = req.body || {};
     if (!ign || !rank) {
-      return res.status(400).json({
-        error: "Missing required fields (ign or rank)",
-      });
+      return res.status(400).json({ error: "Missing required fields (ign or rank)" });
     }
 
-    // 4) Check existing registration in the Registration collection
+    // 4) Prevent duplicates
     const existing = await Registration.findOne({
       playerId: player._id,
       tournamentId: TOURNAMENT_ID,
     }).lean();
-
     if (existing) {
-      // Already registered
       return res.status(409).json({
         error: "Already registered",
         registrationId: existing._id.toString(),
       });
     }
 
-    // 5) Create new registration (source of truth)
+    // 5) Create Registration (source of truth)
     const newReg = await Registration.create({
       playerId: player._id,
       tournamentId: TOURNAMENT_ID,
@@ -74,13 +73,10 @@ export default async function handler(req, res) {
       username: player.username || "",
     });
 
-    // 6) ALSO reflect this in Player.registeredFor so "My Registrations" can display it quickly
+    // 6) Mirror entry on Player for fast “My Registrations”
     if (!Array.isArray(player.registeredFor)) player.registeredFor = [];
-
     const alreadyInPlayer =
-      player.registeredFor.findIndex(
-        (r) => (r.id || r.tournamentId) === TOURNAMENT_ID
-      ) !== -1;
+      player.registeredFor.findIndex((r) => (r.id || r.tournamentId) === TOURNAMENT_ID) !== -1;
 
     if (!alreadyInPlayer) {
       player.registeredFor.push({
@@ -88,9 +84,9 @@ export default async function handler(req, res) {
         name: TOURNAMENT_NAME,
         game: TOURNAMENT_GAME,
         mode: TOURNAMENT_MODE,
-        start: TOURNAMENT_START,
+        start: TOURNAMENT_START,           // ✅ will show as Nov 2
         status: "open",
-        detailsUrl: "/valorant", // where the user can view the event page
+        detailsUrl: "/valorant",           // ✅ goes to event details page
       });
       await player.save();
     }
@@ -98,7 +94,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       registrationId: newReg._id.toString(),
-      // optional convenience payload:
       registeredFor: player.registeredFor,
     });
   } catch (err) {
