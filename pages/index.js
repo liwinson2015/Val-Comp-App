@@ -1,7 +1,26 @@
-import React from "react";
+// pages/valorant/index.js
+import React, { useEffect, useState } from "react";
 import styles from "../styles/Valorant.module.css";
 
 export default function HomePage() {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/whoami");
+        const data = await res.json();
+        if (!ignore) setLoggedIn(!!data.loggedIn);
+      } catch {
+        if (!ignore) setLoggedIn(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
@@ -36,10 +55,44 @@ export default function HomePage() {
                   color: "#ff4655",
                   textDecoration: "none",
                   fontWeight: 600,
+                  marginRight: 12,
                 }}
               >
                 View details →
               </a>
+
+              {/* 👇 Smart Register button */}
+              {loggedIn ? (
+                <a
+                  href="/valorant/register"
+                  style={{
+                    display: "inline-block",
+                    background: "#ff0046",
+                    color: "white",
+                    fontWeight: 700,
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                  }}
+                >
+                  Register
+                </a>
+              ) : (
+                <a
+                  href="/api/auth/discord"
+                  style={{
+                    display: "inline-block",
+                    background: "#5865F2",
+                    color: "white",
+                    fontWeight: 700,
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                  }}
+                >
+                  Log in to Register
+                </a>
+              )}
             </div>
 
             <div className={styles.detailLabel}>LEAGUE</div>

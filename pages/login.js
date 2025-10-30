@@ -1,8 +1,21 @@
-import React from "react";
+// pages/login.js
+import * as cookie from "cookie";
+
+export async function getServerSideProps({ req }) {
+  // Read cookies safely (works on Vercel/Linux)
+  const cookies = cookie?.parse ? cookie.parse(req.headers.cookie || "") : {};
+  const playerId = cookies.playerId || null;
+
+  // Already signed in → skip this page
+  if (playerId) {
+    return { redirect: { destination: "/valorant/register", permanent: false } };
+  }
+
+  // Not signed in → render the login card below
+  return { props: {} };
+}
 
 export default function LoginPage() {
-  // This will eventually point to our own API route that starts Discord login.
-  // For now we're just planning for it: /api/auth/discord
   const discordLoginUrl = "/api/auth/discord";
 
   return (
@@ -33,7 +46,7 @@ export default function LoginPage() {
         <h1
           style={{
             fontSize: "1.25rem",
-            fontWeight: "600",
+            fontWeight: 600,
             color: "#fff",
             marginBottom: "0.5rem",
             textAlign: "center",
@@ -46,7 +59,7 @@ export default function LoginPage() {
           style={{
             color: "rgba(255,255,255,0.6)",
             fontSize: "0.9rem",
-            lineHeight: "1.4",
+            lineHeight: 1.4,
             textAlign: "center",
             marginBottom: "1.5rem",
           }}
@@ -59,7 +72,7 @@ export default function LoginPage() {
           href={discordLoginUrl}
           style={{
             width: "100%",
-            backgroundColor: "#5865F2", // Discord blurple
+            backgroundColor: "#5865F2",
             color: "#fff",
             display: "flex",
             alignItems: "center",
@@ -72,13 +85,7 @@ export default function LoginPage() {
             boxShadow: "0 10px 30px rgba(88,101,242,0.4)",
           }}
         >
-          <span
-            style={{
-              marginRight: "0.5rem",
-              fontSize: "1.1rem",
-              lineHeight: 1,
-            }}
-          >
+          <span style={{ marginRight: "0.5rem", fontSize: "1.1rem", lineHeight: 1 }}>
             💬
           </span>
           Sign in with Discord
