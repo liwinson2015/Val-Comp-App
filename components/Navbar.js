@@ -107,13 +107,23 @@ export default function Navbar() {
                   boxShadow: "0 10px 30px rgba(0,0,0,.4)",
                 }}
               >
+                {/* Valorant tournaments link */}
                 <a
-                  href="/valorant"
+                  href="/tournaments-hub/valorant-types"
                   className="nav-link"
                   style={dropdownItem}
                   onClick={() => setTournOpen(false)}
                 >
                   Valorant
+                </a>
+
+                {/* Example future games */}
+                <a
+                  href="#"
+                  className="nav-link"
+                  style={{ ...dropdownItem, opacity: 0.5, cursor: "not-allowed" }}
+                >
+                  Honor of Kings (coming soon)
                 </a>
               </div>
             )}
@@ -239,7 +249,7 @@ export default function Navbar() {
 
 const dropdownItem = {
   display: "block",
-  padding: "8px 12px", // tighter padding
+  padding: "8px 12px",
   textDecoration: "none",
   color: "white",
   fontSize: "0.9rem",
