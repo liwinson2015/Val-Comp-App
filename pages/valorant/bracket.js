@@ -51,8 +51,7 @@ export default function BracketPage() {
           {!loading && !loggedIn && (
             <>
               <p style={{ color: "#cbd5e1", marginTop: 0 }}>
-                <strong>Log in</strong> to view brackets and your registration for{" "}
-                <strong>Valorant Solo Skirmish #1</strong>.
+                <strong>Log in</strong> to view brackets and your registration!
               </p>
               <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <a
