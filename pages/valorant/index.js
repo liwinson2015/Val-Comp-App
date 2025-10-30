@@ -1,115 +1,87 @@
-import React from "react";
-import styles from "../../styles/Valorant.module.css";
+// pages/valorant/index.js
+import React, { useEffect, useState } from "react";
+import styles from "../styles/Valorant.module.css";
 
-export default function ValorantTournament() {
+export default function HomePage() {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/whoami")
+      .then((r) => r.json())
+      .then((d) => setLoggedIn(!!d.loggedIn))
+      .catch(() => setLoggedIn(false));
+  }, []);
+
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* HERO / TOP Banner */}
+        {/* Top intro / hero for the whole org */}
         <section className={styles.hero}>
           <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>VALCOMP.GG // COMMUNITY EVENT</div>
-            <h1 className={styles.heroTitle}>VALORANT SOLO SKIRMISH #1</h1>
+            <div className={styles.heroBadge}>5TQ GAMING TOURNAMENTS</div>
+            <h1 className={styles.heroTitle}>Welcome to ValComp</h1>
             <p className={styles.heroSubtitle}>
-              16-player 1v1 bracket • Hosted by 5TQ • Winner gets a gun skin
+              Community-run competitive events. Hosted by 5TQ.
+              <br />
+              Sign in, claim your slot, get placed into a live bracket. Prize
+              for the winner.
             </p>
           </div>
         </section>
 
-        {/* EVENT DETAILS */}
+        {/* Active / upcoming games */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>EVENT DETAILS</h2>
-            <span className={styles.badgeRed}>FREE ENTRY</span>
+            <h2 className={styles.cardTitle}>CURRENT / UPCOMING EVENTS</h2>
           </div>
 
           <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>FORMAT</div>
+            <div className={styles.detailLabel}>VALORANT</div>
             <div className={styles.detailValue}>
-              16 players · Single Elim · 1v1 aim/skirmish
+              <strong>Solo Skirmish #1</strong> – 16-player 1v1, skin prize.
+              <br />
+              <a
+                href="/valorant"
+                style={{
+                  color: "#ff4655",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                View details →
+              </a>
             </div>
 
-            <div className={styles.detailLabel}>PRIZE</div>
+            <div className={styles.detailLabel}>LEAGUE</div>
             <div className={styles.detailValue}>
-              Valorant skin (up to $15 value)
+              Teamfight / League of Legends (Coming Soon).
+              <br />
+              <span style={{ color: "#8b93a7", fontStyle: "italic" }}>
+                Not open yet
+              </span>
             </div>
-
-            <div className={styles.detailLabel}>DATE</div>
-            <div className={styles.detailValue}>
-              November 2nd · 7:00 PM EST
-            </div>
-
-            <div className={styles.detailLabel}>REGION</div>
-            <div className={styles.detailValue}>NA servers</div>
           </div>
-
-          {/* ACTION BUTTONS */}
-          <div className={styles.buttonRow}>
-            {/* REGISTER:
-               Right now this always goes to /login.
-               Later we'll make this smart:
-               - if user IS logged in -> send them to /valorant/register
-               - if user is NOT logged in -> keep sending them to /login
-            */}
-            <a className={styles.btnRed} href="/login">
-              Register
-            </a>
-
-            {/* JOIN DISCORD:
-               Real invite to your server
-            */}
-            <a
-              className={styles.btnDark}
-              href="https://discord.gg/yuGpPr6MAa"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Join Discord
-            </a>
-          </div>
-
-          <p className={styles.smallNote}>
-            Registration is first come first served. 16 slots + 2 backup subs.
-            You must be available at start time or you'll be replaced.
-          </p>
         </section>
 
-        {/* BRACKET / STATUS */}
+        {/* How it works section */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>BRACKET / STATUS</h2>
-            <span className={styles.badgeGreen}>OPEN</span>
+            <h2 className={styles.cardTitle}>HOW IT WORKS</h2>
           </div>
 
-          <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>SLOTS</div>
-            <div className={styles.detailValueHighlight}>0 / 16</div>
-
-            <div className={styles.detailLabel}>BRACKET</div>
-            <div className={styles.detailValue}>Coming soon</div>
-
-            <div className={styles.detailLabel}>STREAM</div>
-            <div className={styles.detailValue}>[TBD]</div>
-          </div>
-        </section>
-
-        {/* CORE RULES */}
-        <section className={styles.card}>
-          <h2 className={styles.cardTitle}>CORE RULES</h2>
           <ul className={styles.rulesList}>
+            <li>We announce a bracket (like Valorant Solo Skirmish #1).</li>
+            <li>You register using your in-game name and Discord.</li>
+            <li>You show up at the start time. No-shows are replaced by subs.</li>
             <li>
-              1v1 custom lobby. First to 15 kills wins, but you must win by 2.
+              You play on stream / in lobby. Report score in Discord with
+              screenshot.
             </li>
-            <li>No scripts / macros / cheats. Instant DQ.</li>
-            <li>Players must screenshot final score and send to staff.</li>
-            <li>
-              Report results in Discord within 5 min of match ending.
-            </li>
-            <li>Winner receives the skin after verification.</li>
+            <li>Winner gets the prize (skin, etc.).</li>
           </ul>
         </section>
 
-        {/* FOOTER */}
+        {/* Footer */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
             <div className={styles.footerBrand}>
