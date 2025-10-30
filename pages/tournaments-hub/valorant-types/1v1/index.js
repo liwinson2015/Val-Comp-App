@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import styles from "../../../styles/Valorant1v1.module.css";
+import styles from "../../../../styles/Valorant1v1.module.css";
 
 export default function Valorant1v1ListPage() {
   const router = useRouter();
