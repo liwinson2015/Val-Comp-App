@@ -1,5 +1,5 @@
 // pages/valorant/register.js
-import cookie from "cookie";
+import * as cookie from "cookie";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import Registration from "../../models/Registration";
@@ -9,30 +9,34 @@ const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
 export async function getServerSideProps({ req }) {
   try {
-    // 1) Parse cookies safely
-    const cookies = cookie.parse(req.headers.cookie || "");
+    // 1️⃣ Parse cookies safely
+    const cookies = cookie?.parse
+      ? cookie.parse(req.headers.cookie || "")
+      : {};
     const playerId = cookies.playerId || null;
 
-    // 2) Gate: not logged in -> Discord auth
+    // 2️⃣ If not logged in → force Discord auth
     if (!playerId) {
       return { redirect: { destination: "/api/auth/discord", permanent: false } };
     }
 
-    // 3) DB + Player
+    // 3️⃣ Connect to DB
     await connectToDatabase();
+
+    // 4️⃣ Load player from DB
     const player = await Player.findById(playerId).lean();
     if (!player) {
       return { redirect: { destination: "/api/auth/discord", permanent: false } };
     }
 
-    // 4) Already-registered check (matches YOUR schemas)
-    // Registration uses { tournament, discordTag }
+    // 5️⃣ Check if this player already registered for this tourney
+    // Registration collection: { tournament, discordTag }
     const regByCollection = await Registration.findOne({
       tournament: TOURNAMENT_ID,
       discordTag: player.discordId,
     }).lean();
 
-    // Player has registeredFor[].tournamentId
+    // Player.registeredFor array
     const regByPlayerArray = Array.isArray(player.registeredFor)
       ? player.registeredFor.some((r) => r?.tournamentId === TOURNAMENT_ID)
       : false;
@@ -50,7 +54,7 @@ export async function getServerSideProps({ req }) {
     };
   } catch (err) {
     console.error("[register/gssp] ERROR:", err?.stack || err);
-    // Don’t 500 the page—render a soft error instead
+    // Don’t 500 — render soft error instead
     return {
       props: {
         gsspError: true,
@@ -76,7 +80,7 @@ export default function ValorantRegisterPage(props) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Soft error screen if GSSP threw
+  // 6️⃣ Fallback error UI
   if (gsspError) {
     return (
       <div style={{ minHeight: "100vh", background: "#0f0f0f", color: "white", padding: 24 }}>
@@ -106,14 +110,12 @@ export default function ValorantRegisterPage(props) {
 
       if (!res.ok) {
         if (res.status === 409) {
-          // duplicate
           window.location.href = "/valorant/already";
           return;
         }
         const text = await res.text();
         setMessage("Error: " + text);
       } else {
-        // first-time success
         window.location.href = "/valorant/success";
         return;
       }
