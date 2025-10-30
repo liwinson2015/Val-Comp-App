@@ -1,54 +1,47 @@
+// pages/valorant/register.js
+import cookie from "cookie";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-import Registration from "../../models/Registration"; // you need this model
+import Registration from "../../models/Registration";
 import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
 export async function getServerSideProps({ req }) {
-  // 1. Read cookie
-  const cookieHeader = req.headers.cookie || "";
-  const cookies = Object.fromEntries(
-    cookieHeader.split(";").map((c) => {
-      const [k, v] = c.trim().split("=");
-      return [k, decodeURIComponent(v || "")];
-    })
-  );
-
+  // 1) Read cookie safely
+  const cookies = cookie.parse(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
-  // 2. If not logged in -> force Discord auth
+  // 2) Gate: not logged in -> Discord auth
   if (!playerId) {
     return {
-      redirect: {
-        destination: "/api/auth/discord",
-        permanent: false,
-      },
+      redirect: { destination: "/api/auth/discord", permanent: false },
     };
   }
 
-  // 3. Connect DB
+  // 3) DB + load player
   await connectToDatabase();
-
-  // 4. Load player from DB
   const player = await Player.findById(playerId).lean();
-
   if (!player) {
     return {
-      redirect: {
-        destination: "/api/auth/discord",
-        permanent: false,
-      },
+      redirect: { destination: "/api/auth/discord", permanent: false },
     };
   }
 
-  // 5. Check if this player already registered for this tourney
-  const existingReg = await Registration.findOne({
-    playerId: player._id,
-    tournamentId: TOURNAMENT_ID,
+  // 4) Check if already registered
+  //    Match your confirm.js shape:
+  //    Registration has { tournament: <ID>, discordTag: <player.discordId> }
+  const regByCollection = await Registration.findOne({
+    tournament: TOURNAMENT_ID,
+    discordTag: player.discordId,
   }).lean();
 
-  const alreadyRegistered = !!existingReg;
+  //    Also check Player.registeredFor array
+  const regByPlayerArray = Array.isArray(player.registeredFor)
+    ? player.registeredFor.some((r) => r?.tournamentId === TOURNAMENT_ID)
+    : false;
+
+  const alreadyRegistered = !!(regByCollection || regByPlayerArray);
 
   return {
     props: {
@@ -81,9 +74,7 @@ export default function ValorantRegisterPage({
     try {
       const res = await fetch("/api/registration/confirm", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           playerId,
           tournamentId: TOURNAMENT_ID,
@@ -93,28 +84,27 @@ export default function ValorantRegisterPage({
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        // if backend tells us they're already in, just send them to /valorant/already
         if (res.status === 409) {
           window.location.href = "/valorant/already";
           return;
         }
+        const text = await res.text();
         setMessage("Error: " + text);
       } else {
-        // success first time
         window.location.href = "/valorant/success";
         return;
       }
-    } catch (err) {
+    } catch {
       setMessage("Network error submitting registration.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  const avatarUrl = avatar
-    ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
-    : null;
+  const avatarUrl =
+    avatar && discordId
+      ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
+      : null;
 
   return (
     <div
@@ -157,25 +147,14 @@ export default function ValorantRegisterPage({
             Valorant Solo Skirmish #1
           </div>
           <div
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              lineHeight: 1.2,
-              color: "white",
-            }}
+            style={{ fontSize: "1.25rem", fontWeight: 600, lineHeight: 1.2, color: "white" }}
           >
             Tournament Registration
           </div>
           <div
-            style={{
-              fontSize: "0.8rem",
-              lineHeight: 1.4,
-              color: "#9ca3af",
-              marginTop: "0.5rem",
-            }}
+            style={{ fontSize: "0.8rem", lineHeight: 1.4, color: "#9ca3af", marginTop: "0.5rem" }}
           >
-            1v1 aim duels, bragging rights, prize TBD. Finish below to lock your
-            spot.
+            1v1 aim duels, bragging rights, prize TBD. Finish below to lock your spot.
           </div>
         </div>
 
@@ -224,22 +203,10 @@ export default function ValorantRegisterPage({
           )}
 
           <div style={{ lineHeight: 1.3 }}>
-            <div
-              style={{
-                color: "white",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-              }}
-            >
+            <div style={{ color: "white", fontWeight: 600, fontSize: "0.9rem" }}>
               {username}
             </div>
-            <div
-              style={{
-                color: "#a1a1aa",
-                fontSize: "0.7rem",
-                wordBreak: "break-word",
-              }}
-            >
+            <div style={{ color: "#a1a1aa", fontSize: "0.7rem", wordBreak: "break-word" }}>
               Discord ID {discordId}
             </div>
           </div>
@@ -258,25 +225,11 @@ export default function ValorantRegisterPage({
                 marginBottom: "1rem",
               }}
             >
-              <div
-                style={{
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  color: "#fff",
-                  marginBottom: "0.5rem",
-                }}
-              >
+              <div style={{ fontSize: "1rem", fontWeight: 600, color: "#fff", marginBottom: "0.5rem" }}>
                 You’re already locked in ✅
               </div>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  color: "#9ca3af",
-                  lineHeight: 1.4,
-                }}
-              >
-                You are registered for this tournament.
-                We’ll DM you on Discord with schedule / bracket.
+              <div style={{ fontSize: "0.8rem", color: "#9ca3af", lineHeight: 1.4 }}>
+                You are registered for this tournament. We’ll DM you on Discord with schedule / bracket.
               </div>
             </div>
 
@@ -293,8 +246,7 @@ export default function ValorantRegisterPage({
                 borderRadius: "0.6rem",
                 padding: "0.75rem 1rem",
                 textDecoration: "none",
-                boxShadow:
-                  "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                boxShadow: "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
               }}
             >
               Return Home
@@ -390,8 +342,7 @@ export default function ValorantRegisterPage({
                   borderRadius: "0.6rem",
                   padding: "0.75rem 1rem",
                   cursor: submitting ? "not-allowed" : "pointer",
-                  boxShadow:
-                    "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                  boxShadow: "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
                   transition: "background-color .15s",
                 }}
               >
@@ -422,8 +373,7 @@ export default function ValorantRegisterPage({
                 textAlign: "center",
               }}
             >
-              By confirming, you agree to play at the scheduled time. No
-              smurfing. No cheats. Clips may be streamed.
+              By confirming, you agree to play at the scheduled time. No smurfing. No cheats. Clips may be streamed.
             </div>
           </>
         )}
