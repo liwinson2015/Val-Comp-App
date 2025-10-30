@@ -32,7 +32,7 @@ export default function HomePage() {
               <strong>Solo Skirmish #1</strong> – 16-player 1v1, skin prize.
               <br />
               <a
-                href="/valorant"
+                href="/tournaments-hub/valorant-types/1v1"
                 style={{ color: "#ff4655", textDecoration: "none", fontWeight: 600 }}
               >
                 View details →
