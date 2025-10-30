@@ -1,34 +1,22 @@
 // pages/valorant/index.js
-import React, { useEffect, useState } from "react";
+import React from "react";
 import styles from "../../styles/Valorant.module.css";
 
 export default function ValorantEventPage() {
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/whoami")
-      .then((r) => r.json())
-      .then((d) => setLoggedIn(!!d.loggedIn))
-      .catch(() => setLoggedIn(false));
-  }, []);
-
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Event header */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h1 className={styles.heroTitle} style={{ margin: 0 }}>
-              VALORANT — Solo Skirmish #1
-            </h1>
-          </div>
-          <p className={styles.heroSubtitle} style={{ marginTop: 8 }}>
-            16-player 1v1 aim duels. Bragging rights. Skin prize for the winner.
-          </p>
+        {/* Hero matches your site's original look */}
+        <section className={styles.hero}>
+          <div className={styles.heroInner}>
+            <div className={styles.heroBadge}>VALORANT TOURNAMENT</div>
+            <h1 className={styles.heroTitle}>VALORANT — Solo Skirmish #1</h1>
+            <p className={styles.heroSubtitle}>
+              16-player 1v1 aim duels. Bragging rights. Skin prize for the winner.
+            </p>
 
-          {/* Action buttons */}
-          <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {loggedIn ? (
+            {/* Action buttons in the hero, same vibe as original */}
+            <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <a
                 href="/valorant/register"
                 style={{
@@ -39,48 +27,33 @@ export default function ValorantEventPage() {
                   padding: "10px 14px",
                   borderRadius: 10,
                   textDecoration: "none",
+                  boxShadow: "0 10px 30px rgba(255,0,70,0.35)",
                 }}
               >
                 Register
               </a>
-            ) : (
               <a
-                href="/api/auth/discord"
+                href="https://discord.gg/yuGpPr6MAa"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   display: "inline-block",
-                  background: "#5865F2",
+                  background: "#2a2f3a",
                   color: "white",
                   fontWeight: 700,
                   padding: "10px 14px",
                   borderRadius: 10,
                   textDecoration: "none",
+                  border: "1px solid #3a4150",
                 }}
               >
-                Sign in with Discord
+                Join Discord
               </a>
-            )}
-
-            <a
-              href="https://discord.gg/yuGpPr6MAa"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                background: "#2a2f3a",
-                color: "white",
-                fontWeight: 700,
-                padding: "10px 14px",
-                borderRadius: 10,
-                textDecoration: "none",
-                border: "1px solid #3a4150",
-              }}
-            >
-              Join Discord
-            </a>
+            </div>
           </div>
         </section>
 
-        {/* Rules / details */}
+        {/* Rules / details card – same card styling as home */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>RULES & DETAILS</h2>
