@@ -176,7 +176,7 @@
   font-size: 13px;
 }
 
-/* Info strip under panel */
+/* Info strip under panel (optional / legacy) */
 .infoRow {
   margin-top: 22px;
   display: grid;
@@ -197,3 +197,27 @@
 }
 .infoLabel { color: #8b90a0; font-size: 13px; }
 .infoValue { color: #e6e7eb; font-weight: 700; font-size: 13.5px; }
+
+/* NEW: back button area outside the panel */
+.backBar {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* NEW: ghost-style button (or reuse .secondaryBtn) */
+.ghostBtn {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e6e7eb;
+  font-weight: 700;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-decoration: none;
+  font-size: 13px;
+}
+.ghostBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
