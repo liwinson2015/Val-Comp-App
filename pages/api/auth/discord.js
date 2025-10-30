@@ -1,26 +1,47 @@
 // pages/api/auth/discord.js
-export default async function handler(req, res) {
+// Starts the Discord OAuth flow and remembers where to return after login.
+
+export default function handler(req, res) {
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const redirectUri = process.env.DISCORD_REDIRECT_URI; // must match Discord portal exactly
+  const redirectUri = process.env.DISCORD_REDIRECT_URI; // MUST match Discord portal exactly
   const scope = "identify";
 
-  // Figure out where to go AFTER login (e.g., /valorant/register or /valorant/bracket)
-  const next = typeof req.query.next === "string" ? req.query.next : "/";
+  if (!clientId || !redirectUri) {
+    return res.status(500).send("Discord OAuth is not configured.");
+  }
 
-  // Save that target page temporarily in a cookie (10 minutes)
-  res.setHeader("Set-Cookie", [
-    `post_login_redirect=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax; HttpOnly`,
-  ]);
+  // Determine where to go AFTER login
+  // Only allow same-site paths to avoid open redirects.
+  const rawNext = typeof req.query.next === "string" ? req.query.next : "/";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
-  // Build the OAuth URL
+  // Store the post-login target in a short-lived cookie (10 minutes)
+  const isProd = process.env.NODE_ENV === "production";
+  const postLoginCookie = [
+    `post_login_redirect=${encodeURIComponent(next)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Max-Age=600",
+    isProd ? "Secure" : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  res.setHeader("Set-Cookie", postLoginCookie);
+
+  // Build the Discord authorize URL
+  // URLSearchParams will handle proper encoding.
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
     scope,
-    prompt: "none",
+    // Tip: while debugging token errors, omit prompt to see the consent screen.
+    // prompt: "none",
   });
 
-  // Redirect to Discord
-  res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+  const authUrl = `https://discord.com/api/oauth2/authorize?${params.toString()}`;
+  return res.redirect(authUrl);
 }
