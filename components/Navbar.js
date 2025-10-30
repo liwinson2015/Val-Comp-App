@@ -18,7 +18,7 @@ export default function Navbar() {
     setIsHoverCapable(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
   }, []);
 
-  // Load user session
+  // Session
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -35,7 +35,6 @@ export default function Navbar() {
       }
     })();
 
-    // Close dropdowns on outside click
     const handleClickOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) setMenuOpen(false);
       if (tournRef.current && !tournRef.current.contains(e.target)) setTournOpen(false);
@@ -53,7 +52,7 @@ export default function Navbar() {
       ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64`
       : null;
 
-  // Hover handlers for desktop with a small delay to avoid flicker
+  // Hover helpers (with small delay)
   const openTournaments = () => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     setTournOpen(true);
@@ -61,7 +60,7 @@ export default function Navbar() {
   const maybeCloseTournaments = () => {
     if (!isHoverCapable) return;
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = setTimeout(() => setTournOpen(false), 150);
+    closeTimerRef.current = setTimeout(() => setTournOpen(false), 250);
   };
   const toggleTournamentsOnClick = () => {
     if (!isHoverCapable) setTournOpen(v => !v); // touch devices
@@ -77,14 +76,18 @@ export default function Navbar() {
         </div>
 
         {/* Links */}
-        <nav className="nav-links">
+        <nav className="nav-links" style={{ overflow: "visible" }}>
           <a href="/" className="nav-link">Home</a>
 
-          {/* Tournaments dropdown (hover-friendly) */}
+          {/* Tournaments dropdown wrapper */}
           <div
-            className="nav-link"
             ref={tournRef}
-            style={{ position: "relative" }}
+            // IMPORTANT: inline-block + position relative + overflow visible
+            style={{
+              position: "relative",
+              display: "inline-block",
+              overflow: "visible",
+            }}
             onMouseEnter={() => isHoverCapable && openTournaments()}
             onMouseLeave={() => isHoverCapable && maybeCloseTournaments()}
           >
@@ -92,6 +95,7 @@ export default function Navbar() {
               onClick={toggleTournamentsOnClick}
               aria-haspopup="menu"
               aria-expanded={tournOpen}
+              className="nav-link"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -112,17 +116,17 @@ export default function Navbar() {
             {tournOpen && (
               <div
                 role="menu"
-                // No vertical gap; sits flush under the trigger to prevent accidental mouseleave
+                // Sits flush under the trigger. No vertical gap.
                 style={{
                   position: "absolute",
-                  top: "100%",
+                  top: "calc(100% - 1px)",
                   left: 0,
                   backgroundColor: "#1a1a1a",
                   border: "1px solid #333",
                   borderRadius: 8,
                   overflow: "hidden",
                   minWidth: 180,
-                  zIndex: 60,
+                  zIndex: 1000,
                 }}
                 onMouseEnter={() => isHoverCapable && openTournaments()}
                 onMouseLeave={() => isHoverCapable && maybeCloseTournaments()}
@@ -159,7 +163,7 @@ export default function Navbar() {
           ) : loggedIn ? (
             <div
               className="nav-link profile-dropdown"
-              style={{ position: "relative" }}
+              style={{ position: "relative", display: "inline-block" }}
               ref={profileRef}
             >
               <button
@@ -211,14 +215,13 @@ export default function Navbar() {
                   style={{
                     position: "absolute",
                     right: 0,
-                    top: "100%",
+                    top: "calc(100% + 6px)",
                     backgroundColor: "#1a1a1a",
                     border: "1px solid #333",
                     borderRadius: "8px",
                     overflow: "hidden",
                     minWidth: "180px",
-                    zIndex: 70,
-                    marginTop: 6,
+                    zIndex: 1000,
                   }}
                 >
                   <a href="/profile" className="nav-link" style={dropdownItem}>
