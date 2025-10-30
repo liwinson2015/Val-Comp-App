@@ -3,24 +3,7 @@ import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import styles from "../../styles/Valorant.module.css";
-
-/**
- * Minimal event catalog for UI metadata.
- * You can move this to /lib/tournaments.js later and import it.
- */
-const catalog = {
-  "VALO-SOLO-SKIRMISH-1": {
-    id: "VALO-SOLO-SKIRMISH-1",
-    name: "Valorant — Solo Skirmish #1",
-    game: "VALORANT",
-    mode: "1v1",
-    status: "open",
-    // Nov 2, 2025 — adjust time zone if you want a local time
-    start: "2025-11-02T00:00:00Z",
-    detailsUrl: "/valorant",
-    bracketUrl: "/valorant/bracket",
-  },
-};
+import { tournamentsById as catalog } from "../../lib/tournaments";
 
 function parseCookies(cookieHeader = "") {
   return Object.fromEntries(
@@ -62,11 +45,9 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  const rawRegs = Array.isArray(player.registeredFor)
-    ? player.registeredFor
-    : [];
+  const rawRegs = Array.isArray(player.registeredFor) ? player.registeredFor : [];
 
-  // Enrich each registration with catalog metadata
+  // Enrich from catalog (your DB only stores tournamentId, ign, rank, createdAt)
   const registrations = rawRegs.map((r) => {
     const meta = catalog[r.tournamentId] || {};
     return {
@@ -176,10 +157,14 @@ export default function MyRegistrations({ registrations }) {
                 <div className={styles.detailLabel}>Starts</div>
                 <div className={styles.detailValue}>
                   {r.start
-                    ? new Date(r.start).toLocaleDateString(undefined, {
+                    ? new Date(r.start).toLocaleString("en-US", {
+                        timeZone: "America/New_York", // lock display to ET
                         year: "numeric",
                         month: "short",
                         day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
                       })
                     : "TBD"}
                 </div>
