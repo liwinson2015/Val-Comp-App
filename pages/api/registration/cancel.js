@@ -1,81 +1,70 @@
-// /pages/api/registration/purge.js
-// Hard-delete ALL registrations for the current user for a given tournament,
-// regardless of legacy field names or value casing, and clean Player.registeredFor.
-
+// /pages/api/registration/cancel.js
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Registration from "../../../models/Registration";
 
+function buildDiscordTag(username, discriminator) {
+  // Discord moved to discriminator "0" for many users; older rows may still have #1234
+  if (!username) return null;
+  if (discriminator && discriminator !== "0") return `${username}#${discriminator}`;
+  return username; // new-style tag without #
+}
+
 function normalizeTid(tid) {
-  const t = String(tid || "").trim();
-  const noHash = t.startsWith("#") ? t.slice(1) : t;
-  const uppers = [t, noHash].map((s) => s.toUpperCase());
-  return {
-    raw: t,
-    noHash,
-    upper: noHash.toUpperCase(),
-    variants: Array.from(new Set([t, noHash, ...uppers])),
-  };
+  if (!tid) return [];
+  const raw = String(tid).trim();
+  const noHash = raw.startsWith("#") ? raw.slice(1) : raw;
+  return Array.from(new Set([raw, noHash, raw.toUpperCase(), noHash.toUpperCase()]));
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     await connectToDatabase();
 
-    const playerId = req.cookies?.playerId || null;
     const { tournamentId } = req.body || {};
+    const playerId = req.cookies?.playerId || null;
 
-    if (!playerId) return res.status(401).json({ ok: false, error: "Not authenticated" });
-    if (!tournamentId) return res.status(400).json({ ok: false, error: "Missing tournamentId" });
+    if (!playerId) return res.status(401).json({ error: "Not authenticated" });
+    if (!tournamentId) return res.status(400).json({ error: "Missing tournamentId" });
 
     const player = await Player.findById(playerId);
-    if (!player) return res.status(401).json({ ok: false, error: "Player not found" });
+    if (!player) return res.status(401).json({ error: "Player not found" });
 
-    const tid = normalizeTid(tournamentId);
+    // Build match keys based on your actual Registration schema
+    const tagExact = buildDiscordTag(player.username, player.discriminator);
+    const tagVariants = Array.from(
+      new Set([tagExact, player.username].filter(Boolean))
+    );
+    const tidVariants = normalizeTid(tournamentId);
 
-    // Build a super-tolerant delete filter for legacy schemas:
-    // Matches:
-    //   - playerId + (tournamentId in variants OR tournament in variants)
-    //   - OR discordId + ( ... )
-    //   - OR discordTag/username + ( ... )
-    const tournamentFieldFilters = [
-      { tournamentId: { $in: tid.variants } },
-      { tournament: { $in: tid.variants } },
-    ];
-    const identityFilters = [
-      { playerId: player._id },
-      ...(player.discordId ? [{ discordId: player.discordId }] : []),
-      ...(player.discordTag ? [{ discordTag: player.discordTag }] : []),
-      ...(player.username ? [{ discordTag: player.username }] : []), // old drafts
-    ];
+    // 1) Hard-delete from Registration (schema: { tournament, discordTag, ... })
+    const delResult = await Registration.deleteMany({
+      $and: [
+        { tournament: { $in: tidVariants } },        // match your 'tournament' field
+        { discordTag: { $in: tagVariants } },        // match by computed tag or username
+      ],
+    });
 
-    const deleteFilter = {
-      $and: [{ $or: tournamentFieldFilters }, { $or: identityFilters }],
-    };
-
-    const delResult = await Registration.deleteMany(deleteFilter);
-
-    // Clean mirror on Player.registeredFor (supports id or tournamentId)
+    // 2) Remove mirror from Player.registeredFor (schema: { tournamentId, ign, rank, ... })
     if (Array.isArray(player.registeredFor)) {
-      player.registeredFor = player.registeredFor.filter((r) => {
-        const rid = String(r?.tournamentId || r?.id || "").replace(/^#/, "");
-        return rid.toUpperCase() !== tid.upper;
-      });
+      player.registeredFor = player.registeredFor.filter(
+        (r) => r?.tournamentId !== tournamentId
+      );
       await player.save();
     }
 
-    // Return details for debugging in UI/console
     return res.status(200).json({
-      ok: true,
-      deletedCount: delResult?.deletedCount || 0,
-      normalizedTournamentId: tid.variants,
+      success: true,
+      deleted: delResult?.deletedCount || 0,
+      matchedDiscordTags: tagVariants,
+      matchedTournamentValues: tidVariants,
     });
   } catch (err) {
-    console.error("PURGE error:", err);
-    return res.status(500).json({ ok: false, error: "Server error" });
+    console.error("Cancel registration error:", err);
+    return res.status(500).json({ error: "Server error" });
   }
 }
