@@ -1,39 +1,21 @@
 // pages/api/auth/callback.js
 
 import Player from "../../../models/Player.js";
-import Registration from "../../../models/Registration.js";
 import { connectToDatabase } from "../../../lib/mongodb.js";
-import { CURRENT_TOURNAMENT } from "../../../lib/tournaments.js";
 
 function parseCookies(header = "") {
   return Object.fromEntries(
     header
       .split(";")
-      .map((v) => v.trim())
+      .map(v => v.trim())
       .filter(Boolean)
-      .map((kv) => {
+      .map(kv => {
         const i = kv.indexOf("=");
         const k = i >= 0 ? kv.slice(0, i) : kv;
         const v = i >= 0 ? kv.slice(i + 1) : "";
-        try {
-          return [k, decodeURIComponent(v)];
-        } catch {
-          return [k, v];
-        }
+        try { return [k, decodeURIComponent(v)]; } catch { return [k, v]; }
       })
   );
-}
-
-function makeCookie(name, value, days = 30) {
-  const parts = [
-    `${name}=${encodeURIComponent(value ?? "")}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    `Max-Age=${60 * 60 * 24 * days}`,
-  ];
-  if (process.env.NODE_ENV === "production") parts.push("Secure");
-  return parts.join("; ");
 }
 
 export default async function handler(req, res) {
@@ -64,23 +46,24 @@ export default async function handler(req, res) {
       console.error("[callback] token exchange failed:", errText);
       return res.status(500).send("Failed to exchange code for token");
     }
-    const { access_token } = await tokenResponse.json();
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
 
     // 2) Get Discord user
     const userResponse = await fetch("https://discord.com/api/users/@me", {
-      headers: { Authorization: `Bearer ${access_token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!userResponse.ok) {
       const errText = await userResponse.text();
       console.error("[callback] fetch discord user failed:", errText);
       return res.status(500).send("Failed to fetch Discord user");
     }
-    const discordUser = await userResponse.json(); // { id, username, global_name, avatar, ... }
+    const discordUser = await userResponse.json();
 
     // 3) DB
     await connectToDatabase();
 
-    // 4) Upsert Player (keep your behavior)
+    // 4) Upsert Player
     const update = {
       username: discordUser.global_name || discordUser.username || "",
       avatar: discordUser.avatar || "",
@@ -92,9 +75,19 @@ export default async function handler(req, res) {
       { upsert: true, new: true }
     );
 
-    // 5) Read and clear post-login redirect cookie (your existing flow)
-    const cookiesIn = parseCookies(req.headers.cookie);
-    const next = cookiesIn.post_login_redirect || "/valorant"; // default to /valorant
+    // 5) Set session cookie (persist 30 days; Secure only in prod)
+    const isProd = process.env.NODE_ENV === "production";
+    const sessionCookie = [
+      `playerId=${encodeURIComponent(playerDoc._id.toString())}`,
+      "Path=/",
+      "HttpOnly",
+      "SameSite=Lax",
+      "Max-Age=2592000", // 30 days
+      isProd ? "Secure" : null,
+    ].filter(Boolean).join("; ");
+
+    const cookies = parseCookies(req.headers.cookie);
+    const next = cookies.post_login_redirect || "/valorant"; // ✅ changed from /valorant/register
 
     const clearPostLogin = [
       "post_login_redirect=;",
@@ -102,34 +95,13 @@ export default async function handler(req, res) {
       "Max-Age=0",
       "SameSite=Lax",
       "HttpOnly",
-      process.env.NODE_ENV === "production" ? "Secure" : null,
-    ]
-      .filter(Boolean)
-      .join("; ");
+      isProd ? "Secure" : null,
+    ].filter(Boolean).join("; ");
 
-    // 6) Set session cookies
-    const setCookies = [
-      makeCookie("playerId", playerDoc._id.toString()),      // your existing session id
-      makeCookie("playerDiscordId", discordUser.id),         // useful for queries
-      makeCookie("playerName", update.username || "Player"),
-      makeCookie("playerAvatar", update.avatar || ""),
-      clearPostLogin,
-    ];
-    res.setHeader("Set-Cookie", setCookies);
+    res.setHeader("Set-Cookie", [sessionCookie, clearPostLogin]);
 
-    // 7) If already registered for the current tourney, go to details page
-    const existing = await Registration.findOne({
-      discordId: discordUser.id,
-      tournament: CURRENT_TOURNAMENT.slug,
-    }).lean();
-
-    if (existing) {
-      res.writeHead(302, { Location: `/account/registrations?focus=${existing._id}` });
-      return res.end();
-    }
-
-    // 8) Not registered → /valorant (or whatever post_login_redirect was)
-    res.writeHead(302, { Location: next || "/valorant" });
+    // ✅ 6) Redirect straight to /valorant
+    res.writeHead(302, { Location: next });
     return res.end();
   } catch (err) {
     console.error("[callback] internal error:", err);
