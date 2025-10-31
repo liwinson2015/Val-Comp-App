@@ -20,6 +20,12 @@
   --qfSpace:  calc(var(--pairH) + var(--r16Space));   /* centers QF between two R16s */
   --sfSpace:  calc(var(--pairH) + var(--qfSpace));    /* centers SF between two QFs */
 
+  /* distances between feeder pair centres (used for the tall collectors) */
+  --qfSpan: calc(var(--pairH) + var(--r16Space));
+  --sfSpan: calc(var(--pairH) + var(--qfSpace));
+  --qfOffset: calc((var(--qfSpan) - var(--pairH)) / 2);
+  --sfOffset: calc((var(--sfSpan) - var(--pairH)) / 2);
+
   /* connector styling */
   --line: #2a2f36;           /* bracket line color */
   --joinW: 2px;              /* line thickness */
@@ -92,10 +98,11 @@
 }
 
 /* short stub that leaves each pair toward the next column */
+
 .pair::after{
   content:"";
   position:absolute;
-  top: calc(50% + var(--border)*0.5);   /* border-aware vertical center */
+  top:50%;
   right: calc(var(--stub) * -1);
   transform: translateY(-50%);
   width: var(--stub);
@@ -135,23 +142,38 @@
 /* horizontal arm across the gap + vertical collector at arm end (border-aware) */
 .qf .pair,
 .sf .pair{
+  background-repeat: no-repeat, no-repeat;
   background-image:
     linear-gradient(var(--line), var(--line)),  /* vertical collector */
     linear-gradient(var(--line), var(--line));  /* horizontal arm */
-  background-repeat: no-repeat, no-repeat;
   background-size:
-    var(--joinW) calc(var(--slotH) + var(--pairGapInside) + var(--border)*2), /* top⇄bottom with borders */
+    var(--joinW) var(--qfSpan),
     var(--arm) var(--joinW);
   background-position:
-    left calc(var(--gap) * -1 + var(--arm)) calc(50% + var(--border)*0.5),
-    left calc(var(--gap) * -1)              calc(50% + var(--border)*0.5);
+    left calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--qfOffset)),
+    left calc(var(--gap) * -1)              50%;
+}
+
+.sf .pair{
+  background-size:
+    var(--joinW) var(--sfSpan),
+    var(--arm) var(--joinW);
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--sfOffset)),
+    left calc(var(--gap) * -1)              50%;
 }
 
 .right .qf .pair,
 .right .sf .pair{
   background-position:
-    right calc(var(--gap) * -1 + var(--arm)) calc(50% + var(--border)*0.5),
-    right calc(var(--gap) * -1)              calc(50% + var(--border)*0.5);
+    right calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--qfOffset)),
+    right calc(var(--gap) * -1)              50%;
+}
+
+.right .sf .pair{
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--sfOffset)),
+    right calc(var(--gap) * -1)              50%;
 }
 
 /* ---------- Right-column helper ---------- */
