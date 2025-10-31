@@ -1,53 +1,47 @@
-/* Square-slot bracket, compact width, QF/SF centered between feeder pairs (border-aware) */
+/* Square-slot bracket, compact width, exact (border-aware) centering without transform scaling */
 
-/* ---------- Canvas sizing & auto-fit ---------- */
+/* ---------- Canvas sizing (no transform scaling) ---------- */
 .viewport{
-  /* narrower columns so boxes are shorter horizontally */
-  --colw: clamp(130px, 10vw, 155px);
-  --gap:  clamp(16px, 2vw, 22px);
+  /* page padding budget (brand/header margins). Tweak if needed */
+  --outerPad: 160px;
+
+  /* gaps & column width auto-fit to viewport */
+  --gap:  18px;
+
+  /* Compute a column width that fits 7 columns + 6 gaps inside viewport minus outerPad. */
+  --colw: clamp(120px, calc((100vw - var(--outerPad) - (6 * var(--gap))) / 7), 155px);
 
   /* slot & pair geometry */
-  --slotH: 38px;             /* height of each player box */
-  --pairGapInside: 10px;     /* gap between top/bottom boxes in a pair */
-  --pairPad: 4px;            /* small vertical padding for connector accuracy */
-  --border: 2px;             /* slot border thickness (used in centering math) */
+  --slotH: 38px;          /* height of each player box */
+  --pairGapInside: 10px;  /* gap between top/bottom boxes inside a pair */
+  --pairPad: 4px;         /* internal vertical padding for connector accuracy */
+  --border: 2px;          /* slot border thickness */
 
-  /* derived: full pair height and spacing rhythms */
-  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
+  /* derived: full pair height and rhythms */
+  --pairH: calc(var(--slotH) * 2 + var(--pairGapInside) + var(--pairPad) * 2 + var(--border) * 2);
 
   /* vertical rhythms to CENTER next-round boxes between feeders */
-  --r16Space: clamp(18px, 2vh, 24px);                 /* spacing between R16 pairs */
-  --qfSpace:  calc(var(--pairH) + var(--r16Space));   /* centers QF between two R16s */
-  --sfSpace:  calc(var(--pairH) + var(--qfSpace));    /* centers SF between two QFs */
-
-  /* distances between feeder pair centres (used for the tall collectors) */
-  --qfSpan: calc(var(--pairH) + var(--r16Space));
-  --sfSpan: calc(var(--pairH) + var(--qfSpace));
-  --qfOffset: calc((var(--qfSpan) - var(--pairH)) / 2);
-  --sfOffset: calc((var(--sfSpan) - var(--pairH)) / 2);
+  --r16Space: 20px;                          /* spacing between R16 pairs */
+  --qfSpace:  calc(var(--pairH) + var(--r16Space)); /* QF centered between two R16 pairs */
+  --sfSpace:  calc(var(--pairH) + var(--qfSpace));  /* SF centered between two QFs */
 
   /* connector styling */
   --line: #2a2f36;           /* bracket line color */
   --joinW: 2px;              /* line thickness */
   --stub: 10px;              /* short stub out of each pair toward next column */
-  --arm:  calc(var(--gap) - var(--stub));             /* horizontal arm across the gap */
+  --arm:  calc(var(--gap) - var(--stub)); /* horizontal arm across the gap */
 
   /* neutral box colors (we’ll theme later) */
   --slotBg: #f4f6fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  /* stage derived */
+  /* stage size derives from columns; no transform */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
   --stageH: clamp(560px, 68vh, 720px);
 
   /* header allowance */
   --topSpace: 130px;
-
-  /* scale to fit viewport */
-  --fitW: calc(100vw / var(--stageW));
-  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
-  --scale: min(1, var(--fitW), var(--fitH));
 
   width:100%;
   height:calc(100vh - var(--topSpace));
@@ -59,8 +53,7 @@
 .stage{
   width:var(--stageW);
   height:var(--stageH);
-  transform:scale(var(--scale));
-  transform-origin:top center;
+  /* NOTE: removed transform: scale(...) to avoid sub-pixel jitter */
 }
 
 .grid{
@@ -88,31 +81,13 @@
 
 /* vertical spacing for perfect alignment */
 .r16 .pair{ margin: calc(var(--r16Space)/2) 0; }
-.qf  .pair{ margin: calc(var(--qfSpace)/2) 0; }   /* centers QF between two R16 pairs */
+.qf  .pair{ margin: calc(var(--qfSpace)/2) 0; }   /* centers QF between two R16s */
 .sf  .pair{ margin: calc(var(--sfSpace)/2) 0; }   /* centers SF between two QFs */
 
 /* ---------- Pair (two separate square slots) ---------- */
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
-}
-
-/* short stub that leaves each pair toward the next column */
-
-.pair::after{
-  content:"";
-  position:absolute;
-  top:50%;
-  right: calc(var(--stub) * -1);
-  transform: translateY(-50%);
-  width: var(--stub);
-  height: var(--joinW);
-  background: var(--line);
-}
-
-.sideRight.pair::after{
-  left: calc(var(--stub) * -1);
-  right: auto;
 }
 
 /* two square slots */
@@ -124,9 +99,8 @@
   display:flex;
   align-items:center;
   padding: 0 10px;
-  box-shadow: none;             /* flat like your reference */
+  box-shadow: none;
 }
-
 .slot + .slot{ margin-top: var(--pairGapInside); }
 
 .label{
@@ -138,42 +112,49 @@
   text-overflow:ellipsis;
 }
 
-/* ---------- QF & SF T-joins (centered between feeders) ---------- */
-/* horizontal arm across the gap + vertical collector at arm end (border-aware) */
-.qf .pair,
-.sf .pair{
-  background-repeat: no-repeat, no-repeat;
+/* ---------- Exact Y math for connectors ---------- */
+/* This is the *true* midpoint between the two slots, counting borders & padding */
+.pair{
+  /* midpoint from top edge of .pair box: pairPad + slotH + (gap)/2 + border */
+  --midY: calc(var(--pairPad) + var(--slotH) + (var(--pairGapInside) / 2) + var(--border));
+}
+
+/* short stub that leaves each pair toward the next column (at exact midY) */
+.pair::after{
+  content:"";
+  position:absolute;
+  top: var(--midY);
+  right: calc(var(--stub) * -1);
+  width: var(--stub);
+  height: var(--joinW);
+  background: var(--line);
+}
+.sideRight.pair::after{
+  left: calc(var(--stub) * -1);
+  right: auto;
+}
+
+/* QF & SF: horizontal arm across the gap + vertical collector at arm end, both at exact midY */
+.qf .pair, .sf .pair{
   background-image:
     linear-gradient(var(--line), var(--line)),  /* vertical collector */
     linear-gradient(var(--line), var(--line));  /* horizontal arm */
+  background-repeat: no-repeat, no-repeat;
+
+  /* vertical collector spans the distance between the two slots (top⇄bottom), including borders */
   background-size:
-    var(--joinW) var(--qfSpan),
+    var(--joinW) calc(var(--slotH) + var(--pairGapInside) + var(--border) * 2),
     var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--qfOffset)),
-    left calc(var(--gap) * -1)              50%;
-}
 
-.sf .pair{
-  background-size:
-    var(--joinW) var(--sfSpan),
-    var(--arm) var(--joinW);
+  /* place both at exact midY: one as a Y offset from top */
   background-position:
-    left calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--sfOffset)),
-    left calc(var(--gap) * -1)              50%;
+    left calc(var(--gap) * -1 + var(--arm)) var(--midY),
+    left calc(var(--gap) * -1)              var(--midY);
 }
-
-.right .qf .pair,
-.right .sf .pair{
+.right .qf .pair, .right .sf .pair{
   background-position:
-    right calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--qfOffset)),
-    right calc(var(--gap) * -1)              50%;
-}
-
-.right .sf .pair{
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm)) calc(50% - var(--sfOffset)),
-    right calc(var(--gap) * -1)              50%;
+    right calc(var(--gap) * -1 + var(--arm)) var(--midY),
+    right calc(var(--gap) * -1)              var(--midY);
 }
 
 /* ---------- Right-column helper ---------- */
