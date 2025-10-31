@@ -1,4 +1,4 @@
-/* Square-slot bracket, compact width, QF centered between feeder pairs */
+/* Square-slot bracket, compact width, QF/SF centered between feeder pairs (border-aware) */
 
 /* ---------- Canvas sizing & auto-fit ---------- */
 .viewport{
@@ -8,22 +8,23 @@
 
   /* slot & pair geometry */
   --slotH: 38px;             /* height of each player box */
-  --pairGapInside: 10px;     /* gap between top/bottom slots in a pair */
+  --pairGapInside: 10px;     /* gap between top/bottom boxes in a pair */
   --pairPad: 4px;            /* small vertical padding for connector accuracy */
+  --border: 2px;             /* slot border thickness (used in centering math) */
 
   /* derived: full pair height and spacing rhythms */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
   /* vertical rhythms to CENTER next-round boxes between feeders */
-  --r16Space: clamp(18px, 2vh, 24px);           /* spacing between R16 pairs */
-  --qfSpace:  calc(var(--pairH) + var(--r16Space)); /* centers QF between two R16s */
-  --sfSpace:  calc(var(--pairH) + var(--qfSpace));  /* centers SF between two QFs */
+  --r16Space: clamp(18px, 2vh, 24px);                 /* spacing between R16 pairs */
+  --qfSpace:  calc(var(--pairH) + var(--r16Space));   /* centers QF between two R16s */
+  --sfSpace:  calc(var(--pairH) + var(--qfSpace));    /* centers SF between two QFs */
 
   /* connector styling */
   --line: #2a2f36;           /* bracket line color */
   --joinW: 2px;              /* line thickness */
   --stub: 10px;              /* short stub out of each pair toward next column */
-  --arm:  calc(var(--gap) - var(--stub));       /* horizontal arm across the gap */
+  --arm:  calc(var(--gap) - var(--stub));             /* horizontal arm across the gap */
 
   /* neutral box colors (we’ll theme later) */
   --slotBg: #f4f6fb;
@@ -48,19 +49,35 @@
   place-items:center;
   overflow:visible;
 }
-.stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
+
+.stage{
+  width:var(--stageW);
+  height:var(--stageH);
+  transform:scale(var(--scale));
+  transform-origin:top center;
+}
+
 .grid{
-  width:100%; height:100%;
-  display:grid; grid-template-columns:repeat(7,var(--colw));
-  gap:var(--gap); align-items:start;
+  width:100%;
+  height:100%;
+  display:grid;
+  grid-template-columns:repeat(7,var(--colw));
+  gap:var(--gap);
+  align-items:start;
 }
 
 /* ---------- Rounds ---------- */
 .round { position:relative; }
+
 .roundTitle{
-  color:#dfe6f3; font-weight:900; font-size:12px;
-  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
+  color:#dfe6f3;
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:8px;
 }
+
 .stack{ position:relative; display:grid; }
 
 /* vertical spacing for perfect alignment */
@@ -77,11 +94,15 @@
 /* short stub that leaves each pair toward the next column */
 .pair::after{
   content:"";
-  position:absolute; top:50%; right: calc(var(--stub) * -1);
+  position:absolute;
+  top: calc(50% + var(--border)*0.5);   /* border-aware vertical center */
+  right: calc(var(--stub) * -1);
   transform: translateY(-50%);
-  width: var(--stub); height: var(--joinW);
+  width: var(--stub);
+  height: var(--joinW);
   background: var(--line);
 }
+
 .sideRight.pair::after{
   left: calc(var(--stub) * -1);
   right: auto;
@@ -90,66 +111,111 @@
 /* two square slots */
 .slot{
   height: var(--slotH);
-  border: 2px solid var(--slotBorder);
-  border-radius: 0;           /* SQUARE corners */
+  border: var(--border) solid var(--slotBorder);
+  border-radius: 0;             /* SQUARE corners */
   background: var(--slotBg);
-  display:flex; align-items:center;
+  display:flex;
+  align-items:center;
   padding: 0 10px;
-  box-shadow: none;           /* flatter like your reference */
+  box-shadow: none;             /* flat like your reference */
 }
+
 .slot + .slot{ margin-top: var(--pairGapInside); }
+
 .label{
   color: var(--textDark);
-  font-weight: 700; font-size: 13px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight: 700;
+  font-size: 13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* ---------- QF & SF T-joins (centered between feeders) ---------- */
-/* horizontal arm across the gap + vertical collector at arm end */
-.qf .pair, .sf .pair{
+/* horizontal arm across the gap + vertical collector at arm end (border-aware) */
+.qf .pair,
+.sf .pair{
   background-image:
     linear-gradient(var(--line), var(--line)),  /* vertical collector */
     linear-gradient(var(--line), var(--line));  /* horizontal arm */
   background-repeat: no-repeat, no-repeat;
   background-size:
-    var(--joinW) calc(var(--slotH) + var(--pairGapInside)),  /* vertical bar spans top⇄bottom */
-    var(--arm) var(--joinW);                                 /* arm to the next column */
+    var(--joinW) calc(var(--slotH) + var(--pairGapInside) + var(--border)*2), /* top⇄bottom with borders */
+    var(--arm) var(--joinW);
   background-position:
-    left calc(var(--gap) * -1 + var(--arm)) 50%,
-    left calc(var(--gap) * -1)              50%;
+    left calc(var(--gap) * -1 + var(--arm)) calc(50% + var(--border)*0.5),
+    left calc(var(--gap) * -1)              calc(50% + var(--border)*0.5);
 }
-.right .qf .pair, .right .sf .pair{
+
+.right .qf .pair,
+.right .sf .pair{
   background-position:
-    right calc(var(--gap) * -1 + var(--arm)) 50%,
-    right calc(var(--gap) * -1)              50%;
+    right calc(var(--gap) * -1 + var(--arm)) calc(50% + var(--border)*0.5),
+    right calc(var(--gap) * -1)              calc(50% + var(--border)*0.5);
 }
 
 /* ---------- Right-column helper ---------- */
 .right { direction:ltr; }   /* keep text LTR while mirroring arms */
 
-/* ---------- Final block (keep neutral; square) ---------- */
+/* ---------- Final block (neutral; square) ---------- */
 .finalCol{ position:relative; }
+
 .winner{
-  text-align:center; color:#e7ecf5; opacity:.9;
-  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
+  text-align:center;
+  color:#e7ecf5;
+  opacity:.9;
+  font-weight:900;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  font-size:12px;
   margin-bottom:8px;
 }
+
 .champWrap{ display:grid; place-items:center; margin-bottom:6px; }
+
 .champBox{
   min-width: var(--colw);
-  background:#1c2952; border:2px solid #122040; color:#ffffff;
+  background:#1c2952;
+  border: var(--border) solid #122040;
+  color:#ffffff;
   border-radius: 0;           /* SQUARE */
   padding:10px 16px;
 }
+
 .champText{ font-weight:800; }
-.stem{ width:var(--joinW); height:18px; background:var(--line); border-radius:0; margin:8px auto; }
-.finalRow{ display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:10px; }
+
+.stem{
+  width:var(--joinW);
+  height:18px;
+  background:var(--line);
+  border-radius:0;
+  margin:8px auto;
+}
+
+.finalRow{
+  display:grid;
+  grid-template-columns:1fr 14px 1fr;
+  align-items:center;
+  gap:10px;
+}
+
 .finalSlot{
-  background:#ffffff; border:2px solid var(--slotBorder); color:#0f1320;
+  background:#ffffff;
+  border: var(--border) solid var(--slotBorder);
+  color:#0f1320;
   border-radius:0;            /* SQUARE */
   padding:10px 14px;
   height: var(--slotH);
-  display:flex; align-items:center; justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
+
 .finalText{ font-weight:700; font-size:13px; }
-.midbar{ height:var(--joinW); width:100%; background:var(--line); border-radius:0; }
+
+.midbar{
+  height:var(--joinW);
+  width:100%;
+  background:var(--line);
+  border-radius:0;
+}
