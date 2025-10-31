@@ -1,0 +1,192 @@
+/* styles/Bracket16.module.css */
+/* === Canvas sizing & scale (fits on one screen; no scroll) === */
+.viewport {
+  /* tune visual sizing here */
+  --colw: 210px;      /* width of each round column */
+  --gap: 26px;        /* horizontal gap between columns */
+  --pairH: 90px;      /* height of a match block */
+  --r16Space: 26px;   /* vertical rhythm between R16 pairs */
+  --qfSpace: 96px;    /* rhythm between QF pairs */
+  --sfSpace: 208px;   /* rhythm between SF pairs */
+
+  --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
+  --stageH: 740px;
+
+  /* this should equal the height your header + page padding consume */
+  --topSpace: 140px;
+
+  /* compute a scale that fits both width & height */
+  --fitW: calc(100vw / var(--stageW));
+  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
+  --scale: min(1, var(--fitW), var(--fitH));
+
+  width: 100%;
+  height: calc(100vh - var(--topSpace));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.stage {
+  width: var(--stageW);
+  height: var(--stageH);
+  transform: scale(var(--scale));
+  transform-origin: top center;
+}
+
+/* === Grid === */
+.grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, var(--colw));
+  gap: var(--gap);
+  align-items: start;
+}
+
+/* === Round columns === */
+.round { position: relative; }
+.roundTitle {
+  color: #d7deea;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stack {
+  position: relative;
+  display: grid;
+}
+
+/* vertical rhythm so connectors hit card midpoints perfectly */
+.r16 .matchWrap { margin: calc(var(--r16Space)/2) 0; }
+.qf  .matchWrap { margin: calc(var(--qfSpace)/2) 0; }
+.sf  .matchWrap { margin: calc(var(--sfSpace)/2) 0; }
+
+/* connector wires to next column */
+.round:not(.final) .matchWrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: calc(var(--gap) * -1);
+  transform: translateY(-50%);
+  height: 2px;
+  width: var(--gap);
+  background: rgba(255, 107, 129, 0.95);
+  border-radius: 1px;
+}
+.right .stack .matchWrap::after {
+  left: calc(var(--gap) * -1);
+  right: auto;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* === Match Card === */
+.matchWrap {
+  position: relative;
+  height: var(--pairH);
+  display: grid;
+  align-items: center;
+}
+
+.match {
+  width: 100%;
+  background: #0f151d;
+  border: 3px solid #293446;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+.match:hover {
+  border-color: #ff4655;
+  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.18),
+              0 16px 36px rgba(255, 70, 85, 0.12);
+  transform: translateY(-1px);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid #1b2430;
+}
+.row:first-child { border-top: none; }
+
+.name {
+  color: #e7ecf5;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === Final Block (two finalists feeding up to champion) === */
+.finalCol { position: relative; }
+.finalHeader {
+  color: #d7deea;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.champWrap {
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+}
+.champ {
+  min-width: var(--colw);
+  background: #0f151d;
+  border: 3px solid #293446;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #e7ecf5;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.stem {
+  width: 3px;
+  height: 20px;
+  background: #ff6b81;
+  border-radius: 2px;
+  margin: 0 auto 10px auto;
+}
+
+.finalRow {
+  display: grid;
+  grid-template-columns: 1fr 20px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.finalBox {
+  background: #0f151d;
+  border: 3px solid #293446;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #e7ecf5;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.finalBox:hover {
+  border-color: #ff4655;
+  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.18),
+              0 16px 36px rgba(255, 70, 85, 0.12);
+}
+.midbar {
+  height: 3px;
+  width: 100%;
+  background: #ff6b81;
+  border-radius: 2px;
+}
