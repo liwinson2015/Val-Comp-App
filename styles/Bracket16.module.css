@@ -1,48 +1,50 @@
-/* Picture-accurate bracket: pill colors + gold T-connectors + compact width */
+/* Square-slot bracket with precise connectors like the reference image. */
 
 /* ---------- Canvas sizing & auto-fit ---------- */
 .viewport{
-  --colw: clamp(150px, 11vw, 168px);  /* narrow pills like the image */
-  --gap:  clamp(14px, 1.8vw, 18px);
-  --pairH: clamp(70px, 7.6vh, 80px);
+  /* compact width so everything fits with no clipping */
+  --colw: clamp(150px, 11vw, 170px);
+  --gap:  clamp(16px, 2vw, 22px);
 
-  /* vertical rhythms */
-  --r16Space: clamp(16px, 1.8vh, 22px);
+  /* each slot is a separate box; pair height controls round rhythm */
+  --slotH: 38px;
+  --pairGapInside: 10px;     /* space between top/bot slots inside a pair */
+  --pairPad: 4px;            /* internal padding for connector alignment */
+
+  /* vertical rhythm between pairs so connector bars land at exact midpoints */
+  --r16Space: clamp(18px, 2vh, 24px);
   --qfSpace:  clamp(60px, 7vh, 80px);
   --sfSpace:  clamp(134px, 15vh, 184px);
 
-  /* connector styling */
-  --gold: #f2c24d;
-  --blue: #9ed6ff;
-  --dark: #0f151d;
-  --ink: #11161e;
+  /* connector sizes/colors */
+  --line: #2a2f36;           /* dark line like the image */
+  --joinW: 2px;              /* line thickness */
+  --stub: 10px;              /* small stub near the pair */
+  --arm:  calc(var(--gap) - var(--stub));
 
-  --line: var(--gold);
-  --stub: 12px;
-  --arm:  calc(var(--gap) - var(--stub)); /* horizontal arm length */
-
-  --joinR16toQF: calc(var(--pairH) + var(--r16Space)); /* vertical bar height */
-  --joinQFtoSF:  calc(var(--pairH) + var(--qfSpace));
+  --blue: #d7e7ff;           /* left/top slot color */
+  --rose: #f6dada;           /* left/bottom slot color */
+  --ink:  #0f1320;           /* text dark */
+  --inkSoft:#6c7a92;
 
   /* stage derived */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
   --stageH: clamp(560px, 68vh, 720px);
 
-  /* page header allowance */
+  /* header allowance for your page */
   --topSpace: 130px;
 
-  /* scale to fit viewport */
+  /* scale to fit */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
 
-  width: 100%;
-  height: calc(100vh - var(--topSpace));
-  display: grid;
-  place-items: center;
-  overflow: visible;
+  width:100%;
+  height:calc(100vh - var(--topSpace));
+  display:grid;
+  place-items:center;
+  overflow:visible;
 }
-
 .stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
 .grid{
   width:100%; height:100%;
@@ -51,104 +53,155 @@
 }
 
 /* ---------- Rounds ---------- */
-.round{ position:relative; }
+.round { position:relative; }
 .roundTitle{
-  color:#e7ecf5; opacity:.9;
-  font-weight:900; font-size:12px; letter-spacing:.08em; text-transform:uppercase;
-  margin-bottom:8px;
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
 .stack{ position:relative; display:grid; }
 
-/* vertical rhythm to align connectors perfectly */
-.r16 .matchWrap{ margin: calc(var(--r16Space)/2) 0; }
-.qf  .matchWrap{ margin: calc(var(--qfSpace)/2) 0; }
-.sf  .matchWrap{ margin: calc(var(--sfSpace)/2) 0; }
+/* vertical spacing for perfect alignment */
+.r16 .pair{ margin: calc(var(--r16Space)/2) 0; }
+.qf  .pair{ margin: calc(var(--qfSpace)/2) 0; }
+.sf  .pair{ margin: calc(var(--sfSpace)/2) 0; }
 
-/* ---------- Picture-style connectors ---------- */
-/* short stubs on the “leaving” side (R16 and QF) */
-.r16 .matchWrap::after,
-.qf  .matchWrap::after{
-  content:""; position:absolute; top:50%; right:calc(var(--stub) * -1);
-  transform:translateY(-50%); height:2px; width:var(--stub);
-  background:var(--line); border-radius:1px;
+/* ---------- Pair (two separate square slots) ---------- */
+.pair{
+  position:relative;
+  padding: var(--pairPad) 0;
+  /* draw the short stub (to next round) */
 }
-/* mirror right */
-.right .stack .matchWrap::after{ left:calc(var(--stub) * -1); right:auto; transform:translateY(-50%) scaleX(-1); }
+.pair::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  right: calc(var(--stub) * -1);
+  transform: translateY(-50%);
+  width: var(--stub);
+  height: var(--joinW);
+  background: var(--line);
+}
+.sideRight.pair::after{
+  left: calc(var(--stub) * -1);
+  right: auto;
+}
 
-/* QF arm + vertical join back to R16 */
-.qf .matchWrap{
-  background-image: linear-gradient(var(--line),var(--line));
+/* vertical join (between top & bottom slot) */
+.pair::before{
+  content:"";
+  position:absolute;
+  left: calc(100% + var(--gap) * -1 + var(--arm)); /* start where the arm ends (for round join bars) */
+  /* by default, no vertical bar; QF/SF will add it via background (see below) */
+}
+
+/* two slots */
+.slot{
+  height: var(--slotH);
+  border: 2px solid #c5cfe3;
+  border-radius: 6px;
+  background:#fff;
+  display:flex; align-items:center;
+  padding: 0 10px;
+  box-shadow: 0 2px 0 rgba(0,0,0,.06);
+}
+.slot + .slot{ margin-top: var(--pairGapInside); }
+.slotTop{ background: var(--blue); border-color:#b7c8ea; }
+.slotBot{ background: var(--rose); border-color:#efc7c7; }
+.label{
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 13px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* ---------- Connectors between rounds (T-joins like the picture) ---------- */
+/* R16 has only the short stub (pair::after). For QF & SF we also draw
+   a horizontal arm across the gap and a vertical bar that collects two R16/QF pairs. */
+
+/* horizontal arm across the gap */
+.qf .pair,
+.sf .pair{
+  background-image: linear-gradient(var(--line), var(--line));
   background-repeat: no-repeat;
-  background-size: 2px var(--joinR16toQF);
-  background-position: left calc(var(--gap) * -1 + var(--arm));
+  background-size: var(--arm) var(--joinW);
+  background-position: left calc(var(--gap) * -1) 50%;
 }
-.right .qf .matchWrap{
-  background-image: linear-gradient(var(--line),var(--line));
-  background-size: 2px var(--joinR16toQF);
-  background-position: right calc(var(--gap) * -1 + var(--arm));
-}
-/* horizontal arm for QF */
-.qf .matchWrap::before{
-  content:""; position:absolute; top:50%; left:calc(var(--gap) * -1); transform:translateY(-50%);
-  width:var(--arm); height:2px; background:var(--line); border-radius:1px;
-}
-.right .qf .matchWrap::before{
-  left:auto; right:calc(var(--gap) * -1);
+.right .qf .pair,
+.right .sf .pair{
+  background-position: right calc(var(--gap) * -1) 50%;
 }
 
-/* SF arm + vertical join back to QF */
-.sf .matchWrap{
-  background-image: linear-gradient(var(--line),var(--line));
-  background-repeat:no-repeat;
-  background-size:2px var(--joinQFtoSF);
-  background-position:left calc(var(--gap) * -1 + var(--arm));
+/* vertical collecting bar height */
+.qf .pair{
+  /* distance from top-slot center to bottom-slot center + internal gap & padding */
+  --collectH: calc(var(--slotH) + var(--pairGapInside));
 }
-.right .sf .matchWrap{
-  background-image: linear-gradient(var(--line),var(--line));
-  background-size:2px var(--joinQFtoSF);
-  background-position:right calc(var(--gap) * -1 + var(--arm));
+.sf .pair{
+  --collectH: calc(var(--slotH) + var(--pairGapInside));
 }
-/* SF short stub already provided by generic ::after above (applies via .qf/.r16 only) */
 
-/* ---------- Match cards (pills) ---------- */
-.matchWrap{ position:relative; height:var(--pairH); display:grid; align-items:center; }
-.match{
-  width:100%;
-  border:0; border-radius:999px; overflow:hidden;
-  box-shadow:0 8px 22px rgba(0,0,0,.30);
-  transition:transform .08s ease, box-shadow .15s ease, filter .15s ease;
+/* paint the vertical collecting bar at the end of the arm */
+.qf .pair{
+  background-image:
+    linear-gradient(var(--line), var(--line)),    /* vertical bar */
+    linear-gradient(var(--line), var(--line));    /* horizontal arm */
+  background-repeat: no-repeat, no-repeat;
+  background-size:
+    var(--joinW) var(--collectH),
+    var(--arm) var(--joinW);
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm)) calc(50%),
+    left calc(var(--gap) * -1)               50%;
 }
-.match:hover{ transform:translateY(-1px); box-shadow:0 10px 30px rgba(0,0,0,.36); filter:brightness(1.03); }
+.right .qf .pair{
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm)) calc(50%),
+    right calc(var(--gap) * -1)               50%;
+}
 
-.row{ display:flex; align-items:center; gap:6px; padding:10px 14px; }
-.row + .row{ border-top:1px solid rgba(0,0,0,.08); }
+/* same treatment for SF (collecting QFs) but the column rhythm already spaces them out */
+.sf .pair{
+  background-image:
+    linear-gradient(var(--line), var(--line)),
+    linear-gradient(var(--line), var(--line));
+  background-repeat: no-repeat, no-repeat;
+  background-size:
+    var(--joinW) var(--collectH),
+    var(--arm) var(--joinW);
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm)) calc(50%),
+    left calc(var(--gap) * -1)               50%;
+}
+.right .sf .pair{
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm)) calc(50%),
+    right calc(var(--gap) * -1)               50%;
+}
 
-/* pill variants */
-.pillBlue { background: var(--blue);    color:#0b1320; }
-.pillGold { background: var(--gold);    color:#1b1300; }
-.pillDark { background: #1b2330;       color:#e7ecf5; }
-.pillWhite{ background: #ffffff;       color:#20242a; }
+/* ---------- Right-column class helper ---------- */
+.right { direction:ltr; }     /* maintain left-to-right text while mirroring arms */
 
-.name{ font-weight:800; font-size:13.5px; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-/* ---------- Final block ---------- */
+/* ---------- Final block (center) ---------- */
 .finalCol{ position:relative; }
-.winnerLabel{
-  text-align:center; color:#e7ecf5; opacity:.9;
+.winner{
+  text-align:center; color:#0f1320; opacity:.9;
   font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
   margin-bottom:8px;
 }
 .champWrap{ display:grid; place-items:center; margin-bottom:6px; }
-.champ{
+.champBox{
   min-width: var(--colw);
-  padding:10px 16px; border-radius:14px;
-  box-shadow:0 8px 22px rgba(0,0,0,.30);
+  background:#1c2952; border:2px solid #122040; color:#ffffff;
+  border-radius:8px; padding:10px 16px; box-shadow:0 8px 22px rgba(0,0,0,.20);
 }
-.stem{ width:3px; height:16px; background:var(--line); border-radius:2px; margin:0 auto 8px auto; }
-.finalRow{
-  display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:8px;
+.champText{ font-weight:800; }
+.stem{ width:var(--joinW); height:18px; background:var(--line); border-radius:2px; margin:8px auto; }
+.finalRow{ display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:10px; }
+.finalSlot{
+  background:#ffffff; border:2px solid #c5cfe3; color:#0f1320;
+  border-radius:6px; padding:10px 14px; box-shadow:0 2px 0 rgba(0,0,0,.06);
+  height: var(--slotH);
+  display:flex; align-items:center; justify-content:center;
 }
-.finalBox{
-  padding:10px 14px; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.30);
-}
-.midbar{ height:3px; width:100%; background:var(--line); border-radius:2px; }
+.finalText{ font-weight:700; font-size:13px; }
+.midbar{ height:var(--joinW); width:100%; background:var(--line); border-radius:1px; }
