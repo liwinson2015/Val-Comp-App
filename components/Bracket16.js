@@ -3,10 +3,9 @@ import React from "react";
 
 /**
  * 16-player single-elimination bracket, esports style.
- * - Bigger boxes + thicker outlines
- * - Perfect alignment (no overlap)
- * - No scroll: whole bracket scales to fit the screen
- * - Default ordered seeds:
+ * - Big boxes, thick outlines
+ * - Auto-scales to fit viewport (no scroll)
+ * - Ordered seeds by default:
  *   Left R16:  [1-2], [3-4], [5-6], [7-8]
  *   Right R16: [9-10], [11-12], [13-14], [15-16]
  *
@@ -23,7 +22,7 @@ export default function Bracket16({ data }) {
   const R = data?.right ?? {};
   const F = data?.final ?? {};
 
-  const defaultLeftR16  = seqPairs(1, 8);   // [[1,2],[3,4],[5,6],[7,8]]
+  const defaultLeftR16 = seqPairs(1, 8);    // [[1,2],[3,4],[5,6],[7,8]]
   const defaultRightR16 = seqPairs(9, 16);  // [[9,10],[11,12],[13,14],[15,16]]
 
   return (
@@ -78,14 +77,11 @@ export default function Bracket16({ data }) {
       </div>
 
       <style jsx>{`
-        /* ========= Fit-to-screen scaler (no scroll, no overlap) =========
-           We design at a roomy BASE size, then scale down so the whole
-           bracket fits both width and height of the viewport.
-        */
+        /* Fit-to-screen scaler (no scroll, no overlap) */
         .viewport {
-          --baseW: 1600px;         /* base canvas width */
-          --baseH: 820px;          /* base canvas height */
-          --topSpace: 140px;       /* space your page header/nav consumes */
+          --baseW: 1600px;       /* base canvas width */
+          --baseH: 820px;        /* base canvas height */
+          --topSpace: 140px;     /* adjust if your navbar/header is taller/shorter */
           --fitW: calc(100vw / var(--baseW));
           --fitH: calc((100vh - var(--topSpace)) / var(--baseH));
           --scale: min(1, var(--fitW), var(--fitH));
@@ -94,7 +90,7 @@ export default function Bracket16({ data }) {
           place-items: center;
           width: 100%;
           height: calc(100vh - var(--topSpace));
-          overflow: hidden; /* never show scrollbars here */
+          overflow: hidden;
         }
         .stage {
           width: var(--baseW);
@@ -103,14 +99,14 @@ export default function Bracket16({ data }) {
           transform: scale(var(--scale));
         }
 
-        /* ========= Grid & spacing (roomy, non-overlapping) ========= */
+        /* Grid & spacing (roomy, non-overlapping) */
         .grid {
-          --colw: 230px;           /* match card column width */
-          --gap: 40px;             /* column gap */
-          --pairH: 96px;           /* height of a pair block (two rows) */
-          --r16Space: 36px;        /* vertical rhythm between R16 pairs */
-          --qfSpace: 124px;        /* vertical rhythm between QF pairs */
-          --sfSpace: 270px;        /* vertical rhythm between SF pairs */
+          --colw: 230px;    /* column width for match cards */
+          --gap: 40px;      /* column gap */
+          --pairH: 96px;    /* height of a pair block */
+          --r16Space: 36px; /* vertical rhythm between R16 pairs */
+          --qfSpace: 124px; /* vertical rhythm between QF pairs */
+          --sfSpace: 270px; /* vertical rhythm between SF pairs */
 
           width: 100%;
           height: 100%;
@@ -125,7 +121,7 @@ export default function Bracket16({ data }) {
   );
 }
 
-/* ================= Subcomponents ================ */
+/* ---------- Subcomponents ---------- */
 
 function Round({ title, children, side, tier }) {
   return (
@@ -134,8 +130,9 @@ function Round({ title, children, side, tier }) {
       <div className="stack">{children}</div>
 
       <style jsx>{`
-        .round { position: relative; }
-
+        .round {
+          position: relative;
+        }
         .label {
           font-weight: 900;
           font-size: 13px;
@@ -143,20 +140,23 @@ function Round({ title, children, side, tier }) {
           text-transform: uppercase;
           color: #e7ecf5;
           margin-bottom: 12px;
-          text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+          text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
         }
-
         .stack {
           display: grid;
-          gap: 0; /* spacing handled by pair-wrap margins for precise rhythm */
+          gap: 0; /* spacing handled by pair-wrap margins for exact rhythm */
           position: relative;
         }
-
-        /* vertical rhythm per round to match connectors exactly */
-        .r16 .stack :global(.pair-wrap) { margin: calc(var(--r16Space) / 2) 0; }
-        .qf  .stack :global(.pair-wrap) { margin: calc(var(--qfSpace) / 2) 0; }
-        .sf  .stack :global(.pair-wrap) { margin: calc(var(--sfSpace) / 2) 0; }
-
+        /* vertical rhythm per round */
+        .r16 .stack :global(.pair-wrap) {
+          margin: calc(var(--r16Space) / 2) 0;
+        }
+        .qf .stack :global(.pair-wrap) {
+          margin: calc(var(--qfSpace) / 2) 0;
+        }
+        .sf .stack :global(.pair-wrap) {
+          margin: calc(var(--sfSpace) / 2) 0;
+        }
         /* connector to next column */
         .round:not(.final) .stack :global(.pair-wrap)::after {
           content: "";
@@ -184,8 +184,16 @@ function Pair({ a = "TBD", b = "TBD", big, bigger }) {
   return (
     <div className="pair-wrap">
       <div className={`pair ${big ? "big" : ""} ${bigger ? "bigger" : ""}`}>
-        <div className="row"><div className="name" title={a}>{label(a)}</div></div>
-        <div className="row"><div className="name" title={b}>{label(b)}</div></div>
+        <div className="row">
+          <div className="name" title={a}>
+            {label(a)}
+          </div>
+        </div>
+        <div className="row">
+          <div className="name" title={b}>
+            {label(b)}
+          </div>
+        </div>
       </div>
 
       <style jsx>{`
@@ -195,30 +203,31 @@ function Pair({ a = "TBD", b = "TBD", big, bigger }) {
           display: grid;
           align-items: center;
         }
-
         .pair {
           background: #0f151d;
           border: 3px solid #293446;
           border-radius: 12px;
           width: 100%;
-          box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
           overflow: hidden;
-          transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease,
+            transform 0.08s ease;
         }
         .pair:hover {
           border-color: #ff4655;
-          box-shadow: 0 0 0 3px rgba(255,70,85,0.18), 0 16px 36px rgba(255,70,85,0.12);
+          box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.18),
+            0 16px 36px rgba(255, 70, 85, 0.12);
           transform: translateY(-1px);
         }
-
         .row {
           display: flex;
           align-items: center;
           padding: 12px 14px;
           border-top: 1px solid #1b2430;
         }
-        .row:first-child { border-top: none; }
-
+        .row:first-child {
+          border-top: none;
+        }
         .name {
           font-size: 14px;
           font-weight: 700;
@@ -227,31 +236,39 @@ function Pair({ a = "TBD", b = "TBD", big, bigger }) {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-      </style>
+      `}</style>
     </div>
   );
 }
 
-/** GRAND FINAL: two finalists in a row with a small connector up to champion box */
+/** GRAND FINAL block — two finalists feeding up to a champion box (like your image) */
 function FinalBlock({ left = "TBD", right = "TBD", champion = "TBD" }) {
   return (
     <div className="final-col">
       <div className="label">Grand Final</div>
 
       <div className="champ-wrap">
-        <div className="champ">{label(champion)}</div>
+        <div className="champ" title={champion}>
+          {label(champion)}
+        </div>
       </div>
 
-      <div className="stem" aria-hidden />
+      <div className="stem" aria-hidden="true" />
 
       <div className="finalists">
-        <div className="final-box">{label(left)}</div>
-        <div className="midbar" aria-hidden />
-        <div className="final-box">{label(right)}</div>
+        <div className="final-box" title={left}>
+          {label(left)}
+        </div>
+        <div className="midbar" aria-hidden="true" />
+        <div className="final-box" title={right}>
+          {label(right)}
+        </div>
       </div>
 
       <style jsx>{`
-        .final-col { position: relative; }
+        .final-col {
+          position: relative;
+        }
         .label {
           font-weight: 900;
           font-size: 13px;
@@ -260,9 +277,8 @@ function FinalBlock({ left = "TBD", right = "TBD", champion = "TBD" }) {
           color: #e7ecf5;
           margin-bottom: 12px;
           text-align: center;
-          text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+          text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
         }
-
         .champ-wrap {
           display: grid;
           place-items: center;
@@ -278,9 +294,8 @@ function FinalBlock({ left = "TBD", right = "TBD", champion = "TBD" }) {
           color: #e7ecf5;
           font-weight: 900;
           letter-spacing: 0.04em;
-          box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
         }
-
         .stem {
           width: 3px;
           height: 22px;
@@ -288,7 +303,6 @@ function FinalBlock({ left = "TBD", right = "TBD", champion = "TBD" }) {
           margin: 0 auto 12px auto;
           border-radius: 2px;
         }
-
         .finalists {
           display: grid;
           grid-template-columns: 1fr 22px 1fr;
@@ -303,12 +317,13 @@ function FinalBlock({ left = "TBD", right = "TBD", champion = "TBD" }) {
           text-align: center;
           color: #e7ecf5;
           font-weight: 800;
-          box-shadow: 0 10px 28px rgba(0,0,0,0.35);
-          transition: border-color .15s ease, box-shadow .15s ease;
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
         .final-box:hover {
           border-color: #ff4655;
-          box-shadow: 0 0 0 3px rgba(255,70,85,0.18), 0 16px 36px rgba(255,70,85,0.12);
+          box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.18),
+            0 16px 36px rgba(255, 70, 85, 0.12);
         }
         .midbar {
           height: 3px;
@@ -321,7 +336,7 @@ function FinalBlock({ left = "TBD", right = "TBD", champion = "TBD" }) {
   );
 }
 
-/* ================= Helpers ================= */
+/* ---------- Helpers ---------- */
 
 function makePairs(source, fallback) {
   if (Array.isArray(source)) return source.map(([a, b]) => [label(a), label(b)]);
