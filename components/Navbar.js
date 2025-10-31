@@ -150,7 +150,8 @@ export default function Navbar() {
             )}
           </div>
 
-          <a href="/valorant/bracket" className="nav-link">Bracket</a>
+          {/* Bracket tab removed per your request */}
+          {/* <a href="/valorant/bracket" className="nav-link">Bracket</a> */}
 
           {/* Discord shortcut (only when logged in) */}
           {!loading && loggedIn && (
