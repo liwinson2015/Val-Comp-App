@@ -1,36 +1,47 @@
 // pages/api/auth/callback.js
+//
+// Discord OAuth callback.
+// - Exchanges ?code for an access token
+// - Fetches Discord user
+// - Sets lightweight session cookies (playerId, playerName, playerAvatar)
+// - If user already registered for CURRENT_TOURNAMENT → redirect to details
+// - Otherwise → redirect to /valorant (or ?state returnTo if provided)
 
-import Player from "../../../models/Player.js";
-import { connectToDatabase } from "../../../lib/mongodb.js";
+import { connectToDatabase } from "../../../lib/mongodb";
+import Registration from "../../../models/Registration";
+import { CURRENT_TOURNAMENT } from "../../../lib/tournament";
 
-function parseCookies(header = "") {
-  return Object.fromEntries(
-    header
-      .split(";")
-      .map(v => v.trim())
-      .filter(Boolean)
-      .map(kv => {
-        const i = kv.indexOf("=");
-        const k = i >= 0 ? kv.slice(0, i) : kv;
-        const v = i >= 0 ? kv.slice(i + 1) : "";
-        try { return [k, decodeURIComponent(v)]; } catch { return [k, v]; }
-      })
-  );
+function makeCookie(name, value, days = 30) {
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${60 * 60 * 24 * days}`,
+  ];
+  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  return parts.join("; ");
 }
 
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
     if (!code) {
-      return res.status(400).send("No 'code' found. Did you come here from Discord?");
+      return res.status(400).send("Missing OAuth code.");
     }
+
+    // Optional: where to send the user after login (passed via /api/auth/login?state=...)
+    const returnTo =
+      (req.query.state && decodeURIComponent(req.query.state)) || "/valorant";
 
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const redirectUri = process.env.DISCORD_REDIRECT_URI; // must match Discord app exactly
+    const redirectUri =
+      process.env.DISCORD_REDIRECT_URI ||
+      "https://valcomp.vercel.app/api/auth/callback";
 
-    // 1) Exchange code -> token
-    const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+    // 1) Exchange code for token
+    const tokenResp = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -41,72 +52,50 @@ export default async function handler(req, res) {
         redirect_uri: redirectUri,
       }),
     });
-    if (!tokenResponse.ok) {
-      const errText = await tokenResponse.text();
-      console.error("[callback] token exchange failed:", errText);
-      return res.status(500).send("Failed to exchange code for token");
-    }
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
 
-    // 2) Get Discord user
-    const userResponse = await fetch("https://discord.com/api/users/@me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
+    if (!tokenResp.ok) {
+      const t = await tokenResp.text();
+      return res.status(400).send(`Token exchange failed: ${t}`);
+    }
+    const { access_token } = await tokenResp.json();
+
+    // 2) Fetch user
+    const userResp = await fetch("https://discord.com/api/users/@me", {
+      headers: { Authorization: `Bearer ${access_token}` },
     });
-    if (!userResponse.ok) {
-      const errText = await userResponse.text();
-      console.error("[callback] fetch discord user failed:", errText);
-      return res.status(500).send("Failed to fetch Discord user");
+    if (!userResp.ok) {
+      const t = await userResp.text();
+      return res.status(400).send(`Failed to fetch Discord user: ${t}`);
     }
-    const discordUser = await userResponse.json();
+    const user = await userResp.json(); // { id, username, global_name, avatar, ... }
 
-    // 3) DB
+    // 3) Set cookies
+    res.setHeader("Set-Cookie", [
+      makeCookie("playerId", user.id),
+      makeCookie("playerName", user.global_name || user.username || "Player"),
+      makeCookie("playerAvatar", user.avatar || ""),
+    ]);
+
+    // 4) Check if already registered for current tournament
     await connectToDatabase();
+    const existing = await Registration.findOne({
+      discordId: user.id,
+      tournament: CURRENT_TOURNAMENT.slug,
+    }).lean();
 
-    // 4) Upsert Player
-    const update = {
-      username: discordUser.global_name || discordUser.username || "",
-      avatar: discordUser.avatar || "",
-      discriminator: discordUser.discriminator || "",
-    };
-    const playerDoc = await Player.findOneAndUpdate(
-      { discordId: discordUser.id },
-      { $set: update, $setOnInsert: { discordId: discordUser.id, registeredFor: [] } },
-      { upsert: true, new: true }
-    );
+    if (existing) {
+      // Send directly to View Details page
+      res.writeHead(302, {
+        Location: `/account/registrations?focus=${existing._id}`,
+      });
+      return res.end();
+    }
 
-    // 5) Set session cookie (persist 30 days; Secure only in prod)
-    const isProd = process.env.NODE_ENV === "production";
-    const sessionCookie = [
-      `playerId=${encodeURIComponent(playerDoc._id.toString())}`,
-      "Path=/",
-      "HttpOnly",
-      "SameSite=Lax",
-      "Max-Age=2592000", // 30 days
-      isProd ? "Secure" : null,
-    ].filter(Boolean).join("; ");
-
-    // read the post-login redirect cookie (set by /api/auth/discord)
-    const cookies = parseCookies(req.headers.cookie);
-    const next = cookies.post_login_redirect || "/";
-
-    // clear the post-login cookie
-    const clearPostLogin = [
-      "post_login_redirect=;",
-      "Path=/",
-      "Max-Age=0",
-      "SameSite=Lax",
-      "HttpOnly",
-      isProd ? "Secure" : null,
-    ].filter(Boolean).join("; ");
-
-    res.setHeader("Set-Cookie", [sessionCookie, clearPostLogin]);
-
-    // 6) Redirect back to where the user started (fallback to /)
-    res.writeHead(302, { Location: next });
+    // 5) Not registered → send to Valorant main page (or returnTo if provided)
+    res.writeHead(302, { Location: returnTo || "/valorant" });
     return res.end();
   } catch (err) {
-    console.error("[callback] internal error:", err);
-    return res.status(500).send("Internal server error in callback: " + err.message);
+    console.error("OAuth callback error:", err);
+    return res.status(500).send("OAuth callback error.");
   }
 }
