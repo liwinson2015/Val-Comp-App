@@ -34,17 +34,17 @@ export default function BracketPage() {
   const bracketData = {
     left: {
       R16: [
-        ["temppjmdkrzyfekn", "№NeedZzz"],
-        ["海友糕手", "Squid"],
+        ["temppjmdkrzyfekn", "Chicken Wang"],
+        ["海友糕手", "蓝蝴蝶ya"],
         ["sparkle", "巧克力炸香蕉"],
-        ["Cactus", "Qenquin"],
+        ["彼岸花ya", "Mellul"],
       ],
     },
     right: {
       R16: [
-        ["叶秋风", "蓝蝴蝶ya"],
-        ["彼岸花ya", "July ya"],
-        ["Seed 13", "Seed 14"],
+        ["叶秋风", "Squid"],
+        ["Cactus", "July ya"],
+        ["Qenquin", "№NeedZzz"],
         ["Ethan Sylor", "卡提希娅の仆人"],
       ],
     },
