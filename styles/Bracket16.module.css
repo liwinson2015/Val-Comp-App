@@ -1,34 +1,37 @@
-/* Square-slot bracket with single-node QF/SF and exact centering; no transform scaling */
+/* Bracket16.module.css — QF nodes centered between R16 pairs (4 per side) */
+/* Square corners, compact width. This version focuses on correct QF alignment. */
 
 /* ---------- Canvas sizing (no transform scaling) ---------- */
 .viewport{
   --outerPad: 160px;
   --gap: 18px;
 
-  /* Fit 7 columns + 6 gaps within viewport minus outerPad */
+  /* Fit 7 cols + 6 gaps within viewport minus outerPad */
   --colw: clamp(120px, calc((100vw - var(--outerPad) - (6 * var(--gap))) / 7), 155px);
 
-  /* slot & pair geometry */
-  --slotH: 38px;
-  --pairGapInside: 10px;
-  --pairPad: 4px;
-  --border: 2px;
+  /* geometry */
+  --slotH: 38px;          /* height of each player/node box */
+  --pairGapInside: 10px;  /* gap between top/bot slots inside a pair */
+  --pairPad: 4px;         /* vertical padding inside pair */
+  --border: 2px;          /* box border thickness */
 
-  /* derived */
+  /* derived pair box height (top slot + gap + bottom slot + borders + padding) */
   --pairH: calc(var(--slotH) * 2 + var(--pairGapInside) + var(--pairPad) * 2 + var(--border) * 2);
 
-  /* rhythms: center nodes between feeders */
-  --r16Space: 20px;
-  --qfSpace: calc(var(--pairH) + var(--r16Space));
-  --sfSpace: calc(var(--pairH) + var(--qfSpace));
+  /* spacing rhythm */
+  --r16Space: 20px;                                 /* space between R16 pairs */
+  --block:   calc(var(--pairH) + var(--r16Space));  /* distance from pair i to pair i+1 */
 
-  /* connectors */
+  /* the true vertical CENTER (from top of a pair) between top/bottom slots */
+  --midPairCenter: calc(var(--pairPad) + var(--slotH) + (var(--pairGapInside) / 2) + var(--border));
+
+  /* Helpful totals (4 pairs per side) */
+  --colH: calc(4 * var(--pairH) + 4 * var(--r16Space));
+
+  /* visuals / connectors (we’ll add lines later if you want) */
   --line: #2a2f36;
   --joinW: 2px;
-  --stub: 10px;
-  --arm:  calc(var(--gap) - var(--stub));
 
-  /* neutral palette for now */
   --slotBg: #f4f6fb;
   --slotBorder: #cfd7ea;
   --nodeBg: #ffffff;
@@ -46,10 +49,7 @@
   overflow:visible;
 }
 
-.stage{
-  width:var(--stageW);
-  height:var(--stageH);
-}
+.stage{ width:var(--stageW); height:var(--stageH); }
 
 .grid{
   width:100%;
@@ -60,183 +60,98 @@
   align-items:start;
 }
 
-/* ---------- Rounds ---------- */
+/* ---------- rounds ---------- */
 .round { position:relative; }
-
 .roundTitle{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  margin-bottom:8px;
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
 
-.stack{ position:relative; display:grid; }
+/* EVERY column stack gets a fixed min-height so absolute positioning lines up */
+.stack{
+  position:relative;
+  min-height: var(--colH);  /* critical: gives a stable height for QF positioning */
+}
 
-/* vertical spacing */
+/* R16 still flows naturally (pairs spaced evenly) */
 .r16 .pair{ margin: calc(var(--r16Space)/2) 0; }
-.qf  .node{ margin: calc(var(--qfSpace)/2) 0; }
-.sf  .node{ margin: calc(var(--sfSpace)/2) 0; }
 
-/* ---------- R16 pairs (two separate slots) ---------- */
+/* ---------- R16 pairs (two separate square slots) ---------- */
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
-  /* true midpoint used by connectors */
-  --midY: calc(var(--pairPad) + var(--slotH) + (var(--pairGapInside) / 2) + var(--border));
 }
 
-/* two square slots */
 .slot{
   height: var(--slotH);
   border: var(--border) solid var(--slotBorder);
-  border-radius: 0;
+  border-radius: 0;  /* square corners */
   background: var(--slotBg);
-  display:flex;
-  align-items:center;
+  display:flex; align-items:center;
   padding: 0 10px;
 }
 .slot + .slot{ margin-top: var(--pairGapInside); }
 
 .label{
   color: var(--textDark);
-  font-weight: 700;
-  font-size: 13px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  font-weight: 700; font-size: 13px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* short stub leaving each R16 pair toward the QF column at exact midY */
-.pair::after{
-  content:"";
-  position:absolute;
-  top: var(--midY);
-  right: calc(var(--stub) * -1);
-  width: var(--stub);
-  height: var(--joinW);
-  background: var(--line);
-}
-.sideRight.pair::after{
-  left: calc(var(--stub) * -1);
-  right: auto;
-}
-
-/* ---------- Single Node boxes for QF / SF ---------- */
+/* ---------- QF & SF: single nodes (NOT stacked pairs) ---------- */
 .node{
-  position:relative;
+  position:relative; /* default; QF will be absolute */
   height: var(--slotH);
   border: var(--border) solid var(--nodeBorder);
   border-radius: 0;
   background: var(--nodeBg);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display:flex; align-items:center; justify-content:center;
   padding: 0 12px;
   color: var(--textDark);
 }
 .nodeText{ font-weight:700; font-size:13px; }
 
-/* Each QF node draws the vertical collector (spanning its two feeders) and the horizontal arm into itself */
-.qf .node{
-  /* collector height spans top & bottom R16 slots (with borders) */
-  --collectH: calc(var(--slotH) + var(--pairGapInside) + var(--border)*2);
+/* ====== THE IMPORTANT PART: place 4 QF nodes exactly between their feeder pairs ====== */
+/* We absolutely position each of the 4 QF nodes using formula:
+   top = r16Space/2 + i*block + midPairCenter - slotH/2  (for i = 0..3) */
+.qf .stack { position:relative; }
+.qf .node { position:absolute; left:0; right:auto; } /* left side */
 
-  background-image:
-    linear-gradient(var(--line), var(--line)),  /* vertical collector */
-    linear-gradient(var(--line), var(--line));  /* horizontal arm into node */
-  background-repeat: no-repeat, no-repeat;
-  background-size:
-    var(--joinW) var(--collectH),
-    var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) center,
-    left calc(var(--gap) * -1)              center;
-}
+.qf .node:nth-child(1){ top: calc( (var(--r16Space)/2) + 0*var(--block) + var(--midPairCenter) - var(--slotH)/2 ); }
+.qf .node:nth-child(2){ top: calc( (var(--r16Space)/2) + 1*var(--block) + var(--midPairCenter) - var(--slotH)/2 ); }
+.qf .node:nth-child(3){ top: calc( (var(--r16Space)/2) + 2*var(--block) + var(--midPairCenter) - var(--slotH)/2 ); }
+.qf .node:nth-child(4){ top: calc( (var(--r16Space)/2) + 3*var(--block) + var(--midPairCenter) - var(--slotH)/2 ); }
 
-/* Semifinal nodes collect from two QF nodes */
+/* Mirror on right side (same top math; we just don’t need to change it) */
+.right .qf .node{ left:auto; right:0; }
+
+/* ---------- Semifinals: keep one node per side; vertical centering via margin rhythm ---------- */
 .sf .node{
-  --collectH: calc(var(--qfSpace) - var(--r16Space));
-  background-image:
-    linear-gradient(var(--line), var(--line)),
-    linear-gradient(var(--line), var(--line));
-  background-repeat: no-repeat, no-repeat;
-  background-size:
-    var(--joinW) var(--collectH),
-    var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) center,
-    left calc(var(--gap) * -1)              center;
+  /* keep it flowing for now (centered between the two QF nodes naturally by our min-height rhythm).
+     If you want pixel-perfect absolute placement for SF too, we can do the same trick as QF. */
+  margin: calc( (var(--block)) ) 0; /* positions SF roughly mid-column */
 }
 
-/* mirror for right side */
-.right .qf .node,
-.right .sf .node{
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm)) center,
-    right calc(var(--gap) * -1)              center;
-}
-
-/* ---------- Final block (neutral; square) ---------- */
+/* ---------- Final block (unchanged) ---------- */
 .finalCol{ position:relative; }
-
 .winner{
-  text-align:center;
-  color:#e7ecf5;
-  opacity:.9;
-  font-weight:900;
-  letter-spacing:.10em;
-  text-transform:uppercase;
-  font-size:12px;
+  text-align:center; color:#e7ecf5; opacity:.9;
+  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
   margin-bottom:8px;
 }
-
 .champWrap{ display:grid; place-items:center; margin-bottom:6px; }
-
 .champBox{
   min-width: var(--colw);
-  background:#1c2952;
-  border: var(--border) solid #122040;
-  color:#ffffff;
-  border-radius: 0;
-  padding:10px 16px;
+  background:#1c2952; border: var(--border) solid #122040; color:#ffffff;
+  border-radius: 0; padding:10px 16px;
 }
-
 .champText{ font-weight:800; }
-
-.stem{
-  width:var(--joinW);
-  height:18px;
-  background:var(--line);
-  border-radius:0;
-  margin:8px auto;
-}
-
-.finalRow{
-  display:grid;
-  grid-template-columns:1fr 14px 1fr;
-  align-items:center;
-  gap:10px;
-}
-
+.stem{ width:var(--joinW); height:18px; background:#2a2f36; border-radius:0; margin:8px auto; }
+.finalRow{ display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:10px; }
 .finalSlot{
-  background:#ffffff;
-  border: var(--border) solid var(--nodeBorder);
-  color:#0f1320;
-  border-radius:0;
-  padding:10px 14px;
-  height: var(--slotH);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  background:#ffffff; border: var(--border) solid var(--nodeBorder); color:#0f1320;
+  border-radius:0; padding:10px 14px; height: var(--slotH);
+  display:flex; align-items:center; justify-content:center;
 }
-
 .finalText{ font-weight:700; font-size:13px; }
-
-.midbar{
-  height:var(--joinW);
-  width:100%;
-  background:var(--line);
-  border-radius:0;
-}
+.midbar{ height:var(--joinW); width:100%; background:#2a2f36; border-radius:0; }
