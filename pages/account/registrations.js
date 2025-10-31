@@ -7,7 +7,7 @@ import { tournamentsById as catalog } from "../../lib/tournaments";
 
 function parseCookies(cookieHeader = "") {
   return Object.fromEntries(
-    cookieHeader
+    (cookieHeader || "")
       .split(";")
       .filter(Boolean)
       .map((c) => {
@@ -21,7 +21,7 @@ export async function getServerSideProps({ req }) {
   const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
-  // Gate: must be logged in
+  // Require login
   if (!playerId) {
     const next = "/account/registrations";
     return {
@@ -45,22 +45,21 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  const rawRegs = Array.isArray(player.registeredFor)
-    ? player.registeredFor
-    : [];
+  const rawRegs = Array.isArray(player.registeredFor) ? player.registeredFor : [];
 
-  // Enrich from catalog (your DB only stores tournamentId, ign, rank, createdAt)
+  // Enrich with catalog metadata for display
   const registrations = rawRegs.map((r) => {
-    const meta = catalog[r.tournamentId] || {};
+    const id = r.tournamentId || r.id || "";
+    const meta = catalog[id] || {};
     return {
-      id: r.tournamentId || "",
-      name: meta.name || "Tournament",
-      game: meta.game || "—",
-      mode: meta.mode || "—",
-      status: meta.status || "—",
-      start: meta.start || null,
-      detailsUrl: meta.detailsUrl || "#",
-      bracketUrl: meta.bracketUrl || "#",
+      id,
+      name: meta.name || r.name || "Tournament",
+      game: meta.game || r.game || "—",
+      mode: meta.mode || r.mode || "—",
+      status: meta.status || r.status || "—",
+      start: meta.start || r.start || null,
+      detailsUrl: meta.detailsUrl || r.detailsUrl || "#",
+      bracketUrl: meta.bracketUrl || r.bracketUrl || "#",
     };
   });
 
@@ -69,33 +68,6 @@ export async function getServerSideProps({ req }) {
 
 export default function MyRegistrations({ registrations }) {
   const count = registrations.length;
-
-  // ✅ Updated handleCancel (no discordTag sent)
-  async function handleCancel(tournamentId) {
-    const confirmCancel = confirm(
-      "Are you sure you want to cancel your registration?"
-    );
-    if (!confirmCancel) return;
-
-    try {
-      const res = await fetch("/api/registration/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tournamentId }), // 👈 only send tournamentId now
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        alert("Registration canceled successfully.");
-        window.location.reload();
-      } else {
-        alert(data.error || "Failed to cancel registration.");
-      }
-    } catch (err) {
-      console.error("Cancel error:", err);
-      alert("Something went wrong. Try again later.");
-    }
-  }
 
   return (
     <div className={styles.shell}>
@@ -161,14 +133,7 @@ export default function MyRegistrations({ registrations }) {
               </div>
 
               {/* Chips */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  marginTop: 6,
-                }}
-              >
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
                 {r.game && <span className="chip">{r.game}</span>}
                 {r.mode && <span className="chip">{r.mode}</span>}
                 {r.status && (
@@ -186,10 +151,7 @@ export default function MyRegistrations({ registrations }) {
               </div>
 
               {/* Info grid */}
-              <div
-                className={styles.detailGrid}
-                style={{ marginTop: 8, alignItems: "center" }}
-              >
+              <div className={styles.detailGrid} style={{ marginTop: 8 }}>
                 <div className={styles.detailLabel}>Tournament ID</div>
                 <div className={styles.detailValue}>#{r.id}</div>
 
@@ -208,35 +170,14 @@ export default function MyRegistrations({ registrations }) {
                     : "TBD"}
                 </div>
 
-                <div
-                  className={styles.detailLabel}
-                  style={{ alignSelf: "flex-start" }}
-                >
-                  Links
-                </div>
-                <div
-                  className={styles.detailValue}
-                  style={{ display: "flex", gap: 14, flexWrap: "wrap" }}
-                >
+                <div className={styles.detailLabel}>Links</div>
+                <div className={styles.detailValue} style={{ display: "flex", gap: 14 }}>
                   <a href={r.detailsUrl} className={styles.linkAccent}>
                     View details →
                   </a>
                   <a href={r.bracketUrl} className={styles.linkAccent}>
                     View bracket →
                   </a>
-                  <button
-                    onClick={() => handleCancel(r.id)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#ff4655",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Cancel registration ✖
-                  </button>
                 </div>
               </div>
             </section>
@@ -246,9 +187,7 @@ export default function MyRegistrations({ registrations }) {
         {/* Footer */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>
-              VALCOMP — community-run Valorant events
-            </div>
+            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
             <div className={styles.footerSub}>
               Brackets, paid prize pools, and leaderboards coming soon.
             </div>
@@ -269,9 +208,6 @@ export default function MyRegistrations({ registrations }) {
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.02em;
-        }
-        button:hover {
-          color: #ff7a85;
         }
       `}</style>
     </div>
