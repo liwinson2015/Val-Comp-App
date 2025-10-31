@@ -1,35 +1,37 @@
-/* Compact, picture-style connectors. No JS changes required. */
+/* Picture-accurate bracket: pill colors + gold T-connectors + compact width */
 
-/* ---------- Canvas sizing & scale ---------- */
-.viewport {
-  /* Slightly narrower cards + tighter gaps */
-  --colw: clamp(150px, 11vw, 170px);
-  --gap: clamp(14px, 1.8vw, 18px);
+/* ---------- Canvas sizing & auto-fit ---------- */
+.viewport{
+  --colw: clamp(150px, 11vw, 168px);  /* narrow pills like the image */
+  --gap:  clamp(14px, 1.8vw, 18px);
+  --pairH: clamp(70px, 7.6vh, 80px);
 
-  --pairH: clamp(74px, 8vh, 82px);   /* shorter cards */
+  /* vertical rhythms */
+  --r16Space: clamp(16px, 1.8vh, 22px);
+  --qfSpace:  clamp(60px, 7vh, 80px);
+  --sfSpace:  clamp(134px, 15vh, 184px);
 
-  /* Vertical rhythms (distance between match centers per round) */
-  --r16Space: clamp(18px, 2vh, 22px);
-  --qfSpace:  clamp(64px, 7.2vh, 84px);
-  --sfSpace:  clamp(140px, 16vh, 188px);
+  /* connector styling */
+  --gold: #f2c24d;
+  --blue: #9ed6ff;
+  --dark: #0f151d;
+  --ink: #11161e;
 
-  /* connector sizing */
-  --line: rgba(255, 107, 129, 0.95); /* pink line color */
-  --stub: 14px;                      /* short R16/QF stubs */
-  --arm:  calc(var(--gap) - var(--stub)); /* length of the QF/SF arm to the left/right column */
+  --line: var(--gold);
+  --stub: 12px;
+  --arm:  calc(var(--gap) - var(--stub)); /* horizontal arm length */
 
-  /* derived joins (vertical bars) */
-  --joinR16toQF: calc(var(--pairH) + var(--r16Space));
+  --joinR16toQF: calc(var(--pairH) + var(--r16Space)); /* vertical bar height */
   --joinQFtoSF:  calc(var(--pairH) + var(--qfSpace));
 
-  /* stage size derived from columns */
+  /* stage derived */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(600px, 70vh, 720px);
+  --stageH: clamp(560px, 68vh, 720px);
 
-  /* account for your page header height */
+  /* page header allowance */
   --topSpace: 130px;
 
-  /* scale to fit */
+  /* scale to fit viewport */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -41,252 +43,112 @@
   overflow: visible;
 }
 
-.stage {
-  width: var(--stageW);
-  height: var(--stageH);
-  transform: scale(var(--scale));
-  transform-origin: top center;
+.stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
+.grid{
+  width:100%; height:100%;
+  display:grid; grid-template-columns:repeat(7,var(--colw));
+  gap:var(--gap); align-items:start;
 }
 
-/* ---------- Grid ---------- */
-.grid {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(7, var(--colw));
-  gap: var(--gap);
-  align-items: start;
+/* ---------- Rounds ---------- */
+.round{ position:relative; }
+.roundTitle{
+  color:#e7ecf5; opacity:.9;
+  font-weight:900; font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+  margin-bottom:8px;
 }
+.stack{ position:relative; display:grid; }
 
-/* ---------- Round columns ---------- */
-.round { position: relative; }
-.roundTitle {
-  color: #d7deea;
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.stack { position: relative; display: grid; }
-
-/* vertical rhythm → centers align perfectly */
-.r16 .matchWrap { margin: calc(var(--r16Space)/2) 0; }
-.qf  .matchWrap { margin: calc(var(--qfSpace)/2) 0; }
-.sf  .matchWrap { margin: calc(var(--sfSpace)/2) 0; }
+/* vertical rhythm to align connectors perfectly */
+.r16 .matchWrap{ margin: calc(var(--r16Space)/2) 0; }
+.qf  .matchWrap{ margin: calc(var(--qfSpace)/2) 0; }
+.sf  .matchWrap{ margin: calc(var(--sfSpace)/2) 0; }
 
 /* ---------- Picture-style connectors ---------- */
-
-/* 1) R16 and QF default short stubs (NOT the whole gap) */
+/* short stubs on the “leaving” side (R16 and QF) */
 .r16 .matchWrap::after,
-.qf  .matchWrap::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: calc(var(--stub) * -1);
-  transform: translateY(-50%);
-  height: 2px;
-  width: var(--stub);
-  background: var(--line);
-  border-radius: 1px;
+.qf  .matchWrap::after{
+  content:""; position:absolute; top:50%; right:calc(var(--stub) * -1);
+  transform:translateY(-50%); height:2px; width:var(--stub);
+  background:var(--line); border-radius:1px;
 }
-.right .stack .matchWrap::after {
-  left: calc(var(--stub) * -1);
-  right: auto;
-  transform: translateY(-50%) scaleX(-1);
-}
+/* mirror right */
+.right .stack .matchWrap::after{ left:calc(var(--stub) * -1); right:auto; transform:translateY(-50%) scaleX(-1); }
 
-/* 2) QF draws a T-connector reaching back to collect two R16 stubs
-   (vertical bar + horizontal arm across the gap minus stub) */
-.qf .matchWrap::before {
-  content: "";
-  position: absolute;
-  left: calc(var(--gap) * -1);
-  top: 50%;
-  transform: translateY(-50%);
-  width: var(--arm);
-  height: 2px;
-  background: var(--line);
-  border-radius: 1px;
-}
-.qf .matchWrap .qfJoin { /* helper vertical bar via extra element? not needed */
-  display: none;
-}
-/* vertical bar: center it and span the distance between the two R16 rows */
-.qf .matchWrap::marker { display: none; } /* noop to avoid warnings */
-.qf .matchWrap {
-  /* create the vertical part with an extra pseudo-element */
-}
-.qf .matchWrap::selection { display: none; } /* noop */
-.qf .matchWrap::after { /* keep stub on QF side already defined above */ }
-
-/* Use an extra pseudo-element for the vertical bar */
-.qf .matchWrap > * { position: relative; } /* ensure stacking context */
-
-.qf .matchWrap::part { display: none; } /* noop */
-
-/* vertical bar element */
-.qf .matchWrap:before {
-  /* already used… so we repurpose :before for horizontal arm.
-     We'll use :after for stub (defined earlier) and an extra :--custom via shadow? Not possible.
-     Alternate: draw vertical bar with a background gradient on the arm element using box-shadow trick. */
-}
-
-/* A simpler, reliable approach:
-   Draw the vertical bar as a second background on the "horizontal arm" using linear-gradient
-   (works across modern browsers). */
-.qf .matchWrap {
-  background-image:
-    linear-gradient(var(--line), var(--line)),             /* vertical bar */
-    none;
-  background-repeat: no-repeat;
-  background-size: 2px var(--joinR16toQF);                /* 2px wide, tall join */
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)),              /* x pos at end of arm */
-    0 0;
-}
-.right .qf .matchWrap,
-.qf.right .matchWrap { background: none; } /* guard */
-
-/* Mirror the gradient technique for right side */
-.right.qf .matchWrap,
-.qf.right .matchWrap {
-  background-image:
-    linear-gradient(var(--line), var(--line));
+/* QF arm + vertical join back to R16 */
+.qf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
   background-repeat: no-repeat;
   background-size: 2px var(--joinR16toQF);
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm));
+  background-position: left calc(var(--gap) * -1 + var(--arm));
 }
-
-/* But our class ordering in markup is .round + .right
-   so target with .right .stack .matchWrap using :where for safety */
-:where(.right).qf .matchWrap,
-.right .qf .matchWrap {
-  background-image:
-    linear-gradient(var(--line), var(--line));
-  background-repeat: no-repeat;
+.right .qf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
   background-size: 2px var(--joinR16toQF);
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm));
+  background-position: right calc(var(--gap) * -1 + var(--arm));
+}
+/* horizontal arm for QF */
+.qf .matchWrap::before{
+  content:""; position:absolute; top:50%; left:calc(var(--gap) * -1); transform:translateY(-50%);
+  width:var(--arm); height:2px; background:var(--line); border-radius:1px;
+}
+.right .qf .matchWrap::before{
+  left:auto; right:calc(var(--gap) * -1);
 }
 
-/* 3) SF draws the same style from QF → SF */
-.sf .matchWrap::after { /* short stub already added globally */ }
+/* SF arm + vertical join back to QF */
+.sf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
+  background-repeat:no-repeat;
+  background-size:2px var(--joinQFtoSF);
+  background-position:left calc(var(--gap) * -1 + var(--arm));
+}
+.right .sf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
+  background-size:2px var(--joinQFtoSF);
+  background-position:right calc(var(--gap) * -1 + var(--arm));
+}
+/* SF short stub already provided by generic ::after above (applies via .qf/.r16 only) */
 
-.sf .matchWrap {
-  background-image:
-    linear-gradient(var(--line), var(--line));
-  background-repeat: no-repeat;
-  background-size: 2px var(--joinQFtoSF);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm));
+/* ---------- Match cards (pills) ---------- */
+.matchWrap{ position:relative; height:var(--pairH); display:grid; align-items:center; }
+.match{
+  width:100%;
+  border:0; border-radius:999px; overflow:hidden;
+  box-shadow:0 8px 22px rgba(0,0,0,.30);
+  transition:transform .08s ease, box-shadow .15s ease, filter .15s ease;
 }
-.right .sf .matchWrap {
-  background-image:
-    linear-gradient(var(--line), var(--line));
-  background-size: 2px var(--joinQFtoSF);
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm));
-}
+.match:hover{ transform:translateY(-1px); box-shadow:0 10px 30px rgba(0,0,0,.36); filter:brightness(1.03); }
 
-/* ---------- Match Cards ---------- */
-.matchWrap {
-  position: relative;
-  height: var(--pairH);
-  display: grid;
-  align-items: center;
-}
+.row{ display:flex; align-items:center; gap:6px; padding:10px 14px; }
+.row + .row{ border-top:1px solid rgba(0,0,0,.08); }
 
-.match {
-  width: 100%;
-  background: #0f151d;
-  border: 3px solid #293446;
-  border-radius: 999px;             /* pill style like the picture */
-  overflow: hidden;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
-}
-.match:hover {
-  border-color: #ffbf47;            /* warm accent on hover */
-  box-shadow: 0 0 0 3px rgba(255, 191, 71, 0.18),
-              0 16px 36px rgba(255, 191, 71, 0.12);
-  transform: translateY(-1px);
-}
+/* pill variants */
+.pillBlue { background: var(--blue);    color:#0b1320; }
+.pillGold { background: var(--gold);    color:#1b1300; }
+.pillDark { background: #1b2330;       color:#e7ecf5; }
+.pillWhite{ background: #ffffff;       color:#20242a; }
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px solid #1b2430;
-}
-.row:first-child { border-top: none; }
+.name{ font-weight:800; font-size:13.5px; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-.name {
-  color: #e7ecf5;
-  font-weight: 800;
-  font-size: 13.5px;
-  letter-spacing: .02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* ---------- Final block ---------- */
+.finalCol{ position:relative; }
+.winnerLabel{
+  text-align:center; color:#e7ecf5; opacity:.9;
+  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
+  margin-bottom:8px;
 }
-
-/* ---------- Final Block (two small boxes feeding up) ---------- */
-.finalCol { position: relative; }
-.finalHeader {
-  color: #d7deea;
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-.champWrap { display: grid; place-items: center; margin-bottom: 6px; }
-.champ {
+.champWrap{ display:grid; place-items:center; margin-bottom:6px; }
+.champ{
   min-width: var(--colw);
-  background: #0f151d;
-  border: 3px solid #293446;
-  border-radius: 14px;
-  padding: 10px 16px;
-  color: #e7ecf5;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  padding:10px 16px; border-radius:14px;
+  box-shadow:0 8px 22px rgba(0,0,0,.30);
 }
-
-.stem {
-  width: 3px;
-  height: 18px;
-  background: var(--line);
-  border-radius: 2px;
-  margin: 0 auto 8px auto;
+.stem{ width:3px; height:16px; background:var(--line); border-radius:2px; margin:0 auto 8px auto; }
+.finalRow{
+  display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:8px;
 }
-
-.finalRow {
-  display: grid;
-  grid-template-columns: 1fr 14px 1fr;
-  align-items: center;
-  gap: 8px;
+.finalBox{
+  padding:10px 14px; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.30);
 }
-.finalBox {
-  background: #0f151d;
-  border: 3px solid #293446;
-  border-radius: 12px;
-  padding: 10px 14px;
-  color: #e7ecf5;
-  font-weight: 800;
-  text-align: center;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.finalBox:hover {
-  border-color: #ffbf47;
-  box-shadow: 0 0 0 3px rgba(255, 191, 71, 0.18),
-              0 16px 36px rgba(255, 191, 71, 0.12);
-}
-.midbar { height: 3px; width: 100%; background: var(--line); border-radius: 2px; }
+.midbar{ height:3px; width:100%; background:var(--line); border-radius:2px; }
