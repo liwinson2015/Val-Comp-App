@@ -45,7 +45,7 @@ export default function BracketPage() {
         ["叶秋风", "蓝蝴蝶ya"],
         ["彼岸花ya", "July ya"],
         ["Seed 13", "Seed 14"],
-        ["Ethan Sylor", "Seed 16"],
+        ["Ethan Sylor", "卡提希娅の仆人"],
       ],
     },
     final: { left: "TBD", right: "TBD", champion: "TBD" },
