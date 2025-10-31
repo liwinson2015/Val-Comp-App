@@ -1,41 +1,34 @@
-/* Square-slot bracket, compact width, QF/SF centered between feeder pairs (border-aware) */
+/* Picture-accurate bracket: pill colors + gold T-connectors + compact width */
 
 /* ---------- Canvas sizing & auto-fit ---------- */
 .viewport{
-  /* narrower columns so boxes are shorter horizontally */
-  --colw: clamp(130px, 10vw, 155px);
-  --gap:  clamp(16px, 2vw, 22px);
+  --colw: clamp(150px, 11vw, 168px);  /* narrow pills like the image */
+  --gap:  clamp(14px, 1.8vw, 18px);
+  --pairH: clamp(70px, 7.6vh, 80px);
 
-  /* slot & pair geometry */
-  --slotH: 38px;             /* height of each player box */
-  --pairGapInside: 10px;     /* gap between top/bottom boxes in a pair */
-  --pairPad: 4px;            /* small vertical padding for connector accuracy */
-  --border: 2px;             /* slot border thickness (used in centering math) */
-
-  /* derived: full pair height and spacing rhythms */
-  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
-
-  /* vertical rhythms to CENTER next-round boxes between feeders */
-  --r16Space: clamp(18px, 2vh, 24px);                 /* spacing between R16 pairs */
-  --qfSpace:  calc(var(--pairH) + var(--r16Space));   /* centers QF between two R16s */
-  --sfSpace:  calc(var(--pairH) + var(--qfSpace));    /* centers SF between two QFs */
+  /* vertical rhythms */
+  --r16Space: clamp(16px, 1.8vh, 22px);
+  --qfSpace:  clamp(60px, 7vh, 80px);
+  --sfSpace:  clamp(134px, 15vh, 184px);
 
   /* connector styling */
-  --line: #2a2f36;           /* bracket line color */
-  --joinW: 2px;              /* line thickness */
-  --stub: 10px;              /* short stub out of each pair toward next column */
-  --arm:  calc(var(--gap) - var(--stub));             /* horizontal arm across the gap */
+  --gold: #f2c24d;
+  --blue: #9ed6ff;
+  --dark: #0f151d;
+  --ink: #11161e;
 
-  /* neutral box colors (we’ll theme later) */
-  --slotBg: #f4f6fb;
-  --slotBorder: #cfd7ea;
-  --textDark: #0f1320;
+  --line: var(--gold);
+  --stub: 12px;
+  --arm:  calc(var(--gap) - var(--stub)); /* horizontal arm length */
+
+  --joinR16toQF: calc(var(--pairH) + var(--r16Space)); /* vertical bar height */
+  --joinQFtoSF:  calc(var(--pairH) + var(--qfSpace));
 
   /* stage derived */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
   --stageH: clamp(560px, 68vh, 720px);
 
-  /* header allowance */
+  /* page header allowance */
   --topSpace: 130px;
 
   /* scale to fit viewport */
@@ -43,179 +36,119 @@
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
 
-  width:100%;
-  height:calc(100vh - var(--topSpace));
-  display:grid;
-  place-items:center;
-  overflow:visible;
+  width: 100%;
+  height: calc(100vh - var(--topSpace));
+  display: grid;
+  place-items: center;
+  overflow: visible;
 }
 
-.stage{
-  width:var(--stageW);
-  height:var(--stageH);
-  transform:scale(var(--scale));
-  transform-origin:top center;
-}
-
+.stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
 .grid{
-  width:100%;
-  height:100%;
-  display:grid;
-  grid-template-columns:repeat(7,var(--colw));
-  gap:var(--gap);
-  align-items:start;
+  width:100%; height:100%;
+  display:grid; grid-template-columns:repeat(7,var(--colw));
+  gap:var(--gap); align-items:start;
 }
 
 /* ---------- Rounds ---------- */
-.round { position:relative; }
-
+.round{ position:relative; }
 .roundTitle{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
+  color:#e7ecf5; opacity:.9;
+  font-weight:900; font-size:12px; letter-spacing:.08em; text-transform:uppercase;
   margin-bottom:8px;
 }
-
 .stack{ position:relative; display:grid; }
 
-/* vertical spacing for perfect alignment */
-.r16 .pair{ margin: calc(var(--r16Space)/2) 0; }
-.qf  .pair{ margin: calc(var(--qfSpace)/2) 0; }   /* centers QF between two R16 pairs */
-.sf  .pair{ margin: calc(var(--sfSpace)/2) 0; }   /* centers SF between two QFs */
+/* vertical rhythm to align connectors perfectly */
+.r16 .matchWrap{ margin: calc(var(--r16Space)/2) 0; }
+.qf  .matchWrap{ margin: calc(var(--qfSpace)/2) 0; }
+.sf  .matchWrap{ margin: calc(var(--sfSpace)/2) 0; }
 
-/* ---------- Pair (two separate square slots) ---------- */
-.pair{
-  position:relative;
-  padding: var(--pairPad) 0;
+/* ---------- Picture-style connectors ---------- */
+/* short stubs on the “leaving” side (R16 and QF) */
+.r16 .matchWrap::after,
+.qf  .matchWrap::after{
+  content:""; position:absolute; top:50%; right:calc(var(--stub) * -1);
+  transform:translateY(-50%); height:2px; width:var(--stub);
+  background:var(--line); border-radius:1px;
+}
+/* mirror right */
+.right .stack .matchWrap::after{ left:calc(var(--stub) * -1); right:auto; transform:translateY(-50%) scaleX(-1); }
+
+/* QF arm + vertical join back to R16 */
+.qf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
+  background-repeat: no-repeat;
+  background-size: 2px var(--joinR16toQF);
+  background-position: left calc(var(--gap) * -1 + var(--arm));
+}
+.right .qf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
+  background-size: 2px var(--joinR16toQF);
+  background-position: right calc(var(--gap) * -1 + var(--arm));
+}
+/* horizontal arm for QF */
+.qf .matchWrap::before{
+  content:""; position:absolute; top:50%; left:calc(var(--gap) * -1); transform:translateY(-50%);
+  width:var(--arm); height:2px; background:var(--line); border-radius:1px;
+}
+.right .qf .matchWrap::before{
+  left:auto; right:calc(var(--gap) * -1);
 }
 
-/* short stub that leaves each pair toward the next column */
-.pair::after{
-  content:"";
-  position:absolute;
-  top: calc(50% + var(--border)*0.5);   /* border-aware vertical center */
-  right: calc(var(--stub) * -1);
-  transform: translateY(-50%);
-  width: var(--stub);
-  height: var(--joinW);
-  background: var(--line);
+/* SF arm + vertical join back to QF */
+.sf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
+  background-repeat:no-repeat;
+  background-size:2px var(--joinQFtoSF);
+  background-position:left calc(var(--gap) * -1 + var(--arm));
 }
-
-.sideRight.pair::after{
-  left: calc(var(--stub) * -1);
-  right: auto;
+.right .sf .matchWrap{
+  background-image: linear-gradient(var(--line),var(--line));
+  background-size:2px var(--joinQFtoSF);
+  background-position:right calc(var(--gap) * -1 + var(--arm));
 }
+/* SF short stub already provided by generic ::after above (applies via .qf/.r16 only) */
 
-/* two square slots */
-.slot{
-  height: var(--slotH);
-  border: var(--border) solid var(--slotBorder);
-  border-radius: 0;             /* SQUARE corners */
-  background: var(--slotBg);
-  display:flex;
-  align-items:center;
-  padding: 0 10px;
-  box-shadow: none;             /* flat like your reference */
+/* ---------- Match cards (pills) ---------- */
+.matchWrap{ position:relative; height:var(--pairH); display:grid; align-items:center; }
+.match{
+  width:100%;
+  border:0; border-radius:999px; overflow:hidden;
+  box-shadow:0 8px 22px rgba(0,0,0,.30);
+  transition:transform .08s ease, box-shadow .15s ease, filter .15s ease;
 }
+.match:hover{ transform:translateY(-1px); box-shadow:0 10px 30px rgba(0,0,0,.36); filter:brightness(1.03); }
 
-.slot + .slot{ margin-top: var(--pairGapInside); }
+.row{ display:flex; align-items:center; gap:6px; padding:10px 14px; }
+.row + .row{ border-top:1px solid rgba(0,0,0,.08); }
 
-.label{
-  color: var(--textDark);
-  font-weight: 700;
-  font-size: 13px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
+/* pill variants */
+.pillBlue { background: var(--blue);    color:#0b1320; }
+.pillGold { background: var(--gold);    color:#1b1300; }
+.pillDark { background: #1b2330;       color:#e7ecf5; }
+.pillWhite{ background: #ffffff;       color:#20242a; }
 
-/* ---------- QF & SF T-joins (centered between feeders) ---------- */
-/* horizontal arm across the gap + vertical collector at arm end (border-aware) */
-.qf .pair,
-.sf .pair{
-  background-image:
-    linear-gradient(var(--line), var(--line)),  /* vertical collector */
-    linear-gradient(var(--line), var(--line));  /* horizontal arm */
-  background-repeat: no-repeat, no-repeat;
-  background-size:
-    var(--joinW) calc(var(--slotH) + var(--pairGapInside) + var(--border)*2), /* top⇄bottom with borders */
-    var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) calc(50% + var(--border)*0.5),
-    left calc(var(--gap) * -1)              calc(50% + var(--border)*0.5);
-}
+.name{ font-weight:800; font-size:13.5px; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-.right .qf .pair,
-.right .sf .pair{
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm)) calc(50% + var(--border)*0.5),
-    right calc(var(--gap) * -1)              calc(50% + var(--border)*0.5);
-}
-
-/* ---------- Right-column helper ---------- */
-.right { direction:ltr; }   /* keep text LTR while mirroring arms */
-
-/* ---------- Final block (neutral; square) ---------- */
+/* ---------- Final block ---------- */
 .finalCol{ position:relative; }
-
-.winner{
-  text-align:center;
-  color:#e7ecf5;
-  opacity:.9;
-  font-weight:900;
-  letter-spacing:.10em;
-  text-transform:uppercase;
-  font-size:12px;
+.winnerLabel{
+  text-align:center; color:#e7ecf5; opacity:.9;
+  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
   margin-bottom:8px;
 }
-
 .champWrap{ display:grid; place-items:center; margin-bottom:6px; }
-
-.champBox{
+.champ{
   min-width: var(--colw);
-  background:#1c2952;
-  border: var(--border) solid #122040;
-  color:#ffffff;
-  border-radius: 0;           /* SQUARE */
-  padding:10px 16px;
+  padding:10px 16px; border-radius:14px;
+  box-shadow:0 8px 22px rgba(0,0,0,.30);
 }
-
-.champText{ font-weight:800; }
-
-.stem{
-  width:var(--joinW);
-  height:18px;
-  background:var(--line);
-  border-radius:0;
-  margin:8px auto;
-}
-
+.stem{ width:3px; height:16px; background:var(--line); border-radius:2px; margin:0 auto 8px auto; }
 .finalRow{
-  display:grid;
-  grid-template-columns:1fr 14px 1fr;
-  align-items:center;
-  gap:10px;
+  display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:8px;
 }
-
-.finalSlot{
-  background:#ffffff;
-  border: var(--border) solid var(--slotBorder);
-  color:#0f1320;
-  border-radius:0;            /* SQUARE */
-  padding:10px 14px;
-  height: var(--slotH);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.finalBox{
+  padding:10px 14px; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.30);
 }
-
-.finalText{ font-weight:700; font-size:13px; }
-
-.midbar{
-  height:var(--joinW);
-  width:100%;
-  background:var(--line);
-  border-radius:0;
-}
+.midbar{ height:3px; width:100%; background:var(--line); border-radius:2px; }

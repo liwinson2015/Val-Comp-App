@@ -3,80 +3,65 @@ import React from "react";
 import s from "../styles/Bracket16.module.css";
 
 /**
- * 16-player single-elimination bracket.
- * R16 = Pair (two separate slots). QF/SF = Node (single box for the next round).
- * This renders 4 QF nodes per side: (1–2), (3–4), (5–6), (7–8) on left;
- * (9–10), (11–12), (13–14), (15–16) on right.
+ * Picture-style 16-player bracket.
+ * Color scheme & connectors match the reference image:
+ * - R16: light-blue pills
+ * - QF:  gold pills
+ * - SF:  dark pills
+ * - Finalists (two small): white
+ * - Champion (top center): white with WINNER label above
  */
 export default function Bracket16({ data }) {
   const L = data?.left ?? {};
   const R = data?.right ?? {};
   const F = data?.final ?? {};
 
-  const leftR16 =
-    L.R16 ?? [
-      ["Seed 1", "Seed 2"],
-      ["Seed 3", "Seed 4"],
-      ["Seed 5", "Seed 6"],
-      ["Seed 7", "Seed 8"],
-    ];
-
-  const rightR16 =
-    R.R16 ?? [
-      ["Seed 9", "Seed 10"],
-      ["Seed 11", "Seed 12"],
-      ["Seed 13", "Seed 14"],
-      ["Seed 15", "Seed 16"],
-    ];
+  const leftR16  = L.R16  ?? seqPairs(1, 8);
+  const rightR16 = R.R16  ?? seqPairs(9, 16);
 
   return (
     <div className={s.viewport}>
       <div className={s.stage}>
         <div className={s.grid}>
-          {/* LEFT SIDE */}
+
+          {/* LEFT */}
           <Round title="Round of 16" tier="r16">
-            {leftR16.map((m, i) => (
-              <Pair key={`L16-${i}`} top={m[0]} bot={m[1]} />
+            {leftR16.map((p, i) => (
+              <Match key={`L16-${i}`} a={p[0]} b={p[1]} variant="blue" />
             ))}
           </Round>
 
           <Round title="Quarterfinals" tier="qf">
-            {/* 4 standalone QF nodes (between 1–2, 3–4, 5–6, 7–8) */}
-            <Node label="TBD" />
-            <Node label="TBD" />
-            <Node label="TBD" />
-            <Node label="TBD" />
+            {[0,1].map(i => (
+              <Match key={`LQF-${i}`} a="Team Name" b="Team Name" variant="gold" />
+            ))}
           </Round>
 
           <Round title="Semifinals" tier="sf">
-            {/* 1 standalone SF node (winner of the two QFs on this side) */}
-            <Node label="TBD" />
+            <Match a="Team Name" b="Team Name" variant="dark" />
           </Round>
 
-          {/* CENTER GRAND FINAL */}
+          {/* FINAL (center) */}
           <Final
-            left={F.left ?? "TBD"}
-            right={F.right ?? "TBD"}
-            champion={F.champion ?? "TBD"}
+            left={F.left ?? "Team Name"}
+            right={F.right ?? "Team Name"}
+            champion={F.champion ?? "Team Name"}
           />
 
-          {/* RIGHT SIDE */}
+          {/* RIGHT (mirrored) */}
           <Round title="Semifinals" tier="sf" side="right">
-            {/* 1 SF node on right side */}
-            <Node label="TBD" side="right" />
+            <Match a="Team Name" b="Team Name" variant="dark" />
           </Round>
 
           <Round title="Quarterfinals" tier="qf" side="right">
-            {/* 4 standalone QF nodes (between 9–10, 11–12, 13–14, 15–16) */}
-            <Node label="TBD" side="right" />
-            <Node label="TBD" side="right" />
-            <Node label="TBD" side="right" />
-            <Node label="TBD" side="right" />
+            {[0,1].map(i => (
+              <Match key={`RQF-${i}`} a="Team Name" b="Team Name" variant="gold" />
+            ))}
           </Round>
 
           <Round title="Round of 16" tier="r16" side="right">
-            {rightR16.map((m, i) => (
-              <Pair key={`R16-${i}`} top={m[0]} bot={m[1]} side="right" />
+            {rightR16.map((p, i) => (
+              <Match key={`R16-${i}`} a={p[0]} b={p[1]} variant="blue" />
             ))}
           </Round>
         </div>
@@ -84,8 +69,6 @@ export default function Bracket16({ data }) {
     </div>
   );
 }
-
-/* ---------- building blocks ---------- */
 
 function Round({ title, tier, side, children }) {
   return (
@@ -96,51 +79,54 @@ function Round({ title, tier, side, children }) {
   );
 }
 
-/** Two independent square slots for Round of 16 */
-function Pair({ top = "TBD", bot = "TBD", side }) {
+function Match({ a="Team Name", b="Team Name", variant="blue" }) {
   return (
-    <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
-      <div className={s.slot} title={top}>
-        <span className={s.label}>{top}</span>
-      </div>
-      <div className={s.slot} title={bot}>
-        <span className={s.label}>{bot}</span>
+    <div className={s.matchWrap}>
+      <div className={`${s.match} ${pill(variant)}`}>
+        <div className={s.row}><div className={s.name} title={a}>{label(a)}</div></div>
+        <div className={s.row}><div className={s.name} title={b}>{label(b)}</div></div>
       </div>
     </div>
   );
 }
 
-/** Single square Node for QF / SF */
-function Node({ label = "TBD", side }) {
-  return (
-    <div className={`${s.node} ${side ? s.nodeRight : ""}`} title={label}>
-      <span className={s.nodeText}>{label}</span>
-    </div>
-  );
-}
-
-function Final({ left = "TBD", right = "TBD", champion = "TBD" }) {
+function Final({ left="Team Name", right="Team Name", champion="Team Name" }) {
   return (
     <div className={s.finalCol}>
-      <div className={s.winner}>WINNER</div>
+      <div className={s.winnerLabel}>WINNER</div>
 
       <div className={s.champWrap}>
-        <div className={s.champBox} title={champion}>
-          <span className={s.champText}>{champion}</span>
+        <div className={`${s.champ} ${s.pillWhite}`} title={champion}>
+          {label(champion)}
         </div>
       </div>
 
       <div className={s.stem} aria-hidden="true" />
 
       <div className={s.finalRow}>
-        <div className={s.finalSlot} title={left}>
-          <span className={s.finalText}>{left}</span>
-        </div>
+        <div className={`${s.finalBox} ${s.pillWhite}`} title={left}>{label(left)}</div>
         <div className={s.midbar} aria-hidden="true" />
-        <div className={s.finalSlot} title={right}>
-          <span className={s.finalText}>{right}</span>
-        </div>
+        <div className={`${s.finalBox} ${s.pillWhite}`} title={right}>{label(right)}</div>
       </div>
     </div>
   );
+}
+
+/* helpers */
+function pill(v) {
+  switch (v) {
+    case "gold": return s.pillGold;
+    case "dark": return s.pillDark;
+    case "white": return s.pillWhite;
+    default: return s.pillBlue;
+  }
+}
+function seqPairs(start, end) {
+  const out = [];
+  for (let s = start; s <= end; s += 2) out.push([`Team Name`, `Team Name`]); // labels like the image
+  return out;
+}
+function label(x) {
+  const s = String(x ?? "").trim();
+  return s || "Team Name";
 }
