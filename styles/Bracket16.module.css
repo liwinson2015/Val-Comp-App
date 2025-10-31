@@ -1,21 +1,28 @@
-/* styles/Bracket16.module.css */
-/* === Canvas sizing & scale (fits on one screen; no scroll) === */
+/* styles/Bracket16.module.css (compact + responsive, no clipping) */
+
+/* === Canvas sizing & scale (auto-fits on one screen) === */
 .viewport {
-  /* tune visual sizing here */
-  --colw: 210px;      /* width of each round column */
-  --gap: 26px;        /* horizontal gap between columns */
-  --pairH: 90px;      /* height of a match block */
-  --r16Space: 26px;   /* vertical rhythm between R16 pairs */
-  --qfSpace: 96px;    /* rhythm between QF pairs */
-  --sfSpace: 208px;   /* rhythm between SF pairs */
+  /* Make columns narrower and gaps tighter.
+     clamp() keeps it readable on large and small screens. */
+  --colw: clamp(160px, 12vw, 185px);
+  --gap: clamp(14px, 2vw, 20px);
 
+  /* Match card heights a touch shorter */
+  --pairH: clamp(78px, 8.5vh, 86px);
+
+  /* Vertical rhythm so connector lines hit card midpoints */
+  --r16Space: clamp(18px, 2vh, 24px);
+  --qfSpace: clamp(70px, 8vh, 88px);
+  --sfSpace: clamp(160px, 18vh, 200px);
+
+  /* Derive the stage size from columns + gaps */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: 740px;
+  --stageH: clamp(600px, 70vh, 720px);
 
-  /* this should equal the height your header + page padding consume */
-  --topSpace: 140px;
+  /* If your navbar or header is tall, nudge this up/down */
+  --topSpace: 130px;
 
-  /* compute a scale that fits both width & height */
+  /* Scale to the smaller of width/height fit */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -24,7 +31,7 @@
   height: calc(100vh - var(--topSpace));
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow: visible; /* never clip the edges */
 }
 
 .stage {
@@ -55,12 +62,9 @@
   margin-bottom: 8px;
 }
 
-.stack {
-  position: relative;
-  display: grid;
-}
+.stack { position: relative; display: grid; }
 
-/* vertical rhythm so connectors hit card midpoints perfectly */
+/* vertical rhythm */
 .r16 .matchWrap { margin: calc(var(--r16Space)/2) 0; }
 .qf  .matchWrap { margin: calc(var(--qfSpace)/2) 0; }
 .sf  .matchWrap { margin: calc(var(--sfSpace)/2) 0; }
@@ -111,7 +115,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px;
+  padding: 10px 12px; /* slightly tighter */
   border-top: 1px solid #1b2430;
 }
 .row:first-child { border-top: none; }
@@ -119,7 +123,7 @@
 .name {
   color: #e7ecf5;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -137,17 +141,13 @@
   text-align: center;
 }
 
-.champWrap {
-  display: grid;
-  place-items: center;
-  margin-bottom: 8px;
-}
+.champWrap { display: grid; place-items: center; margin-bottom: 6px; }
 .champ {
   min-width: var(--colw);
   background: #0f151d;
   border: 3px solid #293446;
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   color: #e7ecf5;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -156,23 +156,23 @@
 
 .stem {
   width: 3px;
-  height: 20px;
+  height: 18px;
   background: #ff6b81;
   border-radius: 2px;
-  margin: 0 auto 10px auto;
+  margin: 0 auto 8px auto;
 }
 
 .finalRow {
   display: grid;
-  grid-template-columns: 1fr 20px 1fr;
+  grid-template-columns: 1fr 16px 1fr; /* tighter middle */
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .finalBox {
   background: #0f151d;
   border: 3px solid #293446;
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   color: #e7ecf5;
   font-weight: 800;
   text-align: center;
@@ -189,4 +189,9 @@
   width: 100%;
   background: #ff6b81;
   border-radius: 2px;
+}
+
+/* === Ultra-wide guard: if width is still tight, auto-shrink a bit more === */
+@media (min-width: 1280px) and (max-width: 1440px) {
+  .viewport { --colw: clamp(150px, 11vw, 175px); --gap: clamp(12px, 1.6vw, 18px); }
 }
