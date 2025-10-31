@@ -1,34 +1,54 @@
-// pages/valorant/index.js
+// /pages/valorant/index.js
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/Valorant.module.css";
+
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // keep this in sync with your catalog/key
 
 export default function ValorantEventPage() {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
     let ignore = false;
+
     (async () => {
       try {
-        const res = await fetch("/api/whoami", { credentials: "same-origin" });
+        const url = `/api/registration/status?tournamentId=${encodeURIComponent(
+          TOURNAMENT_ID
+        )}`;
+        const res = await fetch(url, { credentials: "same-origin" });
         const data = await res.json();
         if (!ignore) {
           setLoggedIn(!!data.loggedIn);
+          setIsRegistered(!!data.isRegistered);
           setLoading(false);
         }
       } catch {
         if (!ignore) setLoading(false);
       }
     })();
+
     return () => {
       ignore = true;
     };
   }, []);
 
-  // If not logged in, send user through Discord with next=/valorant/register
-  const registerHref = loggedIn
-    ? "/valorant/register"
-    : `/api/auth/discord?next=${encodeURIComponent("/valorant/register")}`;
+  // Decide what the red button should do
+  let registerHref = "/valorant/register";
+  let registerLabel = "Register";
+  let disabled = false;
+
+  if (!loggedIn) {
+    // Route through Discord, then back to the intended register page
+    registerHref = `/api/auth/discord?next=${encodeURIComponent(
+      "/valorant/register"
+    )}`;
+  } else if (isRegistered) {
+    // Already registered: do NOT let them reach /valorant/register
+    registerHref = "/account/registrations";
+    registerLabel = "View my registration";
+  }
 
   return (
     <div className={styles.shell}>
@@ -66,8 +86,12 @@ export default function ValorantEventPage() {
                   opacity: loading ? 0.7 : 1,
                   pointerEvents: loading ? "none" : "auto",
                 }}
+                aria-disabled={disabled || loading}
+                onClick={(e) => {
+                  if (disabled || loading) e.preventDefault();
+                }}
               >
-                Register
+                {registerLabel}
               </a>
 
               <a
