@@ -1,39 +1,18 @@
 // pages/valorant/bracket.js
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/Valorant.module.css";
-import Bracket16 from "../../components/Bracket16";
+
+/**
+ * Brand-new bracket UI (16-player single elimination).
+ * CSS-only layout with an auto-scaling stage so everything fits on one screen.
+ * Default seeding:
+ *   Left  R16: [1–2], [3–4], [5–6], [7–8]
+ *   Right R16: [9–10], [11–12], [13–14], [15–16]
+ */
 
 export default function BracketPage() {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-
-  // Later: replace with real data (Mongo)
-  const registeredPlayers = [
-    // "Player 1", "Player 2", ...
-  ];
-
-  // Optional demo seeds for the visible bracket (remove when wiring live data)
-  const bracketData = {
-    left: {
-      R16: [
-        ["Seed 1", "Seed 16"],
-        ["Seed 8", "Seed 9"],
-        ["Seed 4", "Seed 13"],
-        ["Seed 5", "Seed 12"],
-      ],
-      // QF/SF will show TBD until results propagate
-    },
-    right: {
-      R16: [
-        ["Seed 2", "Seed 15"],
-        ["Seed 7", "Seed 10"],
-        ["Seed 3", "Seed 14"],
-        ["Seed 6", "Seed 11"],
-      ],
-    },
-    // final: ["Left Winner", "Right Winner"],
-  };
 
   useEffect(() => {
     let ignore = false;
@@ -43,7 +22,6 @@ export default function BracketPage() {
         const data = await res.json();
         if (!ignore) {
           setLoggedIn(!!data.loggedIn);
-          setUser(data.user || null);
           setLoading(false);
         }
       } catch {
@@ -55,208 +33,405 @@ export default function BracketPage() {
     };
   }, []);
 
+  // ---- Demo seeds (replace with DB later) ----
+  const data = {
+    left: {
+      R16: [
+        ["Seed 1", "Seed 2"],
+        ["Seed 3", "Seed 4"],
+        ["Seed 5", "Seed 6"],
+        ["Seed 7", "Seed 8"],
+      ],
+    },
+    right: {
+      R16: [
+        ["Seed 9", "Seed 10"],
+        ["Seed 11", "Seed 12"],
+        ["Seed 13", "Seed 14"],
+        ["Seed 15", "Seed 16"],
+      ],
+    },
+    final: { left: "TBD", right: "TBD", champion: "TBD" },
+  };
+
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-
-        {/* ===== Card 1: Bracket / Login gate ===== */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>BRACKET / REGISTERED PLAYERS</h2>
-            {loggedIn && <span className={styles.badgeGreen}>OPEN</span>}
-          </div>
-
-          {/* Loading */}
-          {loading && (
-            <p style={{ color: "#cbd5e1", margin: 0 }}>Checking your session…</p>
-          )}
-
-          {/* Not logged in */}
-          {!loading && !loggedIn && (
-            <>
-              <p style={{ color: "#cbd5e1", marginTop: 0 }}>
-                <strong>Log in</strong> to view your brackets and registrations.
-              </p>
-              <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <a
-                  href={`/api/auth/discord?next=${encodeURIComponent("/valorant/bracket")}`}
-                  style={{
-                    display: "inline-block",
-                    background: "#5865F2",
-                    color: "#fff",
-                    fontWeight: 800,
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    textDecoration: "none",
-                    boxShadow: "0 10px 26px rgba(88,101,242,.35)",
-                  }}
-                >
-                  Log in with Discord
-                </a>
-                <a
-                  href="/valorant"
-                  style={{
-                    display: "inline-block",
-                    background: "#1e2129",
-                    color: "#e4e6ed",
-                    fontWeight: 700,
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    textDecoration: "none",
-                    border: "1px solid #2e3442",
-                  }}
-                >
-                  View event details
-                </a>
-              </div>
-            </>
-          )}
-
-          {/* Logged in */}
-          {!loading && loggedIn && (
-            <>
-              <p
-                style={{
-                  color: "#cbd5e1",
-                  fontSize: "0.9rem",
-                  lineHeight: "1.5rem",
-                  marginTop: 0,
-                  marginBottom: "1rem",
-                }}
-              >
-                Below is the live 16-player single-elimination bracket. Seeding may be randomized at publish.
-              </p>
-
-              {/* Summary */}
-              <div className={styles.detailGrid}>
-                <div className={styles.detailLabel}>SLOTS</div>
-                <div className={styles.detailValueHighlight}>
-                  {registeredPlayers.length} / 16
-                </div>
-
-                <div className={styles.detailLabel}>STATUS</div>
-                <div className={styles.detailValue}>
-                  Check-in required at start time
-                </div>
-
-                <div className={styles.detailLabel}>STREAM</div>
-                <div className={styles.detailValue}>[TBD]</div>
-              </div>
-
-              {/* ===== Bracket UI (esports style) ===== */}
-              <div style={{ marginTop: "1.25rem" }}>
-                <div
-                  style={{
-                    color: "#8b93a7",
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    marginBottom: "0.5rem",
-                  }}
-                >
-                  Championship Bracket — 16 Players
-                </div>
-
-                {/* Render bracket; pass bracketData (remove or replace with API data later) */}
-                <Bracket16 data={bracketData} />
-              </div>
-
-              {/* Registered Players List */}
-              <div
-                style={{
-                  marginTop: "1.5rem",
-                  paddingTop: "1rem",
-                  borderTop: "1px solid rgba(148,163,184,0.2)",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#8b93a7",
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    marginBottom: "0.5rem",
-                  }}
-                >
-                  Registered Players
-                </div>
-
-                {registeredPlayers.length === 0 ? (
-                  <div
-                    style={{
-                      color: "#8b93a7",
-                      fontSize: "0.8rem",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    No players yet. Registration is still open.
-                  </div>
-                ) : (
-                  <ul
-                    style={{
-                      listStyle: "disc",
-                      paddingLeft: "1rem",
-                      margin: 0,
-                      color: "#cbd5e1",
-                      fontSize: "0.9rem",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    {registeredPlayers.map((p, i) => (
-                      <li key={i}>{p}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div style={{ marginTop: "1.5rem" }}>
-                <a
-                  href="/valorant"
-                  style={{
-                    backgroundColor: "#2a2a2e",
-                    border: "1px solid rgba(148,163,184,0.3)",
-                    borderRadius: "4px",
-                    color: "#ffffff",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    padding: "0.6rem 0.9rem",
-                    display: "inline-block",
-                  }}
-                >
-                  ← Back to Event Page
-                </a>
-              </div>
-            </>
-          )}
+        {/* ===== Page Header ===== */}
+        <section className="heroBar">
+          <div className="title">CHAMPIONSHIP BRACKET — 16 PLAYERS</div>
+          <div className="sub">Single Elimination • Seeds auto-assigned</div>
         </section>
 
-        {/* ===== Card 2: Reminders (always visible) ===== */}
-        <section className={styles.card}>
-          <h2 className={styles.cardTitle}>TOURNAMENT REMINDERS</h2>
-          <ul className={styles.rulesList}>
-            <li>You MUST be available at 7:00 PM EST for check-in or you may lose your slot.</li>
-            <li>No scripts/macros/cheats. Instant DQ.</li>
-            <li>Screenshot final score and send in Discord within 5 minutes of match end.</li>
-            <li>Winner receives the prize skin after verification.</li>
-          </ul>
+        {/* ===== Login Gate (simple) ===== */}
+        {loading ? (
+          <p className="muted">Checking your session…</p>
+        ) : !loggedIn ? (
+          <div className="gate">
+            <div>Log in to view your bracket placement.</div>
+            <a
+              className="btnDiscord"
+              href={`/api/auth/discord?next=${encodeURIComponent("/valorant/bracket")}`}
+            >
+              Log in with Discord
+            </a>
+          </div>
+        ) : null}
+
+        {/* ===== Bracket Stage ===== */}
+        <section className="bracketCard">
+          <Bracket16 data={data} />
         </section>
 
-        {/* Footer */}
-        <footer className={styles.footer}>
-          <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>
-              VALCOMP — community-run Valorant events
-            </div>
-            <div className={styles.footerSub}>
-              Brackets, paid prize pools, and leaderboards coming soon.
-            </div>
-            <div className={styles.footerCopy}>© 2025 valcomp</div>
-          </div>
-        </footer>
+        <style jsx>{`
+          .heroBar {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+          }
+          .title {
+            color: #e7ecf5;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.95rem;
+          }
+          .sub {
+            color: #97a3b6;
+            font-size: 0.85rem;
+          }
+          .muted {
+            color: #9aa6bb;
+            margin-top: 6px;
+          }
+          .gate {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #0d1117;
+            border: 1px solid #273247;
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: #c9d4e6;
+            margin-bottom: 10px;
+          }
+          .btnDiscord {
+            background: #5865f2;
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-weight: 800;
+          }
+          .bracketCard {
+            background: radial-gradient(1200px 380px at 50% -20%, rgba(255,70,85,0.06), transparent),
+              #11161e;
+            border: 1px solid #2a3546;
+            border-radius: 14px;
+            padding: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+          }
+        `}</style>
       </div>
     </div>
   );
+}
+
+/* ======================= BRACKET COMPONENT ======================= */
+
+function Bracket16({ data }) {
+  const L = data?.left ?? {};
+  const R = data?.right ?? {};
+  const F = data?.final ?? {};
+
+  const leftR16 = L.R16 ?? seqPairs(1, 8);
+  const rightR16 = R.R16 ?? seqPairs(9, 16);
+
+  return (
+    <div className="viewport">
+      <div className="stage">
+        <div className="grid">
+          {/* LEFT */}
+          <Round title="Round of 16">
+            {leftR16.map((p, i) => (
+              <Match key={`L16-${i}`} a={p[0]} b={p[1]} />
+            ))}
+          </Round>
+          <Round title="Quarterfinals">
+            {[0, 1].map((i) => (
+              <Match key={`LQF-${i}`} a="TBD" b="TBD" />
+            ))}
+          </Round>
+          <Round title="Semifinals">
+            <Match a="TBD" b="TBD" />
+          </Round>
+
+          {/* FINAL */}
+          <Final title="Grand Final" left={F.left ?? "TBD"} right={F.right ?? "TBD"} champ={F.champion ?? "TBD"} />
+
+          {/* RIGHT */}
+          <Round title="Semifinals" right>
+            <Match a="TBD" b="TBD" />
+          </Round>
+          <Round title="Quarterfinals" right>
+            {[0, 1].map((i) => (
+              <Match key={`RQF-${i}`} a="TBD" b="TBD" />
+            ))}
+          </Round>
+          <Round title="Round of 16" right>
+            {rightR16.map((p, i) => (
+              <Match key={`R16-${i}`} a={p[0]} b={p[1]} />
+            ))}
+          </Round>
+        </div>
+      </div>
+
+      {/* ===== Bracket CSS (self-contained) ===== */}
+      <style jsx>{`
+        /* 
+          We design on a roomy "stage" (W×H), then scale the whole
+          thing to fit your viewport (no scroll, no overlap).
+          Tweak --topSpace if your navbar is taller.
+        */
+        .viewport {
+          --colw: 210px;     /* card column width */
+          --gap: 26px;       /* gap between columns */
+          --pairH: 90px;     /* match card height */
+          --r16Space: 26px;  /* vertical rhythm spacers */
+          --qfSpace: 96px;
+          --sfSpace: 208px;
+
+          --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
+          --stageH: 740px;
+
+          --topSpace: 140px;
+          --fitW: calc(100vw / var(--stageW));
+          --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
+          --scale: min(1, var(--fitW), var(--fitH));
+
+          width: 100%;
+          height: calc(100vh - var(--topSpace));
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+        }
+        .stage {
+          width: var(--stageW);
+          height: var(--stageH);
+          transform: scale(var(--scale));
+          transform-origin: top center;
+        }
+        .grid {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          grid-template-columns: repeat(7, var(--colw));
+          gap: var(--gap);
+          align-items: start;
+        }
+
+        /* Round column */
+        .round {
+          position: relative;
+        }
+        .roundTitle {
+          color: #d7deea;
+          font-weight: 900;
+          font-size: 12px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+        .stack {
+          position: relative;
+          display: grid;
+        }
+        .r16 :global(.matchWrap) { margin: calc(var(--r16Space)/2) 0; }
+        .qf  :global(.matchWrap) { margin: calc(var(--qfSpace)/2) 0; }
+        .sf  :global(.matchWrap) { margin: calc(var(--sfSpace)/2) 0; }
+
+        /* “wire” to next column */
+        .round:not(.final) :global(.matchWrap)::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          right: calc(var(--gap) * -1);
+          transform: translateY(-50%);
+          height: 2px;
+          width: var(--gap);
+          background: rgba(255, 107, 129, 0.95);
+          border-radius: 1px;
+        }
+        .right .stack :global(.matchWrap)::after {
+          left: calc(var(--gap) * -1);
+          right: auto;
+          transform: translateY(-50%) scaleX(-1);
+        }
+
+        /* Match card */
+        .matchWrap {
+          position: relative;
+          height: var(--pairH);
+          display: grid;
+          align-items: center;
+        }
+        .match {
+          width: 100%;
+          background: #0f151d;
+          border: 3px solid #293446;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+          transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease;
+        }
+        .match:hover {
+          border-color: #ff4655;
+          box-shadow: 0 0 0 3px rgba(255,70,85,.18), 0 16px 36px rgba(255,70,85,.12);
+          transform: translateY(-1px);
+        }
+        .row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 14px;
+          border-top: 1px solid #1b2430;
+        }
+        .row:first-child { border-top: none; }
+        .name {
+          color: #e7ecf5;
+          font-weight: 700;
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* Final block (your requested shape) */
+        .final {
+          position: relative;
+        }
+        .finalHeader {
+          color: #d7deea;
+          font-weight: 900;
+          font-size: 12px;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+          text-align: center;
+        }
+        .champWrap {
+          display: grid;
+          place-items: center;
+          margin-bottom: 8px;
+        }
+        .champ {
+          min-width: var(--colw);
+          background: #0f151d;
+          border: 3px solid #293446;
+          border-radius: 12px;
+          padding: 12px 16px;
+          color: #e7ecf5;
+          font-weight: 900;
+          letter-spacing: .04em;
+          box-shadow: 0 10px 28px rgba(0,0,0,.35);
+        }
+        .stem {
+          width: 3px;
+          height: 20px;
+          background: #ff6b81;
+          border-radius: 2px;
+          margin: 0 auto 10px auto;
+        }
+        .finalRow {
+          display: grid;
+          grid-template-columns: 1fr 20px 1fr;
+          align-items: center;
+          gap: 10px;
+        }
+        .finalBox {
+          background: #0f151d;
+          border: 3px solid #293446;
+          border-radius: 12px;
+          padding: 12px 16px;
+          color: #e7ecf5;
+          font-weight: 800;
+          text-align: center;
+          box-shadow: 0 10px 28px rgba(0,0,0,.35);
+          transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .finalBox:hover {
+          border-color: #ff4655;
+          box-shadow: 0 0 0 3px rgba(255,70,85,.18), 0 16px 36px rgba(255,70,85,.12);
+        }
+        .midbar {
+          height: 3px;
+          width: 100%;
+          background: #ff6b81;
+          border-radius: 2px;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ----- Small presentational pieces ----- */
+function Round({ title, right, children }) {
+  // classNames to control spacing & connector direction
+  // first/last columns get .r16; next get .qf; middle get .sf
+  const cls =
+    title === "Round of 16"
+      ? "round r16" + (right ? " right" : "")
+      : title === "Quarterfinals"
+      ? "round qf" + (right ? " right" : "")
+      : "round sf" + (right ? " right" : "");
+
+  return (
+    <div className={cls}>
+      <div className="roundTitle">{title}</div>
+      <div className="stack">{children}</div>
+    </div>
+  );
+}
+
+function Match({ a = "TBD", b = "TBD" }) {
+  return (
+    <div className="matchWrap">
+      <div className="match">
+        <div className="row"><div className="name">{label(a)}</div></div>
+        <div className="row"><div className="name">{label(b)}</div></div>
+      </div>
+    </div>
+  );
+}
+
+function Final({ title, left, right, champ }) {
+  return (
+    <div className="final">
+      <div className="finalHeader">{title}</div>
+      <div className="champWrap">
+        <div className="champ">{label(champ)}</div>
+      </div>
+      <div className="stem" />
+      <div className="finalRow">
+        <div className="finalBox">{label(left)}</div>
+        <div className="midbar" />
+        <div className="finalBox">{label(right)}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ----- Helpers ----- */
+function seqPairs(start, end) {
+  const out = [];
+  for (let s = start; s <= end; s += 2) out.push([`Seed ${s}`, `Seed ${s + 1}`]);
+  return out;
+}
+function label(x) {
+  if (x == null) return "TBD";
+  const s = String(x).trim();
+  if (!s) return "TBD";
+  if (/^\d+$/.test(s)) return `Seed ${s}`;
+  return s;
 }
