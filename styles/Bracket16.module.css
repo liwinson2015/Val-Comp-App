@@ -1,28 +1,35 @@
-/* styles/Bracket16.module.css (compact + responsive, no clipping) */
+/* Compact, picture-style connectors. No JS changes required. */
 
-/* === Canvas sizing & scale (auto-fits on one screen) === */
+/* ---------- Canvas sizing & scale ---------- */
 .viewport {
-  /* Make columns narrower and gaps tighter.
-     clamp() keeps it readable on large and small screens. */
-  --colw: clamp(160px, 12vw, 185px);
-  --gap: clamp(14px, 2vw, 20px);
+  /* Slightly narrower cards + tighter gaps */
+  --colw: clamp(150px, 11vw, 170px);
+  --gap: clamp(14px, 1.8vw, 18px);
 
-  /* Match card heights a touch shorter */
-  --pairH: clamp(78px, 8.5vh, 86px);
+  --pairH: clamp(74px, 8vh, 82px);   /* shorter cards */
 
-  /* Vertical rhythm so connector lines hit card midpoints */
-  --r16Space: clamp(18px, 2vh, 24px);
-  --qfSpace: clamp(70px, 8vh, 88px);
-  --sfSpace: clamp(160px, 18vh, 200px);
+  /* Vertical rhythms (distance between match centers per round) */
+  --r16Space: clamp(18px, 2vh, 22px);
+  --qfSpace:  clamp(64px, 7.2vh, 84px);
+  --sfSpace:  clamp(140px, 16vh, 188px);
 
-  /* Derive the stage size from columns + gaps */
+  /* connector sizing */
+  --line: rgba(255, 107, 129, 0.95); /* pink line color */
+  --stub: 14px;                      /* short R16/QF stubs */
+  --arm:  calc(var(--gap) - var(--stub)); /* length of the QF/SF arm to the left/right column */
+
+  /* derived joins (vertical bars) */
+  --joinR16toQF: calc(var(--pairH) + var(--r16Space));
+  --joinQFtoSF:  calc(var(--pairH) + var(--qfSpace));
+
+  /* stage size derived from columns */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
   --stageH: clamp(600px, 70vh, 720px);
 
-  /* If your navbar or header is tall, nudge this up/down */
+  /* account for your page header height */
   --topSpace: 130px;
 
-  /* Scale to the smaller of width/height fit */
+  /* scale to fit */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -31,7 +38,7 @@
   height: calc(100vh - var(--topSpace));
   display: grid;
   place-items: center;
-  overflow: visible; /* never clip the edges */
+  overflow: visible;
 }
 
 .stage {
@@ -41,7 +48,7 @@
   transform-origin: top center;
 }
 
-/* === Grid === */
+/* ---------- Grid ---------- */
 .grid {
   width: 100%;
   height: 100%;
@@ -51,7 +58,7 @@
   align-items: start;
 }
 
-/* === Round columns === */
+/* ---------- Round columns ---------- */
 .round { position: relative; }
 .roundTitle {
   color: #d7deea;
@@ -64,30 +71,127 @@
 
 .stack { position: relative; display: grid; }
 
-/* vertical rhythm */
+/* vertical rhythm → centers align perfectly */
 .r16 .matchWrap { margin: calc(var(--r16Space)/2) 0; }
 .qf  .matchWrap { margin: calc(var(--qfSpace)/2) 0; }
 .sf  .matchWrap { margin: calc(var(--sfSpace)/2) 0; }
 
-/* connector wires to next column */
-.round:not(.final) .matchWrap::after {
+/* ---------- Picture-style connectors ---------- */
+
+/* 1) R16 and QF default short stubs (NOT the whole gap) */
+.r16 .matchWrap::after,
+.qf  .matchWrap::after {
   content: "";
   position: absolute;
   top: 50%;
-  right: calc(var(--gap) * -1);
+  right: calc(var(--stub) * -1);
   transform: translateY(-50%);
   height: 2px;
-  width: var(--gap);
-  background: rgba(255, 107, 129, 0.95);
+  width: var(--stub);
+  background: var(--line);
   border-radius: 1px;
 }
 .right .stack .matchWrap::after {
-  left: calc(var(--gap) * -1);
+  left: calc(var(--stub) * -1);
   right: auto;
   transform: translateY(-50%) scaleX(-1);
 }
 
-/* === Match Card === */
+/* 2) QF draws a T-connector reaching back to collect two R16 stubs
+   (vertical bar + horizontal arm across the gap minus stub) */
+.qf .matchWrap::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--gap) * -1);
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--arm);
+  height: 2px;
+  background: var(--line);
+  border-radius: 1px;
+}
+.qf .matchWrap .qfJoin { /* helper vertical bar via extra element? not needed */
+  display: none;
+}
+/* vertical bar: center it and span the distance between the two R16 rows */
+.qf .matchWrap::marker { display: none; } /* noop to avoid warnings */
+.qf .matchWrap {
+  /* create the vertical part with an extra pseudo-element */
+}
+.qf .matchWrap::selection { display: none; } /* noop */
+.qf .matchWrap::after { /* keep stub on QF side already defined above */ }
+
+/* Use an extra pseudo-element for the vertical bar */
+.qf .matchWrap > * { position: relative; } /* ensure stacking context */
+
+.qf .matchWrap::part { display: none; } /* noop */
+
+/* vertical bar element */
+.qf .matchWrap:before {
+  /* already used… so we repurpose :before for horizontal arm.
+     We'll use :after for stub (defined earlier) and an extra :--custom via shadow? Not possible.
+     Alternate: draw vertical bar with a background gradient on the arm element using box-shadow trick. */
+}
+
+/* A simpler, reliable approach:
+   Draw the vertical bar as a second background on the "horizontal arm" using linear-gradient
+   (works across modern browsers). */
+.qf .matchWrap {
+  background-image:
+    linear-gradient(var(--line), var(--line)),             /* vertical bar */
+    none;
+  background-repeat: no-repeat;
+  background-size: 2px var(--joinR16toQF);                /* 2px wide, tall join */
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm)),              /* x pos at end of arm */
+    0 0;
+}
+.right .qf .matchWrap,
+.qf.right .matchWrap { background: none; } /* guard */
+
+/* Mirror the gradient technique for right side */
+.right.qf .matchWrap,
+.qf.right .matchWrap {
+  background-image:
+    linear-gradient(var(--line), var(--line));
+  background-repeat: no-repeat;
+  background-size: 2px var(--joinR16toQF);
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm));
+}
+
+/* But our class ordering in markup is .round + .right
+   so target with .right .stack .matchWrap using :where for safety */
+:where(.right).qf .matchWrap,
+.right .qf .matchWrap {
+  background-image:
+    linear-gradient(var(--line), var(--line));
+  background-repeat: no-repeat;
+  background-size: 2px var(--joinR16toQF);
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm));
+}
+
+/* 3) SF draws the same style from QF → SF */
+.sf .matchWrap::after { /* short stub already added globally */ }
+
+.sf .matchWrap {
+  background-image:
+    linear-gradient(var(--line), var(--line));
+  background-repeat: no-repeat;
+  background-size: 2px var(--joinQFtoSF);
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm));
+}
+.right .sf .matchWrap {
+  background-image:
+    linear-gradient(var(--line), var(--line));
+  background-size: 2px var(--joinQFtoSF);
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm));
+}
+
+/* ---------- Match Cards ---------- */
 .matchWrap {
   position: relative;
   height: var(--pairH);
@@ -99,15 +203,15 @@
   width: 100%;
   background: #0f151d;
   border: 3px solid #293446;
-  border-radius: 12px;
+  border-radius: 999px;             /* pill style like the picture */
   overflow: hidden;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
 }
 .match:hover {
-  border-color: #ff4655;
-  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.18),
-              0 16px 36px rgba(255, 70, 85, 0.12);
+  border-color: #ffbf47;            /* warm accent on hover */
+  box-shadow: 0 0 0 3px rgba(255, 191, 71, 0.18),
+              0 16px 36px rgba(255, 191, 71, 0.12);
   transform: translateY(-1px);
 }
 
@@ -115,21 +219,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px; /* slightly tighter */
+  padding: 10px 14px;
   border-top: 1px solid #1b2430;
 }
 .row:first-child { border-top: none; }
 
 .name {
   color: #e7ecf5;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 13.5px;
+  letter-spacing: .02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* === Final Block (two finalists feeding up to champion) === */
+/* ---------- Final Block (two small boxes feeding up) ---------- */
 .finalCol { position: relative; }
 .finalHeader {
   color: #d7deea;
@@ -146,8 +251,8 @@
   min-width: var(--colw);
   background: #0f151d;
   border: 3px solid #293446;
-  border-radius: 12px;
-  padding: 10px 14px;
+  border-radius: 14px;
+  padding: 10px 16px;
   color: #e7ecf5;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -157,14 +262,14 @@
 .stem {
   width: 3px;
   height: 18px;
-  background: #ff6b81;
+  background: var(--line);
   border-radius: 2px;
   margin: 0 auto 8px auto;
 }
 
 .finalRow {
   display: grid;
-  grid-template-columns: 1fr 16px 1fr; /* tighter middle */
+  grid-template-columns: 1fr 14px 1fr;
   align-items: center;
   gap: 8px;
 }
@@ -180,18 +285,8 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .finalBox:hover {
-  border-color: #ff4655;
-  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.18),
-              0 16px 36px rgba(255, 70, 85, 0.12);
+  border-color: #ffbf47;
+  box-shadow: 0 0 0 3px rgba(255, 191, 71, 0.18),
+              0 16px 36px rgba(255, 191, 71, 0.12);
 }
-.midbar {
-  height: 3px;
-  width: 100%;
-  background: #ff6b81;
-  border-radius: 2px;
-}
-
-/* === Ultra-wide guard: if width is still tight, auto-shrink a bit more === */
-@media (min-width: 1280px) and (max-width: 1440px) {
-  .viewport { --colw: clamp(150px, 11vw, 175px); --gap: clamp(12px, 1.6vw, 18px); }
-}
+.midbar { height: 3px; width: 100%; background: var(--line); border-radius: 2px; }
