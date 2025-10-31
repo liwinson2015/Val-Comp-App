@@ -4,9 +4,8 @@ import s from "../styles/Bracket16.module.css";
 
 /**
  * 16-player single-elimination bracket.
- * Each match is two separate square "slots" stacked vertically,
- * with a vertical join between them and a horizontal connector to the next round.
- * Left and right sides mirror; center has Grand Final (two finalists -> champion).
+ * R16 uses Pair (two stacked slots). QF/SF use Node (single box), each centered
+ * between their feeder matches with proper T-connectors (drawn by CSS).
  */
 export default function Bracket16({ data }) {
   const L = data?.left ?? {};
@@ -41,13 +40,14 @@ export default function Bracket16({ data }) {
           </Round>
 
           <Round title="Quarterfinals" tier="qf">
-            {[0, 1].map((i) => (
-              <Pair key={`LQF-${i}`} top="TBD" bot="TBD" />
-            ))}
+            {/* Two standalone nodes, each centered between its feeder pairs: (1–2), (3–4) */}
+            <Node label="TBD" />
+            <Node label="TBD" />
           </Round>
 
           <Round title="Semifinals" tier="sf">
-            <Pair top="TBD" bot="TBD" />
+            {/* One standalone node fed by the two QFs on this left side */}
+            <Node label="TBD" />
           </Round>
 
           {/* CENTER GRAND FINAL */}
@@ -59,13 +59,12 @@ export default function Bracket16({ data }) {
 
           {/* RIGHT SIDE (mirror) */}
           <Round title="Semifinals" tier="sf" side="right">
-            <Pair top="TBD" bot="TBD" side="right" />
+            <Node label="TBD" side="right" />
           </Round>
 
           <Round title="Quarterfinals" tier="qf" side="right">
-            {[0, 1].map((i) => (
-              <Pair key={`RQF-${i}`} top="TBD" bot="TBD" side="right" />
-            ))}
+            <Node label="TBD" side="right" />
+            <Node label="TBD" side="right" />
           </Round>
 
           <Round title="Round of 16" tier="r16" side="right">
@@ -79,7 +78,7 @@ export default function Bracket16({ data }) {
   );
 }
 
-/* ----- Building blocks ----- */
+/* ---------- building blocks ---------- */
 
 function Round({ title, tier, side, children }) {
   return (
@@ -90,17 +89,25 @@ function Round({ title, tier, side, children }) {
   );
 }
 
-/** Two independent square slots with a vertical join and a connector arm */
+/** Two independent square slots for Round of 16 */
 function Pair({ top = "TBD", bot = "TBD", side }) {
   return (
     <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
-      <div className={`${s.slot} ${s.slotTop}`} title={top}>
+      <div className={`${s.slot}`} title={top}>
         <span className={s.label}>{top}</span>
       </div>
-      <div className={`${s.slot} ${s.slotBot}`} title={bot}>
+      <div className={`${s.slot}`} title={bot}>
         <span className={s.label}>{bot}</span>
       </div>
-      {/* the pair element itself draws the vertical bar between the two slots and the horizontal connector via CSS */}
+    </div>
+  );
+}
+
+/** Single square Node for QF / SF */
+function Node({ label = "TBD", side }) {
+  return (
+    <div className={`${s.node} ${side ? s.nodeRight : ""}`} title={label}>
+      <span className={s.nodeText}>{label}</span>
     </div>
   );
 }
