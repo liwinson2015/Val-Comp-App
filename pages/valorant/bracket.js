@@ -34,18 +34,18 @@ export default function BracketPage() {
   const bracketData = {
     left: {
       R16: [
-        ["Seed 1", "Seed 2"],
-        ["Seed 3", "Seed 4"],
-        ["Seed 5", "Seed 6"],
-        ["Seed 7", "Seed 8"],
+        ["temppjmdkrzyfekn", "№NeedZzz"],
+        ["海友糕手", "Seed 4"],
+        ["sparkle", "巧克力炸香蕉"],
+        ["Cactus", "Seed 8"],
       ],
     },
     right: {
       R16: [
-        ["Seed 9", "Seed 10"],
-        ["Seed 11", "Seed 12"],
-        ["Seed 13", "Seed 14"],
-        ["Seed 15", "Seed 16"],
+        ["叶秋风", "蓝蝴蝶ya"],
+        ["彼岸花ya", "July ya"],
+        ["Seed 13", "qsh"],
+        ["Ethan Sylor", "Seed 16"],
       ],
     },
     final: { left: "TBD", right: "TBD", champion: "TBD" },

@@ -16,17 +16,17 @@ export default function Bracket16({ data }) {
   // Seeds/names for Round of 16 (left 1–8, right 9–16 by default)
   const leftR16 =
     L.R16 ?? [
-      ["temppjmdkrzyfekn", "№NeedZzz"],
-      ["人机", "Seed 4"],
-      ["まままひろ？", "john wzh"],
-      ["Cactus", "Seed 8"],
+      ["Seed 1", "Seed 2"],
+      ["Seed 3", "Seed 4"],
+      ["Seed 5", "Seed 6"],
+      ["Seed 7", "Seed 8"],
     ];
   const rightR16 =
     R.R16 ?? [
-      ["叶秋风", "蓝蝴蝶"],
-      ["Winson", "Julie_"],
-      ["Seed 13", "qsh"],
-      ["Ethan Sylor", "Seed 16"],
+      ["Seed 9", "Seed 10"],
+      ["Seed 11", "Seed 12"],
+      ["Seed 13", "Seed 14"],
+      ["Seed 15", "Seed 16"],
     ];
 
   return (
