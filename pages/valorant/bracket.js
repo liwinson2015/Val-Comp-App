@@ -35,7 +35,7 @@ export default function BracketPage() {
     left: {
       R16: [
         ["temppjmdkrzyfekn", "№NeedZzz"],
-        ["海友糕手", "Seed 4"],
+        ["海友糕手", "Squid"],
         ["sparkle", "巧克力炸香蕉"],
         ["Cactus", "Qenquin"],
       ],
