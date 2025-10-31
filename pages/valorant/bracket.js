@@ -1,44 +1,35 @@
 // pages/valorant/bracket.js
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/Valorant.module.css";
-import Bracket16 from "../../components/Bracket16"; // ⬅️ add this component
+import Bracket16 from "../../components/Bracket16";
 
 export default function BracketPage() {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // later this will come from real data
+  // Later: replace with real data (Mongo)
   const registeredPlayers = [
-    // "Player1",
-    // "Player2",
+    // "Player 1", "Player 2", ...
   ];
 
-  // OPTIONAL: sample bracket data; remove when wiring live data
-  const sampleData = {
+  // Optional demo seeds for the visible bracket (remove when wiring live data)
+  const bracketData = {
     left: {
       R16: [
         ["Seed 1", "Seed 16"],
         ["Seed 8", "Seed 9"],
         ["Seed 4", "Seed 13"],
         ["Seed 5", "Seed 12"],
+      ],
+      // QF/SF will show TBD until results propagate
+    },
+    right: {
+      R16: [
         ["Seed 2", "Seed 15"],
         ["Seed 7", "Seed 10"],
         ["Seed 3", "Seed 14"],
         ["Seed 6", "Seed 11"],
-      ],
-      // QF/SF can be omitted for TBD placeholders
-    },
-    right: {
-      R16: [
-        ["Seed 1R", "Seed 16R"],
-        ["Seed 8R", "Seed 9R"],
-        ["Seed 4R", "Seed 13R"],
-        ["Seed 5R", "Seed 12R"],
-        ["Seed 2R", "Seed 15R"],
-        ["Seed 7R", "Seed 10R"],
-        ["Seed 3R", "Seed 14R"],
-        ["Seed 6R", "Seed 11R"],
       ],
     },
     // final: ["Left Winner", "Right Winner"],
@@ -133,12 +124,10 @@ export default function BracketPage() {
                   marginBottom: "1rem",
                 }}
               >
-                Below is the current status of your registrations and the live bracket.
-                <br />
-                Brackets publish close to start time; seeding may be randomized.
+                Below is the live 16-player single-elimination bracket. Seeding may be randomized at publish.
               </p>
 
-              {/* Registered Players Summary */}
+              {/* Summary */}
               <div className={styles.detailGrid}>
                 <div className={styles.detailLabel}>SLOTS</div>
                 <div className={styles.detailValueHighlight}>
@@ -154,7 +143,7 @@ export default function BracketPage() {
                 <div className={styles.detailValue}>[TBD]</div>
               </div>
 
-              {/* ===== Bracket UI ===== */}
+              {/* ===== Bracket UI (esports style) ===== */}
               <div style={{ marginTop: "1.25rem" }}>
                 <div
                   style={{
@@ -166,12 +155,11 @@ export default function BracketPage() {
                     marginBottom: "0.5rem",
                   }}
                 >
-                  Championship Bracket (16 Players)
+                  Championship Bracket — 16 Players
                 </div>
 
-                {/* Render the bracket (TBD boxes by default; sampleData shows names) */}
-                {/* <Bracket16 /> */}
-                <Bracket16 data={sampleData} />
+                {/* Render bracket; pass bracketData (remove or replace with API data later) */}
+                <Bracket16 data={bracketData} />
               </div>
 
               {/* Registered Players List */}
