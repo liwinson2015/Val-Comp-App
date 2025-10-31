@@ -37,7 +37,7 @@ export default function BracketPage() {
         ["temppjmdkrzyfekn", "№NeedZzz"],
         ["海友糕手", "Seed 4"],
         ["sparkle", "巧克力炸香蕉"],
-        ["Cactus", "Seed 8"],
+        ["Cactus", "Qenquin"],
       ],
     },
     right: {
