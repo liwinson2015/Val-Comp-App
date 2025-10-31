@@ -1,3 +1,4 @@
+// models/Registration.js
 import mongoose from "mongoose";
 
 const RegistrationSchema = new mongoose.Schema({
