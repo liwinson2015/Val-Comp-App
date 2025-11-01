@@ -57,7 +57,7 @@ export default function Bracket16({ data }) {
     const finalMidGap  = 22;
     const centerX      = X(3) + colW / 2;
 
-    // Champ pill + WINNER label positions (moved further up)
+    // Champ pill + WINNER label positions (a touch higher)
     const champOffset  = 36;  // ↑ move pill up above final line
     const winnerAbove  = 30;  // ↑ label sits this many px above the pill
     const champTop     = finalY - slotH - champOffset;
@@ -125,15 +125,14 @@ export default function Bracket16({ data }) {
   const paths = [];
 
   // R16 -> QF (left): draw from ALL FOUR slots (two per R16 pair)
-  // Top half (pairs 0 -> QF0.top, 1 -> QF0.bottom)
   joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
   joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
-  // Bottom half (pairs 2 -> QF1.top, 3 -> QF1.bottom)
   joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (left): classic two-to-one collector from QF pair into SF pair
-  joinLeftToRight(G.X(1)+G.colW, G.X(2),
+  // QF -> SF (left): ***double arms*** so there are 4 lines to the two SF boxes
+  joinQFtoSF_L_Double(
+    G.X(1)+G.colW, G.X(2),
     midTop(G.qfCenters[0], G.innerGapQF), midBot(G.qfCenters[1], G.innerGapQF),
     midTop(G.sfCenter, G.innerGapSF),     midBot(G.sfCenter, G.innerGapSF)
   );
@@ -147,8 +146,9 @@ export default function Bracket16({ data }) {
   joinPairToQF_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToQF_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (right)
-  joinRightToLeft(G.X(5), G.X(4)+G.colW,
+  // QF -> SF (right): ***double arms***
+  joinQFtoSF_R_Double(
+    G.X(5), G.X(4)+G.colW,
     midTop(G.qfCenters[0], G.innerGapQF), midBot(G.qfCenters[1], G.innerGapQF),
     midTop(G.sfCenter, G.innerGapSF),     midBot(G.sfCenter, G.innerGapSF)
   );
@@ -222,8 +222,8 @@ export default function Bracket16({ data }) {
   function h(x1, y, x2) { return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />; }
   function v(x, y1, y2) { return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />; }
 
-  // New: connect a *single R16 pair* to a *single QF slot* (LEFT → RIGHT)
-  // Draw two stubs (both R16 slots), a mini vertical join, then one arm to the QF slot midline.
+  // Connect a *single R16 pair* to a *single QF slot* (LEFT → RIGHT)
+  // Two stubs (both R16 slots) → mini vertical join → one arm to the QF midline.
   function joinPairToQF_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid) {
     const yTop = pairCenter - (srcInnerGap / 2 + G.slotH / 2);
     const yBot = pairCenter + (srcInnerGap / 2 + G.slotH / 2);
@@ -245,22 +245,44 @@ export default function Bracket16({ data }) {
     paths.push(h(xJoin, yDstMid, xDstRight)); // arm to QF slot
   }
 
-  // Classic “two-to-one” collector used for QF -> SF and mirrored on the right
-  function joinLeftToRight(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
-    const xStubEnd   = x1 + G.stub;
-    const xCollector = (x1 + x2) / 2;
-    paths.push(h(x1, ySrcTop, xStubEnd)); paths.push(h(x1, ySrcBot, xStubEnd));
-    paths.push(h(xStubEnd, ySrcTop, xCollector)); paths.push(h(xStubEnd, ySrcBot, xCollector));
-    paths.push(v(xCollector, ySrcTop, ySrcBot));
-    paths.push(h(xCollector, yDstTop, x2)); paths.push(h(xCollector, yDstBot, x2));
+  // --- NEW: QF -> SF with *double rails* (LEFT → RIGHT)
+  // Keeps clean geometry: stubs from both QF mids → center collector,
+  // then TWO parallel arms to each SF slot (total 4 arms).
+  function joinQFtoSF_L_Double(x1, x2, yQFT, yQFB, ySFT, ySFB) {
+    const xStubEnd = x1 + G.stub;
+    const xMid     = (x1 + x2) / 2;
+    const rail     = 3; // px rail split
+
+    // stubs from each QF mid to center collector
+    paths.push(h(x1, yQFT, xStubEnd));
+    paths.push(h(x1, yQFB, xStubEnd));
+    paths.push(h(xStubEnd, yQFT, xMid));
+    paths.push(h(xStubEnd, yQFB, xMid));
+    paths.push(v(xMid, Math.min(yQFT, yQFB), Math.max(yQFT, yQFB)));
+
+    // double rails into each SF slot (two lines per SF)
+    paths.push(h(xMid, ySFT - rail, x2));
+    paths.push(h(xMid, ySFT + rail, x2));
+    paths.push(h(xMid, ySFB - rail, x2));
+    paths.push(h(xMid, ySFB + rail, x2));
   }
-  function joinRightToLeft(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
-    const xStubEnd   = x1 - G.stub;
-    const xCollector = (x1 + x2) / 2;
-    paths.push(h(x1, ySrcTop, xStubEnd)); paths.push(h(x1, ySrcBot, xStubEnd));
-    paths.push(h(xStubEnd, ySrcTop, xCollector)); paths.push(h(xStubEnd, ySrcBot, xCollector));
-    paths.push(v(xCollector, ySrcTop, ySrcBot));
-    paths.push(h(xCollector, yDstTop, x2)); paths.push(h(xCollector, yDstBot, x2));
+
+  // Mirror: QF -> SF with double rails (RIGHT → LEFT)
+  function joinQFtoSF_R_Double(x1, x2, yQFT, yQFB, ySFT, ySFB) {
+    const xStubEnd = x1 - G.stub;
+    const xMid     = (x1 + x2) / 2;
+    const rail     = 3;
+
+    paths.push(h(x1, yQFT, xStubEnd));
+    paths.push(h(x1, yQFB, xStubEnd));
+    paths.push(h(xStubEnd, yQFT, xMid));
+    paths.push(h(xStubEnd, yQFB, xMid));
+    paths.push(v(xMid, Math.min(yQFT, yQFB), Math.max(yQFT, yQFB)));
+
+    paths.push(h(xMid, ySFT - rail, x2));
+    paths.push(h(xMid, ySFT + rail, x2));
+    paths.push(h(xMid, ySFB - rail, x2));
+    paths.push(h(xMid, ySFB + rail, x2));
   }
 }
 
