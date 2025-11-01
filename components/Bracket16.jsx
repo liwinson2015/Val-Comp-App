@@ -1,19 +1,25 @@
 import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
+/**
+ * Absolute-positioned, pixel-precise 16-team bracket.
+ * Wires are drawn with SVG under the boxes for perfect alignment.
+ * This version adds explicit "stubs" on the SF boxes so each
+ * SF box has TWO visible inbound connectors (top & bottom).
+ */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // ---- geometry -------------------------------------------------------------
+  // ----- Geometry ------------------------------------------------------------
   const G = useMemo(() => {
     const colW  = 150;
     const gap   = 34;
     const slotH = 38;
-    const stub  = 14;   // short stub used near sources
+    const stub  = 14; // short horizontal line length
     const wire  = 2;
 
     const innerGapR16 = 12;
-    const innerGapQF  = 30; // spacing between two QF slots (column 2)
+    const innerGapQF  = 30;
     const innerGapSF  = 20;
 
     const X = (i) => i * (colW + gap);
@@ -29,26 +35,22 @@ export default function Bracket16({ data }) {
       topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
     );
 
-    const qfCenters  = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
-    const sfCenter   = avg(qfCenters[0], qfCenters[1]);
-    const finalY     = sfCenter;
+    const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
+    const sfCenter  = avg(qfCenters[0], qfCenters[1]);
+    const finalY    = sfCenter;
 
-    const stageW     = X(6) + colW;
-    const lastBottom = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH     = Math.ceil(lastBottom + 100);
+    const stageW    = X(6) + colW;
+    const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
+    const stageH    = Math.ceil(lastBot + 100);
 
     const finalW      = 84;
     const finalMidGap = 22;
     const centerX     = X(3) + colW / 2;
 
-    // winner cluster
-    const champOffset = 52; // raise ↑ by increasing
+    const champOffset = 52;
     const winnerAbove = 36;
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
-
-    // contact stub length drawn ON the SF boxes (must match CSS)
-    const contact = 12;
 
     return {
       colW, gap, slotH, stub, wire,
@@ -56,7 +58,7 @@ export default function Bracket16({ data }) {
       X, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
       finalW, finalMidGap, centerX,
-      champTop, winnerTop, contact
+      champTop, winnerTop,
     };
   }, []);
 
@@ -65,61 +67,86 @@ export default function Bracket16({ data }) {
   const midTop  = (pairY, innerGap) => pairY - (innerGap / 2 + G.slotH / 2);
   const midBot  = (pairY, innerGap) => pairY + (innerGap / 2 + G.slotH / 2);
 
-  // ---- boxes ---------------------------------------------------------------
+  // ----- Boxes ---------------------------------------------------------------
   const boxes = [];
-  // left R16
+
+  // Left R16
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
-    boxes.push(box(G.X(0), slotTop(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[0] ?? D.left.R16[i][0]));
-    boxes.push(box(G.X(0), slotBot(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[1] ?? D.left.R16[i][1]));
+    boxes.push(slotBox(G.X(0), slotTop(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[0] ?? D.left.R16[i][0]));
+    boxes.push(slotBox(G.X(0), slotBot(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[1] ?? D.left.R16[i][1]));
   }
-  // left QF
+  // Left QF
   for (let i=0;i<2;i++){
     const y = G.qfCenters[i];
-    boxes.push(box(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
-    boxes.push(box(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
+    boxes.push(slotBox(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
+    boxes.push(slotBox(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
-  // left SF (with contact stubs classes)
-  boxes.push(boxWithClass(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0], s.sfLeftTop));
-  boxes.push(boxWithClass(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1], s.sfLeftBot));
+  // Left SF
+  boxes.push(slotBox(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
+  boxes.push(slotBox(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
-  // right R16
+  // Right R16
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
-    boxes.push(box(G.X(6), slotTop(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[0] ?? D.right.R16[i][0]));
-    boxes.push(box(G.X(6), slotBot(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[1] ?? D.right.R16[i][1]));
+    boxes.push(slotBox(G.X(6), slotTop(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[0] ?? D.right.R16[i][0]));
+    boxes.push(slotBox(G.X(6), slotBot(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[1] ?? D.right.R16[i][1]));
   }
-  // right QF
+  // Right QF
   for (let i=0;i<2;i++){
     const y = G.qfCenters[i];
-    boxes.push(box(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
-    boxes.push(box(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
+    boxes.push(slotBox(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
+    boxes.push(slotBox(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
   }
-  // right SF (with contact stubs classes)
-  boxes.push(boxWithClass(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0], s.sfRightTop));
-  boxes.push(boxWithClass(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1], s.sfRightBot));
+  // Right SF
+  boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
+  boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // center finalists
-  const finalLeftX  = G.centerX - G.finalMidGap/2 - G.finalW;
-  const finalRightX = G.centerX + G.finalMidGap/2;
+  // Finalists
+  const finalLeftX  = G.X(3) + G.colW/2 - G.finalMidGap/2 - G.finalW;
+  const finalRightX = G.X(3) + G.colW/2 + G.finalMidGap/2;
   const finalTop    = G.finalY - G.slotH/2;
-  const finalLeft   = miniBox(finalLeftX, finalTop,  D.final.left);
-  const finalRight  = miniBox(finalRightX, finalTop, D.final.right);
+  const finalLeft   = finalBox(finalLeftX, finalTop,  D.final.left);
+  const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
 
-  // ---- wires (SVG) ---------------------------------------------------------
+  // ----- Wires ---------------------------------------------------------------
   const paths = [];
   const H = (x1,y,x2) => <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
   const V = (x,y1,y2) => <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
 
-  // R16 -> QF (left): 4 stubs (2 per pair)
+  // Helpers for “four-rail” joins with explicit SF stubs
+  function joinPairToMid_L(xSrcRight, xDstStop, pairCenter, srcInnerGap, yDstMid){
+    const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
+    const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
+    const xJoin = xSrcRight + G.stub;
+    paths.push(H(xSrcRight, yTop, xJoin));
+    paths.push(H(xSrcRight, yBot, xJoin));
+    paths.push(V(xJoin, yTop, yBot));
+    paths.push(H(xJoin, yDstMid, xDstStop)); // rail runs to just before SF box edge
+  }
+  function joinPairToMid_R(xSrcLeft, xDstStop, pairCenter, srcInnerGap, yDstMid){
+    const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
+    const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
+    const xJoin = xSrcLeft - G.stub;
+    paths.push(H(xSrcLeft, yTop, xJoin));
+    paths.push(H(xSrcLeft, yBot, xJoin));
+    paths.push(V(xJoin, yTop, yBot));
+    paths.push(H(xJoin, yDstMid, xDstStop)); // rail runs to just after SF box edge
+  }
+
+  // R16 -> QF (left)
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (left): 4 stubs (2 per QF box) and stop at the SF contact stub end
-  joinPairToMid_L(G.X(1)+G.colW, G.X(2) - G.contact, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
-  joinPairToMid_L(G.X(1)+G.colW, G.X(2) - G.contact, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
+  // QF -> SF (left) — stop G.stub before SF edge, then add explicit SF stubs
+  const sfLeftEdgeX = G.X(2);
+  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX - G.stub, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
+  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX - G.stub, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
+  // SF stubs (two per SF box)
+  paths.push(H(sfLeftEdgeX - G.stub, midTop(G.sfCenter, G.innerGapSF), sfLeftEdgeX));
+  paths.push(H(sfLeftEdgeX - G.stub, midBot(G.sfCenter, G.innerGapSF), sfLeftEdgeX));
 
   // SF -> Final (left)
   paths.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
@@ -130,9 +157,13 @@ export default function Bracket16({ data }) {
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (right): stop at the SF contact stub end (to the **right**)
-  joinPairToMid_R(G.X(5), G.X(4)+G.colW + G.contact, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
-  joinPairToMid_R(G.X(5), G.X(4)+G.colW + G.contact, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
+  // QF -> SF (right) — stop G.stub after SF edge, then add explicit SF stubs
+  const sfRightEdgeX = G.X(4) + G.colW;
+  joinPairToMid_R(G.X(5), sfRightEdgeX + G.stub, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
+  joinPairToMid_R(G.X(5), sfRightEdgeX + G.stub, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
+  // SF stubs (two per SF box)
+  paths.push(H(sfRightEdgeX, midTop(G.sfCenter, G.innerGapSF), sfRightEdgeX + G.stub));
+  paths.push(H(sfRightEdgeX, midBot(G.sfCenter, G.innerGapSF), sfRightEdgeX + G.stub));
 
   // SF -> Final (right)
   paths.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
@@ -140,6 +171,7 @@ export default function Bracket16({ data }) {
   // finalists mid-bar
   paths.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
 
+  // ----- Render --------------------------------------------------------------
   return (
     <div className={s.viewport}>
       <div
@@ -180,34 +212,12 @@ export default function Bracket16({ data }) {
     </div>
   );
 
-  // ---- helpers --------------------------------------------------------------
-  function box(x,y,text){
+  // ----- Box helpers ---------------------------------------------------------
+  function slotBox(x,y,text){
     return <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left:x, top:y }}>{text}</div>;
   }
-  function boxWithClass(x,y,text,extraClass){
-    return <div key={`${x}-${y}-${text}`} className={`${s.slot} ${extraClass}`} style={{ left:x, top:y }}>{text}</div>;
-  }
-  function miniBox(x,y,text){
+  function finalBox(x,y,text){
     return <div key={`f-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left:x, top:y }}>{text}</div>;
-  }
-
-  function joinPairToMid_L(xSrcRight, xDstContact, pairCenter, srcInnerGap, yDstMid){
-    const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
-    const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
-    const xJoin = xSrcRight + G.stub;
-    paths.push(H(xSrcRight, yTop, xJoin)); // top stub
-    paths.push(H(xSrcRight, yBot, xJoin)); // bottom stub
-    paths.push(V(xJoin, yTop, yBot));      // vertical collector
-    paths.push(H(xJoin, yDstMid, xDstContact)); // go to SF contact end
-  }
-  function joinPairToMid_R(xSrcLeft, xDstContact, pairCenter, srcInnerGap, yDstMid){
-    const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
-    const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
-    const xJoin = xSrcLeft - G.stub;
-    paths.push(H(xSrcLeft, yTop, xJoin)); // top stub
-    paths.push(H(xSrcLeft, yBot, xJoin)); // bottom stub
-    paths.push(V(xJoin, yTop, yBot));     // vertical collector
-    paths.push(H(xJoin, yDstMid, xDstContact)); // go to SF contact end
   }
 }
 
