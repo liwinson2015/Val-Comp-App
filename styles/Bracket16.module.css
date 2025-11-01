@@ -1,109 +1,97 @@
-/* styles/Bracket16.module.css */
-/* local reset (safe for CSS Modules) */
-.viewport *,
-.viewport *::before,
-.viewport *::after { box-sizing: border-box; }
-
-.viewport{
-  width:100%;
-  min-height:100dvh;
-  display:grid;
-  place-items:center;
-  background: radial-gradient(1200px 600px at 50% -200px, #0f172a 0%, #0b1020 60%, #091021 100%);
-  color:#e8eef9;
-  overflow:auto;
-  color-scheme: dark;
+.viewport {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: 16px 0 40px;
 }
 
-.stage{
-  position:relative;
-  /* overridden from JSX */
-  --slotH: 38px;
-  --colw: 150px;
-  --gap: 34px;
-  --joinW: 2px;
+.stage {
+  position: relative;
+  background: transparent;
+  user-select: none;
+  line-height: 1;
 }
 
-/* Round headings */
-.titles{
-  position:absolute; left:0; right:0; top:0;
-  display:grid;
-  grid-template-columns: repeat(7, var(--colw));
-  column-gap: var(--gap);
-  justify-content:start;
-  pointer-events:none;
-  z-index:2;
-}
-.title{
-  text-align:center;
-  font-weight:900;
-  font-size:12px;
-  line-height:18px;
-  letter-spacing:.10em;
-  text-transform:uppercase;
-  opacity:.95;
-  user-select:none;
-  white-space:nowrap;
-}
-
-/* Wires */
-.wires{
-  position:absolute; inset:0;
-  z-index:0; pointer-events:none;
-}
-
-/* Boxes */
-.slot{
-  position:absolute;
-  width:var(--colw);
-  height:var(--slotH);
-  border:2px solid #cdd6ea;
-  background:#ffffff;
-  color:#0f1320;
-  display:flex; align-items:center; justify-content:center;
-  font-weight:700; font-size:13px;
-  border-radius:0;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.02) inset;
-  z-index:1;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-
-/* Small finalists boxes */
-.finalSlot{ width:84px; }
-
-/* Champion pill + label */
-.champ{
-  position:absolute; left:50%; transform:translateX(-50%);
-  background:#1b2a55; color:#fff; border:2px solid #132345;
-  padding:10px 18px; font-weight:800; border-radius:0;
-  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
-  z-index:3; white-space:nowrap;
-}
-.winnerLabel{
-  position:absolute; left:50%; transform:translateX(-50%);
-  font-weight:900; font-size:12px; letter-spacing:.10em; text-transform:uppercase;
-  opacity:.95; white-space:nowrap; z-index:3;
-}
-.sfLeftTop::before,
-.sfLeftBot::before {
-  content: "";
+/* Top headings /
+.titles {
   position: absolute;
-  left: -12px;                 
-  top: 50%;
-  width: 12px;                 
-  height: var(--joinW);
-  background: var(--line);
-  transform: translateY(-50%);
+  top: 16px;            / visually matches titleBand in JS /
+  left: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--gap);
+  text-align: center;
+  pointer-events: none;
 }
 
-.sfRightTop::before,
-.sfRightBot::before {
-  content: "";
+.title {
+  color: #9fb0c7;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/ Wires behind boxes /
+.wires {
   position: absolute;
-  right: -12px;                
-  top: 50%;
-  width: 12px;                 
-  height: var(--joinW);
-  background: var(--line);
-  transform: translateY(-50%);
+  inset: 0;
+  z-index: 1;
+}
+
+/ Participant / round boxes /
+.slot {
+  position: absolute;
+  width: var(--colw);
+  height: var(--slotH);
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #22304a;
+  font-weight: 700;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.35),
+    0 10px 24px rgba(0,0,0,0.12);
+  z-index: 2;
+}
+
+/ Center-final boxes override width via inline style /
+.finalSlot {
+  / width set inline from JS (G.finalW) /
+}
+
+/ WINNER label + chip */
+.winnerLabel {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #9fb0c7;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.champ {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: var(--slotH);
+  padding: 0 18px;
+  background: #1f355e;
+  color: #ffffff;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  z-index: 3;
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.35),
+    0 12px 28px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.08);
 }
