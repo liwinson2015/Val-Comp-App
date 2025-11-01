@@ -3,71 +3,77 @@ import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
 /**
- * Losers Bracket (16 players total entering across rounds)
- * Structure:
- *  - LB Round 1: 8 players (4 matches)
- *  - LB Round 2 (WB R2 drop-ins): 4 matches
- *  - LB Round 3A: 2 matches
- *  - LB Round 3B (WB SF drop-ins): 2 matches
- *  - LB Round 4: 1 match  <-- (two players total, as requested)
- *  - LB Final: 1 match -> LB Winner (champ pill at the far right)
+ * 16-player losers bracket (double-elim path), compact UI.
+ * Rounds:
+ *   R1: 8 matches
+ *   R2 (WB R2 drop-ins): 4 matches
+ *   R3A: 2 matches
+ *   R3B (WB SF drop-ins): 2 matches
+ *   R4: 2 matches
+ *   LB Final: 1 match
+ *   LB Winner: 1 pill
+ *
+ * All labels live INSIDE the slots.
  */
 export default function LosersBracket16({
-  // Optional arrays if you want to pass real names later; otherwise we show TBD
-  lbR1 = Array(8).fill(null),      // 8 players -> 4 matches
-  dropR2 = Array(4).fill(null),     // 4 WB R2 losers (labels shown in the second slot of each R2 match)
-  dropSF = Array(2).fill(null),     // 2 WB SF losers (labels shown in the second slot of each R3B match)
-  wbFinalLoser = "WB Final Loser",  // label inside the bottom slot of LB Final
-  lbWinner = "TBD",                 // text inside the LB Winner pill
+  r1 = Array(8).fill(["TBD", "TBD"]),
+  r2 = [
+    ["TBD", "WB R2 Loser"],
+    ["TBD", "WB R2 Loser"],
+    ["TBD", "WB R2 Loser"],
+    ["TBD", "WB R2 Loser"],
+  ],
+  r3a = Array(2).fill(["TBD", "TBD"]),
+  r3b = [
+    ["TBD", "WB SF Loser 1"],
+    ["TBD", "WB SF Loser 2"],
+  ],
+  r4 = Array(2).fill(["TBD", "TBD"]),
+  lbFinal = ["TBD", "WB Final Loser"],
+  lbWinner = "TBD",
 }) {
   return (
     <div className={s.lbViewport}>
       <div className={s.lbStage}>
         <div className={s.lbGrid}>
-          {/* R1 — 8 players -> 4 matches */}
-          <Round title="LB Round 1" tier="r1">
-            {chunk(lbR1, 2).map((pair, i) => (
-              <Pair key={`R1-${i}`} top={pair[0] ?? "TBD"} bot={pair[1] ?? "TBD"} />
+          {/* R1 — 8 matches */}
+          <Round title="LB Round 1" cls="r1">
+            {r1.slice(0, 8).map((m, i) => (
+              <Pair key={`r1-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
 
-          {/* R2 — 4 matches; bottom slot shows WB R2 drop-in label */}
-          <Round title="LB Round 2 (WB R2 Drop-ins)" tier="r2">
-            {[0, 1, 2, 3].map((i) => (
-              <Pair
-                key={`R2-${i}`}
-                top="TBD"
-                bot={dropR2[i] ?? "WB R2 Loser"}
-              />
+          {/* R2 — 4 matches (WB R2 drop-ins) */}
+          <Round title="LB Round 2 (WB R2 drop-ins)" cls="r2">
+            {r2.slice(0, 4).map((m, i) => (
+              <Pair key={`r2-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
 
-          {/* R3A — 2 matches (winners from R2) */}
-          <Round title="LB Round 3A" tier="r3a">
-            {[0, 1].map((i) => (
-              <Pair key={`R3A-${i}`} top="TBD" bot="TBD" />
+          {/* R3A — 2 matches */}
+          <Round title="LB Round 3A" cls="r3a">
+            {r3a.slice(0, 2).map((m, i) => (
+              <Pair key={`r3a-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
 
-          {/* R3B — 2 matches with WB SF drop-ins */}
-          <Round title="LB Round 3B (WB SF Drop-ins)" tier="r3b">
-            {[0, 1].map((i) => (
-              <Pair
-                key={`R3B-${i}`}
-                top="TBD"
-                bot={dropSF[i] ?? (i === 0 ? "WB SF Loser 1" : "WB SF Loser 2")}
-              />
+          {/* R3B — 2 matches (WB SF drop-ins) */}
+          <Round title="LB Round 3B (WB SF drop-ins)" cls="r3b">
+            {r3b.slice(0, 2).map((m, i) => (
+              <Pair key={`r3b-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
 
-          {/* R4 — SINGLE match (two players total) */}
-          <Round title="LB Round 4" tier="r4">
-            <Pair top="TBD" bot="TBD" />
+          {/* R4 — 2 matches */}
+          <Round title="LB Round 4" cls="r4">
+            {r4.slice(0, 2).map((m, i) => (
+              <Pair key={`r4-${i}`} top={m[0]} bot={m[1]} />
+            ))}
           </Round>
 
-          {/* LB Final — SINGLE match; bottom shows WB Final Loser */}
-          <Round title="LB Final" tier="rFinal">
-            <Pair top="TBD" bot={wbFinalLoser || "WB Final Loser"} />
+          {/* LB Final — 1 match */}
+          <Round title="LB Final" cls="rFinal">
+            <Pair top={lbFinal[0]} bot={lbFinal[1]} />
           </Round>
 
           {/* LB Winner pill */}
@@ -83,11 +89,9 @@ export default function LosersBracket16({
   );
 }
 
-/* ---------- building blocks ---------- */
-
-function Round({ title, tier, children }) {
+function Round({ title, cls, children }) {
   return (
-    <div className={`${s.round} ${s[tier]}`}>
+    <div className={`${s.round} ${s[cls] || ""}`}>
       <div className={s.roundTitle}>{title}</div>
       <div className={s.stack}>{children}</div>
     </div>
@@ -100,17 +104,9 @@ function Pair({ top = "TBD", bot = "TBD" }) {
       <div className={s.slot} title={top}>
         <span className={s.label}>{top}</span>
       </div>
-      <div className={s.slot} title={bot} style={{ marginTop: "10px" }}>
+      <div className={s.slot} title={bot}>
         <span className={s.label}>{bot}</span>
       </div>
     </div>
   );
-}
-
-/* ---------- helpers ---------- */
-
-function chunk(arr = [], size = 2) {
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
 }

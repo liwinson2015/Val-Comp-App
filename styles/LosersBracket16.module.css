@@ -1,38 +1,41 @@
-/* /styles/LosersBracket16.module.css
-   Losers bracket — compact, centered, square boxes, with connectors.
-   Columns: R1 | R2 (WB R2 drop-ins) | R3A | R3B (WB SF drop-ins) | R4 | LB Final | LB Winner
-*/
+/* Compact, centered losers bracket to match winners bracket (square boxes) */
 
-/* ---------- Canvas sizing & auto-fit ---------- */
 .lbViewport{
-  --colw: clamp(120px, 9vw, 150px);     /* box width a bit shorter than winners */
+  /* slightly narrower than winners to fit comfortably */
+  --colw: clamp(110px, 8.8vw, 142px);
   --gap:  clamp(16px, 2vw, 22px);
 
-  --slotH: 36px;                        /* box height */
+  /* square slot geometry */
+  --slotH: 34px;
   --pairGapInside: 10px;
   --pairPad: 4px;
+
+  /* full pair height */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  /* vertical rhythms so next-round boxes sit centered between feeders */
-  --r1Space: clamp(16px, 2vh, 22px);
-  --r2Space: calc(var(--pairH) + var(--r1Space));
-  --r3Space: calc(var(--pairH) + var(--r2Space));
+  /* tuned vertical rhythms so each round sits between feeders */
+  --r1Space: 10px;                                       /* between R1 pairs */
+  --r2Space: calc(var(--pairH) + 18px);                  /* between two R1s */
+  --r3Space: calc(var(--pairH) + var(--r2Space) - 6px);  /* between two R2s */
+  --r4Space: calc(var(--pairH) + var(--r3Space) - 10px); /* between two R3s */
 
+  /* lines */
   --line: #2a2f36;
   --joinW: 2px;
-  --stub: 10px;
+  --stub: 10px;                 /* short stub leaving each pair */
   --arm:  calc(var(--gap) - var(--stub));
 
+  /* box look (match winners bracket) */
   --slotBg: #f5f7fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  /* 7 columns: R1,R2,R3A,R3B,R4,LB Final, LB Winner */
+  /* grid sizing: 7 columns */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(520px, 60vh, 680px);
+  --stageH: clamp(520px, 62vh, 700px);
 
-  --topSpace: 130px;
-
+  /* center + scale to fit */
+  --topSpace: 120px;
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -43,14 +46,22 @@
   place-items:center;
   overflow:visible;
 }
-.lbStage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
+.lbStage{
+  width:var(--stageW);
+  height:var(--stageH);
+  transform:scale(var(--scale));
+  transform-origin:top center;
+}
 .lbGrid{
-  width:100%; height:100%;
-  display:grid; grid-template-columns:repeat(7,var(--colw));
-  gap:var(--gap); align-items:start;
+  width:100%;
+  height:100%;
+  display:grid;
+  grid-template-columns:repeat(7,var(--colw));
+  gap:var(--gap);
+  align-items:start;
 }
 
-/* ---------- Round columns ---------- */
+/* columns / titles */
 .round{ position:relative; }
 .roundTitle{
   color:#dfe6f3; font-weight:900; font-size:12px;
@@ -58,21 +69,21 @@
 }
 .stack{ position:relative; display:grid; }
 
-/* vertical spacing for alignment */
+/* vertical spacing — THIS aligns each round between feeders */
 .r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
 .r2  .pair{ margin: calc(var(--r2Space)/2) 0; }
-.r3a .pair,
+.r3a .pair{ margin: calc(var(--r3Space)/2) 0; }
 .r3b .pair{ margin: calc(var(--r3Space)/2) 0; }
-/* R4 and Final have only one or two pairs — give a modest margin */
-.r4 .pair,
-.rFinal .pair{ margin: 18px 0; }
+.r4  .pair{ margin: calc(var(--r4Space)/2) 0; }
+.rFinal .pair{ margin: 28px 0; }
 
-/* ---------- Pair (two square slots with connector stub) ---------- */
+/* pair / slots */
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
 }
 .pair::after{
+  /* short stub out toward next column */
   content:"";
   position:absolute; top:50%; right: calc(var(--stub) * -1);
   transform: translateY(-50%);
@@ -82,7 +93,7 @@
 .slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
-  border-radius: 0;               /* square */
+  border-radius: 0;      /* SQUARE */
   background: var(--slotBg);
   display:flex; align-items:center;
   padding: 0 10px;
@@ -95,7 +106,7 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* ---------- Centering connectors (R2/R3A/R3B): arm + collector ---------- */
+/* center-join arm shown on rounds that collect from a previous column */
 .r2 .pair,
 .r3a .pair,
 .r3b .pair,
@@ -113,7 +124,7 @@
     left calc(var(--gap) * -1)              50%;
 }
 
-/* ---------- LB Winner pill ---------- */
+/* LB winner pill */
 .lbWinnerCol{
   display:flex; flex-direction:column; align-items:flex-start;
 }
@@ -124,11 +135,8 @@
 .lbWinnerPill{
   min-width: var(--colw);
   background:#1c2952; border:2px solid #122040; color:#ffffff;
-  border-radius: 8px;
+  border-radius:8px;
   padding:10px 16px;
   display:flex; align-items:center; justify-content:center;
 }
 .lbWinnerText{ font-weight:800; }
-
-/* helper (not strictly needed, but kept for parity) */
-.note{ margin:4px 0 2px; color:#9fb0c9; font-size:11px; }
