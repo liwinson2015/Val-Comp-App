@@ -1,105 +1,106 @@
-// components/LosersBracket.jsx
+// components/LosersBracket16.jsx
 import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
 /**
- * Losers Bracket (double-elim) compact view.
- * Shows LB R1 -> R2A/R2B -> R3A/R3B -> R4 -> LB Final.
- * At the far right, it renders a small "LB Winner" box so the result is explicit.
+ * Losers bracket (compact) for a 16-player double-elimination.
+ * Columns (7 total):
+ * 1) LB R1 (8 players => 4 winners)
+ * 2) LB R2 (WB R2 drop-ins) – 4 matches (each vs LB R1 winners)
+ * 3) LB R3A – 2 matches
+ * 4) LB R3B (WB SF drop-ins) – 2 matches (each vs LB R3A winners)
+ * 5) LB R4 – 2 matches
+ * 6) LB Final – 1 match (vs WB Final Loser)
+ * 7) LB Winner – 1 box (advances to Grand Final)
  *
- * Props:
- *  - data: {
- *      r1: [ "LB P1", "LB P2", ..., "LB P8" ]          // 8 seeds (display only)
- *      r2a: [["TBD","WB R2 Loser 1"], ...]             // 4 matches
- *      r3a: [["TBD","TBD"], ...]                        // 2 matches
- *      r3b: [["TBD","WB SF Loser 1"], ...]              // 2 matches (drop-ins)
- *      r4:  [["TBD","TBD"], ...]                        // 2 matches
- *      final: ["TBD","WB Final Loser"]                  // LB Final (2 players)
- *      lbWinner: "TBD"                                  // <- winner of LB Final (displayed & export)
- *    }
+ * All props are optional; sensible defaults render labels so nothing “disappears”.
  */
-export default function LosersBracket({ data = {} }) {
-  const r1 = data.r1 ?? [
-    "LB P1", "LB P2", "LB P3", "LB P4", "LB P5", "LB P6", "LB P7", "LB P8",
-  ];
+export default function LosersBracket16({
+  lbR1 = [
+    "LB P1","LB P2","LB P3","LB P4",
+    "LB P5","LB P6","LB P7","LB P8",
+  ],               // 8 players (top-to-bottom)
+  dropR2 = ["WB R2 Loser 1","WB R2 Loser 2","WB R2 Loser 3","WB R2 Loser 4"],
+  dropSF = ["WB SF Loser 1","WB SF Loser 2"],
+  wbFinalLoser = "WB Final Loser",
+  lbWinner = "TBD"
+}) {
+  // Helpers to pair into [top, bot]
+  const pairs = (list) => {
+    const out = [];
+    for (let i = 0; i < list.length; i += 2) out.push([list[i] ?? "TBD", list[i+1] ?? "TBD"]);
+    return out;
+  };
 
-  const r2a = data.r2a ?? [
-    ["TBD", "WB R2 Loser 1"],
-    ["TBD", "WB R2 Loser 2"],
-    ["TBD", "WB R2 Loser 3"],
-    ["TBD", "WB R2 Loser 4"],
-  ];
+  // R1: 8 players => 4 pairs
+  const r1Pairs = pairs(lbR1.length ? lbR1 : [
+    "LB P1","LB P2","LB P3","LB P4","LB P5","LB P6","LB P7","LB P8"
+  ]);
 
-  const r3a = data.r3a ?? [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
+  // R2: 4 matches – left side winners vs WB R2 drop-ins
+  // We render *two* slots per match: [TBD, drop-in]
+  const r2Pairs = dropR2.map((d) => ["TBD", d || "TBD"]);
 
-  const r3b = data.r3b ?? [
-    ["TBD", "WB SF Loser 1"],
-    ["TBD", "WB SF Loser 2"],
-  ];
+  // R3A: winners from R2 – 2 matches (placeholder TBD vs TBD)
+  const r3aPairs = [["TBD", "TBD"], ["TBD", "TBD"]];
 
-  const r4 = data.r4 ?? [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
+  // R3B: WB SF drop-ins vs R3A winners
+  const r3bPairs = dropSF.map((d) => ["TBD", d || "TBD"]); // (TBD) vs (WB SF loser)
 
-  const lbFinal = data.final ?? ["TBD", "WB Final Loser"];
-  const lbWinner = data.lbWinner ?? "TBD";
+  // R4: winners from R3B – 2 matches
+  const r4Pairs = [["TBD", "TBD"], ["TBD", "TBD"]];
+
+  // LB Final: 1 match – winner of R4 vs WB Final Loser
+  const lbFinalPair = ["TBD", wbFinalLoser || "WB Final Loser"];
 
   return (
     <div className={s.viewport}>
-      <div className={s.title}>LOSERS BRACKET</div>
+      <div className={s.stage}>
+        <div className={s.grid}>
+          {/* COL 1: LB Round 1 */}
+          <Round title="LB Round 1">
+            {r1Pairs.map((p, i) => (
+              <Pair key={`r1-${i}`} top={p[0]} bot={p[1]} />
+            ))}
+          </Round>
 
-      <div className={s.grid}>
-        {/* LB ROUND 1 (labels only, 8 seeds) */}
-        <Column title="LB ROUND 1">
-          {r1.map((name, i) => (
-            <OneSlot key={`r1-${i}`} label={name} />
-          ))}
-        </Column>
+          {/* COL 2: LB Round 2 (WB R2 drop-ins) */}
+          <Round title="LB Round 2 (WB R2 drop-ins)">
+            {r2Pairs.map((p, i) => (
+              <Pair key={`r2-${i}`} top={p[0]} bot={p[1]} join />
+            ))}
+          </Round>
 
-        {/* LB ROUND 2 (WB R2 drop-ins) */}
-        <Column title="LB ROUND 2 (WB R2 DROP-INS)">
-          {r2a.map((m, i) => (
-            <Pair key={`r2a-${i}`} top={m[0]} bot={m[1]} />
-          ))}
-        </Column>
+          {/* COL 3: LB Round 3A */}
+          <Round title="LB Round 3A">
+            {r3aPairs.map((p, i) => (
+              <Pair key={`r3a-${i}`} top={p[0]} bot={p[1]} join />
+            ))}
+          </Round>
 
-        {/* LB ROUND 3A (winners from R2A) */}
-        <Column title="LB ROUND 3A">
-          {r3a.map((m, i) => (
-            <Pair key={`r3a-${i}`} top={m[0]} bot={m[1]} />
-          ))}
-        </Column>
+          {/* COL 4: LB Round 3B (WB SF drop-ins) */}
+          <Round title="LB Round 3B (WB SF drop-ins)">
+            {r3bPairs.map((p, i) => (
+              <Pair key={`r3b-${i}`} top={p[0]} bot={p[1]} join />
+            ))}
+          </Round>
 
-        {/* LB ROUND 3B (WB SF drop-ins) */}
-        <Column title="LB ROUND 3B (WB SF DROP-INS)">
-          {r3b.map((m, i) => (
-            <Pair key={`r3b-${i}`} top={m[0]} bot={m[1]} />
-          ))}
-        </Column>
+          {/* COL 5: LB Round 4 */}
+          <Round title="LB Round 4">
+            {r4Pairs.map((p, i) => (
+              <Pair key={`r4-${i}`} top={p[0]} bot={p[1]} join />
+            ))}
+          </Round>
 
-        {/* LB ROUND 4 */}
-        <Column title="LB ROUND 4">
-          {r4.map((m, i) => (
-            <Pair key={`r4-${i}`} top={m[0]} bot={m[1]} />
-          ))}
-        </Column>
+          {/* COL 6: LB Final */}
+          <Round title="LB Final">
+            <Pair top={lbFinalPair[0]} bot={lbFinalPair[1]} join />
+          </Round>
 
-        {/* LB FINAL (shows winner to the right) */}
-        <div className={s.finalCol}>
-          <div className={s.roundTitle}>LB FINAL</div>
-          <Pair top={lbFinal[0]} bot={lbFinal[1]} />
-        </div>
-
-        {/* LB WINNER RESULT */}
-        <div className={s.winnerCol}>
-          <div className={s.winnerTitle}>LB WINNER</div>
-          <div className={s.arm} aria-hidden="true" />
-          <div className={s.winnerBox} title={lbWinner}>
-            <span className={s.winnerText}>{lbWinner}</span>
+          {/* COL 7: LB Winner */}
+          <div className={s.lbFinalCol}>
+            <div className={s.lbWinnerTitle}>LB Winner</div>
+            <div className={s.lbWinnerBox}>{lbWinner || "TBD"}</div>
           </div>
         </div>
       </div>
@@ -107,35 +108,22 @@ export default function LosersBracket({ data = {} }) {
   );
 }
 
-/* ===== Reusable bits ===== */
+/* ---------- primitives ---------- */
 
-function Column({ title, children }) {
+function Round({ title, children }) {
   return (
-    <div className={s.col}>
+    <div className={s.round}>
       <div className={s.roundTitle}>{title}</div>
       <div className={s.stack}>{children}</div>
     </div>
   );
 }
 
-function Pair({ top = "TBD", bot = "TBD" }) {
+function Pair({ top = "TBD", bot = "TBD", join = false }) {
   return (
-    <div className={s.pair}>
-      <div className={s.slot} title={top}>
-        <span className={s.label}>{top}</span>
-      </div>
-      <div className={s.slot} title={bot}>
-        <span className={s.label}>{bot}</span>
-      </div>
-      {/* vertical join + right stub via CSS */}
-    </div>
-  );
-}
-
-function OneSlot({ label = "TBD" }) {
-  return (
-    <div className={s.oneSlot} title={label}>
-      <span className={s.label}>{label}</span>
+    <div className={`${s.pair} ${join ? s.join : ""}`}>
+      <div className={s.slot} title={top}><span className={s.label}>{top}</span></div>
+      <div className={s.slot} title={bot}><span className={s.label}>{bot}</span></div>
     </div>
   );
 }

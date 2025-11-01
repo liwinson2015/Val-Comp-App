@@ -1,36 +1,32 @@
-/* Losers bracket styling – compact square boxes, same look as winners */
+/* Compact losers bracket – matches winners look, centered & screen-fitted */
 
 .viewport {
-  /* smaller column and spacing */
-  --colw: clamp(95px, 7.5vw, 120px);
-  --gap: clamp(10px, 1.5vw, 14px);
+  /* compact geometry */
+  --colw: clamp(110px, 8.2vw, 140px);
+  --gap: clamp(12px, 1.6vw, 18px);
 
-  /* box + spacing */
-  --slotH: 32px;
+  --slotH: 34px;
   --pairGapInside: 8px;
   --pairPad: 3px;
 
-  /* derived */
-  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
-  --rSpace: clamp(12px, 1.2vh, 18px);
+  --pairH: calc(var(--slotH) * 2 + var(--pairGapInside) + var(--pairPad) * 2);
+  --rowSpace: clamp(12px, 1.2vh, 18px);
 
-  /* connector */
-  --line: #2a2f36;
+  --line: #2b3139;
   --joinW: 2px;
   --stub: 8px;
   --arm: calc(var(--gap) - var(--stub));
 
-  /* colors */
   --slotBg: #f4f6fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  /* container sizing */
-  --stageW: calc(var(--colw) * 8 + var(--gap) * 7);
-  --stageH: clamp(420px, 45vh, 580px);
+  /* 7 columns (r1, r2, r3a, r3b, r4, final, winner) */
+  --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
+  --stageH: clamp(460px, 54vh, 620px);
 
-  --topSpace: 80px;
-
+  /* center & scale to fit viewport */
+  --topSpace: 120px; /* breathing room under your winners bracket */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -51,38 +47,33 @@
 .grid {
   width: 100%;
   height: 100%;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(8, var(--colw));
+  grid-template-columns: repeat(7, var(--colw));
   gap: var(--gap);
   align-items: start;
 }
 
 /* columns */
-.round {
-  position: relative;
-}
+.round { position: relative; }
 .roundTitle {
   color: #dfe6f3;
   font-weight: 900;
   font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   margin-bottom: 6px;
 }
-.stack {
-  position: relative;
-  display: grid;
-}
-.stack .pair {
-  margin: calc(var(--rSpace)/2) 0;
-}
+.stack { display: grid; }
+.stack .pair { margin: calc(var(--rowSpace) / 2) 0; }
 
-/* pair of two slots */
+/* pair */
 .pair {
   position: relative;
   padding: var(--pairPad) 0;
 }
 .pair::after {
+  /* small stub out to the next column */
   content: "";
   position: absolute;
   top: 50%;
@@ -92,12 +83,8 @@
   height: var(--joinW);
   background: var(--line);
 }
-.sideRight.pair::after {
-  left: calc(var(--stub) * -1);
-  right: auto;
-}
 
-/* slot boxes */
+/* slot */
 .slot {
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
@@ -106,11 +93,9 @@
   display: flex;
   align-items: center;
   padding: 0 8px;
-  box-shadow: none;
 }
-.slot + .slot {
-  margin-top: var(--pairGapInside);
-}
+.slot + .slot { margin-top: var(--pairGapInside); }
+
 .label {
   color: var(--textDark);
   font-weight: 700;
@@ -120,7 +105,7 @@
   text-overflow: ellipsis;
 }
 
-/* join lines */
+/* T-join (vertical join between top/bot, plus arm across the gap) */
 .join {
   background-image:
     linear-gradient(var(--line), var(--line)),
@@ -133,42 +118,29 @@
     left calc(var(--gap) * -1 + var(--arm)) 50%,
     left calc(var(--gap) * -1) 50%;
 }
-.right .join {
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm)) 50%,
-    right calc(var(--gap) * -1) 50%;
-}
 
-/* optional note text below some slots */
-.note {
-  color: #8fa1ba;
-  font-size: 10px;
-  margin: 3px 0 0 2px;
-}
-
-/* for mirrored columns */
-.right {
-  direction: ltr;
-}
-
-/* final LB Winner box */
+/* LB winner box */
 .lbFinalCol {
   text-align: center;
-}
-.lbWinnerBox {
-  background: #1c2952;
-  border: 2px solid #122040;
-  color: #ffffff;
-  font-weight: 800;
-  border-radius: 0;
-  padding: 8px 12px;
-  margin-top: 4px;
+  display: grid;
+  align-content: start;
 }
 .lbWinnerTitle {
   color: #e7ecf5;
   font-size: 11px;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: .10em;
   text-transform: uppercase;
   margin-bottom: 6px;
+}
+.lbWinnerBox {
+  background: #1c2952;
+  border: 2px solid #122040;
+  color: #fff;
+  font-weight: 800;
+  border-radius: 0;
+  height: var(--slotH);
+  display: grid;
+  place-items: center;
+  padding: 0 12px;
 }
