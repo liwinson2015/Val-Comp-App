@@ -1,6 +1,6 @@
 /* styles/Bracket16.module.css
-   Pixel-perfect, math-driven 16-team bracket.
-   Absolutely positioned boxes; connectors drawn in one SVG.
+   Math-driven 16-team bracket. Boxes are absolutely positioned.
+   One SVG draws all connectors.
 */
 
 /* Wrapper-scoped reset (CSS Modules safe) */
@@ -22,14 +22,14 @@
 
 .stage{
   position:relative;
-  /* Variables mirrored from JSX for clarity (JSX sets concrete values) */
+  /* These get overridden via inline style from JSX */
   --slotH: 38px;
   --colw: 150px;
   --gap: 34px;
   --joinW: 2px;
 }
 
-/* Round titles */
+/* Round titles row */
 .titles{
   position:absolute; left:0; right:0; top:0;
   display:grid;
@@ -51,13 +51,13 @@
   white-space:nowrap;
 }
 
-/* SVG connector layer */
+/* Lines layer */
 .wires{
   position:absolute; inset:0;
   z-index:0; pointer-events:none;
 }
 
-/* Boxes */
+/* Match slots */
 .slot{
   position:absolute;
   width:var(--colw);
@@ -73,7 +73,7 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* Smaller finalist boxes */
+/* Smaller “finalists” boxes */
 .finalSlot{ width:84px; }
 
 /* Champion pill */
