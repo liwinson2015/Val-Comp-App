@@ -6,66 +6,70 @@ import s from "../styles/Bracket16.module.css";
  * Geometry-first bracket:
  *  - Every box is absolutely positioned from computed (x,y).
  *  - All connectors are drawn in one SVG using the exact same coordinates.
- *  - Final row Y is mathematically the midpoint of the two Semifinal pairs.
+ *  - Final center is mathematically tied to the Semifinal feeders (no drift).
  */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // --- TUNABLE GEOMETRY (drives BOTH boxes & lines) ---
+  // --- TUNABLE GEOMETRY (one source of truth) ---
   const G = useMemo(() => {
-    const colW   = 150;  // px, width of normal slots
-    const gap    = 22;   // px, space between columns
-    const slotH  = 38;   // px, slot height
-    const slotGap= 12;   // px, gap between the two slots in a pair
-    const stub   = 12;   // px, short horizontal from box edge
-    const wire   = 2;    // px, line thickness
+    const colW        = 150;  // px, width of normal slots
+    const gap         = 28;   // px, column spacing  (↑ “margin a little more”)
+    const slotH       = 38;   // px, slot height
+    const slotGap     = 12;   // px, gap between the two slots in a pair
+    const stub        = 14;   // px, short horizontal from box edge
+    const wire        = 2;    // px, line thickness
 
     // "pair block" height (two slots + gap)
-    const pairBlock = slotH * 2 + slotGap;
+    const pairBlock   = slotH * 2 + slotGap;
 
-    // Round spacings (center next round between its two feeders)
-    const r16Space = 22;
-    const qfSpace  = pairBlock + r16Space; // centers QF between two R16s
-    const sfSpace  = pairBlock + qfSpace;  // centers SF between two QFs
+    // Vertical rhythms (keep perfect centering across rounds)
+    const r16Space    = 26;   // ↑ a touch more vertical air in R16
+    const qfSpace     = pairBlock + r16Space;
+    const sfSpace     = pairBlock + qfSpace;
 
     // Column X positions (0..6)
-    const X = (i) => i * (colW + gap);
+    const X           = (i) => i * (colW + gap);
 
-    // Titles band height
-    const titleBand = 28;       // room for round labels
-    const topPad    = titleBand + 18;
+    // Titles band + header padding (moves whole bracket down)
+    const titleBand   = 28;
+    const headerPad   = 48;   // ↑ “move TBD more down” globally under nav
+    const topPad      = titleBand + headerPad;
 
-    // R16 pair centers (left/right share the same Y sequence)
-    const r16Centers = Array.from({ length: 4 }, (_, i) =>
+    // R16 pair centers (left/right share this sequence)
+    const r16Centers  = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlock / 2) + i * (pairBlock + r16Space)
     );
 
-    // QF centers = midpoint of their two R16 feeders
-    const qfCenters = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
+    // QF centers = midpoints of their two R16 feeders
+    const qfCenters   = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
 
-    // SF center = midpoint of its two QF feeders (same on both sides)
-    const sfCenter = avg(qfCenters[0], qfCenters[1]);
+    // SF center = midpoint of QF feeders
+    const sfCenter    = avg(qfCenters[0], qfCenters[1]);
 
-    // Final center Y equals SF centers (left==right by construction)
-    const finalY = sfCenter;
+    // Final center is the same Y (keeps perfect alignment)
+    const finalY      = sfCenter;
 
     // Stage size
-    const stageW = X(6) + colW;
-    const lastPairBottom = r16Centers[3] + pairBlock / 2;
-    const bottomPad = 40;
-    const stageH = Math.ceil(lastPairBottom + bottomPad);
+    const stageW      = X(6) + colW;
+    const lastBottom  = r16Centers[3] + pairBlock / 2;
+    const bottomPad   = 80;   // a little extra breathing room at bottom
+    const stageH      = Math.ceil(lastBottom + bottomPad);
+
+    // Finalist layout
+    const finalW      = 84;                 // mini boxes width
+    const finalMidGap = 18;                 // ↑ wider gap between tiny finals
+    const centerX     = X(3) + colW / 2;    // midline of center column
 
     return {
       colW, gap, slotH, slotGap, stub, wire,
       pairBlock, r16Space, qfSpace, sfSpace,
       X, topPad, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
-      finalW: 84,   // width of mini final boxes
-      centerX: (X(3) + colW / 2),  // midline X of the center column
+      finalW, finalMidGap, centerX
     };
   }, []);
 
-  // Short-hands
   const { X, slotH, slotGap, stub, wire, stageW, stageH } = G;
 
   // Helpers to compute slot top Y given a pair centerY
@@ -91,7 +95,7 @@ export default function Bracket16({ data }) {
   boxes.push(box(X(2), topSlotTop(G.sfCenter), D.left.SF[0]));
   boxes.push(box(X(2), botSlotTop(G.sfCenter), D.left.SF[1]));
 
-  // RIGHT: mirror indices (col 6,5,4)
+  // RIGHT: mirror (cols 6,5,4)
   for (let i = 0; i < 4; i++) {
     const y = G.r16Centers[i];
     boxes.push(box(X(6), topSlotTop(y), D.right.R16[i][0]));
@@ -105,9 +109,9 @@ export default function Bracket16({ data }) {
   boxes.push(box(X(4), topSlotTop(G.sfCenter), D.right.SF[0]));
   boxes.push(box(X(4), botSlotTop(G.sfCenter), D.right.SF[1]));
 
-  // CENTER: two small finalist boxes (left/right of the midline)
-  const finalLeftX  = G.centerX - 10 - G.finalW;  // 10px mid-gap
-  const finalRightX = G.centerX + 10;
+  // CENTER: two small finalist boxes (more mid-gap)
+  const finalLeftX  = G.centerX - G.finalMidGap/2 - G.finalW;
+  const finalRightX = G.centerX + G.finalMidGap/2;
   const finalTop    = G.finalY - slotH / 2;
   const finalLeft   = miniBox(finalLeftX, finalTop, D.final.left);
   const finalRight  = miniBox(finalRightX, finalTop, D.final.right);
@@ -115,17 +119,16 @@ export default function Bracket16({ data }) {
   // --- Build all connector paths (SVG) ---------------------------------------
   const paths = [];
 
-  // helper: draw a T-join from two feeders at (x1,yTop),(x1,yBot) to a target column x2
   const joinLeftToRight = (x1, x2, yTop, yBot) => {
-    const xStubEnd = x1 + G.stub;
-    const xCollector = (x1 + x2) / 2;  // vertical collector centered in the gap
+    const xStubEnd   = x1 + stub;
+    const xCollector = (x1 + x2) / 2;
     paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
     paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
     paths.push(v(xCollector, yTop, yBot));
     paths.push(h(xCollector, yTop, x2)); paths.push(h(xCollector, yBot, x2));
   };
   const joinRightToLeft = (x1, x2, yTop, yBot) => {
-    const xStubEnd = x1 - G.stub;
+    const xStubEnd   = x1 - stub;
     const xCollector = (x1 + x2) / 2;
     paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
     paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
@@ -145,10 +148,10 @@ export default function Bracket16({ data }) {
     const yBot = G.qfCenters[1] + (slotGap/2 + slotH/2);
     joinLeftToRight(X(1)+G.colW, X(2), yTop, yBot);
   }
-  // SF -> Final left mini box (single bar)
+  // SF -> Final left mini box
   paths.push(h(X(2)+G.colW, G.sfCenter, finalLeftX));
 
-  // R16 -> QF (right, mirrored)
+  // R16 -> QF (right)
   for (let i = 0; i < 2; i++) {
     const yTop = G.r16Centers[2*i]   - (slotGap/2 + slotH/2);
     const yBot = G.r16Centers[2*i+1] + (slotGap/2 + slotH/2);
@@ -163,7 +166,7 @@ export default function Bracket16({ data }) {
   // SF -> Final right mini box
   paths.push(h(X(4), G.sfCenter, finalRightX+G.finalW));
 
-  // center mid-bar between finalists
+  // mid-bar between finalists
   paths.push(h(finalLeftX+G.finalW, G.finalY, finalRightX));
 
   return (
@@ -194,7 +197,7 @@ export default function Bracket16({ data }) {
         <div className={s.champ}>{D.final.champion}</div>
 
         {/* Lines */}
-        <svg className={s.wires} width={stageW} height={stageH}>
+        <svg className={s.wires} width={G.stageW} height={G.stageH}>
           <g stroke="#2a2f36" strokeWidth={wire} strokeLinecap="square" fill="none" shapeRendering="crispEdges">
             {paths}
           </g>
@@ -208,7 +211,7 @@ export default function Bracket16({ data }) {
     </div>
   );
 
-  // ---------- helpers ----------
+  // helpers
   function box(x, y, text) {
     return (
       <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left: x, top: y }}>
@@ -223,12 +226,8 @@ export default function Bracket16({ data }) {
       </div>
     );
   }
-  function h(x1, y, x2) {
-    return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
-  }
-  function v(x, y1, y2) {
-    return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
-  }
+  function h(x1, y, x2) { return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />; }
+  function v(x, y1, y2) { return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />; }
 }
 
 function normalizeData(data) {
