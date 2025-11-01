@@ -1,11 +1,13 @@
 // components/Bracket16.jsx
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import s from "../styles/Bracket16.module.css";
 
 /**
- * 16-player single-elimination bracket (no transform scaling).
- * Geometry is shared between CSS and this markup; center column stack height
- * exactly matches the Semifinals columns to guarantee perfect vertical alignment.
+ * Pixel-perfect centering:
+ * - We measure the actual centerY of the LEFT Semifinal pair's top slot.
+ * - We measure the Final row's own top-slot center offset inside its wrapper.
+ * - Then we set the wrapper's absolute `top` so the two centers match exactly.
+ * This eliminates any drift from fonts, rounding, or CSS transforms.
  */
 export default function Bracket16({ data }) {
   const L = data?.left ?? {};
@@ -27,9 +29,77 @@ export default function Bracket16({ data }) {
       ["Seed 15", "Seed 16"],
     ];
 
+  // Refs for measurement
+  const stageRef = useRef(null);
+  const sfLeftPairRef = useRef(null);    // LEFT Semifinal pair (the one with two TBDs)
+  const finalStackRef = useRef(null);    // the center stack container
+  const finalWrapRef = useRef(null);     // the absolutely-positioned wrapper we will move
+  const finalTopSlotRef = useRef(null);  // top finalist slot inside the final row
+
+  const [finalTop, setFinalTop] = useState(0); // computed absolute top in px
+
+  // Measure and align the Final row to the Semifinal feeder centers
+  useLayoutEffect(() => {
+    const recalc = () => {
+      if (
+        !stageRef.current ||
+        !sfLeftPairRef.current ||
+        !finalStackRef.current ||
+        !finalWrapRef.current ||
+        !finalTopSlotRef.current
+      ) return;
+
+      // 1) Target: centerY of LEFT SF top slot (true screen position)
+      const sfTopEl = sfLeftPairRef.current.querySelector(`.${s.slotTop}`) || sfLeftPairRef.current.children?.[0];
+      if (!sfTopEl) return;
+
+      const sfTopRect = sfTopEl.getBoundingClientRect();
+      const targetCenterY = sfTopRect.top + sfTopRect.height / 2;
+
+      // 2) We position finalWrap *inside* finalStack (position:relative).
+      //    Compute the target Y relative to finalStack's top.
+      const stackRect = finalStackRef.current.getBoundingClientRect();
+      const targetYInStack = targetCenterY - stackRect.top;
+
+      // 3) Compute our own top-slot center offset from finalWrap's TOP
+      //    (with finalWrap currently at whatever top; we'll normalize by measuring its rect now)
+      const wrapRect = finalWrapRef.current.getBoundingClientRect();
+      const topSlotRect = finalTopSlotRef.current.getBoundingClientRect();
+      const ownTopSlotCenterFromWrapTop =
+        (topSlotRect.top + topSlotRect.height / 2) - wrapRect.top;
+
+      // 4) Absolute top to place the wrap so that its top-slot center == SF top center
+      const desiredTop = Math.round(targetYInStack - ownTopSlotCenterFromWrapTop);
+
+      // Only update if changed (avoid layout thrash)
+      setFinalTop((prev) => (prev !== desiredTop ? desiredTop : prev));
+    };
+
+    // Recalc when fonts settle (prevents post-load nudge)
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(recalc);
+    }
+
+    // Recalc on resize
+    const onResize = () => recalc();
+    window.addEventListener("resize", onResize);
+
+    // Recalc when the stage size changes (more robust than window resize alone)
+    const ro = new ResizeObserver(recalc);
+    if (stageRef.current) ro.observe(stageRef.current);
+
+    // Initial
+    recalc();
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ro.disconnect();
+    };
+  }, [data]); // also re-run if bracket data changes
+
   return (
     <div className={s.viewport}>
-      <div className={s.stage}>
+      <div className={s.stage} ref={stageRef}>
         <div className={s.grid}>
           {/* LEFT */}
           <Round title="Round of 16" tier="r16">
@@ -45,14 +115,15 @@ export default function Bracket16({ data }) {
           </Round>
 
           <Round title="Semifinals" tier="sf">
-            <Pair top="TBD" bot="TBD" />
+            {/* The pair we measure against */}
+            <Pair top="TBD" bot="TBD" refEl={sfLeftPairRef} />
           </Round>
 
-          {/* CENTER (Final) — stack height equals Semifinals stack height */}
+          {/* CENTER (Final) — we hard-position the wrapper to the measured Y */}
           <div className={`${s.round} ${s.finalCol}`}>
             <div className={s.roundTitle}>Winner</div>
 
-            {/* Absolute champion overlay (doesn't affect baseline) */}
+            {/* absolute champion overlay that never shifts the baseline */}
             <div className={s.champOverlay}>
               <div className={s.champBox} title={F.champion ?? "TBD"}>
                 <span className={s.champText}>{F.champion ?? "TBD"}</span>
@@ -60,11 +131,14 @@ export default function Bracket16({ data }) {
               <div className={s.stem} aria-hidden="true" />
             </div>
 
-            {/* The stack with identical height to Semifinals, final centered within */}
-            <div className={s.finalStack}>
-              <div className={s.finalRowWrap}>
+            <div className={s.finalStack} ref={finalStackRef}>
+              <div
+                ref={finalWrapRef}
+                className={s.finalRowWrap}
+                style={{ top: `${finalTop}px`, transform: "none" }} // override any CSS centering
+              >
                 <div className={s.finalRow}>
-                  <div className={s.finalSlot} title={F.left ?? "TBD"}>
+                  <div className={s.finalSlot} ref={finalTopSlotRef} title={F.left ?? "TBD"}>
                     <span className={s.finalText}>{F.left ?? "TBD"}</span>
                   </div>
                   <div className={s.midbar} aria-hidden="true" />
@@ -109,10 +183,13 @@ function Round({ title, tier, side, children }) {
   );
 }
 
-/** Two independent square slots with stubs & connector arms via CSS */
-function Pair({ top = "TBD", bot = "TBD", side }) {
+/**
+ * Pair: two stacked slots.
+ * If `refEl` is provided, we attach it to the root so the parent can measure centers.
+ */
+function Pair({ top = "TBD", bot = "TBD", side, refEl }) {
   return (
-    <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
+    <div ref={refEl} className={`${s.pair} ${side ? s.sideRight : ""}`}>
       <div className={`${s.slot} ${s.slotTop}`} title={top}>
         <span className={s.label}>{top}</span>
       </div>
