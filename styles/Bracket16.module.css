@@ -1,232 +1,110 @@
-/* Broadcast-style 16-team bracket — pixel-true vertical centering (no transform scaling) */
+/* styles/Bracket16.module.css
+   Pixel-perfect, math-driven 16-team bracket
+   Boxes are absolutely positioned; connectors drawn in one SVG.
+   No transform scaling => no subpixel drift.
+*/
 
-/* ---------- Canvas & geometry ---------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+:root {
+  color-scheme: dark;
+}
+
+/* ---------- Canvas ---------- */
 .viewport{
-  /* spacing */
-  --gap:  clamp(16px, 2vw, 24px);
-
-  /* column width: exact fit across 7 columns + 6 gaps, no transform needed */
-  --colw: clamp(130px, calc( (100vw - 6*var(--gap)) / 7 ), 170px);
-
-  /* slot & pair geometry */
-  --slotH: 38px;
-  --pairGapInside: 12px;
-  --pairPad: 4px;
-
-  /* derived per-pair metrics */
-  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
-
-  /* vertical rhythm: these formulas center next round between its two feeders */
-  --r16Space: clamp(18px, 2vh, 24px);
-  --qfSpace:  calc(var(--pairH) + var(--r16Space));
-  --sfSpace:  calc(var(--pairH) + var(--qfSpace));
-
-  /* total stack height used by Semifinal columns (matches center stack) */
-  --stackSF: calc(var(--pairH) + var(--sfSpace));          /* = 3*pairH + r16Space */
-
-  /* connector styling */
-  --line: #2a2f36;
-  --joinW: 2px;
-  --stub: 12px;
-  --arm:  calc(var(--gap) - var(--stub));
-
-  /* colors */
-  --slotBg: #f7f8fc;
-  --slotBorder: #cdd6ea;
-  --textDark: #0f1320;
-
-  /* layout */
   width:100%;
-  min-height: 100dvh;
+  min-height:100dvh;
   display:grid;
   place-items:center;
-  overflow:auto;
   background: radial-gradient(1200px 600px at 50% -200px, #0f172a 0%, #0b1020 60%, #091021 100%);
+  color:#e8eef9;
+  overflow:auto;
 }
 
-.stage{ width: calc(var(--colw)*7 + var(--gap)*6); }
-.grid{
-  width:100%;
-  display:grid;
-  grid-template-columns:repeat(7,var(--colw));
-  gap:var(--gap);
-  align-items:start;
-  justify-items:center;
+.stage{
+  position:relative;
+  /* These custom props are set from JSX so CSS + JS share numbers */
+  --slotH: 38px;  /* height of each player box */
+  --colw: 150px;  /* column width for normal slots */
+  --gap: 22px;    /* horizontal gap between columns */
+  --joinW: 2px;   /* connector line thickness */
 }
 
-/* ---------- Rounds ---------- */
-.round { position:relative; width:100%; }
-.roundTitle{
-  color:#dfe6f3;
+/* ---------- Round Titles ---------- */
+.titles{
+  position:absolute;
+  left:0; right:0; top:0;
+  display:flex;
+  justify-content:space-between;
+  padding:0 4px;
+  pointer-events:none;
+  z-index:2;
+}
+.title{
+  width:var(--colw);
+  text-align:center;
   font-weight:900;
   font-size:12px;
-  line-height:12px;           /* fixed line-height => identical title height */
-  letter-spacing:.08em;
+  line-height:18px;         /* fixed height for consistent band */
+  letter-spacing:.10em;
   text-transform:uppercase;
-  margin:0 0 8px 0;
-  text-align:center;
   opacity:.95;
-}
-.stack{ position:relative; display:grid; width:100%; }
-
-/* vertical spacing */
-.r16 .pair{ margin: calc(var(--r16Space)/2) 0; }
-.qf  .pair{ margin: calc(var(--qfSpace)/2) 0; }
-.sf  .pair{ margin: calc(var(--sfSpace)/2) 0; }
-
-/* ---------- Pair (two stacked slots) ---------- */
-.pair{
-  position:relative;
-  padding: var(--pairPad) 0;
-  width:100%;
+  user-select:none;
+  white-space:nowrap;
 }
 
-/* feeder stubs going toward next column */
-.pair::before,
-.pair::after{
-  content:"";
+/* ---------- Connector Layer (SVG) ---------- */
+.wires{
   position:absolute;
-  right: calc(var(--stub) * -1);  /* default feeds RIGHT */
-  width: var(--stub);
-  height: var(--joinW);
-  background: var(--line);
-}
-.pair::before{ top: calc(var(--pairPad) + var(--slotH)/2); transform: translateY(-50%); }
-.pair::after { top: calc(var(--pairPad) + var(--slotH) + var(--pairGapInside) + var(--slotH)/2); transform: translateY(-50%); }
-
-/* mirror on the right side (feeds LEFT) */
-.sideRight.pair::before,
-.sideRight.pair::after{ left: calc(var(--stub) * -1); right:auto; }
-
-.slot{
-  height: var(--slotH);
-  border: 2px solid var(--slotBorder);
-  border-radius: 0;
-  background: var(--slotBg);
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 0 10px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.02) inset;
-}
-.slot + .slot{ margin-top: var(--pairGapInside); }
-.label{
-  color: var(--textDark);
-  font-weight: 700; font-size: 13px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-
-/* ---------- QF & SF connectors (true T-joins) ---------- */
-.qf .pair, .sf .pair{
-  background-image:
-    linear-gradient(var(--line), var(--line)),  /* vertical collector */
-    linear-gradient(var(--line), var(--line)),  /* top arm */
-    linear-gradient(var(--line), var(--line));  /* bottom arm */
-  background-repeat:no-repeat;
-  background-size:
-    var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
-    var(--arm) var(--joinW),
-    var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) 50%,
-    left calc(var(--gap) * -1) calc(var(--pairPad) + var(--slotH)/2),
-    left calc(var(--gap) * -1) calc(var(--pairPad) + var(--slotH) + var(--pairGapInside) + var(--slotH)/2);
-}
-.right .qf .pair, .right .sf .pair{
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm)) 50%,
-    right calc(var(--gap) * -1) calc(var(--pairPad) + var(--slotH)/2),
-    right calc(var(--gap) * -1) calc(var(--pairPad) + var(--slotH) + var(--pairGapInside) + var(--slotH)/2);
-}
-.right { direction:ltr; }
-
-/* ---------- Final (center column) ---------- */
-/* Stack height EXACTLY matches Semifinal column stack height */
-.finalCol{ position:relative; width:100%; }
-.finalStack{
-  position:relative;
-  width:100%;
-  height: var(--stackSF);  /* = pairH + sfSpace = 3*pairH + r16Space */
-}
-
-/* Center the final match within that stack */
-.finalRowWrap{
-  position:absolute;
-  top:50%; left:0; right:0;
-  transform: translateY(-50%);
-  height: var(--pairH);
-  padding: var(--pairPad) 0;
-  display:grid; place-items:center;
-
-  /* INNER ARMS inside the center column so SF arms meet perfectly */
-  background-image:
-    linear-gradient(var(--line), var(--line)),  /* left top arm inside center column */
-    linear-gradient(var(--line), var(--line)),  /* left bottom arm */
-    linear-gradient(var(--line), var(--line)),  /* right top arm */
-    linear-gradient(var(--line), var(--line));  /* right bottom arm */
-  background-repeat:no-repeat;
-  background-size:
-    var(--stub) var(--joinW),
-    var(--stub) var(--joinW),
-    var(--stub) var(--joinW),
-    var(--stub) var(--joinW);
-  background-position:
-    left 0 calc(var(--pairPad) + var(--slotH)/2),
-    left 0 calc(var(--pairPad) + var(--slotH) + var(--pairGapInside) + var(--slotH)/2),
-    right 0 calc(var(--pairPad) + var(--slotH)/2),
-    right 0 calc(var(--pairPad) + var(--slotH) + var(--pairGapInside) + var(--slotH)/2);
-}
-
-/* the two finalist slots + middle bar */
-.finalRow{
-  height: calc(var(--slotH)*2 + var(--pairGapInside));
-  display:grid;
-  grid-template-columns:1fr 14px 1fr;
-  align-items:center;
-  gap:10px;
-}
-.finalSlot{
-  background:#ffffff; border:2px solid var(--slotBorder); color:#0f1320;
-  border-radius:0;
-  padding:10px 14px;
-  height: var(--slotH);
-  display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.02) inset;
-  position:relative;
-}
-/* stubs on the OUTER sides of the two final slots */
-.finalRow > .finalSlot:first-child::before,
-.finalRow > .finalSlot:last-child::after{
-  content:"";
-  position:absolute; top:50%; transform:translateY(-50%);
-  width: var(--stub); height: var(--joinW); background: var(--line);
-}
-.finalRow > .finalSlot:first-child::before{ left: calc(var(--stub) * -1); }
-.finalRow > .finalSlot:last-child::after { right: calc(var(--stub) * -1); }
-
-.finalText{ font-weight:700; font-size:13px; }
-.midbar{ height:var(--joinW); width:100%; background:var(--line); }
-
-/* Champion overlay — absolutely layered so it never shifts vertical baselines */
-.champOverlay{
-  position:absolute;
-  left:50%; transform:translateX(-50%);
-  top: -58px;                 /* sits above, not affecting stack height */
-  display:grid; place-items:center;
+  inset:0;
+  z-index:0;
   pointer-events:none;
 }
-.champBox{
-  min-width: var(--colw);
-  background:#1b2a55; border:2px solid #132345; color:#ffffff;
-  border-radius:0; padding:10px 16px;
-  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
-}
-.champText{ font-weight:800; letter-spacing:.02em; }
-.stem{ width:var(--joinW); height:18px; background:var(--line); margin:8px auto 0; }
 
-/* ---------- Small screens ---------- */
-@media (max-width: 960px){
-  .viewport{
-    --gap: clamp(12px, 2.8vw, 18px);
-    --colw: clamp(120px, calc( (100vw - 6*var(--gap)) / 7 ), 150px);
-  }
-  .champBox{ min-width: clamp(120px, 22vw, 150px); }
+/* ---------- Boxes ---------- */
+.slot{
+  position:absolute;
+  width:var(--colw);
+  height:var(--slotH);
+  border:2px solid #cdd6ea;
+  background:#ffffff;
+  color:#0f1320;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:13px;
+  border-radius:0;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.02) inset;
+  z-index:1;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
 }
+
+/* Smaller finalist boxes (center column) */
+.finalSlot{
+  width:84px;
+}
+
+/* ---------- Champion Pill (overlay, doesn't affect geometry) ---------- */
+.champ{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  top:-54px;                 /* sits above finals */
+  background:#1b2a55;
+  color:#ffffff;
+  border:2px solid #132345;
+  padding:10px 18px;
+  font-weight:800;
+  border-radius:0;
+  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
+  z-index:3;
+  white-space:nowrap;
+}
+
+/* ---------- Optional Dev Helper ---------- */
+/* .slot.debug { outline:1px dashed orange; } */

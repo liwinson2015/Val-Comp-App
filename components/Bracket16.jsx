@@ -1,201 +1,273 @@
 // components/Bracket16.jsx
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
 /**
- * Pixel-perfect centering:
- * - We measure the actual centerY of the LEFT Semifinal pair's top slot.
- * - We measure the Final row's own top-slot center offset inside its wrapper.
- * - Then we set the wrapper's absolute `top` so the two centers match exactly.
- * This eliminates any drift from fonts, rounding, or CSS transforms.
+ * Geometry-first bracket:
+ *  - Every box is absolutely positioned from computed (x,y).
+ *  - All connectors are drawn in one SVG using the exact same coordinates.
+ *  - Final row Y is mathematically the midpoint of the two Semifinal pairs.
  */
 export default function Bracket16({ data }) {
-  const L = data?.left ?? {};
-  const R = data?.right ?? {};
-  const F = data?.final ?? {};
+  const D = normalizeData(data);
 
-  const leftR16 =
-    L.R16 ?? [
-      ["Seed 1", "Seed 2"],
-      ["Seed 3", "Seed 4"],
-      ["Seed 5", "Seed 6"],
-      ["Seed 7", "Seed 8"],
-    ];
-  const rightR16 =
-    R.R16 ?? [
-      ["Seed 9", "Seed 10"],
-      ["Seed 11", "Seed 12"],
-      ["Seed 13", "Seed 14"],
-      ["Seed 15", "Seed 16"],
-    ];
+  // --- TUNABLE GEOMETRY (these numbers drive BOTH boxes & lines) ---
+  const G = useMemo(() => {
+    const colW   = 150;  // px, width of normal slots
+    const gap    = 22;   // px, space between columns
+    const slotH  = 38;   // px, slot height
+    const slotGap= 12;   // px, gap between the two slots in a pair
+    const stub   = 12;   // px, short horizontal from box edge
+    const wire   = 2;    // px, line thickness
 
-  // Refs for measurement
-  const stageRef = useRef(null);
-  const sfLeftPairRef = useRef(null);    // LEFT Semifinal pair (the one with two TBDs)
-  const finalStackRef = useRef(null);    // the center stack container
-  const finalWrapRef = useRef(null);     // the absolutely-positioned wrapper we will move
-  const finalTopSlotRef = useRef(null);  // top finalist slot inside the final row
+    // "pair block" height (two slots + gap)
+    const pairBlock = slotH * 2 + slotGap;
 
-  const [finalTop, setFinalTop] = useState(0); // computed absolute top in px
+    // Round spacings (center next round between its two feeders)
+    const r16Space = 22;
+    const qfSpace  = pairBlock + r16Space; // centers QF between two R16s
+    const sfSpace  = pairBlock + qfSpace;  // centers SF between two QFs
 
-  // Measure and align the Final row to the Semifinal feeder centers
-  useLayoutEffect(() => {
-    const recalc = () => {
-      if (
-        !stageRef.current ||
-        !sfLeftPairRef.current ||
-        !finalStackRef.current ||
-        !finalWrapRef.current ||
-        !finalTopSlotRef.current
-      ) return;
+    // Column X positions (0..6)
+    const X = (i) => i * (colW + gap);
 
-      // 1) Target: centerY of LEFT SF top slot (true screen position)
-      const sfTopEl = sfLeftPairRef.current.querySelector(`.${s.slotTop}`) || sfLeftPairRef.current.children?.[0];
-      if (!sfTopEl) return;
+    // Titles band height
+    const titleBand = 28;       // room for round labels
+    const topPad    = titleBand + 18;
 
-      const sfTopRect = sfTopEl.getBoundingClientRect();
-      const targetCenterY = sfTopRect.top + sfTopRect.height / 2;
+    // R16 pair centers (left/right share the same Y sequence)
+    const r16Centers = Array.from({ length: 4 }, (_, i) =>
+      topPad + (pairBlock / 2) + i * (pairBlock + r16Space)
+    );
 
-      // 2) We position finalWrap *inside* finalStack (position:relative).
-      //    Compute the target Y relative to finalStack's top.
-      const stackRect = finalStackRef.current.getBoundingClientRect();
-      const targetYInStack = targetCenterY - stackRect.top;
+    // QF centers = midpoint of their two R16 feeders
+    const qfCenters = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
 
-      // 3) Compute our own top-slot center offset from finalWrap's TOP
-      //    (with finalWrap currently at whatever top; we'll normalize by measuring its rect now)
-      const wrapRect = finalWrapRef.current.getBoundingClientRect();
-      const topSlotRect = finalTopSlotRef.current.getBoundingClientRect();
-      const ownTopSlotCenterFromWrapTop =
-        (topSlotRect.top + topSlotRect.height / 2) - wrapRect.top;
+    // SF center = midpoint of its two QF feeders (same on both sides)
+    const sfCenter = avg(qfCenters[0], qfCenters[1]);
 
-      // 4) Absolute top to place the wrap so that its top-slot center == SF top center
-      const desiredTop = Math.round(targetYInStack - ownTopSlotCenterFromWrapTop);
+    // Final center Y equals SF centers (left==right by construction)
+    const finalY = sfCenter;
 
-      // Only update if changed (avoid layout thrash)
-      setFinalTop((prev) => (prev !== desiredTop ? desiredTop : prev));
+    // Stage size
+    const stageW = X(6) + colW;
+    const lastPairBottom = r16Centers[3] + pairBlock / 2;
+    const bottomPad = 40;
+    const stageH = Math.ceil(lastPairBottom + bottomPad);
+
+    return {
+      colW, gap, slotH, slotGap, stub, wire,
+      pairBlock, r16Space, qfSpace, sfSpace,
+      X, topPad, r16Centers, qfCenters, sfCenter, finalY,
+      stageW, stageH,
+      finalW: 84,   // width of mini final boxes
+      centerX: (X(3) + colW / 2),  // midline X of the center column
     };
+  }, []);
 
-    // Recalc when fonts settle (prevents post-load nudge)
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(recalc);
-    }
+  // Short-hands
+  const { X, slotH, slotGap, pairBlock, stub, wire, stageW, stageH } = G;
 
-    // Recalc on resize
-    const onResize = () => recalc();
-    window.addEventListener("resize", onResize);
+  // Helpers to compute slot top Y given a pair centerY
+  const topSlotTop  = (pairY) => pairY - (slotGap / 2) - slotH;
+  const botSlotTop  = (pairY) => pairY + (slotGap / 2);
 
-    // Recalc when the stage size changes (more robust than window resize alone)
-    const ro = new ResizeObserver(recalc);
-    if (stageRef.current) ro.observe(stageRef.current);
+  // --- Build all boxes -------------------------------------------------------
+  const boxes = [];
 
-    // Initial
-    recalc();
+  // LEFT: R16 (col 0)
+  for (let i = 0; i < 4; i++) {
+    const y = G.r16Centers[i];
+    boxes.push(box(X(0), topSlotTop(y), D.left.R16[i][0]));
+    boxes.push(box(X(0), botSlotTop(y), D.left.R16[i][1]));
+  }
+  // LEFT: QF (col 1)
+  for (let i = 0; i < 2; i++) {
+    const y = G.qfCenters[i];
+    boxes.push(box(X(1), topSlotTop(y), D.left.QF[i][0]));
+    boxes.push(box(X(1), botSlotTop(y), D.left.QF[i][1]));
+  }
+  // LEFT: SF (col 2)
+  boxes.push(box(X(2), topSlotTop(G.sfCenter), D.left.SF[0]));
+  boxes.push(box(X(2), botSlotTop(G.sfCenter), D.left.SF[1]));
 
-    return () => {
-      window.removeEventListener("resize", onResize);
-      ro.disconnect();
-    };
-  }, [data]); // also re-run if bracket data changes
+  // RIGHT: mirror indices (col 6,5,4)
+  for (let i = 0; i < 4; i++) {
+    const y = G.r16Centers[i];
+    boxes.push(box(X(6), topSlotTop(y), D.right.R16[i][0]));
+    boxes.push(box(X(6), botSlotTop(y), D.right.R16[i][1]));
+  }
+  for (let i = 0; i < 2; i++) {
+    const y = G.qfCenters[i];
+    boxes.push(box(X(5), topSlotTop(y), D.right.QF[i][0]));
+    boxes.push(box(X(5), botSlotTop(y), D.right.QF[i][1]));
+  }
+  boxes.push(box(X(4), topSlotTop(G.sfCenter), D.right.SF[0]));
+  boxes.push(box(X(4), botSlotTop(G.sfCenter), D.right.SF[1]));
+
+  // CENTER: two small finalist boxes (left/right of the midline)
+  const finalLeftX  = G.centerX - 10 - G.finalW;  // 10px mid-gap
+  const finalRightX = G.centerX + 10;
+  const finalTop    = G.finalY - slotH / 2;
+  const finalLeft   = miniBox(finalLeftX, finalTop, D.final.left);
+  const finalRight  = miniBox(finalRightX, finalTop, D.final.right);
+
+  // --- Build all connector paths (SVG) ---------------------------------------
+  const paths = [];
+
+  // helper: draw a T-join from two feeders at (x1,yTop),(x1,yBot) to a target column x2
+  const joinLeftToRight = (x1, x2, yTop, yBot) => {
+    const xStubEnd = x1 + stub;
+    const xCollector = (x1 + x2) / 2;  // vertical collector centered in the gap
+    // stubs + arms to collector
+    paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
+    paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
+    // collector
+    paths.push(v(xCollector, yTop, yBot));
+    // arms to target column edge
+    paths.push(h(xCollector, yTop, x2)); paths.push(h(xCollector, yBot, x2));
+  };
+  const joinRightToLeft = (x1, x2, yTop, yBot) => {
+    const xStubEnd = x1 - stub;
+    const xCollector = (x1 + x2) / 2;
+    paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
+    paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
+    paths.push(v(xCollector, yTop, yBot));
+    paths.push(h(xCollector, yTop, x2)); paths.push(h(xCollector, yBot, x2));
+  };
+
+  // R16 -> QF (left)
+  for (let i = 0; i < 2; i++) {
+    const yTop = G.r16Centers[2*i]   - (slotGap/2 + slotH/2);
+    const yBot = G.r16Centers[2*i+1] + (slotGap/2 + slotH/2);
+    // connect from right edge of R16 column to left edge of QF column
+    joinLeftToRight(X(0)+G.colW, X(1), yTop, yBot);
+  }
+  // QF -> SF (left)
+  {
+    const yTop = G.qfCenters[0] - (slotGap/2 + slotH/2);
+    const yBot = G.qfCenters[1] + (slotGap/2 + slotH/2);
+    joinLeftToRight(X(1)+G.colW, X(2), yTop, yBot);
+  }
+  // SF -> Final left mini box (center line only)
+  paths.push(h(X(2)+G.colW, G.sfCenter, finalLeftX, /*single line*/ true));
+
+  // R16 -> QF (right, mirrored)
+  for (let i = 0; i < 2; i++) {
+    const yTop = G.r16Centers[2*i]   - (slotGap/2 + slotH/2);
+    const yBot = G.r16Centers[2*i+1] + (slotGap/2 + slotH/2);
+    joinRightToLeft(X(6), X(5)+G.colW, yTop, yBot);
+  }
+  // QF -> SF (right)
+  {
+    const yTop = G.qfCenters[0] - (slotGap/2 + slotH/2);
+    const yBot = G.qfCenters[1] + (slotGap/2 + slotH/2);
+    joinRightToLeft(X(5), X(4)+G.colW, yTop, yBot);
+  }
+  // SF -> Final right mini box
+  paths.push(h(X(4), G.sfCenter, finalRightX+G.finalW, /*single*/ true));
+
+  // center mid-bar between finalists
+  paths.push(h(finalLeftX+G.finalW, G.finalY, finalRightX, true));
 
   return (
     <div className={s.viewport}>
-      <div className={s.stage} ref={stageRef}>
-        <div className={s.grid}>
-          {/* LEFT */}
-          <Round title="Round of 16" tier="r16">
-            {leftR16.map((m, i) => (
-              <Pair key={`L16-${i}`} top={m[0]} bot={m[1]} />
-            ))}
-          </Round>
-
-          <Round title="Quarterfinals" tier="qf">
-            {[0, 1].map((i) => (
-              <Pair key={`LQF-${i}`} top="TBD" bot="TBD" />
-            ))}
-          </Round>
-
-          <Round title="Semifinals" tier="sf">
-            {/* The pair we measure against */}
-            <Pair top="TBD" bot="TBD" refEl={sfLeftPairRef} />
-          </Round>
-
-          {/* CENTER (Final) — we hard-position the wrapper to the measured Y */}
-          <div className={`${s.round} ${s.finalCol}`}>
-            <div className={s.roundTitle}>Winner</div>
-
-            {/* absolute champion overlay that never shifts the baseline */}
-            <div className={s.champOverlay}>
-              <div className={s.champBox} title={F.champion ?? "TBD"}>
-                <span className={s.champText}>{F.champion ?? "TBD"}</span>
-              </div>
-              <div className={s.stem} aria-hidden="true" />
-            </div>
-
-            <div className={s.finalStack} ref={finalStackRef}>
-              <div
-                ref={finalWrapRef}
-                className={s.finalRowWrap}
-                style={{ top: `${finalTop}px`, transform: "none" }} // override any CSS centering
-              >
-                <div className={s.finalRow}>
-                  <div className={s.finalSlot} ref={finalTopSlotRef} title={F.left ?? "TBD"}>
-                    <span className={s.finalText}>{F.left ?? "TBD"}</span>
-                  </div>
-                  <div className={s.midbar} aria-hidden="true" />
-                  <div className={s.finalSlot} title={F.right ?? "TBD"}>
-                    <span className={s.finalText}>{F.right ?? "TBD"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT */}
-          <Round title="Semifinals" tier="sf" side="right">
-            <Pair top="TBD" bot="TBD" side="right" />
-          </Round>
-
-          <Round title="Quarterfinals" tier="qf" side="right">
-            {[0, 1].map((i) => (
-              <Pair key={`RQF-${i}`} top="TBD" bot="TBD" side="right" />
-            ))}
-          </Round>
-
-          <Round title="Round of 16" tier="r16" side="right">
-            {rightR16.map((m, i) => (
-              <Pair key={`R16-${i}`} top={m[0]} bot={m[1]} side="right" />
-            ))}
-          </Round>
+      <div
+        className={s.stage}
+        style={{
+          width: `${G.stageW}px`,
+          height: `${G.stageH}px`,
+          /* share numbers with CSS through custom properties */
+          "--slotH": `${G.slotH}px`,
+          "--colw": `${G.colW}px`,
+          "--gap": `${G.gap}px`,
+          "--joinW": `${G.wire}px`,
+        }}
+      >
+        {/* Round titles */}
+        <div className={s.titles}>
+          <span className={s.title} style={{ left: 0 }}>Round of 16</span>
+          <span className={s.title}>Quarterfinals</span>
+          <span className={s.title}>Semifinals</span>
+          <span className={s.title}>Winner</span>
+          <span className={s.title}>Semifinals</span>
+          <span className={s.title}>Quarterfinals</span>
+          <span className={s.title}>Round of 16</span>
         </div>
+
+        {/* Champion pill */}
+        <div className={s.champ}>{D.final.champion}</div>
+
+        {/* Lines */}
+        <svg className={s.wires} width={stageW} height={stageH}>
+          <g stroke="#2a2f36" strokeWidth={wire} strokeLinecap="square" fill="none" shapeRendering="crispEdges">
+            {paths}
+          </g>
+        </svg>
+
+        {/* Boxes */}
+        {boxes}
+        {finalLeft}
+        {finalRight}
       </div>
     </div>
   );
-}
 
-/* ----- Building blocks ----- */
-
-function Round({ title, tier, side, children }) {
-  return (
-    <div className={`${s.round} ${s[tier]} ${side ? s.right : ""}`}>
-      <div className={s.roundTitle}>{title}</div>
-      <div className={s.stack}>{children}</div>
-    </div>
-  );
-}
-
-/**
- * Pair: two stacked slots.
- * If `refEl` is provided, we attach it to the root so the parent can measure centers.
- */
-function Pair({ top = "TBD", bot = "TBD", side, refEl }) {
-  return (
-    <div ref={refEl} className={`${s.pair} ${side ? s.sideRight : ""}`}>
-      <div className={`${s.slot} ${s.slotTop}`} title={top}>
-        <span className={s.label}>{top}</span>
+  // ---------- helpers ----------
+  function box(x, y, text) {
+    return (
+      <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left: x, top: y }}>
+        {text}
       </div>
-      <div className={`${s.slot} ${s.slotBot}`} title={bot}>
-        <span className={s.label}>{bot}</span>
+    );
+  }
+  function miniBox(x, y, text) {
+    return (
+      <div key={`final-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left: x, top: y }}>
+        {text}
       </div>
-    </div>
-  );
+    );
+  }
+  function h(x1, y, x2) {
+    // horizontal line from (x1,y) to (x2,y)
+    return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
+  }
+  function v(x, y1, y2) {
+    return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
+  }
 }
+
+function normalizeData(data) {
+  const L = data?.left ?? {};
+  const R = data?.right ?? {};
+  const F = data?.final ?? {};
+  return {
+    left: {
+      R16: L.R16 ?? [
+        ["Seed 1","Seed 2"],
+        ["Seed 3","Seed 4"],
+        ["Seed 5","Seed 6"],
+        ["Seed 7","Seed 8"],
+      ],
+      QF: L.QF ?? [["TBD","TBD"],["TBD","TBD"]],
+      SF: L.SF ?? ["TBD","TBD"],
+    },
+    right: {
+      R16: R.R16 ?? [
+        ["Seed 9","Seed 10"],
+        ["Seed 11","Seed 12"],
+        ["Seed 13","Seed 14"],
+        ["Seed 15","Seed 16"],
+      ],
+      QF: R.QF ?? [["TBD","TBD"],["TBD","TBD"]],
+      SF: R.SF ?? ["TBD","TBD"],
+    },
+    final: {
+      left: F.left ?? "TBD",
+      right: F.right ?? "TBD",
+      champion: F.champion ?? "TBD",
+    },
+  };
+}
+
+function avg(a, b){ return (a + b) / 2; }
