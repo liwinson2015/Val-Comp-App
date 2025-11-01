@@ -1,143 +1,174 @@
-/* styles/LosersBracket.module.css
-   Losers Bracket compact, matching the square style of winners bracket.
-*/
+/* Losers bracket styling – compact square boxes, same look as winners */
 
-.viewport{
-  --colw: clamp(150px, 12vw, 180px);
-  --gap:  clamp(14px, 2vw, 20px);
+.viewport {
+  /* smaller column and spacing */
+  --colw: clamp(95px, 7.5vw, 120px);
+  --gap: clamp(10px, 1.5vw, 14px);
 
-  --slotH: 34px;
-  --pairGapInside: 10px;
-  --pairPad: 4px;
+  /* box + spacing */
+  --slotH: 32px;
+  --pairGapInside: 8px;
+  --pairPad: 3px;
 
+  /* derived */
+  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
+  --rSpace: clamp(12px, 1.2vh, 18px);
+
+  /* connector */
   --line: #2a2f36;
   --joinW: 2px;
-  --stub: 10px;
+  --stub: 8px;
+  --arm: calc(var(--gap) - var(--stub));
 
-  --slotBg: #ffffff;
+  /* colors */
+  --slotBg: #f4f6fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
+  /* container sizing */
+  --stageW: calc(var(--colw) * 8 + var(--gap) * 7);
+  --stageH: clamp(420px, 45vh, 580px);
+
+  --topSpace: 80px;
+
+  --fitW: calc(100vw / var(--stageW));
+  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
+  --scale: min(1, var(--fitW), var(--fitH));
+
   width: 100%;
-  margin: 18px 0 10px;
+  display: grid;
+  place-items: center;
+  overflow: visible;
 }
 
-.title{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:.10em;
-  text-transform:uppercase;
-  margin: 4px 0 10px;
+.stage {
+  width: var(--stageW);
+  height: var(--stageH);
+  transform: scale(var(--scale));
+  transform-origin: top center;
 }
 
-.grid{
-  display:grid;
-  grid-template-columns: repeat(7, var(--colw));
+.grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(8, var(--colw));
   gap: var(--gap);
   align-items: start;
 }
 
-/* generic column */
-.col{ position: relative; }
-.roundTitle{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:11px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  margin-bottom:8px;
+/* columns */
+.round {
+  position: relative;
 }
-.stack{ display:grid; gap: 12px; }
+.roundTitle {
+  color: #dfe6f3;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stack {
+  position: relative;
+  display: grid;
+}
+.stack .pair {
+  margin: calc(var(--rSpace)/2) 0;
+}
 
-/* pair (two stacked slots) */
-.pair{
+/* pair of two slots */
+.pair {
   position: relative;
   padding: var(--pairPad) 0;
 }
-.pair::after{
-  /* short right stub to next column */
-  content:"";
-  position:absolute; top:50%; right: calc(var(--stub) * -1);
+.pair::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: calc(var(--stub) * -1);
   transform: translateY(-50%);
-  width: var(--stub); height: var(--joinW);
+  width: var(--stub);
+  height: var(--joinW);
   background: var(--line);
 }
-/* vertical join between top & bottom slot */
-.pair{
-  background-image: linear-gradient(var(--line), var(--line));
-  background-repeat: no-repeat;
-  background-size: var(--joinW) calc(var(--slotH) + var(--pairGapInside));
-  background-position: right calc(100% + var(--stub)) 50%;
+.sideRight.pair::after {
+  left: calc(var(--stub) * -1);
+  right: auto;
 }
 
-.slot{
-  height: var(--slotH);
-  border: 2px solid var(--slotBorder);
-  border-radius: 0;       /* square corners */
-  background: var(--slotBg);
-  display:flex; align-items:center; justify-content:center;
-  padding: 0 10px;
-  box-shadow:none;
-}
-.slot + .slot{ margin-top: var(--pairGapInside); }
-
-.label{
-  color: var(--textDark);
-  font-weight: 700; font-size: 13px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-/* single slot (round 1 labels) */
-.oneSlot{
+/* slot boxes */
+.slot {
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
   border-radius: 0;
   background: var(--slotBg);
-  display:flex; align-items:center; justify-content:center;
-  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  box-shadow: none;
+}
+.slot + .slot {
+  margin-top: var(--pairGapInside);
+}
+.label {
+  color: var(--textDark);
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* LB Final column (same as .col but kept named for clarity) */
-.finalCol{ position: relative; }
-
-/* ===== LB Winner result to the right ===== */
-.winnerCol{
-  position: relative;
-  display: grid;
-  align-items: start;
-  justify-items: start;
+/* join lines */
+.join {
+  background-image:
+    linear-gradient(var(--line), var(--line)),
+    linear-gradient(var(--line), var(--line));
+  background-repeat: no-repeat, no-repeat;
+  background-size:
+    var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
+    var(--arm) var(--joinW);
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm)) 50%,
+    left calc(var(--gap) * -1) 50%;
+}
+.right .join {
+  background-position:
+    right calc(var(--gap) * -1 + var(--arm)) 50%,
+    right calc(var(--gap) * -1) 50%;
 }
 
-.winnerTitle{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:11px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  margin-bottom:8px;
+/* optional note text below some slots */
+.note {
+  color: #8fa1ba;
+  font-size: 10px;
+  margin: 3px 0 0 2px;
 }
 
-/* horizontal arm from LB Final pair into the LB Winner box */
-.arm{
-  width: 24px;
-  height: var(--joinW);
-  background: var(--line);
-  margin: 24px 8px 8px 2px; /* aligns roughly to middle of the final pair */
+/* for mirrored columns */
+.right {
+  direction: ltr;
 }
 
-/* winner box (square) */
-.winnerBox{
-  min-width: 160px;
-  height: var(--slotH);
-  display:flex; align-items:center; justify-content:center;
-  border:2px solid #122040;
-  background:#1c2952;
-  color:#fff;
-  border-radius:0;
-  padding: 0 12px;
+/* final LB Winner box */
+.lbFinalCol {
+  text-align: center;
 }
-
-.winnerText{
-  font-weight:800; font-size:13px;
+.lbWinnerBox {
+  background: #1c2952;
+  border: 2px solid #122040;
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 0;
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+.lbWinnerTitle {
+  color: #e7ecf5;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
