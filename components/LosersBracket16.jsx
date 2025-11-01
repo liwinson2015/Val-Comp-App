@@ -3,91 +3,79 @@ import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
 /**
- * Losers bracket (compact) for a 16-player double-elimination.
- * Drop-ins are now rendered INSIDE the boxes (no 'vs' notes outside).
+ * Losers Bracket (16 players total entering across rounds)
+ * Structure:
+ *  - LB Round 1: 8 players (4 matches)
+ *  - LB Round 2 (WB R2 drop-ins): 4 matches
+ *  - LB Round 3A: 2 matches
+ *  - LB Round 3B (WB SF drop-ins): 2 matches
+ *  - LB Round 4: 1 match  <-- (two players total, as requested)
+ *  - LB Final: 1 match -> LB Winner (champ pill at the far right)
  */
 export default function LosersBracket16({
-  lbR1 = [
-    "LB P1","LB P2","LB P3","LB P4",
-    "LB P5","LB P6","LB P7","LB P8",
-  ],
-  dropR2 = ["WB R2 Loser 1","WB R2 Loser 2","WB R2 Loser 3","WB R2 Loser 4"],
-  dropSF = ["WB SF Loser 1","WB SF Loser 2"],
-  wbFinalLoser = "WB Final Loser",
-  lbWinner = "TBD",
+  // Optional arrays if you want to pass real names later; otherwise we show TBD
+  lbR1 = Array(8).fill(null),      // 8 players -> 4 matches
+  dropR2 = Array(4).fill(null),     // 4 WB R2 losers (labels shown in the second slot of each R2 match)
+  dropSF = Array(2).fill(null),     // 2 WB SF losers (labels shown in the second slot of each R3B match)
+  wbFinalLoser = "WB Final Loser",  // label inside the bottom slot of LB Final
+  lbWinner = "TBD",                 // text inside the LB Winner pill
 }) {
-  const pairs = (list) => {
-    const out = [];
-    for (let i = 0; i < list.length; i += 2) out.push([list[i] ?? "TBD", list[i + 1] ?? "TBD"]);
-    return out;
-  };
-
-  // LB Round 1 – 8 players -> 4 matches
-  const r1Pairs = pairs(lbR1);
-
-  // LB Round 2 – lower player = WB R2 Loser
-  const r2Pairs = dropR2.map((d) => ["TBD", d || "TBD"]);
-
-  // LB Round 3A – 2 matches
-  const r3aPairs = [["TBD", "TBD"], ["TBD", "TBD"]];
-
-  // LB Round 3B – lower player = WB SF Loser
-  const r3bPairs = dropSF.map((d) => ["TBD", d || "TBD"]);
-
-  // LB Round 4 – 2 matches
-  const r4Pairs = [["TBD", "TBD"], ["TBD", "TBD"]];
-
-  // LB Final – lower player = WB Final Loser
-  const lbFinalPair = ["TBD", wbFinalLoser || "WB Final Loser"];
-
   return (
-    <div className={s.viewport}>
-      <div className={s.stage}>
-        <div className={s.grid}>
-          {/* LB Round 1 */}
-          <Round title="LB Round 1">
-            {r1Pairs.map((p, i) => (
-              <Pair key={`r1-${i}`} top={p[0]} bot={p[1]} />
+    <div className={s.lbViewport}>
+      <div className={s.lbStage}>
+        <div className={s.lbGrid}>
+          {/* R1 — 8 players -> 4 matches */}
+          <Round title="LB Round 1" tier="r1">
+            {chunk(lbR1, 2).map((pair, i) => (
+              <Pair key={`R1-${i}`} top={pair[0] ?? "TBD"} bot={pair[1] ?? "TBD"} />
             ))}
           </Round>
 
-          {/* LB Round 2 (WB R2 drop-ins) */}
-          <Round title="LB Round 2 (WB R2 drop-ins)">
-            {r2Pairs.map((p, i) => (
-              <Pair key={`r2-${i}`} top={p[0]} bot={p[1]} join />
+          {/* R2 — 4 matches; bottom slot shows WB R2 drop-in label */}
+          <Round title="LB Round 2 (WB R2 Drop-ins)" tier="r2">
+            {[0, 1, 2, 3].map((i) => (
+              <Pair
+                key={`R2-${i}`}
+                top="TBD"
+                bot={dropR2[i] ?? "WB R2 Loser"}
+              />
             ))}
           </Round>
 
-          {/* LB Round 3A */}
-          <Round title="LB Round 3A">
-            {r3aPairs.map((p, i) => (
-              <Pair key={`r3a-${i}`} top={p[0]} bot={p[1]} join />
+          {/* R3A — 2 matches (winners from R2) */}
+          <Round title="LB Round 3A" tier="r3a">
+            {[0, 1].map((i) => (
+              <Pair key={`R3A-${i}`} top="TBD" bot="TBD" />
             ))}
           </Round>
 
-          {/* LB Round 3B (WB SF drop-ins) */}
-          <Round title="LB Round 3B (WB SF drop-ins)">
-            {r3bPairs.map((p, i) => (
-              <Pair key={`r3b-${i}`} top={p[0]} bot={p[1]} join />
+          {/* R3B — 2 matches with WB SF drop-ins */}
+          <Round title="LB Round 3B (WB SF Drop-ins)" tier="r3b">
+            {[0, 1].map((i) => (
+              <Pair
+                key={`R3B-${i}`}
+                top="TBD"
+                bot={dropSF[i] ?? (i === 0 ? "WB SF Loser 1" : "WB SF Loser 2")}
+              />
             ))}
           </Round>
 
-          {/* LB Round 4 */}
-          <Round title="LB Round 4">
-            {r4Pairs.map((p, i) => (
-              <Pair key={`r4-${i}`} top={p[0]} bot={p[1]} join />
-            ))}
+          {/* R4 — SINGLE match (two players total) */}
+          <Round title="LB Round 4" tier="r4">
+            <Pair top="TBD" bot="TBD" />
           </Round>
 
-          {/* LB Final */}
-          <Round title="LB Final">
-            <Pair top={lbFinalPair[0]} bot={lbFinalPair[1]} join />
+          {/* LB Final — SINGLE match; bottom shows WB Final Loser */}
+          <Round title="LB Final" tier="rFinal">
+            <Pair top="TBD" bot={wbFinalLoser || "WB Final Loser"} />
           </Round>
 
-          {/* LB Winner */}
-          <div className={s.lbFinalCol}>
+          {/* LB Winner pill */}
+          <div className={s.lbWinnerCol}>
             <div className={s.lbWinnerTitle}>LB Winner</div>
-            <div className={s.lbWinnerBox}>{lbWinner || "TBD"}</div>
+            <div className={s.lbWinnerPill}>
+              <span className={s.lbWinnerText}>{lbWinner}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -95,22 +83,34 @@ export default function LosersBracket16({
   );
 }
 
-/* Helper components */
+/* ---------- building blocks ---------- */
 
-function Round({ title, children }) {
+function Round({ title, tier, children }) {
   return (
-    <div className={s.round}>
+    <div className={`${s.round} ${s[tier]}`}>
       <div className={s.roundTitle}>{title}</div>
       <div className={s.stack}>{children}</div>
     </div>
   );
 }
 
-function Pair({ top = "TBD", bot = "TBD", join = false }) {
+function Pair({ top = "TBD", bot = "TBD" }) {
   return (
-    <div className={`${s.pair} ${join ? s.join : ""}`}>
-      <div className={s.slot}><span className={s.label}>{top}</span></div>
-      <div className={s.slot}><span className={s.label}>{bot}</span></div>
+    <div className={s.pair}>
+      <div className={s.slot} title={top}>
+        <span className={s.label}>{top}</span>
+      </div>
+      <div className={s.slot} title={bot} style={{ marginTop: "10px" }}>
+        <span className={s.label}>{bot}</span>
+      </div>
     </div>
   );
+}
+
+/* ---------- helpers ---------- */
+
+function chunk(arr = [], size = 2) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
