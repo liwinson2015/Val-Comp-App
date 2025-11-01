@@ -14,7 +14,7 @@ export default function Bracket16({ data }) {
     const wire  = 2;
 
     const innerGapR16 = 12;
-    const innerGapQF  = 30;  // QF stack gap; adjust for more/less space
+    const innerGapQF  = 30; // QF stack spacing (2nd column). Increase for more air.
     const innerGapSF  = 20;
 
     const X = (i) => i * (colW + gap);
@@ -42,9 +42,9 @@ export default function Bracket16({ data }) {
     const finalMidGap = 22;
     const centerX     = X(3) + colW / 2;
 
-    // position the winner cluster
-    const champOffset = 48;  // raise ↑ by increasing
-    const winnerAbove = 34;  // label above the pill
+    // winner cluster
+    const champOffset = 52; // raise ↑ by increasing a bit from 48
+    const winnerAbove = 36; // distance between "WINNER" label and pill
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
 
@@ -106,21 +106,21 @@ export default function Bracket16({ data }) {
 
   // ---- wires (SVG) ---------------------------------------------------------
   const paths = [];
-  const h = (x1,y,x2) => <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
-  const v = (x,y1,y2) => <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
+  const H = (x1,y,x2) => <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
+  const V = (x,y1,y2) => <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
 
-  // R16 -> QF (left)  — 4 stubs (2 per pair)
+  // R16 -> QF (left): 4 stubs (2 per pair)
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (left)  — **4 stubs from the 4 QF boxes** (2 per QF pair), merge → SF
-  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
-  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
+  // QF -> SF (left): 4 stubs (2 per QF box) — now **penetrate** a bit into SF so it always connects
+  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
+  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
 
   // SF -> Final (left)
-  paths.push(h(G.X(2)+G.colW, G.sfCenter, finalLeftX));
+  paths.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
 
   // R16 -> QF (right)
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
@@ -128,15 +128,15 @@ export default function Bracket16({ data }) {
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (right) — **4 stubs from the 4 QF boxes** to SF
-  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
-  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
+  // QF -> SF (right) — with penetration to ensure contact
+  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
+  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
 
   // SF -> Final (right)
-  paths.push(h(G.X(4), G.sfCenter, finalRightX + G.finalW));
+  paths.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
 
   // finalists mid-bar
-  paths.push(h(finalLeftX + G.finalW, G.finalY, finalRightX));
+  paths.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
 
   return (
     <div className={s.viewport}>
@@ -186,25 +186,33 @@ export default function Bracket16({ data }) {
   }
 
   // ---- wire helpers ---------------------------------------------------------
-  // pair (two stacked slots) → a mid-point on the next column:
-  // draw two stubs from the two slot centers, vertical collector, then across.
-  function joinPairToMid_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid){
+  // pair -> mid on next col. If penetrate=true, extend a bit **into** destination column.
+  function joinPairToMid_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid, penetrate=false){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
     const xJoin = xSrcRight + G.stub;
-    paths.push(h(xSrcRight, yTop, xJoin)); // top stub
-    paths.push(h(xSrcRight, yBot, xJoin)); // bottom stub
-    paths.push(v(xJoin, yTop, yBot));      // vertical collector
-    paths.push(h(xJoin, yDstMid, xDstLeft));
+    const dstInset = penetrate ? 10 : 0; // ensures visible contact
+    paths.push(H(xSrcRight, yTop, xJoin)); // top stub
+    paths.push(H(xSrcRight, yBot, xJoin)); // bottom stub
+    paths.push(V(xJoin, yTop, yBot));      // collector
+    paths.push(H(xJoin, yDstMid, xDstLeft + dstInset));
+    if (penetrate) {
+      // tiny vertical tick to remove anti-aliased seam
+      paths.push(V(xDstLeft + dstInset, yDstMid - 0.5, yDstMid + 0.5));
+    }
   }
-  function joinPairToMid_R(xSrcLeft, xDstRight, pairCenter, srcInnerGap, yDstMid){
+  function joinPairToMid_R(xSrcLeft, xDstRight, pairCenter, srcInnerGap, yDstMid, penetrate=false){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
     const xJoin = xSrcLeft - G.stub;
-    paths.push(h(xSrcLeft, yTop, xJoin));  // top stub
-    paths.push(h(xSrcLeft, yBot, xJoin));  // bottom stub
-    paths.push(v(xJoin, yTop, yBot));      // vertical collector
-    paths.push(h(xJoin, yDstMid, xDstRight));
+    const dstInset = penetrate ? 10 : 0;
+    paths.push(H(xSrcLeft, yTop, xJoin)); // top stub
+    paths.push(H(xSrcLeft, yBot, xJoin)); // bottom stub
+    paths.push(V(xJoin, yTop, yBot));     // collector
+    paths.push(H(xJoin, yDstMid, xDstRight - dstInset));
+    if (penetrate) {
+      paths.push(V(xDstRight - dstInset, yDstMid - 0.5, yDstMid + 0.5));
+    }
   }
 }
 
