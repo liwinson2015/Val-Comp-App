@@ -122,4 +122,3 @@ function Pair({ top = "TBD", bot = "TBD", side }) {
     </div>
   );
 }
-message.txt
