@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/Valorant.module.css";
 import Bracket16 from "../../components/Bracket16";
+import LosersBracket16 from "../../components/LosersBracket16";
 
 /**
  * Full bracket page with SLOTS/STATUS/STREAM + bracket + rules.
- * Now full-width (no clipping) for 16-player view.
+ * Winners (your current single-elim) + Losers bracket underneath.
  */
 export default function BracketPage() {
   const [loading, setLoading] = useState(true);
@@ -77,7 +78,7 @@ export default function BracketPage() {
           </div>
         </section>
 
-        {/* ===== Bracket (FULL WIDTH) ===== */}
+        {/* ===== Brackets (FULL WIDTH) ===== */}
         <section className={`${styles.card} fullBleed`}>
           {loading ? (
             <p style={{ color: "#9aa6bb" }}>Checking your session…</p>
@@ -114,8 +115,29 @@ export default function BracketPage() {
             </div>
           ) : null}
 
-          {/* === Bracket16 Display === */}
+          {/* === Winners Bracket === */}
           <Bracket16 data={bracketData} />
+
+          {/* === Losers Bracket (directly below) === */}
+          <div style={{ marginTop: 24 }}>
+            <LosersBracket16
+              lbR1={[
+                { name: "LB P1" }, { name: "LB P2" },
+                { name: "LB P3" }, { name: "LB P4" },
+                { name: "LB P5" }, { name: "LB P6" },
+                { name: "LB P7" }, { name: "LB P8" },
+              ]}
+              dropR2={[
+                { name: "WB R2 Loser 1" },
+                { name: "WB R2 Loser 2" },
+                { name: "WB R2 Loser 3" },
+                { name: "WB R2 Loser 4" },
+              ]}
+              dropSF={[ { name: "WB SF Loser 1" }, { name: "WB SF Loser 2" } ]}
+              dropWBF={[ { name: "WB Final Loser" } ]}
+              wbChampion={[ { name: "WB Champion" } ]}
+            />
+          </div>
 
           {/* Full-width override styling */}
           <style jsx>{`
@@ -123,8 +145,8 @@ export default function BracketPage() {
               width: 100vw;
               margin-left: calc(50% - 50vw);
               margin-right: calc(50% - 50vw);
-              overflow: visible; /* ensures both halves show */
-              background: #0b0e13; /* darker backdrop for the bracket */
+              overflow: visible;
+              background: #0b0e13;
               padding: 2rem 0;
             }
           `}</style>
