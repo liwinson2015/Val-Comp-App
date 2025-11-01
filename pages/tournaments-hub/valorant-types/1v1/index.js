@@ -9,7 +9,6 @@ const TID = "VALO-SOLO-SKIRMISH-1";
 export default function Valorant1v1ListPage() {
   const router = useRouter();
 
-  // 🔵 NEW: live registration info
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,11 +33,9 @@ export default function Valorant1v1ListPage() {
   const isFull = info?.isFull || registered >= capacity;
   const statusLabel = loading ? "CHECKING…" : isFull ? "CLOSED" : "OPEN";
 
-  // Your original static card data
   const tournaments = [
     {
-      id: "skirmish-1",
-      status: "Open", // <- kept but will be overridden visually by statusLabel above
+      id: TID,
       title: "Valorant Skirmish Tournament #1",
       host: "5TQ",
       start: "Starts November 2nd, 2025",
@@ -74,13 +71,20 @@ export default function Valorant1v1ListPage() {
                 <div className={styles.tGlow} />
 
                 <header className={styles.tHead}>
-                  {/* 🔵 CHANGED: dynamic status only */}
                   <span className={styles.tag}>{statusLabel}</span>
                   <h3 className={styles.tTitle}>{t.title}</h3>
-                  <p className={styles.tMeta}>Hosted by {t.host} • {t.start}</p>
+
+                  {/* 🔵 NEW: show unique tournament ID here */}
+                  <p style={{ color: "#9fb0c5", fontSize: "13px", margin: "4px 0" }}>
+                    Tournament ID: <span style={{ fontWeight: 700, color: "#c9d4e6" }}>{t.id}</span>
+                  </p>
+
+                  <p className={styles.tMeta}>
+                    Hosted by {t.host} • {t.start}
+                  </p>
                 </header>
 
-                {/* Table section (unchanged) */}
+                {/* Info rows */}
                 <div className={styles.tBody}>
                   <div className={styles.factRow}>
                     <div className={styles.factLabel}>Format</div>
@@ -94,27 +98,25 @@ export default function Valorant1v1ListPage() {
                     <div className={styles.factLabel}>Prize</div>
                     <div className={styles.factValue}>{t.prize}</div>
                   </div>
-                  {/* (Optional) Show slots without changing layout:
+                  {/* Optional slots */}
                   <div className={styles.factRow}>
                     <div className={styles.factLabel}>Slots</div>
                     <div className={styles.factValue}>
                       {loading ? "…" : `${registered} / ${capacity}${isFull ? " • FULL" : ""}`}
                     </div>
                   </div>
-                  */}
                 </div>
 
-                {/* Glow row ABOVE button (unchanged) */}
+                {/* Pill row */}
                 <div className={styles.pillRow}>
                   <div className={styles.pill}>{t.server}</div>
                   <div className={styles.pill}>{t.maps}</div>
                   <div className={styles.pill}>{t.rules}</div>
                 </div>
 
-                {/* 🔵 CHANGED: button only */}
+                {/* Button */}
                 <div className={styles.tActions}>
                   {isFull ? (
-                    // Show a disabled-looking button but KEEP your styling
                     <span
                       className={styles.primaryBtn}
                       aria-disabled="true"
@@ -133,7 +135,7 @@ export default function Valorant1v1ListPage() {
           </div>
         </section>
 
-        {/* Back button */}
+        {/* Back */}
         <div className={styles.backBar}>
           <button className={styles.ghostBtn} onClick={() => router.back()}>
             ← Back
