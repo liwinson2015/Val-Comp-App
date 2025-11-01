@@ -1,4 +1,4 @@
-/* Square-slot bracket, compact width, ESPN-style connectors + perfect centering */
+/* Square-slot bracket, compact width, ESPN-style connectors + pixel-true centering */
 
 /* ---------- Canvas sizing & auto-fit ---------- */
 .viewport{
@@ -18,7 +18,10 @@
   --qfSpace:  calc(var(--pairH) + var(--r16Space));
   --sfSpace:  calc(var(--pairH) + var(--qfSpace));
 
-  /* connector styling */
+  /* IMPORTANT: total column stack heights used to align baselines across rounds */
+  --stackSF: calc(3 * var(--pairH) + var(--r16Space)); /* equals SF/QF total stack height */
+
+  /* connectors */
   --line: #2a2f36;
   --joinW: 2px;
   --stub: 12px;
@@ -36,12 +39,12 @@
   /* header allowance */
   --topSpace: 120px;
 
-  /* fit */
+  /* scale to fit */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
 
-  /* slot centers within a pair */
+  /* slot centers within a pair (used by T-joins) */
   --yTop: calc(var(--pairPad) + var(--slotH) / 2);
   --yBot: calc(var(--pairPad) + var(--slotH) + var(--pairGapInside) + var(--slotH) / 2);
 
@@ -52,14 +55,19 @@
   overflow:visible;
   background: radial-gradient(1200px 600px at 50% -200px, #0f172a 0%, #0b1020 60%, #091021 100%);
 }
-.stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
+.stage{
+  width:var(--stageW);
+  height:var(--stageH);
+  transform:scale(var(--scale));
+  transform-origin:top center;
+}
 .grid{
   width:100%; height:100%;
   display:grid; grid-template-columns:repeat(7,var(--colw));
   gap:var(--gap); align-items:start; justify-items:center;
 }
 
-/* ---------- Rounds ---------- */
+/* ---------- Rounds (each column) ---------- */
 .round { position:relative; width:100%; }
 .roundTitle{
   color:#dfe6f3; font-weight:900; font-size:12px;
@@ -68,18 +76,19 @@
 }
 .stack{ position:relative; display:grid; width:100%; }
 
-/* vertical spacing */
+/* vertical spacing = perfect alignment */
 .r16 .pair{ margin: calc(var(--r16Space)/2) 0; }
 .qf  .pair{ margin: calc(var(--qfSpace)/2) 0; }
 .sf  .pair{ margin: calc(var(--sfSpace)/2) 0; }
 
-/* ---------- Pair ---------- */
+/* ---------- Pair (two slots) ---------- */
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
   width:100%;
 }
-/* feeder stubs */
+
+/* Feeder stubs to next column */
 .pair::before,
 .pair::after{
   content:"";
@@ -104,20 +113,23 @@
   transition: box-shadow .15s ease, transform .15s ease;
 }
 .slot + .slot{ margin-top: var(--pairGapInside); }
-.slot:hover{ box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 1px 0 rgba(0,0,0,.08); transform: translateY(-0.5px); }
+.slot:hover{
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 1px 0 rgba(0,0,0,.08);
+  transform: translateY(-0.5px);
+}
 .label{
   color: var(--textDark);
   font-weight: 700; font-size: 13px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* ---------- QF & SF T-joins ---------- */
+/* ---------- QF & SF T-joins (true T with collector + two arms) ---------- */
 .qf .pair, .sf .pair{
   background-image:
     linear-gradient(var(--line), var(--line)),  /* vertical collector */
     linear-gradient(var(--line), var(--line)),  /* top arm */
     linear-gradient(var(--line), var(--line));  /* bottom arm */
-  background-repeat:no-repeat;
+  background-repeat: no-repeat;
   background-size:
     var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
     var(--arm) var(--joinW),
@@ -134,45 +146,26 @@
     right calc(var(--gap) * -1) var(--yBot);
 }
 
-/* ---------- Right helper ---------- */
-.right { direction:ltr; }
-
 /* ---------- Final (center column) ---------- */
-.finalCol{
+/* Key idea: give the final column a stack with the SAME total height as the SF column.
+   Then center the final match within that stack. The champion header is an ABSOLUTE overlay
+   so it doesn't shift the layout baseline. */
+.finalCol{ position:relative; width:100%; }
+.finalStack{
   position:relative;
   width:100%;
-  height:100%;              /* fill column height so 50% is the stage midline */
-  display:grid;
-  align-content:start;
-  justify-items:center;
+  height: var(--stackSF);     /* EXACTLY matches SF/QF columns */
 }
-.winner{
-  text-align:center; color:#e7ecf5; opacity:.9;
-  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
-  margin-bottom:8px;
-}
-.champWrap{ display:grid; place-items:center; margin-bottom:6px; }
-.champBox{
-  min-width: var(--colw);
-  background:#1b2a55; border:2px solid #132345; color:#ffffff;
-  border-radius: 0;
-  padding:10px 16px;
-  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
-}
-.champText{ font-weight:800; letter-spacing:.02em; }
-.stem{ width:var(--joinW); height:18px; background:var(--line); border-radius:0; margin:8px auto; }
 
-/* HARD-CENTER the final row exactly on the stage midline */
+/* Center the final match inside the stack (aligns with SF collector arms) */
 .finalRowWrap{
   position:absolute;
   top:50%; left:0; right:0;
-  transform: translateY(-50%);   /* exact vertical centering */
+  transform: translateY(-50%);
   height: var(--pairH);
   padding: var(--pairPad) 0;
   display:grid; place-items:center;
 }
-
-/* finalist slots */
 .finalRow{
   height: calc(var(--slotH)*2 + var(--pairGapInside));
   display:grid;
@@ -182,13 +175,34 @@
 }
 .finalSlot{
   background:#ffffff; border:2px solid var(--slotBorder); color:#0f1320;
-  border-radius:0; padding:10px 14px;
+  border-radius:0;
+  padding:10px 14px;
   height: var(--slotH);
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 0 0 1px rgba(0,0,0,.02) inset;
 }
 .finalText{ font-weight:700; font-size:13px; }
 .midbar{ height:var(--joinW); width:100%; background:var(--line); border-radius:0; }
+
+/* Winner header (same height treatment as any round title) */
+.winnerTitle{ composes: roundTitle; } /* if your bundler doesn’t support composes, just copy styles */
+
+/* Champion overlay: ABSOLUTE so it doesn't affect the stack baseline */
+.champOverlay{
+  position:absolute;
+  left:50%; transform:translateX(-50%);
+  top: 0;                      /* sits above the stack */
+  display:grid; place-items:center;
+  pointer-events:none;         /* UI hits go to the bracket */
+}
+.champBox{
+  min-width: var(--colw);
+  background:#1b2a55; border:2px solid #132345; color:#ffffff;
+  border-radius:0; padding:10px 16px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.champText{ font-weight:800; letter-spacing:.02em; }
+.stem{ width:var(--joinW); height:18px; background:var(--line); border-radius:0; margin:8px auto; }
 
 /* ---------- Small screens ---------- */
 @media (max-width: 960px){

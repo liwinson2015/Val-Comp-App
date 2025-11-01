@@ -43,12 +43,33 @@ export default function Bracket16({ data }) {
             <Pair top="TBD" bot="TBD" />
           </Round>
 
-          {/* CENTER */}
-          <Final
-            left={F.left ?? "TBD"}
-            right={F.right ?? "TBD"}
-            champion={F.champion ?? "TBD"}
-          />
+          {/* CENTER (Final column shares the SAME stack height as SF) */}
+          <div className={`${s.round} ${s.finalCol}`}>
+            <div className={s.roundTitle}>Winner</div>
+
+            {/* Absolute champion overlay (doesn't affect baseline) */}
+            <div className={s.champOverlay}>
+              <div className={s.champBox} title={F.champion ?? "TBD"}>
+                <span className={s.champText}>{F.champion ?? "TBD"}</span>
+              </div>
+              <div className={s.stem} aria-hidden="true" />
+            </div>
+
+            {/* Stack area with height equal to SF/QF; final row centered within */}
+            <div className={s.finalStack}>
+              <div className={s.finalRowWrap}>
+                <div className={s.finalRow}>
+                  <div className={s.finalSlot} title={F.left ?? "TBD"}>
+                    <span className={s.finalText}>{F.left ?? "TBD"}</span>
+                  </div>
+                  <div className={s.midbar} aria-hidden="true" />
+                  <div className={s.finalSlot} title={F.right ?? "TBD"}>
+                    <span className={s.finalText}>{F.right ?? "TBD"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* RIGHT */}
           <Round title="Semifinals" tier="sf" side="right">
@@ -91,35 +112,6 @@ function Pair({ top = "TBD", bot = "TBD", side }) {
       </div>
       <div className={`${s.slot} ${s.slotBot}`} title={bot}>
         <span className={s.label}>{bot}</span>
-      </div>
-    </div>
-  );
-}
-
-function Final({ left = "TBD", right = "TBD", champion = "TBD" }) {
-  return (
-    <div className={s.finalCol}>
-      <div className={s.winner}>WINNER</div>
-
-      <div className={s.champWrap}>
-        <div className={s.champBox} title={champion}>
-          <span className={s.champText}>{champion}</span>
-        </div>
-      </div>
-
-      <div className={s.stem} aria-hidden="true" />
-
-      {/* Absolutely centered; matches SF arms exactly */}
-      <div className={s.finalRowWrap}>
-        <div className={s.finalRow}>
-          <div className={s.finalSlot} title={left}>
-            <span className={s.finalText}>{left}</span>
-          </div>
-          <div className={s.midbar} aria-hidden="true" />
-          <div className={s.finalSlot} title={right}>
-            <span className={s.finalText}>{right}</span>
-          </div>
-        </div>
       </div>
     </div>
   );
