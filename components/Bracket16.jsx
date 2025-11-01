@@ -14,7 +14,7 @@ export default function Bracket16({ data }) {
   // --- TUNABLE GEOMETRY (one source of truth) ---
   const G = useMemo(() => {
     const colW        = 150;  // px, width of normal slots
-    const gap         = 28;   // px, column spacing  (↑ “margin a little more”)
+    const gap         = 34;   // px, wider column spacing for cleaner look
     const slotH       = 38;   // px, slot height
     const slotGap     = 12;   // px, gap between the two slots in a pair
     const stub        = 14;   // px, short horizontal from box edge
@@ -23,8 +23,8 @@ export default function Bracket16({ data }) {
     // "pair block" height (two slots + gap)
     const pairBlock   = slotH * 2 + slotGap;
 
-    // Vertical rhythms (keep perfect centering across rounds)
-    const r16Space    = 26;   // ↑ a touch more vertical air in R16
+    // Vertical rhythms (perfect centering across rounds)
+    const r16Space    = 26;   // vertical air between R16 pairs
     const qfSpace     = pairBlock + r16Space;
     const sfSpace     = pairBlock + qfSpace;
 
@@ -33,7 +33,7 @@ export default function Bracket16({ data }) {
 
     // Titles band + header padding (moves whole bracket down)
     const titleBand   = 28;
-    const headerPad   = 48;   // ↑ “move TBD more down” globally under nav
+    const headerPad   = 64;   // moved everything down further under navbar
     const topPad      = titleBand + headerPad;
 
     // R16 pair centers (left/right share this sequence)
@@ -41,7 +41,7 @@ export default function Bracket16({ data }) {
       topPad + (pairBlock / 2) + i * (pairBlock + r16Space)
     );
 
-    // QF centers = midpoints of their two R16 feeders
+    // QF centers = midpoints of their two R16 feeders (exactly centered)
     const qfCenters   = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
 
     // SF center = midpoint of QF feeders
@@ -53,20 +53,26 @@ export default function Bracket16({ data }) {
     // Stage size
     const stageW      = X(6) + colW;
     const lastBottom  = r16Centers[3] + pairBlock / 2;
-    const bottomPad   = 80;   // a little extra breathing room at bottom
+    const bottomPad   = 100;   // extra breathing room at bottom
     const stageH      = Math.ceil(lastBottom + bottomPad);
 
     // Finalist layout
     const finalW      = 84;                 // mini boxes width
-    const finalMidGap = 18;                 // ↑ wider gap between tiny finals
+    const finalMidGap = 22;                 // wider gap between tiny finals
     const centerX     = X(3) + colW / 2;    // midline of center column
+
+    // Champion pill placement: lock to just above finals
+    // Pill top sits some distance above the finals' top edge.
+    const champTop    = finalY - slotH - 48;   // move this number to raise/lower pill
+    const winnerTop   = champTop + 38;         // label under the pill
 
     return {
       colW, gap, slotH, slotGap, stub, wire,
       pairBlock, r16Space, qfSpace, sfSpace,
       X, topPad, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
-      finalW, finalMidGap, centerX
+      finalW, finalMidGap, centerX,
+      champTop, winnerTop
     };
   }, []);
 
@@ -85,7 +91,7 @@ export default function Bracket16({ data }) {
     boxes.push(box(X(0), topSlotTop(y), D.left.R16[i][0]));
     boxes.push(box(X(0), botSlotTop(y), D.left.R16[i][1]));
   }
-  // LEFT: QF (col 1)
+  // LEFT: QF (col 1) — exactly centered between each R16 pair
   for (let i = 0; i < 2; i++) {
     const y = G.qfCenters[i];
     boxes.push(box(X(1), topSlotTop(y), D.left.QF[i][0]));
@@ -193,8 +199,9 @@ export default function Bracket16({ data }) {
           <span className={s.title}>Round of 16</span>
         </div>
 
-        {/* Champion pill */}
-        <div className={s.champ}>{D.final.champion}</div>
+        {/* Champ pill & WINNER label anchored to finals */}
+        <div className={s.champ} style={{ top: G.champTop }}>TBD</div>
+        <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
 
         {/* Lines */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
