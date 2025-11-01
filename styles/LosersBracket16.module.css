@@ -1,146 +1,134 @@
-/* Compact losers bracket – matches winners look, centered & screen-fitted */
+/* /styles/LosersBracket16.module.css
+   Losers bracket — compact, centered, square boxes, with connectors.
+   Columns: R1 | R2 (WB R2 drop-ins) | R3A | R3B (WB SF drop-ins) | R4 | LB Final | LB Winner
+*/
 
-.viewport {
-  /* compact geometry */
-  --colw: clamp(110px, 8.2vw, 140px);
-  --gap: clamp(12px, 1.6vw, 18px);
+/* ---------- Canvas sizing & auto-fit ---------- */
+.lbViewport{
+  --colw: clamp(120px, 9vw, 150px);     /* box width a bit shorter than winners */
+  --gap:  clamp(16px, 2vw, 22px);
 
-  --slotH: 34px;
-  --pairGapInside: 8px;
-  --pairPad: 3px;
+  --slotH: 36px;                        /* box height */
+  --pairGapInside: 10px;
+  --pairPad: 4px;
+  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  --pairH: calc(var(--slotH) * 2 + var(--pairGapInside) + var(--pairPad) * 2);
-  --rowSpace: clamp(12px, 1.2vh, 18px);
+  /* vertical rhythms so next-round boxes sit centered between feeders */
+  --r1Space: clamp(16px, 2vh, 22px);
+  --r2Space: calc(var(--pairH) + var(--r1Space));
+  --r3Space: calc(var(--pairH) + var(--r2Space));
 
-  --line: #2b3139;
+  --line: #2a2f36;
   --joinW: 2px;
-  --stub: 8px;
-  --arm: calc(var(--gap) - var(--stub));
+  --stub: 10px;
+  --arm:  calc(var(--gap) - var(--stub));
 
-  --slotBg: #f4f6fb;
+  --slotBg: #f5f7fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  /* 7 columns (r1, r2, r3a, r3b, r4, final, winner) */
+  /* 7 columns: R1,R2,R3A,R3B,R4,LB Final, LB Winner */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(460px, 54vh, 620px);
+  --stageH: clamp(520px, 60vh, 680px);
 
-  /* center & scale to fit viewport */
-  --topSpace: 120px; /* breathing room under your winners bracket */
+  --topSpace: 130px;
+
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
 
-  width: 100%;
-  display: grid;
-  place-items: center;
-  overflow: visible;
+  width:100%;
+  height:calc(100vh - var(--topSpace));
+  display:grid;
+  place-items:center;
+  overflow:visible;
+}
+.lbStage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
+.lbGrid{
+  width:100%; height:100%;
+  display:grid; grid-template-columns:repeat(7,var(--colw));
+  gap:var(--gap); align-items:start;
 }
 
-.stage {
-  width: var(--stageW);
-  height: var(--stageH);
-  transform: scale(var(--scale));
-  transform-origin: top center;
+/* ---------- Round columns ---------- */
+.round{ position:relative; }
+.roundTitle{
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
+.stack{ position:relative; display:grid; }
 
-.grid {
-  width: 100%;
-  height: 100%;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(7, var(--colw));
-  gap: var(--gap);
-  align-items: start;
-}
+/* vertical spacing for alignment */
+.r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
+.r2  .pair{ margin: calc(var(--r2Space)/2) 0; }
+.r3a .pair,
+.r3b .pair{ margin: calc(var(--r3Space)/2) 0; }
+/* R4 and Final have only one or two pairs — give a modest margin */
+.r4 .pair,
+.rFinal .pair{ margin: 18px 0; }
 
-/* columns */
-.round { position: relative; }
-.roundTitle {
-  color: #dfe6f3;
-  font-weight: 900;
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.stack { display: grid; }
-.stack .pair { margin: calc(var(--rowSpace) / 2) 0; }
-
-/* pair */
-.pair {
-  position: relative;
+/* ---------- Pair (two square slots with connector stub) ---------- */
+.pair{
+  position:relative;
   padding: var(--pairPad) 0;
 }
-.pair::after {
-  /* small stub out to the next column */
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: calc(var(--stub) * -1);
+.pair::after{
+  content:"";
+  position:absolute; top:50%; right: calc(var(--stub) * -1);
   transform: translateY(-50%);
-  width: var(--stub);
-  height: var(--joinW);
+  width: var(--stub); height: var(--joinW);
   background: var(--line);
 }
-
-/* slot */
-.slot {
+.slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
-  border-radius: 0;
+  border-radius: 0;               /* square */
   background: var(--slotBg);
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
+  display:flex; align-items:center;
+  padding: 0 10px;
+  box-shadow: none;
 }
-.slot + .slot { margin-top: var(--pairGapInside); }
-
-.label {
+.slot + .slot{ margin-top: var(--pairGapInside); }
+.label{
   color: var(--textDark);
-  font-weight: 700;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700; font-size: 13px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* T-join (vertical join between top/bot, plus arm across the gap) */
-.join {
+/* ---------- Centering connectors (R2/R3A/R3B): arm + collector ---------- */
+.r2 .pair,
+.r3a .pair,
+.r3b .pair,
+.r4 .pair,
+.rFinal .pair{
   background-image:
-    linear-gradient(var(--line), var(--line)),
-    linear-gradient(var(--line), var(--line));
+    linear-gradient(var(--line), var(--line)),  /* vertical collector */
+    linear-gradient(var(--line), var(--line));  /* horizontal arm */
   background-repeat: no-repeat, no-repeat;
   background-size:
     var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
     var(--arm) var(--joinW);
   background-position:
     left calc(var(--gap) * -1 + var(--arm)) 50%,
-    left calc(var(--gap) * -1) 50%;
+    left calc(var(--gap) * -1)              50%;
 }
 
-/* LB winner box */
-.lbFinalCol {
-  text-align: center;
-  display: grid;
-  align-content: start;
+/* ---------- LB Winner pill ---------- */
+.lbWinnerCol{
+  display:flex; flex-direction:column; align-items:flex-start;
 }
-.lbWinnerTitle {
-  color: #e7ecf5;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
+.lbWinnerTitle{
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
-.lbWinnerBox {
-  background: #1c2952;
-  border: 2px solid #122040;
-  color: #fff;
-  font-weight: 800;
-  border-radius: 0;
-  height: var(--slotH);
-  display: grid;
-  place-items: center;
-  padding: 0 12px;
+.lbWinnerPill{
+  min-width: var(--colw);
+  background:#1c2952; border:2px solid #122040; color:#ffffff;
+  border-radius: 8px;
+  padding:10px 16px;
+  display:flex; align-items:center; justify-content:center;
 }
+.lbWinnerText{ font-weight:800; }
+
+/* helper (not strictly needed, but kept for parity) */
+.note{ margin:4px 0 2px; color:#9fb0c9; font-size:11px; }
