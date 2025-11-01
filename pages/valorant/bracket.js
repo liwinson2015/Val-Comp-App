@@ -5,10 +5,17 @@ import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
+const TID = "VALO-SOLO-SKIRMISH-1"; // unique tournament id you’re counting
+
 export default function BracketPage() {
-  const [loading, setLoading] = useState(true);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
 
+  // live registration info
+  const [regInfo, setRegInfo] = useState(null);
+  const [loadingReg, setLoadingReg] = useState(true);
+
+  // ---- auth check (unchanged) ----
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -17,16 +24,33 @@ export default function BracketPage() {
         const data = await res.json();
         if (!ignore) {
           setLoggedIn(!!data.loggedIn);
-          setLoading(false);
+          setLoadingAuth(false);
         }
       } catch {
-        if (!ignore) setLoading(false);
+        if (!ignore) setLoadingAuth(false);
       }
     })();
     return () => { ignore = true; };
   }, []);
 
-  // ====== Winners bracket sample data (unchanged) ======
+  // ---- fetch live registrations for this tournament ----
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/tournaments/${TID}/registrations`);
+        const data = await res.json();
+        if (!ignore) setRegInfo(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!ignore) setLoadingReg(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
+
+  // ====== Winners bracket sample data (unchanged for now) ======
   const bracketData = {
     left: {
       R16: [
@@ -44,18 +68,19 @@ export default function BracketPage() {
         ["Ethan Sylor", "卡提希娅の仆人"],
       ],
     },
-    final: { left: "TBD", right: "TBD", champion: "TBD" }, // WB Final area inside Bracket16
+    final: { left: "TBD", right: "TBD", champion: "TBD" },
   };
 
   // ====== MANUAL STRINGS YOU WILL UPDATE DURING THE EVENT ======
-  // 1) The player who wins the Winners Bracket Final (goes straight to Grand Final)
-  const wbFinalWinner = "WB Champion (TBD)";   // <-- update manually
+  const wbFinalWinner = "WB Champion (TBD)";
+  const lbFinalWinner = "LB Champion (TBD)";
+  const grandChampion = "Tournament Champion (TBD)";
 
-  // 2) The player who wins the Losers Bracket Final (advances to Grand Final)
-  const lbFinalWinner = "LB Champion (TBD)";   // <-- update manually
-
-  // 3) The overall champion after Grand Final (or Reset) is complete
-  const grandChampion = "Tournament Champion (TBD)"; // <-- update manually
+  // ---- derive slots text from API (fallback to 0/16 if loading) ----
+  const capacity = regInfo?.capacity ?? 16;
+  const registered = regInfo?.registered ?? 0;
+  const remaining = regInfo?.remaining ?? Math.max(capacity - registered, 0);
+  const slotsText = loadingReg ? "Loading…" : `${registered} / ${capacity}`;
 
   return (
     <div className={styles.shell}>
@@ -70,9 +95,19 @@ export default function BracketPage() {
           </p>
           <div className={styles.detailGrid}>
             <div className={styles.detailLabel}>SLOTS</div>
-            <div className={styles.detailValueHighlight}>0 / 16</div>
+            <div className={styles.detailValueHighlight}>
+              {slotsText}
+            </div>
+
             <div className={styles.detailLabel}>STATUS</div>
-            <div className={styles.detailValue}>Check-in required at start time</div>
+            <div className={styles.detailValue}>
+              {loadingReg
+                ? "Checking capacity…"
+                : regInfo?.isFull
+                ? "Full — waitlist"
+                : `Open — ${remaining} left`}
+            </div>
+
             <div className={styles.detailLabel}>STREAM</div>
             <div className={styles.detailValue}>[TBD]</div>
           </div>
@@ -80,7 +115,7 @@ export default function BracketPage() {
 
         {/* ===== Winners Bracket (full-bleed) ===== */}
         <section className={`${styles.card} fullBleed`}>
-          {!loading && !loggedIn ? (
+          {!loadingAuth && !loggedIn ? (
             <div
               style={{
                 display: "flex",
@@ -125,23 +160,20 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== CENTERED GRAND FINAL (shared) =====
-            Use your manual strings: wbFinalWinner, lbFinalWinner, grandChampion */}
+        {/* ===== CENTERED GRAND FINAL ===== */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (no GF inside) ===== */}
+        {/* ===== Losers Bracket ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
-            lbR1={Array(8).fill(null)}      /* replace with real losers later */
+            lbR1={Array(8).fill(null)}
             dropR2={Array(4).fill(null)}
             dropSF={Array(2).fill(null)}
             dropWBF={Array(1).fill(null)}
-            /* If your LosersBracket16 later supports showing the LB winner box,
-               you'll pass lbFinalWinner to it here as a prop. */
           />
           <style jsx>{`
             .fullBleed {
