@@ -3,20 +3,20 @@ import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
 /**
- * 16-player losers bracket (double-elim path), compact UI.
- * Rounds:
- *   R1: 8 matches
+ * Losers bracket for 16-player double elimination (compact, centered).
+ * Exact round sizes:
+ *   R1: 4 matches (8 players)
  *   R2 (WB R2 drop-ins): 4 matches
  *   R3A: 2 matches
  *   R3B (WB SF drop-ins): 2 matches
- *   R4: 2 matches
+ *   R4: 1 match
  *   LB Final: 1 match
- *   LB Winner: 1 pill
+ *   LB Winner: pill
  *
- * All labels live INSIDE the slots.
+ * All "drop-in" labels are INSIDE boxes (no external “vs …” text).
  */
 export default function LosersBracket16({
-  r1 = Array(8).fill(["TBD", "TBD"]),
+  r1 = Array(4).fill(["TBD", "TBD"]),
   r2 = [
     ["TBD", "WB R2 Loser"],
     ["TBD", "WB R2 Loser"],
@@ -28,7 +28,7 @@ export default function LosersBracket16({
     ["TBD", "WB SF Loser 1"],
     ["TBD", "WB SF Loser 2"],
   ],
-  r4 = Array(2).fill(["TBD", "TBD"]),
+  r4 = Array(1).fill(["TBD", "TBD"]),
   lbFinal = ["TBD", "WB Final Loser"],
   lbWinner = "TBD",
 }) {
@@ -36,9 +36,9 @@ export default function LosersBracket16({
     <div className={s.lbViewport}>
       <div className={s.lbStage}>
         <div className={s.lbGrid}>
-          {/* R1 — 8 matches */}
+          {/* R1 — 4 matches */}
           <Round title="LB Round 1" cls="r1">
-            {r1.slice(0, 8).map((m, i) => (
+            {r1.slice(0, 4).map((m, i) => (
               <Pair key={`r1-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
@@ -50,7 +50,7 @@ export default function LosersBracket16({
             ))}
           </Round>
 
-          {/* R3A — 2 matches */}
+          {/* R3A — 2 matches (winners from R2) */}
           <Round title="LB Round 3A" cls="r3a">
             {r3a.slice(0, 2).map((m, i) => (
               <Pair key={`r3a-${i}`} top={m[0]} bot={m[1]} />
@@ -64,9 +64,9 @@ export default function LosersBracket16({
             ))}
           </Round>
 
-          {/* R4 — 2 matches */}
+          {/* R4 — 1 match */}
           <Round title="LB Round 4" cls="r4">
-            {r4.slice(0, 2).map((m, i) => (
+            {r4.slice(0, 1).map((m, i) => (
               <Pair key={`r4-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
