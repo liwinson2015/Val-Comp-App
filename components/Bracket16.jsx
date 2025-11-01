@@ -114,7 +114,7 @@ export default function Bracket16({ data }) {
   const H = (x1,y,x2) => <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
   const V = (x,y1,y2) => <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
 
-  // Helpers for “four-rail” joins with explicit SF stubs
+  // Helpers for "four-rail" joins with explicit SF stubs
   function joinPairToMid_L(xSrcRight, xDstStop, pairCenter, srcInnerGap, yDstMid){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
@@ -140,13 +140,12 @@ export default function Bracket16({ data }) {
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (left) — stop G.stub before SF edge, then add explicit SF stubs
+  // QF -> SF (left)
   const sfLeftEdgeX = G.X(2);
-  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX - G.stub, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
-  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX - G.stub, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
-  // SF stubs (two per SF box)
-  paths.push(H(sfLeftEdgeX - G.stub, midTop(G.sfCenter, G.innerGapSF), sfLeftEdgeX));
-  paths.push(H(sfLeftEdgeX - G.stub, midBot(G.sfCenter, G.innerGapSF), sfLeftEdgeX));
+  const sfTopY = midTop(G.sfCenter, G.innerGapSF);
+  const sfBotY = midBot(G.sfCenter, G.innerGapSF);
+  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX, G.qfCenters[0], G.innerGapQF, sfTopY);
+  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX, G.qfCenters[1], G.innerGapQF, sfBotY);
 
   // SF -> Final (left)
   paths.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
@@ -157,13 +156,12 @@ export default function Bracket16({ data }) {
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (right) — stop G.stub after SF edge, then add explicit SF stubs
+  // QF -> SF (right)
   const sfRightEdgeX = G.X(4) + G.colW;
-  joinPairToMid_R(G.X(5), sfRightEdgeX + G.stub, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
-  joinPairToMid_R(G.X(5), sfRightEdgeX + G.stub, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
-  // SF stubs (two per SF box)
-  paths.push(H(sfRightEdgeX, midTop(G.sfCenter, G.innerGapSF), sfRightEdgeX + G.stub));
-  paths.push(H(sfRightEdgeX, midBot(G.sfCenter, G.innerGapSF), sfRightEdgeX + G.stub));
+  const sfTopYRight = midTop(G.sfCenter, G.innerGapSF);
+  const sfBotYRight = midBot(G.sfCenter, G.innerGapSF);
+  joinPairToMid_R(G.X(5), sfRightEdgeX, G.qfCenters[0], G.innerGapQF, sfTopYRight);
+  joinPairToMid_R(G.X(5), sfRightEdgeX, G.qfCenters[1], G.innerGapQF, sfBotYRight);
 
   // SF -> Final (right)
   paths.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
