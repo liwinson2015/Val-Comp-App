@@ -1,117 +1,143 @@
-/* Losers bracket styling – square boxes, compact width, same vibe as Bracket16 */
+/* styles/LosersBracket.module.css
+   Losers Bracket compact, matching the square style of winners bracket.
+*/
 
 .viewport{
-  --colw: clamp(120px, 9vw, 150px);
-  --gap:  clamp(14px, 1.8vw, 20px);
+  --colw: clamp(150px, 12vw, 180px);
+  --gap:  clamp(14px, 2vw, 20px);
 
-  --slotH: 36px;
+  --slotH: 34px;
   --pairGapInside: 10px;
   --pairPad: 4px;
-
-  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
-
-  --rSpace: clamp(14px, 1.6vh, 20px);
 
   --line: #2a2f36;
   --joinW: 2px;
   --stub: 10px;
-  --arm:  calc(var(--gap) - var(--stub));
 
-  --slotBg: #f4f6fb;
+  --slotBg: #ffffff;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(420px, 50vh, 620px);
-
-  --topSpace: 90px;
-
-  --fitW: calc(100vw / var(--stageW));
-  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
-  --scale: min(1, var(--fitW), var(--fitH));
-
-  width:100%;
-  display:grid;
-  place-items:center;
-  overflow:visible;
+  width: 100%;
+  margin: 18px 0 10px;
 }
-.stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
+
+.title{
+  color:#dfe6f3;
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  margin: 4px 0 10px;
+}
+
 .grid{
-  width:100%; height:100%;
-  display:grid; grid-template-columns:repeat(7,var(--colw));
-  gap:var(--gap); align-items:start;
+  display:grid;
+  grid-template-columns: repeat(7, var(--colw));
+  gap: var(--gap);
+  align-items: start;
 }
 
-/* columns / rounds */
-.round { position:relative; }
+/* generic column */
+.col{ position: relative; }
 .roundTitle{
-  color:#dfe6f3; font-weight:900; font-size:12px;
-  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
+  color:#dfe6f3;
+  font-weight:900;
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:8px;
 }
-.stack{ position:relative; display:grid; }
+.stack{ display:grid; gap: 12px; }
 
-/* generic spacing */
-.stack .pair{ margin: calc(var(--rSpace)/2) 0; }
-
-/* match pair (two slots) */
+/* pair (two stacked slots) */
 .pair{
-  position:relative;
+  position: relative;
   padding: var(--pairPad) 0;
 }
 .pair::after{
+  /* short right stub to next column */
   content:"";
   position:absolute; top:50%; right: calc(var(--stub) * -1);
   transform: translateY(-50%);
   width: var(--stub); height: var(--joinW);
   background: var(--line);
 }
-.sideRight.pair::after{
-  left: calc(var(--stub) * -1);
-  right: auto;
+/* vertical join between top & bottom slot */
+.pair{
+  background-image: linear-gradient(var(--line), var(--line));
+  background-repeat: no-repeat;
+  background-size: var(--joinW) calc(var(--slotH) + var(--pairGapInside));
+  background-position: right calc(100% + var(--stub)) 50%;
 }
 
-/* slots */
 .slot{
+  height: var(--slotH);
+  border: 2px solid var(--slotBorder);
+  border-radius: 0;       /* square corners */
+  background: var(--slotBg);
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 10px;
+  box-shadow:none;
+}
+.slot + .slot{ margin-top: var(--pairGapInside); }
+
+.label{
+  color: var(--textDark);
+  font-weight: 700; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* single slot (round 1 labels) */
+.oneSlot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
   border-radius: 0;
   background: var(--slotBg);
-  display:flex; align-items:center;
+  display:flex; align-items:center; justify-content:center;
   padding: 0 10px;
-  box-shadow: none;
-}
-.slot + .slot{ margin-top: var(--pairGapInside); }
-.label{
-  color: var(--textDark);
-  font-weight: 700; font-size: 13px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* connector arms when you want to show merges (optional) */
-.join {
-  background-image:
-    linear-gradient(var(--line), var(--line)),
-    linear-gradient(var(--line), var(--line));
-  background-repeat: no-repeat, no-repeat;
-  background-size:
-    var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
-    var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) 50%,
-    left calc(var(--gap) * -1)              50%;
-}
-.right .join{
-  background-position:
-    right calc(var(--gap) * -1 + var(--arm)) 50%,
-    right calc(var(--gap) * -1)              50%;
+/* LB Final column (same as .col but kept named for clarity) */
+.finalCol{ position: relative; }
+
+/* ===== LB Winner result to the right ===== */
+.winnerCol{
+  position: relative;
+  display: grid;
+  align-items: start;
+  justify-items: start;
 }
 
-/* small caption lines under some slots */
-.note{
-  color:#8fa1ba;
+.winnerTitle{
+  color:#dfe6f3;
+  font-weight:900;
   font-size:11px;
-  margin:4px 0 0 2px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:8px;
 }
 
-/* compatibility helpers (if you mirror columns) */
-.right { direction:ltr; }
+/* horizontal arm from LB Final pair into the LB Winner box */
+.arm{
+  width: 24px;
+  height: var(--joinW);
+  background: var(--line);
+  margin: 24px 8px 8px 2px; /* aligns roughly to middle of the final pair */
+}
+
+/* winner box (square) */
+.winnerBox{
+  min-width: 160px;
+  height: var(--slotH);
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid #122040;
+  background:#1c2952;
+  color:#fff;
+  border-radius:0;
+  padding: 0 12px;
+}
+
+.winnerText{
+  font-weight:800; font-size:13px;
+}

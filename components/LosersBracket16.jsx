@@ -1,6 +1,6 @@
 // components/LosersBracket.jsx
 import React from "react";
-import s from "../styles/LosersBracket.module.css";
+import s from "../styles/LosersBracket16.module.css";
 
 /**
  * Losers Bracket (double-elim) compact view.
