@@ -14,7 +14,7 @@ export default function Bracket16({ data }) {
     const wire  = 2;
 
     const innerGapR16 = 12;
-    const innerGapQF  = 30;  // a bit roomier to read the 4 rails clearly
+    const innerGapQF  = 30;  // QF stack gap; adjust for more/less space
     const innerGapSF  = 20;
 
     const X = (i) => i * (colW + gap);
@@ -42,8 +42,8 @@ export default function Bracket16({ data }) {
     const finalMidGap = 22;
     const centerX     = X(3) + colW / 2;
 
-    // raise the winner cluster slightly
-    const champOffset = 48;  // ↑ move pill higher
+    // position the winner cluster
+    const champOffset = 48;  // raise ↑ by increasing
     const winnerAbove = 34;  // label above the pill
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
@@ -106,42 +106,33 @@ export default function Bracket16({ data }) {
 
   // ---- wires (SVG) ---------------------------------------------------------
   const paths = [];
-
-  // helpers
   const h = (x1,y,x2) => <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
   const v = (x,y1,y2) => <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
-  const poly = (d)    => <path key={`p-${d}`} d={d} />;
 
-  // R16 -> QF (left)
-  joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
-  joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
-  joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
-  joinPairToQF_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
+  // R16 -> QF (left)  — 4 stubs (2 per pair)
+  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
+  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
+  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
+  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (left)  ***QUAD RAILS***
-  quadRails_L(
-    G.X(1)+G.colW, G.X(2),
-    midTop(G.qfCenters[0], G.innerGapQF),  midBot(G.qfCenters[1], G.innerGapQF),
-    midTop(G.sfCenter,   G.innerGapSF),    midBot(G.sfCenter,   G.innerGapSF)
-  );
+  // QF -> SF (left)  — **4 stubs from the 4 QF boxes** (2 per QF pair), merge → SF
+  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
+  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
 
-  // SF -> Final left
+  // SF -> Final (left)
   paths.push(h(G.X(2)+G.colW, G.sfCenter, finalLeftX));
 
   // R16 -> QF (right)
-  joinPairToQF_R(G.X(6), G.X(5)+G.colW, G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
-  joinPairToQF_R(G.X(6), G.X(5)+G.colW, G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
-  joinPairToQF_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
-  joinPairToQF_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
+  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
+  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
+  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
+  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (right) ***QUAD RAILS***
-  quadRails_R(
-    G.X(5), G.X(4)+G.colW,
-    midTop(G.qfCenters[0], G.innerGapQF),  midBot(G.qfCenters[1], G.innerGapQF),
-    midTop(G.sfCenter,   G.innerGapSF),    midBot(G.sfCenter,   G.innerGapSF)
-  );
+  // QF -> SF (right) — **4 stubs from the 4 QF boxes** to SF
+  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
+  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
 
-  // SF -> Final right
+  // SF -> Final (right)
   paths.push(h(G.X(4), G.sfCenter, finalRightX + G.finalW));
 
   // finalists mid-bar
@@ -195,53 +186,25 @@ export default function Bracket16({ data }) {
   }
 
   // ---- wire helpers ---------------------------------------------------------
-  function joinPairToQF_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid){
+  // pair (two stacked slots) → a mid-point on the next column:
+  // draw two stubs from the two slot centers, vertical collector, then across.
+  function joinPairToMid_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
     const xJoin = xSrcRight + G.stub;
-    paths.push(h(xSrcRight, yTop, xJoin));
-    paths.push(h(xSrcRight, yBot, xJoin));
-    paths.push(v(xJoin, yTop, yBot));
+    paths.push(h(xSrcRight, yTop, xJoin)); // top stub
+    paths.push(h(xSrcRight, yBot, xJoin)); // bottom stub
+    paths.push(v(xJoin, yTop, yBot));      // vertical collector
     paths.push(h(xJoin, yDstMid, xDstLeft));
   }
-  function joinPairToQF_R(xSrcLeft, xDstRight, pairCenter, srcInnerGap, yDstMid){
+  function joinPairToMid_R(xSrcLeft, xDstRight, pairCenter, srcInnerGap, yDstMid){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
     const xJoin = xSrcLeft - G.stub;
-    paths.push(h(xSrcLeft, yTop, xJoin));
-    paths.push(h(xSrcLeft, yBot, xJoin));
-    paths.push(v(xJoin, yTop, yBot));
+    paths.push(h(xSrcLeft, yTop, xJoin));  // top stub
+    paths.push(h(xSrcLeft, yBot, xJoin));  // bottom stub
+    paths.push(v(xJoin, yTop, yBot));      // vertical collector
     paths.push(h(xJoin, yDstMid, xDstRight));
-  }
-
-  // ***** QUAD RAILS (two lines into each SF slot) *****
-  // We route each rail as: stub → xMid → (vertical adjust) → across to SF
-  function quadRails_L(xQFRight, xSFLeft, yQFT, yQFB, ySFT, ySFB){
-    const xStubEnd = xQFRight + G.stub;
-    const xMid     = (xQFRight + xSFLeft) / 2;
-    const railGap  = 7; // vertical separation so you clearly see 4 rails
-
-    // Top QF → Top SF (two rails)
-    paths.push(poly(`M ${xQFRight} ${yQFT} H ${xStubEnd} H ${xMid} V ${ySFT - railGap} H ${xSFLeft}`));
-    paths.push(poly(`M ${xQFRight} ${yQFT} H ${xStubEnd} H ${xMid} V ${ySFT + railGap} H ${xSFLeft}`));
-
-    // Bottom QF → Bottom SF (two rails)
-    paths.push(poly(`M ${xQFRight} ${yQFB} H ${xStubEnd} H ${xMid} V ${ySFB - railGap} H ${xSFLeft}`));
-    paths.push(poly(`M ${xQFRight} ${yQFB} H ${xStubEnd} H ${xMid} V ${ySFB + railGap} H ${xSFLeft}`));
-  }
-
-  function quadRails_R(xQFLeft, xSFRight, yQFT, yQFB, ySFT, ySFB){
-    const xStubEnd = xQFLeft - G.stub;
-    const xMid     = (xQFLeft + xSFRight) / 2;
-    const railGap  = 7;
-
-    // Top QF → Top SF (two rails)
-    paths.push(poly(`M ${xQFLeft} ${yQFT} H ${xStubEnd} H ${xMid} V ${ySFT - railGap} H ${xSFRight}`));
-    paths.push(poly(`M ${xQFLeft} ${yQFT} H ${xStubEnd} H ${xMid} V ${ySFT + railGap} H ${xSFRight}`));
-
-    // Bottom QF → Bottom SF (two rails)
-    paths.push(poly(`M ${xQFLeft} ${yQFB} H ${xStubEnd} H ${xMid} V ${ySFB - railGap} H ${xSFRight}`));
-    paths.push(poly(`M ${xQFLeft} ${yQFB} H ${xStubEnd} H ${xMid} V ${ySFB + railGap} H ${xSFRight}`));
   }
 }
 
