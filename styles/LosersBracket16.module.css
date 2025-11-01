@@ -1,34 +1,27 @@
 /* styles/LosersBracket16.module.css */
-/* Match Winners bracket: square cards, crisp connectors, auto-fit scaling */
 
 .viewport{
-  /* geometry */
-  --colw: clamp(110px, 10.5vw, 140px);  /* a touch narrower than winners */
+  --colw: clamp(110px, 10.5vw, 140px);
   --gap:  clamp(14px, 2vw, 20px);
 
   --slotH: 32px;
   --pairGapInside: 8px;
   --pairPad: 4px;
 
-  /* lines */
   --line: #2a2f36;
   --joinW: 2px;
   --stub: 10px;
   --arm: calc(var(--gap) - var(--stub));
 
-  /* card colors */
   --slotBg: #ffffff;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  /* stage: 7 columns (R1, R2, R3A, R3B, R4, LBF, GF) */
-  --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
+  /* 6 cols: R1, R2, R3A, R3B, R4, LBF */
+  --stageW: calc(var(--colw) * 6 + var(--gap) * 5);
   --stageH: clamp(420px, 56vh, 620px);
 
-  /* align with your page header space */
   --topSpace: 130px;
-
-  /* auto fit */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -39,46 +32,28 @@
   place-items:center;
   overflow:visible;
 }
-
-.stage{
-  width: var(--stageW);
-  height: var(--stageH);
-  transform: scale(var(--scale));
-  transform-origin: top center;
-}
-
+.stage{ width:var(--stageW); height:var(--stageH); transform:scale(var(--scale)); transform-origin:top center; }
 .grid{
   width:100%; height:100%;
-  display:grid;
-  grid-template-columns: repeat(7, var(--colw));
-  gap: var(--gap);
-  align-items: start;
-  justify-items: stretch;
+  display:grid; grid-template-columns:repeat(6,var(--colw));
+  gap:var(--gap); align-items:start; justify-items:stretch;
 }
 
-/* headings */
 .round{ position:relative; }
 .roundTitle{
   color:#dfe6f3; font-weight:900; font-size:12px;
   letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
-.stack{ display:grid; align-content:start; gap:12px; }
+.stack{ display:grid; gap:12px; align-content:start; }
 
-/* match pair (two stacked square slots) */
 .pair{ position:relative; padding: var(--pairPad) 0; }
 .pair::after{
-  /* small horizontal stub from pair toward next column */
-  content:"";
-  position:absolute; top:50%; right: calc(var(--stub) * -1);
+  content:""; position:absolute; top:50%; right: calc(var(--stub) * -1);
   transform:translateY(-50%);
-  width: var(--stub); height: var(--joinW);
-  background: var(--line);
+  width: var(--stub); height: var(--joinW); background: var(--line);
 }
-.sideRight.pair::after{
-  left: calc(var(--stub) * -1); right:auto;
-}
+.sideRight.pair::after{ left: calc(var(--stub) * -1); right:auto; }
 
-/* square slot like winners */
 .slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
@@ -89,42 +64,7 @@
   box-shadow:none;
 }
 .slot + .slot{ margin-top: var(--pairGapInside); }
-.label{
-  color: var(--textDark);
-  font-weight: 700;
-  font-size: 12.5px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.label{ color: var(--textDark); font-weight:700; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* small “note” text under a pair (drop-ins tag) */
-.note{
-  font-size: 11px;
-  color: #95a3bf;
-  margin-top: 2px;
-}
-
-/* finals column (compact, winners-style) */
-.finalCol{ position:relative; }
-.winner{
-  text-align:center; color:#e7ecf5; opacity:.9;
-  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
-  margin-bottom:8px;
-}
-.finalRow{
-  display:grid; grid-template-columns:1fr 12px 1fr; align-items:center; gap:8px;
-}
-.finalSlot{
-  background:#ffffff; border:2px solid var(--slotBorder); color:#0f1320;
-  border-radius:0; padding:0 10px; height: var(--slotH);
-  display:flex; align-items:center; justify-content:center;
-  font-weight:700; font-size:12.5px;
-}
-.vs{ height: var(--joinW); background: var(--line); }
-
-/* reset note */
-.reset{
-  margin-top:6px; font-size:11px; color:#95a3bf; text-align:center;
-}
-
-/* right-side helper (mirrors outward stub) */
+.note{ font-size:11px; color:#95a3bf; margin-top:2px; }
 .right{ direction:ltr; }
