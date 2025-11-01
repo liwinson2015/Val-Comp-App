@@ -2,6 +2,11 @@
 import React from "react";
 import s from "../styles/Bracket16.module.css";
 
+/**
+ * 16-player single-elimination bracket (no transform scaling).
+ * Geometry is shared between CSS and this markup; center column stack height
+ * exactly matches the Semifinals columns to guarantee perfect vertical alignment.
+ */
 export default function Bracket16({ data }) {
   const L = data?.left ?? {};
   const R = data?.right ?? {};
@@ -43,7 +48,7 @@ export default function Bracket16({ data }) {
             <Pair top="TBD" bot="TBD" />
           </Round>
 
-          {/* CENTER (Final column shares the SAME stack height as SF) */}
+          {/* CENTER (Final) — stack height equals Semifinals stack height */}
           <div className={`${s.round} ${s.finalCol}`}>
             <div className={s.roundTitle}>Winner</div>
 
@@ -55,7 +60,7 @@ export default function Bracket16({ data }) {
               <div className={s.stem} aria-hidden="true" />
             </div>
 
-            {/* Stack area with height equal to SF/QF; final row centered within */}
+            {/* The stack with identical height to Semifinals, final centered within */}
             <div className={s.finalStack}>
               <div className={s.finalRowWrap}>
                 <div className={s.finalRow}>
@@ -104,6 +109,7 @@ function Round({ title, tier, side, children }) {
   );
 }
 
+/** Two independent square slots with stubs & connector arms via CSS */
 function Pair({ top = "TBD", bot = "TBD", side }) {
   return (
     <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
@@ -116,3 +122,4 @@ function Pair({ top = "TBD", bot = "TBD", side }) {
     </div>
   );
 }
+message.txt
