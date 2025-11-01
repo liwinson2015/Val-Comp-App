@@ -1,39 +1,36 @@
 /* Compact losers bracket (matches winners style), centered & scaled */
 
 .lbViewport{
-  /* narrower column for better fit */
   --colw: clamp(112px, 9vw, 140px);
   --gap:  clamp(18px, 2.2vw, 24px);
 
-  /* square slot geometry */
-  --slotH: 34px;
+  /* tighter boxes */
+  --slotH: 32px;                 /* ↓ from 34 to shorten columns */
   --pairGapInside: 10px;
   --pairPad: 4px;
 
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  /* vertical rhythms: tuned so next round sits between its two feeders */
-  --r1Space: 14px;                               /* spacing between R1 pairs */
-  --r2Space: calc(var(--pairH) + 20px);          /* between two R1 pairs */
+  /* vertical rhythms */
+  --r1Space: 12px;               /* a little tighter */
+  /* R2 no longer uses the "center between feeders" spacing.
+     We'll override R2 below to use the same rhythm as R1. */
+  --r2Space: calc(var(--pairH) + 20px);     /* not used after override */
   --r3Space: calc(var(--pairH) + var(--r2Space));
-  --r4Space: calc(var(--pairH) + var(--r3Space));/* only one pair shown */
+  --r4Space: calc(var(--pairH) + var(--r3Space));
 
-  /* lines */
   --line: #2a2f36;
   --joinW: 2px;
-  --stub: 10px;                 /* short stub leaving each pair */
+  --stub: 10px;
   --arm:  calc(var(--gap) - var(--stub));
 
-  /* box look (align with winners) */
   --slotBg: #f5f7fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  /* grid */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(480px, 58vh, 660px);
+  --stageH: clamp(470px, 56vh, 640px);
 
-  /* center + scale */
   --topSpace: 120px;
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
@@ -68,13 +65,17 @@
 }
 .stack{ position:relative; display:grid; }
 
-/* spacing per round to align between feeders */
+/* spacing per round */
 .r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
-.r2  .pair{ margin: calc(var(--r2Space)/2) 0; }
-.r3a .pair{ margin: calc(var(--r3Space)/2) 0; }
-.r3b .pair{ margin: calc(var(--r3Space)/2) 0; }
-.r4  .pair{ margin: calc(var(--r4Space)/2) 0; }
-.rFinal .pair{ margin: 32px 0; }
+
+/* R2 COMPACT: make it same rhythm as R1 so the column isn't long */
+.r2  .pair{ margin: calc(var(--r1Space)/2) 0; }
+
+/* keep others a bit roomier */
+.r3a .pair{ margin: 18px 0; }
+.r3b .pair{ margin: 18px 0; }
+.r4  .pair{  margin: 22px 0; }
+.rFinal .pair{ margin: 26px 0; }
 
 /* pair / slots */
 .pair{
@@ -82,7 +83,6 @@
   padding: var(--pairPad) 0;
 }
 .pair::after{
-  /* short stub out toward the next column */
   content:"";
   position:absolute; top:50%; right: calc(var(--stub) * -1);
   transform: translateY(-50%);
@@ -92,7 +92,7 @@
 .slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
-  border-radius: 0;      /* SQUARE */
+  border-radius: 0;    /* SQUARE */
   background: var(--slotBg);
   display:flex; align-items:center;
   padding: 0 10px;
@@ -105,15 +105,15 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* draw center-join + arm for rounds that collect from previous column */
+/* collectors + arms for rounds that feed from previous column */
 .r2 .pair,
 .r3a .pair,
 .r3b .pair,
 .r4 .pair,
 .rFinal .pair{
   background-image:
-    linear-gradient(var(--line), var(--line)),  /* vertical collector */
-    linear-gradient(var(--line), var(--line));  /* horizontal arm */
+    linear-gradient(var(--line), var(--line)),
+    linear-gradient(var(--line), var(--line));
   background-repeat: no-repeat, no-repeat;
   background-size:
     var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
