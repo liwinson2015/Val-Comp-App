@@ -1,96 +1,141 @@
-// components/LosersBracket16.jsx
+// components/LosersBracket.jsx
 import React from "react";
-import s from "../styles/LosersBracket16.module.css";
+import s from "../styles/LosersBracket.module.css";
 
 /**
- * Losers Bracket (16p double-elim) — NO Grand Final here.
- * We stop at LB Final (winner = "LB Champion").
+ * Losers Bracket (double-elim) compact view.
+ * Shows LB R1 -> R2A/R2B -> R3A/R3B -> R4 -> LB Final.
+ * At the far right, it renders a small "LB Winner" box so the result is explicit.
  *
- * Props (optional placeholders):
- *  lbR1[8], dropR2[4], dropSF[2], dropWBF[1]
+ * Props:
+ *  - data: {
+ *      r1: [ "LB P1", "LB P2", ..., "LB P8" ]          // 8 seeds (display only)
+ *      r2a: [["TBD","WB R2 Loser 1"], ...]             // 4 matches
+ *      r3a: [["TBD","TBD"], ...]                        // 2 matches
+ *      r3b: [["TBD","WB SF Loser 1"], ...]              // 2 matches (drop-ins)
+ *      r4:  [["TBD","TBD"], ...]                        // 2 matches
+ *      final: ["TBD","WB Final Loser"]                  // LB Final (2 players)
+ *      lbWinner: "TBD"                                  // <- winner of LB Final (displayed & export)
+ *    }
  */
-export default function LosersBracket16({
-  lbR1 = empty(8),
-  dropR2 = empty(4),
-  dropSF = empty(2),
-  dropWBF = empty(1),
-}) {
+export default function LosersBracket({ data = {} }) {
+  const r1 = data.r1 ?? [
+    "LB P1", "LB P2", "LB P3", "LB P4", "LB P5", "LB P6", "LB P7", "LB P8",
+  ];
+
+  const r2a = data.r2a ?? [
+    ["TBD", "WB R2 Loser 1"],
+    ["TBD", "WB R2 Loser 2"],
+    ["TBD", "WB R2 Loser 3"],
+    ["TBD", "WB R2 Loser 4"],
+  ];
+
+  const r3a = data.r3a ?? [
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
+  ];
+
+  const r3b = data.r3b ?? [
+    ["TBD", "WB SF Loser 1"],
+    ["TBD", "WB SF Loser 2"],
+  ];
+
+  const r4 = data.r4 ?? [
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
+  ];
+
+  const lbFinal = data.final ?? ["TBD", "WB Final Loser"];
+  const lbWinner = data.lbWinner ?? "TBD";
+
   return (
     <div className={s.viewport}>
-      <div className={s.stage}>
-        <div className={s.grid}>
-          {/* 1) LB Round 1 — 8 → 4 */}
-          <Round title="LB Round 1">
-            <Pair a={lbR1[0]} b={lbR1[1]} />
-            <Pair a={lbR1[2]} b={lbR1[3]} />
-            <Pair a={lbR1[4]} b={lbR1[5]} />
-            <Pair a={lbR1[6]} b={lbR1[7]} />
-          </Round>
+      <div className={s.title}>LOSERS BRACKET</div>
 
-          {/* 2) LB Round 2 — LB winners vs WB R2 drop-ins */}
-          <Round title="LB Round 2 (WB R2 Drop-ins)">
-            <Pair a={null} b={dropR2[0]} note="vs WB R2 Loser" />
-            <Pair a={null} b={dropR2[1]} note="vs WB R2 Loser" />
-            <Pair a={null} b={dropR2[2]} note="vs WB R2 Loser" />
-            <Pair a={null} b={dropR2[3]} note="vs WB R2 Loser" />
-          </Round>
+      <div className={s.grid}>
+        {/* LB ROUND 1 (labels only, 8 seeds) */}
+        <Column title="LB ROUND 1">
+          {r1.map((name, i) => (
+            <OneSlot key={`r1-${i}`} label={name} />
+          ))}
+        </Column>
 
-          {/* 3) LB Round 3A — 4 → 2 */}
-          <Round title="LB Round 3A">
-            <Pair a={null} b={null} />
-            <Pair a={null} b={null} />
-          </Round>
+        {/* LB ROUND 2 (WB R2 drop-ins) */}
+        <Column title="LB ROUND 2 (WB R2 DROP-INS)">
+          {r2a.map((m, i) => (
+            <Pair key={`r2a-${i}`} top={m[0]} bot={m[1]} />
+          ))}
+        </Column>
 
-          {/* 4) LB Round 3B — winners vs WB SF drop-ins → 2 */}
-          <Round title="LB Round 3B (WB SF Drop-ins)">
-            <Pair a={null} b={dropSF[0]} note="vs WB SF Loser" />
-            <Pair a={null} b={dropSF[1]} note="vs WB SF Loser" />
-          </Round>
+        {/* LB ROUND 3A (winners from R2A) */}
+        <Column title="LB ROUND 3A">
+          {r3a.map((m, i) => (
+            <Pair key={`r3a-${i}`} top={m[0]} bot={m[1]} />
+          ))}
+        </Column>
 
-          {/* 5) LB Round 4 — 2 → 1 */}
-          <Round title="LB Round 4">
-            <Pair a={null} b={null} />
-          </Round>
+        {/* LB ROUND 3B (WB SF drop-ins) */}
+        <Column title="LB ROUND 3B (WB SF DROP-INS)">
+          {r3b.map((m, i) => (
+            <Pair key={`r3b-${i}`} top={m[0]} bot={m[1]} />
+          ))}
+        </Column>
 
-          {/* 6) LB Final — yields “LB Champion” */}
-          <Round title="LB Final">
-            <Pair a={null} b={dropWBF[0]} note="WB Final Loser" />
-          </Round>
+        {/* LB ROUND 4 */}
+        <Column title="LB ROUND 4">
+          {r4.map((m, i) => (
+            <Pair key={`r4-${i}`} top={m[0]} bot={m[1]} />
+          ))}
+        </Column>
+
+        {/* LB FINAL (shows winner to the right) */}
+        <div className={s.finalCol}>
+          <div className={s.roundTitle}>LB FINAL</div>
+          <Pair top={lbFinal[0]} bot={lbFinal[1]} />
+        </div>
+
+        {/* LB WINNER RESULT */}
+        <div className={s.winnerCol}>
+          <div className={s.winnerTitle}>LB WINNER</div>
+          <div className={s.arm} aria-hidden="true" />
+          <div className={s.winnerBox} title={lbWinner}>
+            <span className={s.winnerText}>{lbWinner}</span>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* blocks */
-function Round({ title, children, side }) {
+/* ===== Reusable bits ===== */
+
+function Column({ title, children }) {
   return (
-    <div className={`${s.round} ${side ? s.right : ""}`}>
+    <div className={s.col}>
       <div className={s.roundTitle}>{title}</div>
       <div className={s.stack}>{children}</div>
     </div>
   );
 }
 
-function Pair({ a, b, note, side }) {
+function Pair({ top = "TBD", bot = "TBD" }) {
   return (
-    <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
-      <Slot entry={a} />
-      <Slot entry={b} />
-      {note && <div className={s.note}>{note}</div>}
+    <div className={s.pair}>
+      <div className={s.slot} title={top}>
+        <span className={s.label}>{top}</span>
+      </div>
+      <div className={s.slot} title={bot}>
+        <span className={s.label}>{bot}</span>
+      </div>
+      {/* vertical join + right stub via CSS */}
     </div>
   );
 }
 
-function Slot({ entry }) {
-  const label = entry?.name || (typeof entry === "string" ? entry : "TBD");
+function OneSlot({ label = "TBD" }) {
   return (
-    <div className={s.slot} title={label}>
+    <div className={s.oneSlot} title={label}>
       <span className={s.label}>{label}</span>
     </div>
   );
-}
-
-function empty(n) {
-  return Array.from({ length: n }, () => null);
 }
