@@ -3,10 +3,10 @@ import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
 /**
- * Geometry-first bracket:
- *  - All boxes absolutely positioned from computed (x,y).
- *  - One SVG draws connectors using the SAME coordinates.
- *  - Final is the midpoint of the two Semifinals (no drift).
+ * Absolute-positioned, math-driven bracket:
+ *  - Boxes placed from computed (x,y).
+ *  - One SVG draws all connectors using the same coordinates.
+ *  - QF pairs are centered between their R16 feeders; SF centers QFs; Final centers SFs.
  */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
@@ -21,8 +21,8 @@ export default function Bracket16({ data }) {
 
     // Per-round inner gaps (distance between the two slots in a pair)
     const innerGapR16 = 12;
-    const innerGapQF  = 20;   // ↑ more space so QF boxes don't look "touching"
-    const innerGapSF  = 18;
+    const innerGapQF  = 28;   // ↑ bigger so QF slots don't feel "touching"
+    const innerGapSF  = 20;
 
     // R16 vertical rhythm
     const pairBlockR16 = slotH * 2 + innerGapR16;
@@ -31,18 +31,18 @@ export default function Bracket16({ data }) {
     const X            = (i) => i * (colW + gap);
 
     const titleBand    = 28;
-    const headerPad    = 64;   // push under navbar
+    const headerPad    = 64;  // push under navbar
     const topPad       = titleBand + headerPad;
 
-    // R16 pair centers (left + right share)
+    // R16 pair centers (left & right share)
     const r16Centers   = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
     );
 
-    // QF centers are EXACT midpoints between their two R16 feeders
+    // QF centers are PURE midpoints between their two R16 feeders
     const qfCenters    = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
 
-    // SF center is midpoint of the two QFs
+    // SF/Final centers
     const sfCenter     = avg(qfCenters[0], qfCenters[1]);
     const finalY       = sfCenter;
 
@@ -57,9 +57,9 @@ export default function Bracket16({ data }) {
     const finalMidGap  = 22;
     const centerX      = X(3) + colW / 2;
 
-    // Champ pill + WINNER label positions (WINNER above pill)
-    const champOffset  = 18;  // ↑ move pill up a bit
-    const winnerAbove  = 24;  // label sits this many px above pill
+    // Champ pill + WINNER label positions (both moved up)
+    const champOffset  = 30;  // ↑ move pill up above final line
+    const winnerAbove  = 28;  // ↑ label sits this many px above the pill
     const champTop     = finalY - slotH - champOffset;
     const winnerTop    = champTop - winnerAbove;
 
@@ -176,7 +176,7 @@ export default function Bracket16({ data }) {
           "--joinW": `${G.wire}px`,
         }}
       >
-        {/* Titles: middle now says FINAL */}
+        {/* Titles */}
         <div className={s.titles}>
           <span className={s.title}>Round of 16</span>
           <span className={s.title}>Quarterfinals</span>
@@ -187,7 +187,7 @@ export default function Bracket16({ data }) {
           <span className={s.title}>Round of 16</span>
         </div>
 
-        {/* WINNER label above the champ pill */}
+        {/* WINNER (above) + champ pill */}
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>TBD</div>
 
@@ -226,16 +226,13 @@ export default function Bracket16({ data }) {
   function h(x1, y, x2) { return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />; }
   function v(x, y1, y2) { return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />; }
 
+  // Align source midlines to target midlines
   function joinLeftToRight(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
     const xStubEnd   = x1 + G.stub;
     const xCollector = (x1 + x2) / 2;
-    // stubs from source
     paths.push(h(x1, ySrcTop, xStubEnd)); paths.push(h(x1, ySrcBot, xStubEnd));
-    // arms to collector at source levels
     paths.push(h(xStubEnd, ySrcTop, xCollector)); paths.push(h(xStubEnd, ySrcBot, xCollector));
-    // collector spanning source
     paths.push(v(xCollector, ySrcTop, ySrcBot));
-    // arms out to target at TARGET slot midlines
     paths.push(h(xCollector, yDstTop, x2)); paths.push(h(xCollector, yDstBot, x2));
   }
   function joinRightToLeft(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {

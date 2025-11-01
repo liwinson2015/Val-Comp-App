@@ -22,14 +22,14 @@
 
 .stage{
   position:relative;
-  /* CSS variables mirrored from JSX for clarity (JSX sets real values) */
-  --slotH: 38px;   /* slot height */
-  --colw: 150px;   /* column width */
-  --gap: 34px;     /* column spacing */
-  --joinW: 2px;    /* line thickness */
+  /* Variables mirrored from JSX for clarity (JSX sets concrete values) */
+  --slotH: 38px;
+  --colw: 150px;
+  --gap: 34px;
+  --joinW: 2px;
 }
 
-/* Round titles: grid mirrors 7 columns + 6 gaps exactly */
+/* Round titles */
 .titles{
   position:absolute; left:0; right:0; top:0;
   display:grid;
@@ -38,7 +38,6 @@
   justify-content:start;
   pointer-events:none;
   z-index:2;
-  padding:0; margin:0;
 }
 .title{
   text-align:center;
@@ -71,7 +70,7 @@
   border-radius:0;
   box-shadow: 0 0 0 1px rgba(0,0,0,.02) inset;
   z-index:1;
-  white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
 /* Smaller finalist boxes */
