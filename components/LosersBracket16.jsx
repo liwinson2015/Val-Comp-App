@@ -12,11 +12,11 @@ import s from "../styles/LosersBracket16.module.css";
  *  - dropWBF: 1 entry    -> WB Final loser (faces LB winner in LB Final)
  *  - wbChampion: 1 entry -> WB Champion (awaits in Grand Final)
  *
- * Rounds flow:
+ * Flow:
  *  LB R1 (8→4)
  *  LB R2 (4 winners + 4 WB R2 losers → 4)
  *  LB R3A (4→2)
- *  LB R3B (those 2 + 2 WB SF losers → 2)
+ *  LB R3B (2 + 2 WB SF losers → 2)
  *  LB R4 (2→1)
  *  LB Final (LB winner vs WB Final loser → 1)
  *  Grand Final (LB champ vs WB champ; show Reset note)
@@ -30,11 +30,7 @@ export default function LosersBracket16({
 }) {
   const Slot = ({ entry }) => (
     <div className={s.slot} title={entry?.name || "TBD"}>
-      {entry?.avatar ? (
-        <img className={s.ava} src={entry.avatar} alt="" />
-      ) : (
-        <div className={s.avaBlank} />
-      )}
+      {entry?.avatar ? <img className={s.ava} src={entry.avatar} alt="" /> : <div className={s.avaBlank} />}
       <div className={s.name}>{entry?.name || "TBD"}</div>
     </div>
   );
