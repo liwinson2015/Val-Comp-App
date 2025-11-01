@@ -1,4 +1,3 @@
-// components/Bracket16.jsx
 import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
@@ -10,11 +9,11 @@ export default function Bracket16({ data }) {
     const colW  = 150;
     const gap   = 34;
     const slotH = 38;
-    const stub  = 14;
+    const stub  = 14;   // short stub used near sources
     const wire  = 2;
 
     const innerGapR16 = 12;
-    const innerGapQF  = 30; // QF stack spacing (2nd column). Increase for more air.
+    const innerGapQF  = 30; // spacing between two QF slots (column 2)
     const innerGapSF  = 20;
 
     const X = (i) => i * (colW + gap);
@@ -43,10 +42,13 @@ export default function Bracket16({ data }) {
     const centerX     = X(3) + colW / 2;
 
     // winner cluster
-    const champOffset = 52; // raise ↑ by increasing a bit from 48
-    const winnerAbove = 36; // distance between "WINNER" label and pill
+    const champOffset = 52; // raise ↑ by increasing
+    const winnerAbove = 36;
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
+
+    // contact stub length drawn ON the SF boxes (must match CSS)
+    const contact = 12;
 
     return {
       colW, gap, slotH, stub, wire,
@@ -54,7 +56,7 @@ export default function Bracket16({ data }) {
       X, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
       finalW, finalMidGap, centerX,
-      champTop, winnerTop
+      champTop, winnerTop, contact
     };
   }, []);
 
@@ -68,8 +70,8 @@ export default function Bracket16({ data }) {
   // left R16
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
-    boxes.push(box(G.X(0), slotTop(y, G.innerGapR16),  D.left.R16[i][0]));
-    boxes.push(box(G.X(0), slotBot(y, G.innerGapR16),  D.left.R16[i][1]));
+    boxes.push(box(G.X(0), slotTop(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[0] ?? D.left.R16[i][0]));
+    boxes.push(box(G.X(0), slotBot(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[1] ?? D.left.R16[i][1]));
   }
   // left QF
   for (let i=0;i<2;i++){
@@ -77,15 +79,15 @@ export default function Bracket16({ data }) {
     boxes.push(box(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
     boxes.push(box(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
-  // left SF
-  boxes.push(box(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
-  boxes.push(box(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
+  // left SF (with contact stubs classes)
+  boxes.push(boxWithClass(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0], s.sfLeftTop));
+  boxes.push(boxWithClass(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1], s.sfLeftBot));
 
   // right R16
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
-    boxes.push(box(G.X(6), slotTop(y, G.innerGapR16),  D.right.R16[i][0]));
-    boxes.push(box(G.X(6), slotBot(y, G.innerGapR16),  D.right.R16[i][1]));
+    boxes.push(box(G.X(6), slotTop(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[0] ?? D.right.R16[i][0]));
+    boxes.push(box(G.X(6), slotBot(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[1] ?? D.right.R16[i][1]));
   }
   // right QF
   for (let i=0;i<2;i++){
@@ -93,9 +95,9 @@ export default function Bracket16({ data }) {
     boxes.push(box(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
     boxes.push(box(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
   }
-  // right SF
-  boxes.push(box(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
-  boxes.push(box(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
+  // right SF (with contact stubs classes)
+  boxes.push(boxWithClass(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0], s.sfRightTop));
+  boxes.push(boxWithClass(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1], s.sfRightBot));
 
   // center finalists
   const finalLeftX  = G.centerX - G.finalMidGap/2 - G.finalW;
@@ -115,9 +117,9 @@ export default function Bracket16({ data }) {
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (left): 4 stubs (2 per QF box) — now **penetrate** a bit into SF so it always connects
-  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
-  joinPairToMid_L(G.X(1)+G.colW, G.X(2), G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
+  // QF -> SF (left): 4 stubs (2 per QF box) and stop at the SF contact stub end
+  joinPairToMid_L(G.X(1)+G.colW, G.X(2) - G.contact, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
+  joinPairToMid_L(G.X(1)+G.colW, G.X(2) - G.contact, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
 
   // SF -> Final (left)
   paths.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
@@ -128,9 +130,9 @@ export default function Bracket16({ data }) {
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
   joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
 
-  // QF -> SF (right) — with penetration to ensure contact
-  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
-  joinPairToMid_R(G.X(5), G.X(4)+G.colW, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF), /*penetrate*/ true);
+  // QF -> SF (right): stop at the SF contact stub end (to the **right**)
+  joinPairToMid_R(G.X(5), G.X(4)+G.colW + G.contact, G.qfCenters[0], G.innerGapQF, midTop(G.sfCenter, G.innerGapSF));
+  joinPairToMid_R(G.X(5), G.X(4)+G.colW + G.contact, G.qfCenters[1], G.innerGapQF, midBot(G.sfCenter, G.innerGapSF));
 
   // SF -> Final (right)
   paths.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
@@ -164,6 +166,7 @@ export default function Bracket16({ data }) {
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
 
+        {/* wires under boxes */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
           <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none" shapeRendering="crispEdges">
             {paths}
@@ -177,42 +180,34 @@ export default function Bracket16({ data }) {
     </div>
   );
 
-  // ---- box helpers ----------------------------------------------------------
+  // ---- helpers --------------------------------------------------------------
   function box(x,y,text){
     return <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left:x, top:y }}>{text}</div>;
+  }
+  function boxWithClass(x,y,text,extraClass){
+    return <div key={`${x}-${y}-${text}`} className={`${s.slot} ${extraClass}`} style={{ left:x, top:y }}>{text}</div>;
   }
   function miniBox(x,y,text){
     return <div key={`f-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left:x, top:y }}>{text}</div>;
   }
 
-  // ---- wire helpers ---------------------------------------------------------
-  // pair -> mid on next col. If penetrate=true, extend a bit **into** destination column.
-  function joinPairToMid_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid, penetrate=false){
+  function joinPairToMid_L(xSrcRight, xDstContact, pairCenter, srcInnerGap, yDstMid){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
     const xJoin = xSrcRight + G.stub;
-    const dstInset = penetrate ? 10 : 0; // ensures visible contact
     paths.push(H(xSrcRight, yTop, xJoin)); // top stub
     paths.push(H(xSrcRight, yBot, xJoin)); // bottom stub
-    paths.push(V(xJoin, yTop, yBot));      // collector
-    paths.push(H(xJoin, yDstMid, xDstLeft + dstInset));
-    if (penetrate) {
-      // tiny vertical tick to remove anti-aliased seam
-      paths.push(V(xDstLeft + dstInset, yDstMid - 0.5, yDstMid + 0.5));
-    }
+    paths.push(V(xJoin, yTop, yBot));      // vertical collector
+    paths.push(H(xJoin, yDstMid, xDstContact)); // go to SF contact end
   }
-  function joinPairToMid_R(xSrcLeft, xDstRight, pairCenter, srcInnerGap, yDstMid, penetrate=false){
+  function joinPairToMid_R(xSrcLeft, xDstContact, pairCenter, srcInnerGap, yDstMid){
     const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
     const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
     const xJoin = xSrcLeft - G.stub;
-    const dstInset = penetrate ? 10 : 0;
     paths.push(H(xSrcLeft, yTop, xJoin)); // top stub
     paths.push(H(xSrcLeft, yBot, xJoin)); // bottom stub
-    paths.push(V(xJoin, yTop, yBot));     // collector
-    paths.push(H(xJoin, yDstMid, xDstRight - dstInset));
-    if (penetrate) {
-      paths.push(V(xDstRight - dstInset, yDstMid - 0.5, yDstMid + 0.5));
-    }
+    paths.push(V(xJoin, yTop, yBot));     // vertical collector
+    paths.push(H(xJoin, yDstMid, xDstContact)); // go to SF contact end
   }
 }
 

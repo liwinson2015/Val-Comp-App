@@ -84,3 +84,26 @@
   font-weight:900; font-size:12px; letter-spacing:.10em; text-transform:uppercase;
   opacity:.95; white-space:nowrap; z-index:3;
 }
+.sfLeftTop::before,
+.sfLeftBot::before {
+  content: "";
+  position: absolute;
+  left: -12px;                 
+  top: 50%;
+  width: 12px;                 
+  height: var(--joinW);
+  background: var(--line);
+  transform: translateY(-50%);
+}
+
+.sfRightTop::before,
+.sfRightBot::before {
+  content: "";
+  position: absolute;
+  right: -12px;                
+  top: 50%;
+  width: 12px;                 
+  height: var(--joinW);
+  background: var(--line);
+  transform: translateY(-50%);
+}
