@@ -4,67 +4,65 @@ import s from "../styles/Bracket16.module.css";
 
 /**
  * Geometry-first bracket:
- *  - Every box is absolutely positioned from computed (x,y).
- *  - All connectors are drawn in one SVG using the exact same coordinates.
- *  - Final center is mathematically tied to the Semifinal feeders (no drift).
+ *  - All boxes absolutely positioned from computed (x,y).
+ *  - One SVG draws connectors using the SAME coordinates.
+ *  - Final is the midpoint of the two Semifinals (no drift).
  */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // --- TUNABLE GEOMETRY (one source of truth) ---
+  // --- TUNABLE GEOMETRY ---
   const G = useMemo(() => {
-    const colW        = 150;  // px, width of normal slots
-    const gap         = 34;   // px, wider column spacing for cleaner look
-    const slotH       = 38;   // px, slot height
-    const slotGap     = 12;   // px, gap between the two slots in a pair
-    const stub        = 14;   // px, short horizontal from box edge
-    const wire        = 2;    // px, line thickness
+    const colW        = 150;  // px
+    const gap         = 34;   // px column spacing
+    const slotH       = 38;   // px slot height
+    const slotGap     = 12;   // px gap inside a pair
+    const stub        = 14;   // px short horizontal from box
+    const wire        = 2;    // px line thickness
 
-    // "pair block" height (two slots + gap)
     const pairBlock   = slotH * 2 + slotGap;
 
-    // Vertical rhythms (perfect centering across rounds)
-    const r16Space    = 26;   // vertical air between R16 pairs
+    const r16Space    = 26;           // vertical air between R16 pairs
     const qfSpace     = pairBlock + r16Space;
     const sfSpace     = pairBlock + qfSpace;
 
-    // Column X positions (0..6)
     const X           = (i) => i * (colW + gap);
 
-    // Titles band + header padding (moves whole bracket down)
     const titleBand   = 28;
-    const headerPad   = 64;   // moved everything down further under navbar
+    const headerPad   = 64;           // push under navbar
     const topPad      = titleBand + headerPad;
 
-    // R16 pair centers (left/right share this sequence)
     const r16Centers  = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlock / 2) + i * (pairBlock + r16Space)
     );
 
-    // QF centers = midpoints of their two R16 feeders (exactly centered)
-    const qfCenters   = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
+    // Make QF pairs a bit farther apart than the pure midpoint,
+    // while still centered around the same overall band.
+    const qfSpreadExtra = 16; // <— increase/decrease as needed
+    const qfAvgTop      = avg(r16Centers[0], r16Centers[1]);
+    const qfAvgBot      = avg(r16Centers[2], r16Centers[3]);
+    const qfCenters     = [
+      qfAvgTop - qfSpreadExtra / 2,
+      qfAvgBot + qfSpreadExtra / 2,
+    ];
 
-    // SF center = midpoint of QF feeders
-    const sfCenter    = avg(qfCenters[0], qfCenters[1]);
+    const sfCenter     = avg(qfCenters[0], qfCenters[1]);
+    const finalY       = sfCenter;
 
-    // Final center is the same Y (keeps perfect alignment)
-    const finalY      = sfCenter;
+    const stageW       = X(6) + colW;
+    const lastBottom   = r16Centers[3] + pairBlock / 2;
+    const bottomPad    = 100;
+    const stageH       = Math.ceil(lastBottom + bottomPad);
 
-    // Stage size
-    const stageW      = X(6) + colW;
-    const lastBottom  = r16Centers[3] + pairBlock / 2;
-    const bottomPad   = 100;   // extra breathing room at bottom
-    const stageH      = Math.ceil(lastBottom + bottomPad);
+    // Finals layout
+    const finalW       = 84;
+    const finalMidGap  = 22;
+    const centerX      = X(3) + colW / 2;
 
-    // Finalist layout
-    const finalW      = 84;                 // mini boxes width
-    const finalMidGap = 22;                 // wider gap between tiny finals
-    const centerX     = X(3) + colW / 2;    // midline of center column
-
-    // Champion pill placement: lock to just above finals
-    // Pill top sits some distance above the finals' top edge.
-    const champTop    = finalY - slotH - 48;   // move this number to raise/lower pill
-    const winnerTop   = champTop + 38;         // label under the pill
+    // Champ pill + WINNER label positions (WINNER above pill)
+    const champOffset  = 8;                  // distance above the finals line
+    const champTop     = finalY - slotH - champOffset;
+    const winnerTop    = champTop - 20;      // slightly above the pill
 
     return {
       colW, gap, slotH, slotGap, stub, wire,
@@ -78,7 +76,11 @@ export default function Bracket16({ data }) {
 
   const { X, slotH, slotGap, stub, wire, stageW, stageH } = G;
 
-  // Helpers to compute slot top Y given a pair centerY
+  // Slot-center helpers
+  const slotCenterOffset = (slotGap / 2 + slotH / 2);
+  const pairTopCenter  = (pairY) => pairY - slotCenterOffset;
+  const pairBotCenter  = (pairY) => pairY + slotCenterOffset;
+
   const topSlotTop  = (pairY) => pairY - (slotGap / 2) - slotH;
   const botSlotTop  = (pairY) => pairY + (slotGap / 2);
 
@@ -91,7 +93,7 @@ export default function Bracket16({ data }) {
     boxes.push(box(X(0), topSlotTop(y), D.left.R16[i][0]));
     boxes.push(box(X(0), botSlotTop(y), D.left.R16[i][1]));
   }
-  // LEFT: QF (col 1) — exactly centered between each R16 pair
+  // LEFT: QF (col 1) — spaced with qfSpreadExtra and centered visually
   for (let i = 0; i < 2; i++) {
     const y = G.qfCenters[i];
     boxes.push(box(X(1), topSlotTop(y), D.left.QF[i][0]));
@@ -115,59 +117,58 @@ export default function Bracket16({ data }) {
   boxes.push(box(X(4), topSlotTop(G.sfCenter), D.right.SF[0]));
   boxes.push(box(X(4), botSlotTop(G.sfCenter), D.right.SF[1]));
 
-  // CENTER: two small finalist boxes (more mid-gap)
+  // CENTER: tiny finalists
   const finalLeftX  = G.centerX - G.finalMidGap/2 - G.finalW;
   const finalRightX = G.centerX + G.finalMidGap/2;
   const finalTop    = G.finalY - slotH / 2;
   const finalLeft   = miniBox(finalLeftX, finalTop, D.final.left);
   const finalRight  = miniBox(finalRightX, finalTop, D.final.right);
 
-  // --- Build all connector paths (SVG) ---------------------------------------
+  // --- Build connectors (SVG) ------------------------------------------------
   const paths = [];
 
-  const joinLeftToRight = (x1, x2, yTop, yBot) => {
-    const xStubEnd   = x1 + stub;
-    const xCollector = (x1 + x2) / 2;
-    paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
-    paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
-    paths.push(v(xCollector, yTop, yBot));
-    paths.push(h(xCollector, yTop, x2)); paths.push(h(xCollector, yBot, x2));
-  };
-  const joinRightToLeft = (x1, x2, yTop, yBot) => {
-    const xStubEnd   = x1 - stub;
-    const xCollector = (x1 + x2) / 2;
-    paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
-    paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
-    paths.push(v(xCollector, yTop, yBot));
-    paths.push(h(xCollector, yTop, x2)); paths.push(h(xCollector, yBot, x2));
-  };
-
-  // R16 -> QF (left)
+  // Join two R16 slots -> QF pair (left side)
   for (let i = 0; i < 2; i++) {
-    const yTop = G.r16Centers[2*i]   - (slotGap/2 + slotH/2);
-    const yBot = G.r16Centers[2*i+1] + (slotGap/2 + slotH/2);
-    joinLeftToRight(X(0)+G.colW, X(1), yTop, yBot);
+    const rTop  = pairTopCenter(G.r16Centers[2*i]);
+    const rBot  = pairBotCenter(G.r16Centers[2*i+1]);
+
+    const qTop  = pairTopCenter(G.qfCenters[i]);
+    const qBot  = pairBotCenter(G.qfCenters[i]);
+
+    joinLeftToRight(X(0)+G.colW, X(1), rTop, rBot, qTop, qBot);
   }
-  // QF -> SF (left)
+  // QF -> SF (left side)
   {
-    const yTop = G.qfCenters[0] - (slotGap/2 + slotH/2);
-    const yBot = G.qfCenters[1] + (slotGap/2 + slotH/2);
-    joinLeftToRight(X(1)+G.colW, X(2), yTop, yBot);
+    const qTop  = pairTopCenter(G.qfCenters[0]);
+    const qBot  = pairBotCenter(G.qfCenters[1]);
+
+    const sTop  = pairTopCenter(G.sfCenter);
+    const sBot  = pairBotCenter(G.sfCenter);
+
+    joinLeftToRight(X(1)+G.colW, X(2), qTop, qBot, sTop, sBot);
   }
-  // SF -> Final left mini box
+  // SF -> Final left mini box (single bar)
   paths.push(h(X(2)+G.colW, G.sfCenter, finalLeftX));
 
-  // R16 -> QF (right)
+  // Join two R16 slots -> QF pair (right side, mirrored)
   for (let i = 0; i < 2; i++) {
-    const yTop = G.r16Centers[2*i]   - (slotGap/2 + slotH/2);
-    const yBot = G.r16Centers[2*i+1] + (slotGap/2 + slotH/2);
-    joinRightToLeft(X(6), X(5)+G.colW, yTop, yBot);
+    const rTop  = pairTopCenter(G.r16Centers[2*i]);
+    const rBot  = pairBotCenter(G.r16Centers[2*i+1]);
+
+    const qTop  = pairTopCenter(G.qfCenters[i]);
+    const qBot  = pairBotCenter(G.qfCenters[i]);
+
+    joinRightToLeft(X(6), X(5)+G.colW, rTop, rBot, qTop, qBot);
   }
-  // QF -> SF (right)
+  // QF -> SF (right side)
   {
-    const yTop = G.qfCenters[0] - (slotGap/2 + slotH/2);
-    const yBot = G.qfCenters[1] + (slotGap/2 + slotH/2);
-    joinRightToLeft(X(5), X(4)+G.colW, yTop, yBot);
+    const qTop  = pairTopCenter(G.qfCenters[0]);
+    const qBot  = pairBotCenter(G.qfCenters[1]);
+
+    const sTop  = pairTopCenter(G.sfCenter);
+    const sBot  = pairBotCenter(G.sfCenter);
+
+    joinRightToLeft(X(5), X(4)+G.colW, qTop, qBot, sTop, sBot);
   }
   // SF -> Final right mini box
   paths.push(h(X(4), G.sfCenter, finalRightX+G.finalW));
@@ -188,20 +189,20 @@ export default function Bracket16({ data }) {
           "--joinW": `${G.wire}px`,
         }}
       >
-        {/* Round titles (grid mirrors columns/gaps exactly) */}
+        {/* Round titles (middle says FINAL per your request) */}
         <div className={s.titles}>
           <span className={s.title}>Round of 16</span>
           <span className={s.title}>Quarterfinals</span>
           <span className={s.title}>Semifinals</span>
-          <span className={s.title}>Winner</span>
+          <span className={s.title}>Final</span>
           <span className={s.title}>Semifinals</span>
           <span className={s.title}>Quarterfinals</span>
           <span className={s.title}>Round of 16</span>
         </div>
 
-        {/* Champ pill & WINNER label anchored to finals */}
-        <div className={s.champ} style={{ top: G.champTop }}>TBD</div>
+        {/* WINNER label above the champ pill */}
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
+        <div className={s.champ} style={{ top: G.champTop }}>TBD</div>
 
         {/* Lines */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
@@ -233,8 +234,32 @@ export default function Bracket16({ data }) {
       </div>
     );
   }
+
+  // Lines
   function h(x1, y, x2) { return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />; }
   function v(x, y1, y2) { return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />; }
+
+  // Joiners that align source slot centers to DEST slot centers
+  function joinLeftToRight(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
+    const xStubEnd   = x1 + G.stub;
+    const xCollector = (x1 + x2) / 2;
+    // stubs from R16/QF source
+    paths.push(h(x1, ySrcTop, xStubEnd)); paths.push(h(x1, ySrcBot, xStubEnd));
+    // arms to collector at source levels
+    paths.push(h(xStubEnd, ySrcTop, xCollector)); paths.push(h(xStubEnd, ySrcBot, xCollector));
+    // collector spanning source top↔bottom
+    paths.push(v(xCollector, ySrcTop, ySrcBot));
+    // arms out to target at target slot midlines
+    paths.push(h(xCollector, yDstTop, x2)); paths.push(h(xCollector, yDstBot, x2));
+  }
+  function joinRightToLeft(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
+    const xStubEnd   = x1 - G.stub;
+    const xCollector = (x1 + x2) / 2;
+    paths.push(h(x1, ySrcTop, xStubEnd)); paths.push(h(x1, ySrcBot, xStubEnd));
+    paths.push(h(xStubEnd, ySrcTop, xCollector)); paths.push(h(xStubEnd, ySrcBot, xCollector));
+    paths.push(v(xCollector, ySrcTop, ySrcBot));
+    paths.push(h(xCollector, yDstTop, x2)); paths.push(h(xCollector, yDstBot, x2));
+  }
 }
 
 function normalizeData(data) {
