@@ -13,6 +13,7 @@
 
   /* derived per-pair metrics */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
+
   /* centers next round stacks between their feeders */
   --r16Space: clamp(18px, 2vh, 24px);
   --qfSpace:  calc(var(--pairH) + var(--r16Space));
@@ -162,7 +163,13 @@
 .right { direction:ltr; }   /* keep text LTR while mirroring arms */
 
 /* ---------- Final block (center column) ---------- */
-.finalCol{ position:relative; width:100%; display:flex; flex-direction:column; align-items:center; }
+.finalCol{
+  position:relative;
+  width:100%;
+  display:grid;
+  align-content:start;
+  justify-items:center;
+}
 .winner{
   text-align:center; color:#e7ecf5; opacity:.9;
   font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
@@ -178,7 +185,25 @@
 }
 .champText{ font-weight:800; letter-spacing:.02em; }
 .stem{ width:var(--joinW); height:18px; background:var(--line); border-radius:0; margin:8px auto; }
-.finalRow{ display:grid; grid-template-columns:1fr 14px 1fr; align-items:center; gap:10px; }
+
+/* NEW: wrapper that mimics a .pair block so the final slots share the same centers */
+.finalRowWrap{
+  height: var(--pairH);
+  margin: calc(var(--sfSpace)/2) 0;   /* match SF vertical spacing */
+  padding: var(--pairPad) 0;
+  width: 100%;
+  display: grid;
+  align-items: center;
+}
+
+/* the two finalist slots + middle bar */
+.finalRow{
+  height: calc(var(--slotH)*2 + var(--pairGapInside));
+  display: grid;
+  grid-template-columns: 1fr 14px 1fr;
+  align-items: center;
+  gap: 10px;
+}
 .finalSlot{
   background:#ffffff; border:2px solid var(--slotBorder); color:#0f1320;
   border-radius:0;
@@ -190,7 +215,7 @@
 .finalText{ font-weight:700; font-size:13px; }
 .midbar{ height:var(--joinW); width:100%; background:var(--line); border-radius:0; }
 
-/* ---------- Small screens (keeps the look while improving tap targets) ---------- */
+/* ---------- Small screens ---------- */
 @media (max-width: 960px){
   .viewport{ --colw: clamp(120px, 22vw, 150px); --gap: clamp(14px, 2.4vw, 20px); }
   .slot{ padding: 0 12px; }

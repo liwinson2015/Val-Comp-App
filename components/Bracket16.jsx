@@ -90,7 +90,7 @@ function Round({ title, tier, side, children }) {
   );
 }
 
-/** Two independent square slots with a vertical join and a connector arm */
+/** Two independent square slots with a vertical join and connector arms */
 function Pair({ top = "TBD", bot = "TBD", side }) {
   return (
     <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
@@ -100,7 +100,7 @@ function Pair({ top = "TBD", bot = "TBD", side }) {
       <div className={`${s.slot} ${s.slotBot}`} title={bot}>
         <span className={s.label}>{bot}</span>
       </div>
-      {/* the pair element itself draws the vertical bar between the two slots and the horizontal connector via CSS */}
+      {/* The pair element itself draws the stubs, vertical bar, and horizontal arms via CSS */}
     </div>
   );
 }
@@ -111,20 +111,23 @@ function Final({ left = "TBD", right = "TBD", champion = "TBD" }) {
       <div className={s.winner}>WINNER</div>
 
       <div className={s.champWrap}>
-        <div className={`${s.champBox}`} title={champion}>
+        <div className={s.champBox} title={champion}>
           <span className={s.champText}>{champion}</span>
         </div>
       </div>
 
       <div className={s.stem} aria-hidden="true" />
 
-      <div className={s.finalRow}>
-        <div className={s.finalSlot} title={left}>
-          <span className={s.finalText}>{left}</span>
-        </div>
-        <div className={s.midbar} aria-hidden="true" />
-        <div className={s.finalSlot} title={right}>
-          <span className={s.finalText}>{right}</span>
+      {/* Wrapper that matches a .pair block so the final slots align with SF centers */}
+      <div className={s.finalRowWrap}>
+        <div className={s.finalRow}>
+          <div className={s.finalSlot} title={left}>
+            <span className={s.finalText}>{left}</span>
+          </div>
+          <div className={s.midbar} aria-hidden="true" />
+          <div className={s.finalSlot} title={right}>
+            <span className={s.finalText}>{right}</span>
+          </div>
         </div>
       </div>
     </div>
