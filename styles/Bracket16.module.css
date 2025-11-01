@@ -1,16 +1,15 @@
 /* styles/Bracket16.module.css
-   Pixel-perfect, math-driven 16-team bracket
-   Boxes are absolutely positioned; connectors drawn in one SVG.
+   Pixel-perfect, math-driven 16-team bracket.
+   Absolutely positioned boxes; connectors drawn in one SVG.
    No transform scaling => no subpixel drift.
 */
 
-/* Global resets must be wrapped in :global for CSS Modules */
-:global {
-  *, *::before, *::after { box-sizing: border-box; }
-  :root { color-scheme: dark; }
-}
+/* ── Wrapper-scoped reset (CSS Modules safe) ─────────────────────────────── */
+.viewport *,
+.viewport *::before,
+.viewport *::after { box-sizing: border-box; }
 
-/* ---------- Canvas ---------- */
+/* ── Canvas ──────────────────────────────────────────────────────────────── */
 .viewport{
   width:100%;
   min-height:100dvh;
@@ -19,6 +18,7 @@
   background: radial-gradient(1200px 600px at 50% -200px, #0f172a 0%, #0b1020 60%, #091021 100%);
   color:#e8eef9;
   overflow:auto;
+  color-scheme: dark;
 }
 
 .stage{
@@ -30,18 +30,20 @@
   --joinW: 2px;   /* connector line thickness */
 }
 
-/* ---------- Round Titles ---------- */
+/* ── Round Titles (grid mirrors 7 columns + 6 gaps) ─────────────────────── */
 .titles{
   position:absolute;
   left:0; right:0; top:0;
-  display:flex;
-  justify-content:space-between; /* creates exactly 6 gaps across stage width */
-  padding:0 4px;
+  display:grid;
+  grid-template-columns: repeat(7, var(--colw));
+  column-gap: var(--gap);
+  justify-content:start;
   pointer-events:none;
   z-index:2;
+  padding:0;      /* ensure exact alignment to stage origin */
+  margin:0;
 }
 .title{
-  width:var(--colw);
   text-align:center;
   font-weight:900;
   font-size:12px;
@@ -53,7 +55,7 @@
   white-space:nowrap;
 }
 
-/* ---------- Connector Layer (SVG) ---------- */
+/* ── Connector Layer (SVG) ──────────────────────────────────────────────── */
 .wires{
   position:absolute;
   inset:0;
@@ -61,7 +63,7 @@
   pointer-events:none;
 }
 
-/* ---------- Boxes ---------- */
+/* ── Boxes ──────────────────────────────────────────────────────────────── */
 .slot{
   position:absolute;
   width:var(--colw);
@@ -87,7 +89,7 @@
   width:84px;
 }
 
-/* ---------- Champion Pill (overlay, doesn't affect geometry) ---------- */
+/* ── Champion Pill (overlay, doesn't affect geometry) ───────────────────── */
 .champ{
   position:absolute;
   left:50%;
@@ -104,5 +106,5 @@
   white-space:nowrap;
 }
 
-/* ---------- Optional Dev Helper ---------- */
+/* Optional dev helper */
 /* .slot.debug { outline:1px dashed orange; } */

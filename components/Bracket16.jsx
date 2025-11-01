@@ -66,7 +66,7 @@ export default function Bracket16({ data }) {
   }, []);
 
   // Short-hands
-  const { X, slotH, slotGap, pairBlock, stub, wire, stageW, stageH } = G;
+  const { X, slotH, slotGap, stub, wire, stageW, stageH } = G;
 
   // Helpers to compute slot top Y given a pair centerY
   const topSlotTop  = (pairY) => pairY - (slotGap / 2) - slotH;
@@ -117,18 +117,15 @@ export default function Bracket16({ data }) {
 
   // helper: draw a T-join from two feeders at (x1,yTop),(x1,yBot) to a target column x2
   const joinLeftToRight = (x1, x2, yTop, yBot) => {
-    const xStubEnd = x1 + stub;
+    const xStubEnd = x1 + G.stub;
     const xCollector = (x1 + x2) / 2;  // vertical collector centered in the gap
-    // stubs + arms to collector
     paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
     paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
-    // collector
     paths.push(v(xCollector, yTop, yBot));
-    // arms to target column edge
     paths.push(h(xCollector, yTop, x2)); paths.push(h(xCollector, yBot, x2));
   };
   const joinRightToLeft = (x1, x2, yTop, yBot) => {
-    const xStubEnd = x1 - stub;
+    const xStubEnd = x1 - G.stub;
     const xCollector = (x1 + x2) / 2;
     paths.push(h(x1, yTop, xStubEnd)); paths.push(h(x1, yBot, xStubEnd));
     paths.push(h(xStubEnd, yTop, xCollector)); paths.push(h(xStubEnd, yBot, xCollector));
@@ -140,7 +137,6 @@ export default function Bracket16({ data }) {
   for (let i = 0; i < 2; i++) {
     const yTop = G.r16Centers[2*i]   - (slotGap/2 + slotH/2);
     const yBot = G.r16Centers[2*i+1] + (slotGap/2 + slotH/2);
-    // connect from right edge of R16 column to left edge of QF column
     joinLeftToRight(X(0)+G.colW, X(1), yTop, yBot);
   }
   // QF -> SF (left)
@@ -177,14 +173,13 @@ export default function Bracket16({ data }) {
         style={{
           width: `${G.stageW}px`,
           height: `${G.stageH}px`,
-          /* share numbers with CSS through custom properties */
           "--slotH": `${G.slotH}px`,
           "--colw": `${G.colW}px`,
           "--gap": `${G.gap}px`,
           "--joinW": `${G.wire}px`,
         }}
       >
-        {/* Round titles */}
+        {/* Round titles (grid mirrors columns/gaps exactly) */}
         <div className={s.titles}>
           <span className={s.title}>Round of 16</span>
           <span className={s.title}>Quarterfinals</span>
@@ -229,7 +224,6 @@ export default function Bracket16({ data }) {
     );
   }
   function h(x1, y, x2) {
-    // horizontal line from (x1,y) to (x2,y)
     return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
   }
   function v(x, y1, y2) {
