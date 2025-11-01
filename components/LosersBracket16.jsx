@@ -3,23 +3,13 @@ import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
 /**
- * Losers Bracket for 16-player double elimination (manual-first rendering)
+ * Losers Bracket (16p double-elim) — UI matches Winners bracket:
+ * - square slots
+ * - crisp connectors
+ * - auto-fit scaling to screen (no cutoff)
  *
- * Props (all optional). Pass entries like: { name, avatar? }
- *  - lbR1:    8 entries  -> LB Round 1 (WB R1 losers)
- *  - dropR2:  4 entries  -> WB R2 losers (join at LB R2)
- *  - dropSF:  2 entries  -> WB SF losers (join at LB R3B)
- *  - dropWBF: 1 entry    -> WB Final loser (faces LB winner in LB Final)
- *  - wbChampion: 1 entry -> WB Champion (awaits in Grand Final)
- *
- * Flow:
- *  LB R1 (8→4)
- *  LB R2 (4 winners + 4 WB R2 losers → 4)
- *  LB R3A (4→2)
- *  LB R3B (2 + 2 WB SF losers → 2)
- *  LB R4 (2→1)
- *  LB Final (LB winner vs WB Final loser → 1)
- *  Grand Final (LB champ vs WB champ; show Reset note)
+ * Props (optional, use your data later):
+ *  lbR1[8], dropR2[4], dropSF[2], dropWBF[1], wbChampion[1]
  */
 export default function LosersBracket16({
   lbR1 = empty(8),
@@ -28,98 +18,100 @@ export default function LosersBracket16({
   dropWBF = empty(1),
   wbChampion = empty(1),
 }) {
-  const Slot = ({ entry }) => (
-    <div className={s.slot} title={entry?.name || "TBD"}>
-      {entry?.avatar ? <img className={s.ava} src={entry.avatar} alt="" /> : <div className={s.avaBlank} />}
-      <div className={s.name}>{entry?.name || "TBD"}</div>
-    </div>
-  );
-
-  const Match = ({ a, b, note }) => (
-    <div className={s.match}>
-      <Slot entry={a} />
-      <div className={s.wire} />
-      <Slot entry={b} />
-      {note && <div className={s.note}>{note}</div>}
-    </div>
-  );
-
   return (
-    <div className={s.wrap}>
-      <h3 className={s.title}>LOSERS BRACKET</h3>
+    <div className={s.viewport}>
+      <div className={s.stage}>
+        <div className={s.grid}>
 
-      <div className={s.columns}>
-        {/* LB R1 — 8 → 4 */}
-        <div className={s.col}>
-          <div className={s.head}>LB Round 1</div>
-          <div className={s.stack}>
-            <Match a={lbR1[0]} b={lbR1[1]} />
-            <Match a={lbR1[2]} b={lbR1[3]} />
-            <Match a={lbR1[4]} b={lbR1[5]} />
-            <Match a={lbR1[6]} b={lbR1[7]} />
-          </div>
-        </div>
+          {/* 1) LB Round 1 — 8 → 4 */}
+          <Round title="LB Round 1">
+            <Pair a={lbR1[0]} b={lbR1[1]} />
+            <Pair a={lbR1[2]} b={lbR1[3]} />
+            <Pair a={lbR1[4]} b={lbR1[5]} />
+            <Pair a={lbR1[6]} b={lbR1[7]} />
+          </Round>
 
-        {/* LB R2 — LB winners vs WB R2 losers */}
-        <div className={s.col}>
-          <div className={s.head}>LB Round 2 (WB R2 drop-ins)</div>
-          <div className={s.stack}>
-            <Match a={null} b={dropR2[0]} note="vs WB R2 Loser" />
-            <Match a={null} b={dropR2[1]} note="vs WB R2 Loser" />
-            <Match a={null} b={dropR2[2]} note="vs WB R2 Loser" />
-            <Match a={null} b={dropR2[3]} note="vs WB R2 Loser" />
-          </div>
-        </div>
+          {/* 2) LB Round 2 — LB winners vs WB R2 drop-ins */}
+          <Round title="LB Round 2 (WB R2 Drop-ins)">
+            <Pair a={null} b={dropR2[0]} note="vs WB R2 Loser" />
+            <Pair a={null} b={dropR2[1]} note="vs WB R2 Loser" />
+            <Pair a={null} b={dropR2[2]} note="vs WB R2 Loser" />
+            <Pair a={null} b={dropR2[3]} note="vs WB R2 Loser" />
+          </Round>
 
-        {/* LB R3A — 4 → 2 */}
-        <div className={s.col}>
-          <div className={s.head}>LB Round 3A</div>
-          <div className={s.stack}>
-            <Match a={null} b={null} />
-            <Match a={null} b={null} />
-          </div>
-        </div>
+          {/* 3) LB Round 3A — 4 → 2 */}
+          <Round title="LB Round 3A">
+            <Pair a={null} b={null} />
+            <Pair a={null} b={null} />
+          </Round>
 
-        {/* LB R3B — (2 winners) vs (2 WB SF losers) → 2 */}
-        <div className={s.col}>
-          <div className={s.head}>LB Round 3B (WB SF drop-ins)</div>
-          <div className={s.stack}>
-            <Match a={null} b={dropSF[0]} note="vs WB SF Loser" />
-            <Match a={null} b={dropSF[1]} note="vs WB SF Loser" />
-          </div>
-        </div>
+          {/* 4) LB Round 3B — winners vs WB SF drop-ins → 2 */}
+          <Round title="LB Round 3B (WB SF Drop-ins)">
+            <Pair a={null} b={dropSF[0]} note="vs WB SF Loser" />
+            <Pair a={null} b={dropSF[1]} note="vs WB SF Loser" />
+          </Round>
 
-        {/* LB R4 — 2 → 1 */}
-        <div className={s.col}>
-          <div className={s.head}>LB Round 4</div>
-          <div className={s.stack}>
-            <Match a={null} b={null} />
-          </div>
-        </div>
+          {/* 5) LB Round 4 — 2 → 1 */}
+          <Round title="LB Round 4">
+            <Pair a={null} b={null} />
+          </Round>
 
-        {/* LB Final — LB winner vs WB Final loser */}
-        <div className={s.col}>
-          <div className={s.head}>LB Final</div>
-          <div className={s.stack}>
-            <Match a={null} b={dropWBF[0]} note="WB Final Loser" />
-          </div>
-        </div>
+          {/* 6) LB Final — LB winner vs WB Final loser */}
+          <Round title="LB Final">
+            <Pair a={null} b={dropWBF[0]} note="WB Final Loser" />
+          </Round>
 
-        {/* Grand Final + Reset note */}
-        <div className={s.colWide}>
-          <div className={s.head}>Grand Final</div>
-          <div className={s.gfRow}>
-            <Slot entry={null} />
-            <div className={s.vs}>VS</div>
-            <Slot entry={wbChampion[0]} />
-          </div>
-          <div className={s.reset}>Reset Match (if LB side wins first set)</div>
+          {/* 7) Grand Final — LB champ vs WB champ (visual only) */}
+          <FinalColumn wb={wbChampion[0]} />
+
         </div>
       </div>
     </div>
   );
 }
 
-function empty(n) {
-  return Array.from({ length: n }, () => null);
+/* ---------- building blocks (mirror winners look) ---------- */
+
+function Round({ title, children, side }) {
+  return (
+    <div className={`${s.round} ${side ? s.right : ""}`}>
+      <div className={s.roundTitle}>{title}</div>
+      <div className={s.stack}>{children}</div>
+    </div>
+  );
 }
+
+function Pair({ a, b, note, side }) {
+  return (
+    <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
+      <Slot entry={a} />
+      <Slot entry={b} />
+      {note && <div className={s.note}>{note}</div>}
+    </div>
+  );
+}
+
+function Slot({ entry }) {
+  const label = entry?.name || (typeof entry === "string" ? entry : "TBD");
+  return (
+    <div className={s.slot} title={label}>
+      <span className={s.label}>{label}</span>
+    </div>
+  );
+}
+
+function FinalColumn({ wb }) {
+  return (
+    <div className={s.finalCol}>
+      <div className={s.roundTitle}>Grand Final</div>
+      <div className={s.finalRow}>
+        <div className={s.finalSlot}>TBD</div>
+        <div className={s.vs} />
+        <div className={s.finalSlot}>{wb?.name || (typeof wb === "string" ? wb : "WB Champion")}</div>
+      </div>
+      <div className={s.reset}>Reset match if LB side wins first set</div>
+    </div>
+  );
+}
+
+function empty(n){ return Array.from({length:n}, () => null); }

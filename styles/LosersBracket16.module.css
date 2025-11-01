@@ -1,148 +1,130 @@
 /* styles/LosersBracket16.module.css */
-/* Match the winners bracket look: square cards, compact, centered, crisp lines */
+/* Match Winners bracket: square cards, crisp connectors, auto-fit scaling */
 
-.wrap{
-  /* compact sizing so the whole LB fits on one screen */
-  --colw: clamp(120px, 12vw, 150px);
-  --gap: clamp(14px, 2vw, 20px);
+.viewport{
+  /* geometry */
+  --colw: clamp(110px, 10.5vw, 140px);  /* a touch narrower than winners */
+  --gap:  clamp(14px, 2vw, 20px);
 
-  --slotH: 34px;
-  --slotPadX: 10px;
-  --border: 2px;
+  --slotH: 32px;
+  --pairGapInside: 8px;
+  --pairPad: 4px;
 
-  --wire: #2a2f36;        /* connector line color (same family as winners) */
+  /* lines */
+  --line: #2a2f36;
+  --joinW: 2px;
+  --stub: 10px;
+  --arm: calc(var(--gap) - var(--stub));
+
+  /* card colors */
   --slotBg: #ffffff;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #273247;
-  color: #e7ecf5;
+  /* stage: 7 columns (R1, R2, R3A, R3B, R4, LBF, GF) */
+  --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
+  --stageH: clamp(420px, 56vh, 620px);
+
+  /* align with your page header space */
+  --topSpace: 130px;
+
+  /* auto fit */
+  --fitW: calc(100vw / var(--stageW));
+  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
+  --scale: min(1, var(--fitW), var(--fitH));
+
+  width:100%;
+  height:calc(100vh - var(--topSpace));
+  display:grid;
+  place-items:center;
+  overflow:visible;
 }
 
-/* ---- header ---- */
-.title{
-  margin: 0 0 10px 0;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #dfe6f3;
+.stage{
+  width: var(--stageW);
+  height: var(--stageH);
+  transform: scale(var(--scale));
+  transform-origin: top center;
 }
 
-/* ---- column layout (center everything, no scroll) ---- */
-.columns{
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: var(--colw);
+.grid{
+  width:100%; height:100%;
+  display:grid;
+  grid-template-columns: repeat(7, var(--colw));
   gap: var(--gap);
-  justify-content: center;       /* center the whole grid */
   align-items: start;
+  justify-items: stretch;
 }
 
-/* column blocks */
-.col, .colWide{ position: relative; }
-.head{
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: #b9c4da;
-  margin-bottom: 8px;
+/* headings */
+.round{ position:relative; }
+.roundTitle{
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
+}
+.stack{ display:grid; align-content:start; gap:12px; }
+
+/* match pair (two stacked square slots) */
+.pair{ position:relative; padding: var(--pairPad) 0; }
+.pair::after{
+  /* small horizontal stub from pair toward next column */
+  content:"";
+  position:absolute; top:50%; right: calc(var(--stub) * -1);
+  transform:translateY(-50%);
+  width: var(--stub); height: var(--joinW);
+  background: var(--line);
+}
+.sideRight.pair::after{
+  left: calc(var(--stub) * -1); right:auto;
 }
 
-.stack{ display: grid; gap: 12px; align-content: start; }
-
-/* ---- matches + connectors (simple/clean like winners) ---- */
-.match{
-  position: relative;
-  display: grid;
-  gap: 8px;
-  padding-left: 0;         /* keep tight */
+/* square slot like winners */
+.slot{
+  height: var(--slotH);
+  border: 2px solid var(--slotBorder);
+  border-radius: 0;
+  background: var(--slotBg);
+  display:flex; align-items:center;
+  padding: 0 10px;
+  box-shadow:none;
+}
+.slot + .slot{ margin-top: var(--pairGapInside); }
+.label{
+  color: var(--textDark);
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* short horizontal stub between stacked slots (visual pairing) */
-.wire{
-  position: absolute;
-  left: calc(var(--slotPadX) * -0.6);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 2px;
-  background: var(--wire);
-  opacity: .9;
-}
-
-/* small helper text e.g. “vs WB R2 Loser” */
+/* small “note” text under a pair (drop-ins tag) */
 .note{
   font-size: 11px;
   color: #95a3bf;
-  margin-top: -4px;
+  margin-top: 2px;
 }
 
-/* ---- the square player slot ---- */
-.slot{
-  height: var(--slotH);
-  border: var(--border) solid var(--slotBorder);
-  border-radius: 0;                /* square corners to match winners */
-  background: var(--slotBg);
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  align-items: center;
-  gap: 8px;
-  padding: 0 var(--slotPadX);
-  color: var(--textDark);
+/* finals column (compact, winners-style) */
+.finalCol{ position:relative; }
+.winner{
+  text-align:center; color:#e7ecf5; opacity:.9;
+  font-weight:900; letter-spacing:.10em; text-transform:uppercase; font-size:12px;
+  margin-bottom:8px;
 }
-
-/* avatar area (kept tiny, clean) */
-.ava, .avaBlank{
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  border: 1px solid #2b3140;
-  object-fit: cover;
+.finalRow{
+  display:grid; grid-template-columns:1fr 12px 1fr; align-items:center; gap:8px;
 }
-.avaBlank{ background: #eaeff9; }
-
-.name{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 700;
-  font-size: 12.5px;
+.finalSlot{
+  background:#ffffff; border:2px solid var(--slotBorder); color:#0f1320;
+  border-radius:0; padding:0 10px; height: var(--slotH);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12.5px;
 }
+.vs{ height: var(--joinW); background: var(--line); }
 
-/* slightly wider column for the final row (still compact) */
-.colWide{ width: calc(var(--colw) * 1.6); }
-
-.gfRow{
-  display: grid;
-  grid-template-columns: var(--colw) 24px var(--colw);
-  gap: 10px;
-  align-items: center;
-}
-
-.vs{
-  text-align: center;
-  font-weight: 900;
-  color: #b9c4da;
-}
-
+/* reset note */
 .reset{
-  margin-top: 6px;
-  font-size: 11px;
-  color: #95a3bf;
+  margin-top:6px; font-size:11px; color:#95a3bf; text-align:center;
 }
 
-/* ---- small screens: nudge tighter so everything still fits ---- */
-@media (max-width: 1100px){
-  .wrap{
-    --colw: 118px;
-    --gap: 14px;
-    --slotH: 32px;
-    --slotPadX: 8px;
-  }
-  .colWide{ width: calc(var(--colw) * 1.5); }
-  .gfRow{ grid-template-columns: var(--colw) 20px var(--colw); gap: 8px; }
-}
+/* right-side helper (mirrors outward stub) */
+.right{ direction:ltr; }
