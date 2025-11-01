@@ -1,125 +1,124 @@
-// components/LosersBracket16.jsx
+// components/Bracket16.jsx
 import React from "react";
-import s from "../styles/LosersBracket16.module.css";
+import s from "../styles/Bracket16.module.css";
 
 /**
- * Losers bracket (compact) for a 16-player double-elimination.
- * Columns: R1 → R2 (WB R2 drop-ins) → R3A → R3B (WB SF drop-ins) → R4 → LB Final → LB Winner
- * Notes are shown under pairs to indicate sources (WB R2 / WB SF / WB Final Loser).
+ * 16-player single-elimination bracket (no transform scaling).
+ * Geometry is shared between CSS and this markup; center column stack height
+ * exactly matches the Semifinals columns to guarantee perfect vertical alignment.
  */
-export default function LosersBracket16({
-  lbR1 = [
-    "LB P1","LB P2","LB P3","LB P4",
-    "LB P5","LB P6","LB P7","LB P8",
-  ],
-  dropR2 = ["WB R2 Loser 1","WB R2 Loser 2","WB R2 Loser 3","WB R2 Loser 4"],
-  dropSF = ["WB SF Loser 1","WB SF Loser 2"],
-  wbFinalLoser = "WB Final Loser",
-  lbWinner = "TBD",
-  showSourceLabels = true,
-}) {
-  // utilities
-  const pairs = (list) => {
-    const out = [];
-    for (let i = 0; i < list.length; i += 2) out.push([list[i] ?? "TBD", list[i + 1] ?? "TBD"]);
-    return out;
-  };
+export default function Bracket16({ data }) {
+  const L = data?.left ?? {};
+  const R = data?.right ?? {};
+  const F = data?.final ?? {};
 
-  // R1: 8 players -> 4 matches
-  const r1Pairs = pairs(lbR1.length ? lbR1 : [
-    "LB P1","LB P2","LB P3","LB P4","LB P5","LB P6","LB P7","LB P8",
-  ]);
-
-  // R2: 4 matches: (TBD) vs (WB R2 Loser X)
-  const r2Pairs = dropR2.map((d) => ["TBD", d || "TBD"]);
-  const r2Notes = r2Pairs.map(() => (showSourceLabels ? "vs WB R2 Loser" : null));
-
-  // R3A: 2 matches (TBD vs TBD)
-  const r3aPairs = [["TBD", "TBD"], ["TBD", "TBD"]];
-
-  // R3B: drop-ins from WB SF – (TBD) vs (WB SF Loser X)
-  const r3bPairs = dropSF.map((d) => ["TBD", d || "TBD"]);
-  const r3bNotes = r3bPairs.map(() => (showSourceLabels ? "vs WB SF Loser" : null));
-
-  // R4: 2 matches (TBD vs TBD)
-  const r4Pairs = [["TBD", "TBD"], ["TBD", "TBD"]];
-
-  // LB Final: (TBD) vs (WB Final Loser)
-  const lbFinalPair = ["TBD", wbFinalLoser || "WB Final Loser"];
-  const lbFinalNote = showSourceLabels ? "WB Final Loser" : null;
+  const leftR16 =
+    L.R16 ?? [
+      ["Seed 1", "Seed 2"],
+      ["Seed 3", "Seed 4"],
+      ["Seed 5", "Seed 6"],
+      ["Seed 7", "Seed 8"],
+    ];
+  const rightR16 =
+    R.R16 ?? [
+      ["Seed 9", "Seed 10"],
+      ["Seed 11", "Seed 12"],
+      ["Seed 13", "Seed 14"],
+      ["Seed 15", "Seed 16"],
+    ];
 
   return (
     <div className={s.viewport}>
       <div className={s.stage}>
         <div className={s.grid}>
-          {/* 1) LB Round 1 */}
-          <Round title="LB Round 1">
-            {r1Pairs.map((p, i) => (
-              <Pair key={`r1-${i}`} top={p[0]} bot={p[1]} />
+          {/* LEFT */}
+          <Round title="Round of 16" tier="r16">
+            {leftR16.map((m, i) => (
+              <Pair key={`L16-${i}`} top={m[0]} bot={m[1]} />
             ))}
           </Round>
 
-          {/* 2) LB Round 2 (WB R2 drop-ins) */}
-          <Round title="LB Round 2 (WB R2 drop-ins)">
-            {r2Pairs.map((p, i) => (
-              <Pair key={`r2-${i}`} top={p[0]} bot={p[1]} join note={r2Notes[i]} />
+          <Round title="Quarterfinals" tier="qf">
+            {[0, 1].map((i) => (
+              <Pair key={`LQF-${i}`} top="TBD" bot="TBD" />
             ))}
           </Round>
 
-          {/* 3) LB Round 3A */}
-          <Round title="LB Round 3A">
-            {r3aPairs.map((p, i) => (
-              <Pair key={`r3a-${i}`} top={p[0]} bot={p[1]} join />
-            ))}
+          <Round title="Semifinals" tier="sf">
+            <Pair top="TBD" bot="TBD" />
           </Round>
 
-          {/* 4) LB Round 3B (WB SF drop-ins) */}
-          <Round title="LB Round 3B (WB SF drop-ins)">
-            {r3bPairs.map((p, i) => (
-              <Pair key={`r3b-${i}`} top={p[0]} bot={p[1]} join note={r3bNotes[i]} />
-            ))}
-          </Round>
+          {/* CENTER (Final) — stack height equals Semifinals stack height */}
+          <div className={`${s.round} ${s.finalCol}`}>
+            <div className={s.roundTitle}>Winner</div>
 
-          {/* 5) LB Round 4 */}
-          <Round title="LB Round 4">
-            {r4Pairs.map((p, i) => (
-              <Pair key={`r4-${i}`} top={p[0]} bot={p[1]} join />
-            ))}
-          </Round>
+            {/* Absolute champion overlay (doesn't affect baseline) */}
+            <div className={s.champOverlay}>
+              <div className={s.champBox} title={F.champion ?? "TBD"}>
+                <span className={s.champText}>{F.champion ?? "TBD"}</span>
+              </div>
+              <div className={s.stem} aria-hidden="true" />
+            </div>
 
-          {/* 6) LB Final */}
-          <Round title="LB Final">
-            <Pair top={lbFinalPair[0]} bot={lbFinalPair[1]} join note={lbFinalNote} />
-          </Round>
-
-          {/* 7) LB Winner */}
-          <div className={s.lbFinalCol}>
-            <div className={s.lbWinnerTitle}>LB Winner</div>
-            <div className={s.lbWinnerBox}>{lbWinner || "TBD"}</div>
+            {/* The stack with identical height to Semifinals, final centered within */}
+            <div className={s.finalStack}>
+              <div className={s.finalRowWrap}>
+                <div className={s.finalRow}>
+                  <div className={s.finalSlot} title={F.left ?? "TBD"}>
+                    <span className={s.finalText}>{F.left ?? "TBD"}</span>
+                  </div>
+                  <div className={s.midbar} aria-hidden="true" />
+                  <div className={s.finalSlot} title={F.right ?? "TBD"}>
+                    <span className={s.finalText}>{F.right ?? "TBD"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* RIGHT */}
+          <Round title="Semifinals" tier="sf" side="right">
+            <Pair top="TBD" bot="TBD" side="right" />
+          </Round>
+
+          <Round title="Quarterfinals" tier="qf" side="right">
+            {[0, 1].map((i) => (
+              <Pair key={`RQF-${i}`} top="TBD" bot="TBD" side="right" />
+            ))}
+          </Round>
+
+          <Round title="Round of 16" tier="r16" side="right">
+            {rightR16.map((m, i) => (
+              <Pair key={`R16-${i}`} top={m[0]} bot={m[1]} side="right" />
+            ))}
+          </Round>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- primitives ---------- */
+/* ----- Building blocks ----- */
 
-function Round({ title, children }) {
+function Round({ title, tier, side, children }) {
   return (
-    <div className={s.round}>
+    <div className={`${s.round} ${s[tier]} ${side ? s.right : ""}`}>
       <div className={s.roundTitle}>{title}</div>
       <div className={s.stack}>{children}</div>
     </div>
   );
 }
 
-function Pair({ top = "TBD", bot = "TBD", join = false, note = null }) {
+/** Two independent square slots with stubs & connector arms via CSS */
+function Pair({ top = "TBD", bot = "TBD", side }) {
   return (
-    <div className={`${s.pair} ${join ? s.join : ""}`}>
-      <div className={s.slot} title={top}><span className={s.label}>{top}</span></div>
-      <div className={s.slot} title={bot}><span className={s.label}>{bot}</span></div>
-      {note ? <div className={s.note}>{note}</div> : null}
+    <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
+      <div className={`${s.slot} ${s.slotTop}`} title={top}>
+        <span className={s.label}>{top}</span>
+      </div>
+      <div className={`${s.slot} ${s.slotBot}`} title={bot}>
+        <span className={s.label}>{bot}</span>
+      </div>
     </div>
   );
 }
