@@ -2,25 +2,23 @@ import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
 /**
- * Absolute-positioned, pixel-precise 16-team bracket.
- * Wires are drawn with SVG under the boxes for perfect alignment.
- * This version adds explicit "stubs" on the SF boxes so each
- * SF box has TWO visible inbound connectors (top & bottom).
+ * Pixel-precise 16-team bracket using absolute boxes + SVG wires.
+ * QF → SF connectors are now single polylines from EACH QF box
+ * directly to the SF box edge (no gaps, no AA seams).
  */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // ----- Geometry ------------------------------------------------------------
+  // ---------- Geometry ----------
   const G = useMemo(() => {
     const colW  = 150;
     const gap   = 34;
     const slotH = 38;
-    const stub  = 14; // short horizontal line length
     const wire  = 2;
 
     const innerGapR16 = 12;
-    const innerGapQF  = 30;
-    const innerGapSF  = 20;
+    const innerGapQF  = 30; // widened for nicer spacing
+    const innerGapSF  = 22;
 
     const X = (i) => i * (colW + gap);
 
@@ -41,19 +39,19 @@ export default function Bracket16({ data }) {
 
     const stageW    = X(6) + colW;
     const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH    = Math.ceil(lastBot + 100);
+    const stageH    = Math.ceil(lastBot + 120);
 
     const finalW      = 84;
     const finalMidGap = 22;
     const centerX     = X(3) + colW / 2;
 
-    const champOffset = 52;
-    const winnerAbove = 36;
+    const champOffset = 52;  // winner chip offset below headline
+    const winnerAbove = 36;  // headline above chip
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
 
     return {
-      colW, gap, slotH, stub, wire,
+      colW, gap, slotH, wire,
       innerGapR16, innerGapQF, innerGapSF,
       X, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
@@ -62,12 +60,13 @@ export default function Bracket16({ data }) {
     };
   }, []);
 
-  const slotTop = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
-  const slotBot = (pairY, innerGap) => pairY + (innerGap / 2);
-  const midTop  = (pairY, innerGap) => pairY - (innerGap / 2 + G.slotH / 2);
-  const midBot  = (pairY, innerGap) => pairY + (innerGap / 2 + G.slotH / 2);
+  // helpers to get slot top/bot and centers
+  const slotTop     = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
+  const slotBot     = (pairY, innerGap) => pairY + (innerGap / 2);
+  const centerTop   = (pairY, innerGap) => pairY - (innerGap / 2) - (G.slotH / 2);
+  const centerBot   = (pairY, innerGap) => pairY + (innerGap / 2) + (G.slotH / 2);
 
-  // ----- Boxes ---------------------------------------------------------------
+  // ---------- Boxes ----------
   const boxes = [];
 
   // Left R16
@@ -82,7 +81,7 @@ export default function Bracket16({ data }) {
     boxes.push(slotBox(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
     boxes.push(slotBox(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
-  // Left SF
+  // Left SF (two semifinalist slots)
   boxes.push(slotBox(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
   boxes.push(slotBox(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
@@ -102,111 +101,114 @@ export default function Bracket16({ data }) {
   boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
   boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // Finalists
+  // Finalists (center)
   const finalLeftX  = G.X(3) + G.colW/2 - G.finalMidGap/2 - G.finalW;
   const finalRightX = G.X(3) + G.colW/2 + G.finalMidGap/2;
   const finalTop    = G.finalY - G.slotH/2;
-  const finalLeft   = finalBox(finalLeftX, finalTop,  D.final.left);
+  const finalLeft   = finalBox(finalLeftX,  finalTop, D.final.left);
   const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
 
-  // ----- Wires ---------------------------------------------------------------
-  const paths = [];
-  const H = (x1,y,x2) => <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />;
-  const V = (x,y1,y2) => <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />;
+  // ---------- Wires (single paths so no gaps) ----------
+  const P = [];
 
-  // Helpers for "four-rail" joins
-  function joinPairToMid_L(xSrcRight, xDstLeft, pairCenter, srcInnerGap, yDstMid){
-    const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
-    const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
-    const xJoin = xSrcRight + G.stub;
-    paths.push(H(xSrcRight, yTop, xJoin));
-    paths.push(H(xSrcRight, yBot, xJoin));
-    paths.push(V(xJoin, yTop, yBot));
-    paths.push(H(xJoin, yDstMid, xDstLeft));
+  // tiny helper path makers
+  const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`;
+  const V = (x,y1,y2) => `M ${x} ${y1} V ${y2}`;
+  const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`;
+
+  // collector rails for R16 → QF (these already looked right/connected)
+  function r16ToQf_L(pairY, targetPairY){
+    const xR16 = G.X(0)+G.colW;
+    const xQF  = G.X(1);
+    const yTopSrc = centerTop(pairY, G.innerGapR16);
+    const yBotSrc = centerBot(pairY, G.innerGapR16);
+
+    const yTopDst = centerTop(targetPairY, G.innerGapQF);
+    const yBotDst = centerBot(targetPairY, G.innerGapQF);
+    const xm = (xR16 + xQF) / 2;
+
+    P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
+    P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
-  function joinPairToMid_R(xSrcLeft, xDstRight, pairCenter, srcInnerGap, yDstMid){
-    const yTop = pairCenter - (srcInnerGap/2 + G.slotH/2);
-    const yBot = pairCenter + (srcInnerGap/2 + G.slotH/2);
-    const xJoin = xSrcLeft - G.stub;
-    paths.push(H(xSrcLeft, yTop, xJoin));
-    paths.push(H(xSrcLeft, yBot, xJoin));
-    paths.push(V(xJoin, yTop, yBot));
-    paths.push(H(xJoin, yDstMid, xDstRight));
+  r16ToQf_L(G.r16Centers[0], G.qfCenters[0]);
+  r16ToQf_L(G.r16Centers[1], G.qfCenters[0]);
+  r16ToQf_L(G.r16Centers[2], G.qfCenters[1]);
+  r16ToQf_L(G.r16Centers[3], G.qfCenters[1]);
+
+  function r16ToQf_R(pairY, targetPairY){
+    const xR16 = G.X(6);
+    const xQF  = G.X(5)+G.colW;
+    const yTopSrc = centerTop(pairY, G.innerGapR16);
+    const yBotSrc = centerBot(pairY, G.innerGapR16);
+
+    const yTopDst = centerTop(targetPairY, G.innerGapQF);
+    const yBotDst = centerBot(targetPairY, G.innerGapQF);
+    const xm = (xR16 + xQF) / 2;
+
+    P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
+    P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
+  r16ToQf_R(G.r16Centers[0], G.qfCenters[0]);
+  r16ToQf_R(G.r16Centers[1], G.qfCenters[0]);
+  r16ToQf_R(G.r16Centers[2], G.qfCenters[1]);
+  r16ToQf_R(G.r16Centers[3], G.qfCenters[1]);
 
-  // R16 -> QF (left)
-  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
-  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
-  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
-  joinPairToMid_L(G.X(0)+G.colW, G.X(1), G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
+  // *** NEW: QF → SF — ONE PATH PER QF BOX to the SF box edge ***
+  // Left side: two QF boxes feed SF top; two feed SF bottom.
+  (function qfToSfLeft(){
+    const xQFRight = G.X(1) + G.colW;
+    const xSFLeft  = G.X(2);
+    const xmTop    = (xQFRight + xSFLeft) / 2 - 4; // slight stagger feels nicer
+    const xmBot    = (xQFRight + xSFLeft) / 2 + 4;
 
-  // QF -> SF (left)
-  const sfLeftEdgeX = G.X(2);
-  const sfTopY = midTop(G.sfCenter, G.innerGapSF);
-  const sfBotY = midBot(G.sfCenter, G.innerGapSF);
-  
-  // Top QF pair to top SF slot
-  const qf0Left = G.X(1) + G.colW;
-  const qf0TopY = midTop(G.qfCenters[0], G.innerGapQF);
-  const qf0BotY = midBot(G.qfCenters[0], G.innerGapQF);
-  const qf0JoinX = qf0Left + G.stub;
-  paths.push(H(qf0Left, qf0TopY, qf0JoinX));
-  paths.push(H(qf0Left, qf0BotY, qf0JoinX));
-  paths.push(V(qf0JoinX, qf0TopY, qf0BotY));
-  
-  // Bottom QF pair to bottom SF slot
-  const qf1TopY = midTop(G.qfCenters[1], G.innerGapQF);
-  const qf1BotY = midBot(G.qfCenters[1], G.innerGapQF);
-  const qf1JoinX = qf0Left + G.stub;
-  paths.push(H(qf0Left, qf1TopY, qf1JoinX));
-  paths.push(H(qf0Left, qf1BotY, qf1JoinX));
-  paths.push(V(qf1JoinX, qf1TopY, qf1BotY));
-  
-  // Now connect the midpoints to SF
-  const qf0MidY = (qf0TopY + qf0BotY) / 2;
-  const qf1MidY = (qf1TopY + qf1BotY) / 2;
-  paths.push(H(qf0JoinX, qf0MidY, sfLeftEdgeX));
-  paths.push(H(qf1JoinX, qf1MidY, sfLeftEdgeX));
+    // QF #1 -> SF top (two lines: from each QF box)
+    const qf1 = G.qfCenters[0];
+    const yQf1Top = centerTop(qf1, G.innerGapQF);
+    const yQf1Bot = centerBot(qf1, G.innerGapQF);
+    const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFRight, yQf1Top, xmTop, ySfTop, xSFLeft));
+    P.push(polyH_V_H(xQFRight, yQf1Bot, xmTop, ySfTop, xSFLeft));
 
-  // SF -> Final (left)
-  paths.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
+    // QF #2 -> SF bottom (two lines)
+    const qf2 = G.qfCenters[1];
+    const yQf2Top = centerTop(qf2, G.innerGapQF);
+    const yQf2Bot = centerBot(qf2, G.innerGapQF);
+    const ySfBot  = centerBot(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFRight, yQf2Top, xmBot, ySfBot, xSFLeft));
+    P.push(polyH_V_H(xQFRight, yQf2Bot, xmBot, ySfBot, xSFLeft));
+  })();
 
-  // R16 -> QF (right)
-  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[0], G.innerGapR16, midTop(G.qfCenters[0], G.innerGapQF));
-  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[1], G.innerGapR16, midBot(G.qfCenters[0], G.innerGapQF));
-  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[2], G.innerGapR16, midTop(G.qfCenters[1], G.innerGapQF));
-  joinPairToMid_R(G.X(6), G.X(5)+G.colW, G.r16Centers[3], G.innerGapR16, midBot(G.qfCenters[1], G.innerGapQF));
+  // Right side mirrored (QF left edge → SF right edge)
+  (function qfToSfRight(){
+    const xQFLeft   = G.X(5);
+    const xSFRight  = G.X(4) + G.colW;
+    const xmTop     = (xQFLeft + xSFRight) / 2 + 4;
+    const xmBot     = (xQFLeft + xSFRight) / 2 - 4;
 
-  // QF -> SF (right)
-  const sfRightEdgeX = G.X(4) + G.colW;
-  const sfTopYRight = midTop(G.sfCenter, G.innerGapSF);
-  const sfBotYRight = midBot(G.sfCenter, G.innerGapSF);
-  
-  // Draw rails from QF pairs
-  const qf0Right = G.X(5);
-  const qf0RTopY = midTop(G.qfCenters[0], G.innerGapQF);
-  const qf0RBotY = midBot(G.qfCenters[0], G.innerGapQF);
-  const qf0RJoinX = qf0Right - G.stub;
-  paths.push(H(qf0Right, qf0RTopY, qf0RJoinX));
-  paths.push(H(qf0Right, qf0RBotY, qf0RJoinX));
-  paths.push(V(qf0RJoinX, qf0RTopY, qf0RBotY));
-  paths.push(H(qf0RJoinX, sfTopYRight, sfRightEdgeX));
-  
-  const qf1RTopY = midTop(G.qfCenters[1], G.innerGapQF);
-  const qf1RBotY = midBot(G.qfCenters[1], G.innerGapQF);
-  const qf1RJoinX = qf0Right - G.stub;
-  paths.push(H(qf0Right, qf1RTopY, qf1RJoinX));
-  paths.push(H(qf0Right, qf1RBotY, qf1RJoinX));
-  paths.push(V(qf1RJoinX, qf1RTopY, qf1RBotY));
-  paths.push(H(qf1RJoinX, sfBotYRight, sfRightEdgeX));
+    // QF #1 -> SF top (two lines)
+    const qf1 = G.qfCenters[0];
+    const yQf1Top = centerTop(qf1, G.innerGapQF);
+    const yQf1Bot = centerBot(qf1, G.innerGapQF);
+    const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFLeft, yQf1Top, xmTop, ySfTop, xSFRight));
+    P.push(polyH_V_H(xQFLeft, yQf1Bot, xmTop, ySfTop, xSFRight));
 
-  // SF -> Final (right)
-  paths.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
+    // QF #2 -> SF bottom (two lines)
+    const qf2 = G.qfCenters[1];
+    const yQf2Top = centerTop(qf2, G.innerGapQF);
+    const yQf2Bot = centerBot(qf2, G.innerGapQF);
+    const ySfBot  = centerBot(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFLeft, yQf2Top, xmBot, ySfBot, xSFRight));
+    P.push(polyH_V_H(xQFLeft, yQf2Bot, xmBot, ySfBot, xSFRight));
+  })();
 
-  // finalists mid-bar
-  paths.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
+  // SF → Final (center)
+  P.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
+  P.push(H(G.X(4),        G.sfCenter, finalRightX + G.finalW));
+  // finalists middle bar
+  P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
 
-  // ----- Render --------------------------------------------------------------
+  // ---------- Render ----------
   return (
     <div className={s.viewport}>
       <div
@@ -233,10 +235,10 @@ export default function Bracket16({ data }) {
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
 
-        {/* wires under boxes */}
+        {/* wires behind boxes */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
-          <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none" shapeRendering="crispEdges">
-            {paths}
+          <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none">
+            {P.map((d, i) => <path key={i} d={d} />)}
           </g>
         </svg>
 
@@ -247,7 +249,7 @@ export default function Bracket16({ data }) {
     </div>
   );
 
-  // ----- Box helpers ---------------------------------------------------------
+  // ---------- Box helpers ----------
   function slotBox(x,y,text){
     return <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left:x, top:y }}>{text}</div>;
   }
@@ -288,4 +290,4 @@ function normalizeData(data) {
     },
   };
 }
-function avg(a,b){ return (a+b)/2; }
+const avg = (a,b)=> (a+b)/2;
