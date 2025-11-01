@@ -23,10 +23,10 @@
 .stage{
   position:relative;
   /* CSS variables mirrored from JSX for clarity (JSX sets real values) */
-  --slotH: 38px;
-  --colw: 150px;
-  --gap: 34px;
-  --joinW: 2px;
+  --slotH: 38px;   /* slot height */
+  --colw: 150px;   /* column width */
+  --gap: 34px;     /* column spacing */
+  --joinW: 2px;    /* line thickness */
 }
 
 /* Round titles: grid mirrors 7 columns + 6 gaps exactly */

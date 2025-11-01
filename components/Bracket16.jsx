@@ -16,41 +16,39 @@ export default function Bracket16({ data }) {
     const colW        = 150;  // px
     const gap         = 34;   // px column spacing
     const slotH       = 38;   // px slot height
-    const slotGap     = 12;   // px gap inside a pair
-    const stub        = 14;   // px short horizontal from box
+    const stub        = 14;   // px small horizontal stub
     const wire        = 2;    // px line thickness
 
-    const pairBlock   = slotH * 2 + slotGap;
+    // Per-round inner gaps (distance between the two slots in a pair)
+    const innerGapR16 = 12;
+    const innerGapQF  = 20;   // ↑ more space so QF boxes don't look "touching"
+    const innerGapSF  = 18;
 
-    const r16Space    = 26;           // vertical air between R16 pairs
-    const qfSpace     = pairBlock + r16Space;
-    const sfSpace     = pairBlock + qfSpace;
+    // R16 vertical rhythm
+    const pairBlockR16 = slotH * 2 + innerGapR16;
+    const r16Space     = 26;  // space between R16 pairs
 
-    const X           = (i) => i * (colW + gap);
+    const X            = (i) => i * (colW + gap);
 
-    const titleBand   = 28;
-    const headerPad   = 64;           // push under navbar
-    const topPad      = titleBand + headerPad;
+    const titleBand    = 28;
+    const headerPad    = 64;   // push under navbar
+    const topPad       = titleBand + headerPad;
 
-    const r16Centers  = Array.from({ length: 4 }, (_, i) =>
-      topPad + (pairBlock / 2) + i * (pairBlock + r16Space)
+    // R16 pair centers (left + right share)
+    const r16Centers   = Array.from({ length: 4 }, (_, i) =>
+      topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
     );
 
-    // Make QF pairs a bit farther apart than the pure midpoint,
-    // while still centered around the same overall band.
-    const qfSpreadExtra = 16; // <— increase/decrease as needed
-    const qfAvgTop      = avg(r16Centers[0], r16Centers[1]);
-    const qfAvgBot      = avg(r16Centers[2], r16Centers[3]);
-    const qfCenters     = [
-      qfAvgTop - qfSpreadExtra / 2,
-      qfAvgBot + qfSpreadExtra / 2,
-    ];
+    // QF centers are EXACT midpoints between their two R16 feeders
+    const qfCenters    = [0, 1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
 
+    // SF center is midpoint of the two QFs
     const sfCenter     = avg(qfCenters[0], qfCenters[1]);
     const finalY       = sfCenter;
 
+    // Stage size
     const stageW       = X(6) + colW;
-    const lastBottom   = r16Centers[3] + pairBlock / 2;
+    const lastBottom   = r16Centers[3] + (pairBlockR16 / 2);
     const bottomPad    = 100;
     const stageH       = Math.ceil(lastBottom + bottomPad);
 
@@ -60,118 +58,107 @@ export default function Bracket16({ data }) {
     const centerX      = X(3) + colW / 2;
 
     // Champ pill + WINNER label positions (WINNER above pill)
-    const champOffset  = 8;                  // distance above the finals line
+    const champOffset  = 18;  // ↑ move pill up a bit
+    const winnerAbove  = 24;  // label sits this many px above pill
     const champTop     = finalY - slotH - champOffset;
-    const winnerTop    = champTop - 20;      // slightly above the pill
+    const winnerTop    = champTop - winnerAbove;
 
     return {
-      colW, gap, slotH, slotGap, stub, wire,
-      pairBlock, r16Space, qfSpace, sfSpace,
-      X, topPad, r16Centers, qfCenters, sfCenter, finalY,
+      colW, gap, slotH, stub, wire,
+      innerGapR16, innerGapQF, innerGapSF,
+      X, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
       finalW, finalMidGap, centerX,
       champTop, winnerTop
     };
   }, []);
 
-  const { X, slotH, slotGap, stub, wire, stageW, stageH } = G;
+  // --- helpers for slot geometry ---
+  const slotTop = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
+  const slotBot = (pairY, innerGap) => pairY + (innerGap / 2);
+  const midTop  = (pairY, innerGap) => pairY - (innerGap / 2 + G.slotH / 2);
+  const midBot  = (pairY, innerGap) => pairY + (innerGap / 2 + G.slotH / 2);
 
-  // Slot-center helpers
-  const slotCenterOffset = (slotGap / 2 + slotH / 2);
-  const pairTopCenter  = (pairY) => pairY - slotCenterOffset;
-  const pairBotCenter  = (pairY) => pairY + slotCenterOffset;
-
-  const topSlotTop  = (pairY) => pairY - (slotGap / 2) - slotH;
-  const botSlotTop  = (pairY) => pairY + (slotGap / 2);
-
-  // --- Build all boxes -------------------------------------------------------
+  // --- Build boxes -----------------------------------------------------------
   const boxes = [];
 
   // LEFT: R16 (col 0)
   for (let i = 0; i < 4; i++) {
     const y = G.r16Centers[i];
-    boxes.push(box(X(0), topSlotTop(y), D.left.R16[i][0]));
-    boxes.push(box(X(0), botSlotTop(y), D.left.R16[i][1]));
+    boxes.push(box(G.X(0), slotTop(y, G.innerGapR16),  D.left.R16[i][0]));
+    boxes.push(box(G.X(0), slotBot(y, G.innerGapR16),  D.left.R16[i][1]));
   }
-  // LEFT: QF (col 1) — spaced with qfSpreadExtra and centered visually
+  // LEFT: QF (col 1) — larger inner gap but still centered
   for (let i = 0; i < 2; i++) {
     const y = G.qfCenters[i];
-    boxes.push(box(X(1), topSlotTop(y), D.left.QF[i][0]));
-    boxes.push(box(X(1), botSlotTop(y), D.left.QF[i][1]));
+    boxes.push(box(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
+    boxes.push(box(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
   // LEFT: SF (col 2)
-  boxes.push(box(X(2), topSlotTop(G.sfCenter), D.left.SF[0]));
-  boxes.push(box(X(2), botSlotTop(G.sfCenter), D.left.SF[1]));
+  boxes.push(box(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
+  boxes.push(box(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
   // RIGHT: mirror (cols 6,5,4)
   for (let i = 0; i < 4; i++) {
     const y = G.r16Centers[i];
-    boxes.push(box(X(6), topSlotTop(y), D.right.R16[i][0]));
-    boxes.push(box(X(6), botSlotTop(y), D.right.R16[i][1]));
+    boxes.push(box(G.X(6), slotTop(y, G.innerGapR16),  D.right.R16[i][0]));
+    boxes.push(box(G.X(6), slotBot(y, G.innerGapR16),  D.right.R16[i][1]));
   }
   for (let i = 0; i < 2; i++) {
     const y = G.qfCenters[i];
-    boxes.push(box(X(5), topSlotTop(y), D.right.QF[i][0]));
-    boxes.push(box(X(5), botSlotTop(y), D.right.QF[i][1]));
+    boxes.push(box(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
+    boxes.push(box(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
   }
-  boxes.push(box(X(4), topSlotTop(G.sfCenter), D.right.SF[0]));
-  boxes.push(box(X(4), botSlotTop(G.sfCenter), D.right.SF[1]));
+  boxes.push(box(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
+  boxes.push(box(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // CENTER: tiny finalists
+  // CENTER finalists
   const finalLeftX  = G.centerX - G.finalMidGap/2 - G.finalW;
   const finalRightX = G.centerX + G.finalMidGap/2;
-  const finalTop    = G.finalY - slotH / 2;
+  const finalTop    = G.finalY - G.slotH / 2;
   const finalLeft   = miniBox(finalLeftX, finalTop, D.final.left);
   const finalRight  = miniBox(finalRightX, finalTop, D.final.right);
 
   // --- Build connectors (SVG) ------------------------------------------------
   const paths = [];
 
-  // Join two R16 slots -> QF pair (left side)
+  // R16 -> QF (left)
   for (let i = 0; i < 2; i++) {
-    const rTop  = pairTopCenter(G.r16Centers[2*i]);
-    const rBot  = pairBotCenter(G.r16Centers[2*i+1]);
-
-    const qTop  = pairTopCenter(G.qfCenters[i]);
-    const qBot  = pairBotCenter(G.qfCenters[i]);
-
-    joinLeftToRight(X(0)+G.colW, X(1), rTop, rBot, qTop, qBot);
+    const rTop = midTop(G.r16Centers[2*i],     G.innerGapR16);
+    const rBot = midBot(G.r16Centers[2*i + 1], G.innerGapR16);
+    const qTop = midTop(G.qfCenters[i],        G.innerGapQF);
+    const qBot = midBot(G.qfCenters[i],        G.innerGapQF);
+    joinLeftToRight(G.X(0)+G.colW, G.X(1), rTop, rBot, qTop, qBot);
   }
-  // QF -> SF (left side)
+  // QF -> SF (left)
   {
-    const qTop  = pairTopCenter(G.qfCenters[0]);
-    const qBot  = pairBotCenter(G.qfCenters[1]);
-
-    const sTop  = pairTopCenter(G.sfCenter);
-    const sBot  = pairBotCenter(G.sfCenter);
-
-    joinLeftToRight(X(1)+G.colW, X(2), qTop, qBot, sTop, sBot);
+    const qTop = midTop(G.qfCenters[0], G.innerGapQF);
+    const qBot = midBot(G.qfCenters[1], G.innerGapQF);
+    const sTop = midTop(G.sfCenter,     G.innerGapSF);
+    const sBot = midBot(G.sfCenter,     G.innerGapSF);
+    joinLeftToRight(G.X(1)+G.colW, G.X(2), qTop, qBot, sTop, sBot);
   }
-  // SF -> Final left mini box (single bar)
-  paths.push(h(X(2)+G.colW, G.sfCenter, finalLeftX));
+  // SF -> Final left
+  paths.push(h(G.X(2)+G.colW, G.sfCenter, finalLeftX));
 
-  // Join two R16 slots -> QF pair (right side, mirrored)
+  // R16 -> QF (right)
   for (let i = 0; i < 2; i++) {
-    const rTop  = pairTopCenter(G.r16Centers[2*i]);
-    const rBot  = pairBotCenter(G.r16Centers[2*i+1]);
-
-    const qTop  = pairTopCenter(G.qfCenters[i]);
-    const qBot  = pairBotCenter(G.qfCenters[i]);
-
-    joinRightToLeft(X(6), X(5)+G.colW, rTop, rBot, qTop, qBot);
+    const rTop = midTop(G.r16Centers[2*i],     G.innerGapR16);
+    const rBot = midBot(G.r16Centers[2*i + 1], G.innerGapR16);
+    const qTop = midTop(G.qfCenters[i],        G.innerGapQF);
+    const qBot = midBot(G.qfCenters[i],        G.innerGapQF);
+    joinRightToLeft(G.X(6), G.X(5)+G.colW, rTop, rBot, qTop, qBot);
   }
-  // QF -> SF (right side)
+  // QF -> SF (right)
   {
-    const qTop  = pairTopCenter(G.qfCenters[0]);
-    const qBot  = pairBotCenter(G.qfCenters[1]);
-
-    const sTop  = pairTopCenter(G.sfCenter);
-    const sBot  = pairBotCenter(G.sfCenter);
-
-    joinRightToLeft(X(5), X(4)+G.colW, qTop, qBot, sTop, sBot);
+    const qTop = midTop(G.qfCenters[0], G.innerGapQF);
+    const qBot = midBot(G.qfCenters[1], G.innerGapQF);
+    const sTop = midTop(G.sfCenter,     G.innerGapSF);
+    const sBot = midBot(G.sfCenter,     G.innerGapSF);
+    joinRightToLeft(G.X(5), G.X(4)+G.colW, qTop, qBot, sTop, sBot);
   }
-  // SF -> Final right mini box
-  paths.push(h(X(4), G.sfCenter, finalRightX+G.finalW));
+  // SF -> Final right
+  paths.push(h(G.X(4), G.sfCenter, finalRightX+G.finalW));
 
   // mid-bar between finalists
   paths.push(h(finalLeftX+G.finalW, G.finalY, finalRightX));
@@ -189,7 +176,7 @@ export default function Bracket16({ data }) {
           "--joinW": `${G.wire}px`,
         }}
       >
-        {/* Round titles (middle says FINAL per your request) */}
+        {/* Titles: middle now says FINAL */}
         <div className={s.titles}>
           <span className={s.title}>Round of 16</span>
           <span className={s.title}>Quarterfinals</span>
@@ -206,7 +193,7 @@ export default function Bracket16({ data }) {
 
         {/* Lines */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
-          <g stroke="#2a2f36" strokeWidth={wire} strokeLinecap="square" fill="none" shapeRendering="crispEdges">
+          <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none" shapeRendering="crispEdges">
             {paths}
           </g>
         </svg>
@@ -219,7 +206,7 @@ export default function Bracket16({ data }) {
     </div>
   );
 
-  // helpers
+  // ---- element helpers ----
   function box(x, y, text) {
     return (
       <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left: x, top: y }}>
@@ -235,21 +222,20 @@ export default function Bracket16({ data }) {
     );
   }
 
-  // Lines
+  // ---- path helpers ----
   function h(x1, y, x2) { return <path key={`h-${x1}-${y}-${x2}`} d={`M ${x1} ${y} H ${x2}`} />; }
   function v(x, y1, y2) { return <path key={`v-${x}-${y1}-${y2}`} d={`M ${x} ${y1} V ${y2}`} />; }
 
-  // Joiners that align source slot centers to DEST slot centers
   function joinLeftToRight(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
     const xStubEnd   = x1 + G.stub;
     const xCollector = (x1 + x2) / 2;
-    // stubs from R16/QF source
+    // stubs from source
     paths.push(h(x1, ySrcTop, xStubEnd)); paths.push(h(x1, ySrcBot, xStubEnd));
     // arms to collector at source levels
     paths.push(h(xStubEnd, ySrcTop, xCollector)); paths.push(h(xStubEnd, ySrcBot, xCollector));
-    // collector spanning source top↔bottom
+    // collector spanning source
     paths.push(v(xCollector, ySrcTop, ySrcBot));
-    // arms out to target at target slot midlines
+    // arms out to target at TARGET slot midlines
     paths.push(h(xCollector, yDstTop, x2)); paths.push(h(xCollector, yDstBot, x2));
   }
   function joinRightToLeft(x1, x2, ySrcTop, ySrcBot, yDstTop, yDstBot) {
