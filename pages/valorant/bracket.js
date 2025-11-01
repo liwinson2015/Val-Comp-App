@@ -26,7 +26,7 @@ export default function BracketPage() {
     return () => { ignore = true; };
   }, []);
 
-  // Winners bracket sample data (unchanged)
+  // ====== Winners bracket sample data (unchanged) ======
   const bracketData = {
     left: {
       R16: [
@@ -46,6 +46,16 @@ export default function BracketPage() {
     },
     final: { left: "TBD", right: "TBD", champion: "TBD" }, // WB Final area inside Bracket16
   };
+
+  // ====== MANUAL STRINGS YOU WILL UPDATE DURING THE EVENT ======
+  // 1) The player who wins the Winners Bracket Final (goes straight to Grand Final)
+  const wbFinalWinner = "WB Champion (TBD)";   // <-- update manually
+
+  // 2) The player who wins the Losers Bracket Final (advances to Grand Final)
+  const lbFinalWinner = "LB Champion (TBD)";   // <-- update manually
+
+  // 3) The overall champion after Grand Final (or Reset) is complete
+  const grandChampion = "Tournament Champion (TBD)"; // <-- update manually
 
   return (
     <div className={styles.shell}>
@@ -68,21 +78,32 @@ export default function BracketPage() {
           </div>
         </section>
 
-        {/* ===== Winners Bracket (full-bleed like before) ===== */}
+        {/* ===== Winners Bracket (full-bleed) ===== */}
         <section className={`${styles.card} fullBleed`}>
           {!loading && !loggedIn ? (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 12,
-              background: "#0d1117", border: "1px solid #273247",
-              borderRadius: 10, padding: "10px 12px", color: "#c9d4e6",
-              marginBottom: 10
-            }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "#0d1117",
+                border: "1px solid #273247",
+                borderRadius: 10,
+                padding: "10px 12px",
+                color: "#c9d4e6",
+                marginBottom: 10,
+              }}
+            >
               <div>Log in to view your placement.</div>
               <a
                 href={`/api/auth/discord?next=${encodeURIComponent("/valorant/bracket")}`}
                 style={{
-                  background: "#5865F2", color: "#fff", textDecoration: "none",
-                  padding: "8px 10px", borderRadius: 8, fontWeight: 800
+                  background: "#5865F2",
+                  color: "#fff",
+                  textDecoration: "none",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  fontWeight: 800,
                 }}
               >
                 Log in with Discord
@@ -104,11 +125,12 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== CENTERED GRAND FINAL (shared) ===== */}
+        {/* ===== CENTERED GRAND FINAL (shared) =====
+            Use your manual strings: wbFinalWinner, lbFinalWinner, grandChampion */}
         <GrandFinalCenter
-          wbChampion="WB Champion"
-          lbChampion="LB Champion"
-          champion="TBD"
+          wbChampion={wbFinalWinner}
+          lbChampion={lbFinalWinner}
+          champion={grandChampion}
         />
 
         {/* ===== Losers Bracket (no GF inside) ===== */}
@@ -118,6 +140,8 @@ export default function BracketPage() {
             dropR2={Array(4).fill(null)}
             dropSF={Array(2).fill(null)}
             dropWBF={Array(1).fill(null)}
+            /* If your LosersBracket16 later supports showing the LB winner box,
+               you'll pass lbFinalWinner to it here as a prop. */
           />
           <style jsx>{`
             .fullBleed {
