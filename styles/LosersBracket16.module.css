@@ -1,6 +1,7 @@
-/* Compact losers bracket – matches winners look, centered & screen-fitted, with origin notes */
+/* Compact losers bracket – matches winners look, centered & screen-fitted */
 
 .viewport {
+  /* compact geometry */
   --colw: clamp(110px, 8.2vw, 140px);
   --gap: clamp(12px, 1.6vw, 18px);
 
@@ -20,10 +21,12 @@
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
 
+  /* 7 columns (r1, r2, r3a, r3b, r4, final, winner) */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(480px, 56vh, 640px);
+  --stageH: clamp(460px, 54vh, 620px);
 
-  --topSpace: 120px;
+  /* center & scale to fit viewport */
+  --topSpace: 120px; /* breathing room under your winners bracket */
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
@@ -51,6 +54,7 @@
   align-items: start;
 }
 
+/* columns */
 .round { position: relative; }
 .roundTitle {
   color: #dfe6f3;
@@ -69,6 +73,7 @@
   padding: var(--pairPad) 0;
 }
 .pair::after {
+  /* small stub out to the next column */
   content: "";
   position: absolute;
   top: 50%;
@@ -79,7 +84,7 @@
   background: var(--line);
 }
 
-/* slots */
+/* slot */
 .slot {
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
@@ -100,7 +105,7 @@
   text-overflow: ellipsis;
 }
 
-/* connector between top/bot and arm to next column */
+/* T-join (vertical join between top/bot, plus arm across the gap) */
 .join {
   background-image:
     linear-gradient(var(--line), var(--line)),
@@ -114,16 +119,7 @@
     left calc(var(--gap) * -1) 50%;
 }
 
-/* small origin note under pair */
-.note {
-  margin: 4px 0 0 2px;
-  color: #99a6bd;
-  font-size: 11px;
-  line-height: 1.1;
-  user-select: none;
-}
-
-/* LB winner */
+/* LB winner box */
 .lbFinalCol {
   text-align: center;
   display: grid;
