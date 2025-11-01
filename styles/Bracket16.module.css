@@ -1,14 +1,9 @@
-/* styles/Bracket16.module.css
-   Math-driven 16-team bracket. Boxes are absolutely positioned.
-   One SVG draws all connectors.
-*/
-
-/* Wrapper-scoped reset (CSS Modules safe) */
+/* styles/Bracket16.module.css */
+/* local reset (safe for CSS Modules) */
 .viewport *,
 .viewport *::before,
 .viewport *::after { box-sizing: border-box; }
 
-/* Canvas */
 .viewport{
   width:100%;
   min-height:100dvh;
@@ -22,14 +17,14 @@
 
 .stage{
   position:relative;
-  /* These get overridden via inline style from JSX */
+  /* overridden from JSX */
   --slotH: 38px;
   --colw: 150px;
   --gap: 34px;
   --joinW: 2px;
 }
 
-/* Round titles row */
+/* Round headings */
 .titles{
   position:absolute; left:0; right:0; top:0;
   display:grid;
@@ -51,13 +46,13 @@
   white-space:nowrap;
 }
 
-/* Lines layer */
+/* Wires */
 .wires{
   position:absolute; inset:0;
   z-index:0; pointer-events:none;
 }
 
-/* Match slots */
+/* Boxes */
 .slot{
   position:absolute;
   width:var(--colw);
@@ -73,10 +68,10 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* Smaller “finalists” boxes */
+/* Small finalists boxes */
 .finalSlot{ width:84px; }
 
-/* Champion pill */
+/* Champion pill + label */
 .champ{
   position:absolute; left:50%; transform:translateX(-50%);
   background:#1b2a55; color:#fff; border:2px solid #132345;
@@ -84,8 +79,6 @@
   box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
   z-index:3; white-space:nowrap;
 }
-
-/* WINNER label (above pill) */
 .winnerLabel{
   position:absolute; left:50%; transform:translateX(-50%);
   font-weight:900; font-size:12px; letter-spacing:.10em; text-transform:uppercase;
