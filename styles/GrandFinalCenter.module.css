@@ -1,8 +1,9 @@
 /* styles/GrandFinalCenter.module.css */
 
 .wrap{
-  margin: 24px 0;
-  display:grid; place-items:center;
+  margin: 24px 0 30px;
+  display:grid;
+  place-items:center;
 }
 
 .row{
@@ -13,9 +14,9 @@
   gap: 18px;
 }
 
-.source{
-  display:grid; align-items:center; grid-template-columns: 1fr;
-}
+.source{ display:grid; align-items:center; }
+.left{ grid-template-columns: 1fr auto; }
+.right{ grid-template-columns: auto 1fr; }
 
 .slot{
   height: 34px;
@@ -34,24 +35,59 @@
 .armLeft{ margin-right: 10px; }
 .armRight{ margin-left: 10px; }
 
+/* ===== CENTER ===== */
 .center{
-  display:grid; justify-items:center; align-items:center;
-  gap: 6px; min-width: 210px;
+  display:grid;
+  justify-items:center;
+  align-items:center;
+  gap: 6px;
+  min-width: 220px;
+  text-align:center;
 }
+
 .title{
-  color:#dfe6f3; font-weight:900; font-size:12px;
-  letter-spacing:.10em; text-transform:uppercase;
+  color:#dfe6f3;
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:.10em;
+  text-transform:uppercase;
 }
+
 .gfBox{
-  min-width: 210px;
-  height: 38px;
+  min-width: 220px;
+  height: 40px;
   display:flex; align-items:center; justify-content:center;
-  background:#1c2952; color:#ffffff;
-  border:2px solid #122040; border-radius:0;
+  background:#1c2952;
+  color:#ffffff;
+  border:2px solid #122040;
+  border-radius:0;
   font-weight:800;
+  position:relative;
 }
+
+/* ===== TROPHY ===== */
+.trophyWrap{
+  margin-bottom: 6px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.trophyIcon{
+  width: 28px;
+  height: 28px;
+  color: gold;
+  filter: drop-shadow(0 0 6px rgba(255,215,0,0.4));
+  animation: trophyPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes trophyPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
 .reset{
-  color:#95a3bf; font-size:11px;
+  color:#95a3bf;
+  font-size:11px;
+  margin-top:4px;
 }
-.left{ grid-template-columns: 1fr auto; }
-.right{ grid-template-columns: auto 1fr; }
