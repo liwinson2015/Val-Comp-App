@@ -144,8 +144,24 @@ export default function Bracket16({ data }) {
   const sfLeftEdgeX = G.X(2);
   const sfTopY = midTop(G.sfCenter, G.innerGapSF);
   const sfBotY = midBot(G.sfCenter, G.innerGapSF);
-  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX, G.qfCenters[0], G.innerGapQF, sfTopY);
-  joinPairToMid_L(G.X(1)+G.colW, sfLeftEdgeX, G.qfCenters[1], G.innerGapQF, sfBotY);
+  
+  // Draw rails from QF pairs
+  const qf0Left = G.X(1) + G.colW;
+  const qf0TopY = midTop(G.qfCenters[0], G.innerGapQF);
+  const qf0BotY = midBot(G.qfCenters[0], G.innerGapQF);
+  const qf0JoinX = qf0Left + G.stub;
+  paths.push(H(qf0Left, qf0TopY, qf0JoinX));
+  paths.push(H(qf0Left, qf0BotY, qf0JoinX));
+  paths.push(V(qf0JoinX, qf0TopY, qf0BotY));
+  paths.push(H(qf0JoinX, sfTopY, sfLeftEdgeX));
+  
+  const qf1TopY = midTop(G.qfCenters[1], G.innerGapQF);
+  const qf1BotY = midBot(G.qfCenters[1], G.innerGapQF);
+  const qf1JoinX = qf0Left + G.stub;
+  paths.push(H(qf0Left, qf1TopY, qf1JoinX));
+  paths.push(H(qf0Left, qf1BotY, qf1JoinX));
+  paths.push(V(qf1JoinX, qf1TopY, qf1BotY));
+  paths.push(H(qf1JoinX, sfBotY, sfLeftEdgeX));
 
   // SF -> Final (left)
   paths.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
@@ -160,8 +176,24 @@ export default function Bracket16({ data }) {
   const sfRightEdgeX = G.X(4) + G.colW;
   const sfTopYRight = midTop(G.sfCenter, G.innerGapSF);
   const sfBotYRight = midBot(G.sfCenter, G.innerGapSF);
-  joinPairToMid_R(G.X(5), sfRightEdgeX, G.qfCenters[0], G.innerGapQF, sfTopYRight);
-  joinPairToMid_R(G.X(5), sfRightEdgeX, G.qfCenters[1], G.innerGapQF, sfBotYRight);
+  
+  // Draw rails from QF pairs
+  const qf0Right = G.X(5);
+  const qf0RTopY = midTop(G.qfCenters[0], G.innerGapQF);
+  const qf0RBotY = midBot(G.qfCenters[0], G.innerGapQF);
+  const qf0RJoinX = qf0Right - G.stub;
+  paths.push(H(qf0Right, qf0RTopY, qf0RJoinX));
+  paths.push(H(qf0Right, qf0RBotY, qf0RJoinX));
+  paths.push(V(qf0RJoinX, qf0RTopY, qf0RBotY));
+  paths.push(H(qf0RJoinX, sfTopYRight, sfRightEdgeX));
+  
+  const qf1RTopY = midTop(G.qfCenters[1], G.innerGapQF);
+  const qf1RBotY = midBot(G.qfCenters[1], G.innerGapQF);
+  const qf1RJoinX = qf0Right - G.stub;
+  paths.push(H(qf0Right, qf1RTopY, qf1RJoinX));
+  paths.push(H(qf0Right, qf1RBotY, qf1RJoinX));
+  paths.push(V(qf1RJoinX, qf1RTopY, qf1RBotY));
+  paths.push(H(qf1RJoinX, sfBotYRight, sfRightEdgeX));
 
   // SF -> Final (right)
   paths.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
