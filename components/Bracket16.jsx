@@ -2,18 +2,11 @@
 import React from "react";
 import s from "../styles/Bracket16.module.css";
 
-/**
- * 16-player single-elimination bracket.
- * Each match is two separate square "slots" stacked vertically,
- * with a vertical join between them and a horizontal connector to the next round.
- * Left and right sides mirror; center has Grand Final (two finalists -> champion).
- */
 export default function Bracket16({ data }) {
   const L = data?.left ?? {};
   const R = data?.right ?? {};
   const F = data?.final ?? {};
 
-  // Seeds/names for Round of 16 (left 1–8, right 9–16 by default)
   const leftR16 =
     L.R16 ?? [
       ["Seed 1", "Seed 2"],
@@ -33,7 +26,7 @@ export default function Bracket16({ data }) {
     <div className={s.viewport}>
       <div className={s.stage}>
         <div className={s.grid}>
-          {/* LEFT SIDE */}
+          {/* LEFT */}
           <Round title="Round of 16" tier="r16">
             {leftR16.map((m, i) => (
               <Pair key={`L16-${i}`} top={m[0]} bot={m[1]} />
@@ -50,14 +43,14 @@ export default function Bracket16({ data }) {
             <Pair top="TBD" bot="TBD" />
           </Round>
 
-          {/* CENTER GRAND FINAL */}
+          {/* CENTER */}
           <Final
             left={F.left ?? "TBD"}
             right={F.right ?? "TBD"}
             champion={F.champion ?? "TBD"}
           />
 
-          {/* RIGHT SIDE (mirror) */}
+          {/* RIGHT */}
           <Round title="Semifinals" tier="sf" side="right">
             <Pair top="TBD" bot="TBD" side="right" />
           </Round>
@@ -90,7 +83,6 @@ function Round({ title, tier, side, children }) {
   );
 }
 
-/** Two independent square slots with a vertical join and connector arms */
 function Pair({ top = "TBD", bot = "TBD", side }) {
   return (
     <div className={`${s.pair} ${side ? s.sideRight : ""}`}>
@@ -100,7 +92,6 @@ function Pair({ top = "TBD", bot = "TBD", side }) {
       <div className={`${s.slot} ${s.slotBot}`} title={bot}>
         <span className={s.label}>{bot}</span>
       </div>
-      {/* The pair element itself draws the stubs, vertical bar, and horizontal arms via CSS */}
     </div>
   );
 }
@@ -118,7 +109,7 @@ function Final({ left = "TBD", right = "TBD", champion = "TBD" }) {
 
       <div className={s.stem} aria-hidden="true" />
 
-      {/* Wrapper that matches a .pair block so the final slots align with SF centers */}
+      {/* Absolutely centered; matches SF arms exactly */}
       <div className={s.finalRowWrap}>
         <div className={s.finalRow}>
           <div className={s.finalSlot} title={left}>
