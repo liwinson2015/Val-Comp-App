@@ -4,12 +4,10 @@
    No transform scaling => no subpixel drift.
 */
 
-*,
-*::before,
-*::after { box-sizing: border-box; }
-
-:root {
-  color-scheme: dark;
+/* Global resets must be wrapped in :global for CSS Modules */
+:global {
+  *, *::before, *::after { box-sizing: border-box; }
+  :root { color-scheme: dark; }
 }
 
 /* ---------- Canvas ---------- */
@@ -37,7 +35,7 @@
   position:absolute;
   left:0; right:0; top:0;
   display:flex;
-  justify-content:space-between;
+  justify-content:space-between; /* creates exactly 6 gaps across stage width */
   padding:0 4px;
   pointer-events:none;
   z-index:2;

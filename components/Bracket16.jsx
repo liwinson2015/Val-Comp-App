@@ -11,7 +11,7 @@ import s from "../styles/Bracket16.module.css";
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // --- TUNABLE GEOMETRY (these numbers drive BOTH boxes & lines) ---
+  // --- TUNABLE GEOMETRY (drives BOTH boxes & lines) ---
   const G = useMemo(() => {
     const colW   = 150;  // px, width of normal slots
     const gap    = 22;   // px, space between columns
@@ -149,8 +149,8 @@ export default function Bracket16({ data }) {
     const yBot = G.qfCenters[1] + (slotGap/2 + slotH/2);
     joinLeftToRight(X(1)+G.colW, X(2), yTop, yBot);
   }
-  // SF -> Final left mini box (center line only)
-  paths.push(h(X(2)+G.colW, G.sfCenter, finalLeftX, /*single line*/ true));
+  // SF -> Final left mini box (single bar)
+  paths.push(h(X(2)+G.colW, G.sfCenter, finalLeftX));
 
   // R16 -> QF (right, mirrored)
   for (let i = 0; i < 2; i++) {
@@ -165,10 +165,10 @@ export default function Bracket16({ data }) {
     joinRightToLeft(X(5), X(4)+G.colW, yTop, yBot);
   }
   // SF -> Final right mini box
-  paths.push(h(X(4), G.sfCenter, finalRightX+G.finalW, /*single*/ true));
+  paths.push(h(X(4), G.sfCenter, finalRightX+G.finalW));
 
   // center mid-bar between finalists
-  paths.push(h(finalLeftX+G.finalW, G.finalY, finalRightX, true));
+  paths.push(h(finalLeftX+G.finalW, G.finalY, finalRightX));
 
   return (
     <div className={s.viewport}>
@@ -186,7 +186,7 @@ export default function Bracket16({ data }) {
       >
         {/* Round titles */}
         <div className={s.titles}>
-          <span className={s.title} style={{ left: 0 }}>Round of 16</span>
+          <span className={s.title}>Round of 16</span>
           <span className={s.title}>Quarterfinals</span>
           <span className={s.title}>Semifinals</span>
           <span className={s.title}>Winner</span>
