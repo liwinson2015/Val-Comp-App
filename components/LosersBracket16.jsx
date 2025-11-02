@@ -4,21 +4,14 @@ import s from "../styles/LosersBracket16.module.css";
 
 /**
  * Losers bracket for 16-player double elimination (compact, centered).
- * Supports TWO ways to provide data:
- *  1) Single object prop `data` with keys:
- *     { R1, R2A, R2B, R3A, R3B, R4, LBF, LBWinner }
- *     - R1: 4 matches -> [["A","B"],["C","D"],["E","F"],["G","H"]]
- *     - R2A: 2 matches -> [["wR1-1","wR1-2"],["wR1-3","wR1-4"]]
- *     - R2B: 2 matches -> [["WB R2 Loser 1","TBD"],["WB R2 Loser 2","TBD"]] (labels INSIDE boxes)
- *     - R3A: 2 matches
- *     - R3B: 2 matches (WB SF drop-ins)
- *     - R4:  1 match
- *     - LBF: ["LB finalist","WB Final Loser"]
- *     - LBWinner: "TBD"
  *
- *  2) Backward-compat props: r1, r2, r3a, r3b, r4, lbFinal, lbWinner
+ * Supports TWO ways to provide data:
+ *  A) Single prop `data` with keys:
+ *     { R1, R2A, R2B, R3A, R3B, R4, LBF, LBWinner }
+ *  B) Backward-compat props: r1, r2, r3a, r3b, r4, lbFinal, lbWinner
+ *
+ * All “drop-in” labels (e.g., WB R2 Loser) are rendered INSIDE the boxes.
  */
-
 export default function LosersBracket16(props) {
   const norm = normalize(props);
 
@@ -33,7 +26,7 @@ export default function LosersBracket16(props) {
             ))}
           </Round>
 
-          {/* R2 — 4 matches (WB R2 drop-ins paired with R2A) */}
+          {/* R2 — 4 matches (interleaved R2A and R2B drop-ins) */}
           <Round title="LB Round 2 (WB R2 drop-ins)" cls="r2">
             {norm.R2.map((m, i) => (
               <Pair key={`r2-${i}`} top={m[0]} bot={m[1]} />
@@ -102,11 +95,11 @@ function Pair({ top = "TBD", bot = "TBD" }) {
 }
 
 function normalize(props) {
-  // If a single `data` object is provided, prefer that
+  // Preferred: single `data` object
   const d = props.data;
   if (d) {
     return {
-      R1: ensurePairs(d.R1, 4, "LB P"),
+      R1: ensurePairs(d.R1, 4, "TBD"),
       R2: mergePairs(d.R2A, d.R2B, 2, "WB R2 Loser"),
       R3A: ensurePairs(d.R3A, 2, "TBD"),
       R3B: ensurePairs(
@@ -123,7 +116,7 @@ function normalize(props) {
     };
   }
 
-  // Backward-compat with your previous props (r1, r2, r3a, r3b, r4, lbFinal, lbWinner)
+  // Backward-compat props
   const r1 = props.r1 ?? Array(4).fill(["TBD", "TBD"]);
   const r2 = props.r2 ?? [
     ["TBD", "WB R2 Loser"],
@@ -141,8 +134,7 @@ function normalize(props) {
   const lbWinner = props.lbWinner ?? "TBD";
 
   return {
-    R1: ensurePairs(r1, 4, "LB P"),
-    // r2 already comes as 4 matches; keep as-is
+    R1: ensurePairs(r1, 4, "TBD"),
     R2: ensurePairs(r2, 4, "TBD"),
     R3A: ensurePairs(r3a, 2, "TBD"),
     R3B: ensurePairs(r3b, 2, "TBD"),
@@ -153,18 +145,16 @@ function normalize(props) {
 }
 
 function ensurePairs(arr, needed, filler) {
-  const out = Array.from({ length: needed }, (_, i) => {
+  return Array.from({ length: needed }, (_, i) => {
     const v = arr?.[i];
-    if (Array.isArray(v) && v.length >= 2) return [String(v[0] ?? "TBD"), String(v[1] ?? "TBD")];
+    if (Array.isArray(v) && v.length >= 2) {
+      return [String(v[0] ?? "TBD"), String(v[1] ?? "TBD")];
+    }
     return [filler, "TBD"];
   });
-  return out;
 }
 
-/**
- * Merge R2A (2 matches) and R2B (2 drop-in matches) into 4 matches list.
- * If either side is missing, fall back gracefully.
- */
+/** Interleave R2A(2 matches) with R2B(2 matches) -> 4 matches total */
 function mergePairs(r2a, r2b, needed, dropInLabelBase) {
   const a = ensurePairs(r2a ?? [], needed, "TBD");
   const b = ensurePairs(
@@ -176,6 +166,5 @@ function mergePairs(r2a, r2b, needed, dropInLabelBase) {
     needed,
     "TBD"
   );
-  // Interleave A1,B1,A2,B2 -> total 4 matches
   return [a[0], b[0], a[1], b[1]];
 }

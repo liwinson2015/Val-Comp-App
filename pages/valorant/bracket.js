@@ -5,19 +5,18 @@ import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
-// Tournament id used by your registrations API
-const TID = "VALO-SOLO-SKIRMISH-1";
+const TID = "VALO-SOLO-SKIRMISH-1"; // used by your registrations API
 
 export default function BracketPage() {
-  // --- auth ---
+  // auth
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
 
-  // --- live registration counters ---
+  // live registrations
   const [regInfo, setRegInfo] = useState(null);
   const [loadingReg, setLoadingReg] = useState(true);
 
-  // auth check
+  // ---- auth check ----
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -32,10 +31,12 @@ export default function BracketPage() {
         if (!ignore) setLoadingAuth(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // fetch registrations
+  // ---- registration counts ----
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -49,10 +50,12 @@ export default function BracketPage() {
         if (!ignore) setLoadingReg(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // ========== WINNERS BRACKET (manual, editable) ==========
+  // ===== Winners bracket (EDIT THESE DURING EVENT) =====
   const leftR16 = [
     ["temppjmdkrzyfekn", "Chicken Wang"],
     ["海友糕手", "蓝蝴蝶ya"],
@@ -66,63 +69,79 @@ export default function BracketPage() {
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
 
-  // Update these as results come in
-  const leftQF  = [["TBD","TBD"], ["TBD","TBD"]];
-  const rightQF = [["TBD","TBD"], ["TBD","TBD"]];
-  const leftSF  = ["TBD","TBD"];
-  const rightSF = ["TBD","TBD"];
+  // Quarterfinals (two matches per side)
+  const leftQF = [
+    ["TBD", "TBD"], // winners of leftR16[0] & leftR16[1]
+    ["TBD", "TBD"], // winners of leftR16[2] & leftR16[3]
+  ];
+  const rightQF = [
+    ["TBD", "TBD"], // winners of rightR16[0] & rightR16[1]
+    ["TBD", "TBD"], // winners of rightR16[2] & rightR16[3]
+  ];
 
-  // Center final
-  const finalLeft  = "SF Winner 1";
-  const finalRight = "SF Winner 2";
+  // Semifinals (one match per side: two names)
+  const leftSF = ["TBD", "TBD"];
+  const rightSF = ["TBD", "TBD"];
+
+  // Center final (two names) + champion pill
+  const finalLeft = "TBD";
+  const finalRight = "TBD";
   const finalChamp = "TBD";
 
   const bracketData = {
-    left:  { R16: leftR16,  QF: leftQF,  SF: leftSF },
+    left: { R16: leftR16, QF: leftQF, SF: leftSF },
     right: { R16: rightR16, QF: rightQF, SF: rightSF },
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // ========== LOSERS BRACKET (NOW editable via one `data` object) ==========
-  // Edit these strings during the event. Keep the WB drop-in labels inside the boxes.
+  // ===== Losers bracket (you can edit these arrays live) =====
   const lbData = {
-    // LB Round 1: 8 players (4 matches)
-    R1:  ["Cactus","LB P2","LB P3","LB P4","LB P5","LB P6","LB P7","LB P8"],
-
-    // LB Round 2A: 4 winners from R1 (2 matches)
-    R2A: ["TBD","TBD","TBD","TBD"],
-
-    // LB Round 2B: 4 drop-ins from WB Round 2 (paired with R2A above)
-    R2B: ["WB R2 Loser 1","WB R2 Loser 2","WB R2 Loser 3","WB R2 Loser 4"],
-
-    // LB Round 3A: 4 winners (from those four matches)
-    R3A: ["TBD","TBD","TBD","TBD"],
-
-    // LB Round 3B: 2 drop-ins from WB Semifinals
-    R3B: ["WB SF Loser 1","WB SF Loser 2"],
-
-    // LB Round 4: 2 winners (one match)
-    R4:  ["TBD","TBD"],
-
-    // LB Final: winner of R4 vs WB Final Loser
-    LBF: ["TBD","WB Final Loser"],
-
-    // Rightmost LB winner chip
+    // 4 matches (8 players)
+    R1: [
+      ["TBD", "TBD"],
+      ["TBD", "TBD"],
+      ["TBD", "TBD"],
+      ["TBD", "TBD"],
+    ],
+    // 2 matches made from winners of R1 (top & bottom halves)
+    R2A: [
+      ["TBD", "TBD"],
+      ["TBD", "TBD"],
+    ],
+    // 2 drop-in matches (labels INSIDE the boxes)
+    R2B: [
+      ["TBD", "WB R2 Loser 1"],
+      ["TBD", "WB R2 Loser 2"],
+    ],
+    // 2 matches
+    R3A: [
+      ["TBD", "TBD"],
+      ["TBD", "TBD"],
+    ],
+    // 2 matches (WB SF drop-ins)
+    R3B: [
+      ["TBD", "WB SF Loser 1"],
+      ["TBD", "WB SF Loser 2"],
+    ],
+    // 1 match
+    R4: [["TBD", "TBD"]],
+    // LB Final and LB Winner
+    LBF: ["TBD", "WB Final Loser"],
     LBWinner: "TBD",
   };
 
-  // ========== header counters ==========
-  const capacity   = regInfo?.capacity ?? 16;
+  // header counters
+  const capacity = regInfo?.capacity ?? 16;
   const registered = regInfo?.registered ?? 0;
-  const remaining  = regInfo?.remaining ?? Math.max(capacity - registered, 0);
-  const slotsText  = loadingReg ? "Loading…" : `${registered} / ${capacity}`;
+  const remaining = regInfo?.remaining ?? Math.max(capacity - registered, 0);
+  const slotsText = loadingReg ? "Loading…" : `${registered} / ${capacity}`;
   const statusText = loadingReg
     ? "Checking capacity…"
     : regInfo?.isFull
     ? "Full — waitlist"
     : `Open — ${remaining} left`;
 
-  // ========== center banner texts ==========
+  // center banner texts (manual)
   const wbFinalWinner = "WB Champion (TBD)";
   const lbFinalWinner = "LB Champion (TBD)";
   const grandChampion = "Tournament Champion (TBD)";
@@ -130,7 +149,7 @@ export default function BracketPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Header */}
+        {/* ===== Header ===== */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>CHAMPIONSHIP BRACKET — 16 PLAYERS</h2>
@@ -151,7 +170,7 @@ export default function BracketPage() {
           </div>
         </section>
 
-        {/* Winners (full-bleed) */}
+        {/* ===== Winners Bracket (full-bleed) ===== */}
         <section className={`${styles.card} fullBleed`}>
           {!loadingAuth && !loggedIn ? (
             <div
@@ -169,7 +188,9 @@ export default function BracketPage() {
             >
               <div>Log in to view your placement.</div>
               <a
-                href={`/api/auth/discord?next=${encodeURIComponent("/valorant/bracket")}`}
+                href={`/api/auth/discord?next=${encodeURIComponent(
+                  "/valorant/bracket"
+                )}`}
                 style={{
                   background: "#5865F2",
                   color: "#fff",
@@ -198,14 +219,14 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* Centered Grand Final */}
+        {/* ===== CENTER GRAND FINAL (shared banner) ===== */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* Losers (editable via lbData) */}
+        {/* ===== Losers Bracket ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16 data={lbData} />
           <style jsx>{`
@@ -220,22 +241,28 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* Rules */}
+        {/* ===== Rules ===== */}
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>TOURNAMENT REMINDERS</h2>
           <ul className={styles.rulesList}>
-            <li>Be available at <strong>7:00 PM EST</strong> for check-in.</li>
+            <li>
+              Be available at <strong>7:00 PM EST</strong> for check-in.
+            </li>
             <li>No scripts, macros, or cheats — instant DQ.</li>
             <li>Screenshot final score and DM in Discord within 5 minutes.</li>
             <li>Winner receives the prize after verification.</li>
           </ul>
         </section>
 
-        {/* Footer */}
+        {/* ===== Footer ===== */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
-            <div className={styles.footerSub}>Brackets, prize pools, leaderboards coming soon.</div>
+            <div className={styles.footerBrand}>
+              VALCOMP — community-run Valorant events
+            </div>
+            <div className={styles.footerSub}>
+              Brackets, prize pools, leaderboards coming soon.
+            </div>
             <div className={styles.footerCopy}>© 2025 valcomp</div>
           </div>
         </footer>
