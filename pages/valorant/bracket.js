@@ -5,19 +5,19 @@ import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
-// ---- Change this to the tournament id you use in your API route ----
+// Tournament id used by your registrations API
 const TID = "VALO-SOLO-SKIRMISH-1";
 
 export default function BracketPage() {
-  // auth (unchanged)
+  // --- auth ---
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
 
-  // live registration counters
+  // --- live registration counters ---
   const [regInfo, setRegInfo] = useState(null);
   const [loadingReg, setLoadingReg] = useState(true);
 
-  // ---------- AUTH CHECK ----------
+  // auth check
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -32,12 +32,10 @@ export default function BracketPage() {
         if (!ignore) setLoadingAuth(false);
       }
     })();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, []);
 
-  // ---------- FETCH LIVE REGISTRATIONS ----------
+  // fetch registrations
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -51,13 +49,10 @@ export default function BracketPage() {
         if (!ignore) setLoadingReg(false);
       }
     })();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, []);
 
-  // ---------- MANUAL BRACKET DATA (EDIT THESE NAMES DURING THE EVENT) ----------
-  // Round of 16 (you already filled these—keep updating as needed)
+  // ========== WINNERS BRACKET (manual, editable) ==========
   const leftR16 = [
     ["temppjmdkrzyfekn", "Chicken Wang"],
     ["海友糕手", "蓝蝴蝶ya"],
@@ -71,34 +66,52 @@ export default function BracketPage() {
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
 
-  // >>> Update these as results come in <<<
-  // Quarterfinals: two matches per side (top/bottom). Put the two player names for each match.
-  const leftQF = [
-    ["TBD", "TBD"], // Left QF1 (winners of Left R16 #1 & #2)
-    ["TBD", "TBD"],               // Left QF2 (winners of Left R16 #3 & #4)
-  ];
-  const rightQF = [
-    ["TBD", "TBD"],   // Right QF1 (winners of Right R16 #1 & #2)
-    ["TBD", "TBD"], // Right QF2 (winners of Right R16 #3 & #4)
-  ];
+  // Update these as results come in
+  const leftQF  = [["TBD","TBD"], ["TBD","TBD"]];
+  const rightQF = [["TBD","TBD"], ["TBD","TBD"]];
+  const leftSF  = ["TBD","TBD"];
+  const rightSF = ["TBD","TBD"];
 
-  // Semifinals: ONE match per side. Provide TWO names (the two QF winners on that side).
-  const leftSF = ["TBD", "TBD"]; // Left SF = winner(LQF1) vs winner(LQF2)
-  const rightSF = ["TBD", "TBD"];           // Right SF = winner(RQF1) vs winner(RQF2)
+  // Center final
+  const finalLeft  = "SF Winner 1";
+  const finalRight = "SF Winner 2";
+  const finalChamp = "TBD";
 
-  // Final (center): winners of the two semifinals.
-  const finalLeft  = "SF Winner 1";   // replace when known
-  const finalRight = "SF Winner 2";  // replace when known
-  const finalChamp = "TBD";              // replace when champion is decided
-
-  // Compose object for Bracket16 (it expects this shape)
   const bracketData = {
     left:  { R16: leftR16,  QF: leftQF,  SF: leftSF },
     right: { R16: rightR16, QF: rightQF, SF: rightSF },
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // ---------- TEXT FOR SLOTS / STATUS ----------
+  // ========== LOSERS BRACKET (NOW editable via one `data` object) ==========
+  // Edit these strings during the event. Keep the WB drop-in labels inside the boxes.
+  const lbData = {
+    // LB Round 1: 8 players (4 matches)
+    R1:  ["LB P1","LB P2","LB P3","LB P4","LB P5","LB P6","LB P7","LB P8"],
+
+    // LB Round 2A: 4 winners from R1 (2 matches)
+    R2A: ["TBD","TBD","TBD","TBD"],
+
+    // LB Round 2B: 4 drop-ins from WB Round 2 (paired with R2A above)
+    R2B: ["WB R2 Loser 1","WB R2 Loser 2","WB R2 Loser 3","WB R2 Loser 4"],
+
+    // LB Round 3A: 4 winners (from those four matches)
+    R3A: ["TBD","TBD","TBD","TBD"],
+
+    // LB Round 3B: 2 drop-ins from WB Semifinals
+    R3B: ["WB SF Loser 1","WB SF Loser 2"],
+
+    // LB Round 4: 2 winners (one match)
+    R4:  ["TBD","TBD"],
+
+    // LB Final: winner of R4 vs WB Final Loser
+    LBF: ["TBD","WB Final Loser"],
+
+    // Rightmost LB winner chip
+    LBWinner: "TBD",
+  };
+
+  // ========== header counters ==========
   const capacity   = regInfo?.capacity ?? 16;
   const registered = regInfo?.registered ?? 0;
   const remaining  = regInfo?.remaining ?? Math.max(capacity - registered, 0);
@@ -109,15 +122,15 @@ export default function BracketPage() {
     ? "Full — waitlist"
     : `Open — ${remaining} left`;
 
-  // ---------- MANUAL GRAND-FINAL BANNER TEXTS (CENTER WIDGET) ----------
-  const wbFinalWinner = "WB Champion (TBD)";     // set when WB Final ends
-  const lbFinalWinner = "LB Champion (TBD)";     // set when LB Final ends
-  const grandChampion = "Tournament Champion (TBD)"; // set when the event ends
+  // ========== center banner texts ==========
+  const wbFinalWinner = "WB Champion (TBD)";
+  const lbFinalWinner = "LB Champion (TBD)";
+  const grandChampion = "Tournament Champion (TBD)";
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* ===== Header ===== */}
+        {/* Header */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>CHAMPIONSHIP BRACKET — 16 PLAYERS</h2>
@@ -138,7 +151,7 @@ export default function BracketPage() {
           </div>
         </section>
 
-        {/* ===== Winners Bracket (full-bleed) ===== */}
+        {/* Winners (full-bleed) */}
         <section className={`${styles.card} fullBleed`}>
           {!loadingAuth && !loggedIn ? (
             <div
@@ -185,21 +198,16 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== CENTER GRAND FINAL (shared banner) ===== */}
+        {/* Centered Grand Final */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (kept as-is; edit inside its component when needed) ===== */}
+        {/* Losers (editable via lbData) */}
         <section className={`${styles.card} fullBleed`}>
-          <LosersBracket16
-            lbR1={Array(8).fill(null)}   
-            dropR2={Array(4).fill(null)}
-            dropSF={Array(2).fill(null)}
-            dropWBF={Array(1).fill(null)}
-          />
+          <LosersBracket16 data={lbData} />
           <style jsx>{`
             .fullBleed {
               width: 100vw;
@@ -212,7 +220,7 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== Rules ===== */}
+        {/* Rules */}
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>TOURNAMENT REMINDERS</h2>
           <ul className={styles.rulesList}>
@@ -223,15 +231,11 @@ export default function BracketPage() {
           </ul>
         </section>
 
-        {/* ===== Footer ===== */}
+        {/* Footer */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>
-              VALCOMP — community-run Valorant events
-            </div>
-            <div className={styles.footerSub}>
-              Brackets, prize pools, leaderboards coming soon.
-            </div>
+            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
+            <div className={styles.footerSub}>Brackets, prize pools, leaderboards coming soon.</div>
             <div className={styles.footerCopy}>© 2025 valcomp</div>
           </div>
         </footer>
