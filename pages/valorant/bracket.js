@@ -5,17 +5,19 @@ import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
-const TID = "VALO-SOLO-SKIRMISH-1"; // unique tournament id you’re counting
+// ---- Change this to the tournament id you use in your API route ----
+const TID = "VALO-SOLO-SKIRMISH-1";
 
 export default function BracketPage() {
+  // auth (unchanged)
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
 
-  // live registration info
+  // live registration counters
   const [regInfo, setRegInfo] = useState(null);
   const [loadingReg, setLoadingReg] = useState(true);
 
-  // ---- auth check (unchanged) ----
+  // ---------- AUTH CHECK ----------
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -30,10 +32,12 @@ export default function BracketPage() {
         if (!ignore) setLoadingAuth(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // ---- fetch live registrations for this tournament ----
+  // ---------- FETCH LIVE REGISTRATIONS ----------
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -47,40 +51,68 @@ export default function BracketPage() {
         if (!ignore) setLoadingReg(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // ====== Winners bracket sample data (unchanged for now) ======
+  // ---------- MANUAL BRACKET DATA (EDIT THESE NAMES DURING THE EVENT) ----------
+  // Round of 16 (you already filled these—keep updating as needed)
+  const leftR16 = [
+    ["temppjmdkrzyfekn", "Chicken Wang"],
+    ["海友糕手", "蓝蝴蝶ya"],
+    ["sparkle", "巧克力炸香蕉"],
+    ["彼岸花ya", "Mellul"],
+  ];
+  const rightR16 = [
+    ["叶秋风", "Squid"],
+    ["Cactus", "July ya"],
+    ["Qenquin", "№NeedZzz"],
+    ["Ethan Sylor", "卡提希娅の仆人"],
+  ];
+
+  // >>> Update these as results come in <<<
+  // Quarterfinals: two matches per side (top/bottom). Put the two player names for each match.
+  const leftQF = [
+    ["temppjmdkrzyfekn", "Chicken Wang"], // Left QF1 (winners of Left R16 #1 & #2)
+    ["海友糕手", "蓝蝴蝶ya"],               // Left QF2 (winners of Left R16 #3 & #4)
+  ];
+  const rightQF = [
+    ["叶秋风", "Squid"],   // Right QF1 (winners of Right R16 #1 & #2)
+    ["Cactus", "July ya"], // Right QF2 (winners of Right R16 #3 & #4)
+  ];
+
+  // Semifinals: ONE match per side. Provide TWO names (the two QF winners on that side).
+  const leftSF = ["temppjmdkrzyfekn", "海友糕手"]; // Left SF = winner(LQF1) vs winner(LQF2)
+  const rightSF = ["叶秋风", "Cactus"];           // Right SF = winner(RQF1) vs winner(RQF2)
+
+  // Final (center): winners of the two semifinals.
+  const finalLeft  = "Left SF Winner";   // replace when known
+  const finalRight = "Right SF Winner";  // replace when known
+  const finalChamp = "TBD";              // replace when champion is decided
+
+  // Compose object for Bracket16 (it expects this shape)
   const bracketData = {
-    left: {
-      R16: [
-        ["temppjmdkrzyfekn", "Chicken Wang"],
-        ["海友糕手", "蓝蝴蝶ya"],
-        ["sparkle", "巧克力炸香蕉"],
-        ["彼岸花ya", "Mellul"],
-      ],
-    },
-    right: {
-      R16: [
-        ["叶秋风", "Squid"],
-        ["Cactus", "July ya"],
-        ["Qenquin", "№NeedZzz"],
-        ["Ethan Sylor", "卡提希娅の仆人"],
-      ],
-    },
-    final: { left: "TBD", right: "TBD", champion: "TBD" },
+    left:  { R16: leftR16,  QF: leftQF,  SF: leftSF },
+    right: { R16: rightR16, QF: rightQF, SF: rightSF },
+    final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // ====== MANUAL STRINGS YOU WILL UPDATE DURING THE EVENT ======
-  const wbFinalWinner = "WB Champion (TBD)";
-  const lbFinalWinner = "LB Champion (TBD)";
-  const grandChampion = "Tournament Champion (TBD)";
-
-  // ---- derive slots text from API (fallback to 0/16 if loading) ----
-  const capacity = regInfo?.capacity ?? 16;
+  // ---------- TEXT FOR SLOTS / STATUS ----------
+  const capacity   = regInfo?.capacity ?? 16;
   const registered = regInfo?.registered ?? 0;
-  const remaining = regInfo?.remaining ?? Math.max(capacity - registered, 0);
-  const slotsText = loadingReg ? "Loading…" : `${registered} / ${capacity}`;
+  const remaining  = regInfo?.remaining ?? Math.max(capacity - registered, 0);
+  const slotsText  = loadingReg ? "Loading…" : `${registered} / ${capacity}`;
+  const statusText = loadingReg
+    ? "Checking capacity…"
+    : regInfo?.isFull
+    ? "Full — waitlist"
+    : `Open — ${remaining} left`;
+
+  // ---------- MANUAL GRAND-FINAL BANNER TEXTS (CENTER WIDGET) ----------
+  const wbFinalWinner = "WB Champion (TBD)";     // set when WB Final ends
+  const lbFinalWinner = "LB Champion (TBD)";     // set when LB Final ends
+  const grandChampion = "Tournament Champion (TBD)"; // set when the event ends
 
   return (
     <div className={styles.shell}>
@@ -93,20 +125,13 @@ export default function BracketPage() {
           <p style={{ color: "#97a3b6", marginTop: 0 }}>
             Double Elimination • Seeds auto-assigned
           </p>
+
           <div className={styles.detailGrid}>
             <div className={styles.detailLabel}>SLOTS</div>
-            <div className={styles.detailValueHighlight}>
-              {slotsText}
-            </div>
+            <div className={styles.detailValueHighlight}>{slotsText}</div>
 
             <div className={styles.detailLabel}>STATUS</div>
-            <div className={styles.detailValue}>
-              {loadingReg
-                ? "Checking capacity…"
-                : regInfo?.isFull
-                ? "Full — waitlist"
-                : `Open — ${remaining} left`}
-            </div>
+            <div className={styles.detailValue}>{statusText}</div>
 
             <div className={styles.detailLabel}>STREAM</div>
             <div className={styles.detailValue}>[TBD]</div>
@@ -160,17 +185,17 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== CENTERED GRAND FINAL ===== */}
+        {/* ===== CENTER GRAND FINAL (shared banner) ===== */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket ===== */}
+        {/* ===== Losers Bracket (kept as-is; edit inside its component when needed) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
-            lbR1={Array(8).fill(null)}
+            lbR1={Array(8).fill(null)}   {/* fill later when you have LB names */}
             dropR2={Array(4).fill(null)}
             dropSF={Array(2).fill(null)}
             dropWBF={Array(1).fill(null)}
@@ -201,8 +226,12 @@ export default function BracketPage() {
         {/* ===== Footer ===== */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
-            <div className={styles.footerSub}>Brackets, prize pools, leaderboards coming soon.</div>
+            <div className={styles.footerBrand}>
+              VALCOMP — community-run Valorant events
+            </div>
+            <div className={styles.footerSub}>
+              Brackets, prize pools, leaderboards coming soon.
+            </div>
             <div className={styles.footerCopy}>© 2025 valcomp</div>
           </div>
         </footer>
