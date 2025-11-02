@@ -74,21 +74,21 @@ export default function BracketPage() {
   // >>> Update these as results come in <<<
   // Quarterfinals: two matches per side (top/bottom). Put the two player names for each match.
   const leftQF = [
-    ["temppjmdkrzyfekn", "Chicken Wang"], // Left QF1 (winners of Left R16 #1 & #2)
-    ["海友糕手", "蓝蝴蝶ya"],               // Left QF2 (winners of Left R16 #3 & #4)
+    ["TBD", "TBD"], // Left QF1 (winners of Left R16 #1 & #2)
+    ["TBD", "TBD"],               // Left QF2 (winners of Left R16 #3 & #4)
   ];
   const rightQF = [
-    ["叶秋风", "Squid"],   // Right QF1 (winners of Right R16 #1 & #2)
-    ["Cactus", "July ya"], // Right QF2 (winners of Right R16 #3 & #4)
+    ["TBD", "TBD"],   // Right QF1 (winners of Right R16 #1 & #2)
+    ["TBD", "TBD"], // Right QF2 (winners of Right R16 #3 & #4)
   ];
 
   // Semifinals: ONE match per side. Provide TWO names (the two QF winners on that side).
-  const leftSF = ["temppjmdkrzyfekn", "海友糕手"]; // Left SF = winner(LQF1) vs winner(LQF2)
-  const rightSF = ["叶秋风", "Cactus"];           // Right SF = winner(RQF1) vs winner(RQF2)
+  const leftSF = ["TBD", "TBD"]; // Left SF = winner(LQF1) vs winner(LQF2)
+  const rightSF = ["TBD", "TBD"];           // Right SF = winner(RQF1) vs winner(RQF2)
 
   // Final (center): winners of the two semifinals.
-  const finalLeft  = "Left SF Winner";   // replace when known
-  const finalRight = "Right SF Winner";  // replace when known
+  const finalLeft  = "SF Winner 1";   // replace when known
+  const finalRight = "SF Winner 2";  // replace when known
   const finalChamp = "TBD";              // replace when champion is decided
 
   // Compose object for Bracket16 (it expects this shape)
