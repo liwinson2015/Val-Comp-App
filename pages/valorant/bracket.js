@@ -5,18 +5,19 @@ import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
-const TID = "VALO-SOLO-SKIRMISH-1"; // used by your registrations API
+// ---- Change this to the tournament id you use in your API route ----
+const TID = "VALO-SOLO-SKIRMISH-1";
 
 export default function BracketPage() {
-  // auth
+  // auth (unchanged)
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
 
-  // live registrations
+  // live registration counters
   const [regInfo, setRegInfo] = useState(null);
   const [loadingReg, setLoadingReg] = useState(true);
 
-  // ---- auth check ----
+  // ---------- AUTH CHECK ----------
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -36,7 +37,7 @@ export default function BracketPage() {
     };
   }, []);
 
-  // ---- registration counts ----
+  // ---------- FETCH LIVE REGISTRATIONS ----------
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -55,7 +56,8 @@ export default function BracketPage() {
     };
   }, []);
 
-  // ===== Winners bracket (EDIT THESE DURING EVENT) =====
+  // ---------- MANUAL BRACKET DATA (EDIT THESE NAMES DURING THE EVENT) ----------
+  // Round of 16 (you already filled these—keep updating as needed)
   const leftR16 = [
     ["temppjmdkrzyfekn", "Chicken Wang"],
     ["海友糕手", "蓝蝴蝶ya"],
@@ -69,68 +71,34 @@ export default function BracketPage() {
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
 
-  // Quarterfinals (two matches per side)
+  // >>> Update these as results come in <<<
+  // Quarterfinals: two matches per side (top/bottom). Put the two player names for each match.
   const leftQF = [
-    ["TBD", "TBD"], // winners of leftR16[0] & leftR16[1]
-    ["TBD", "TBD"], // winners of leftR16[2] & leftR16[3]
+    ["TBD", "TBD"], // Left QF1
+    ["TBD", "TBD"], // Left QF2
   ];
   const rightQF = [
-    ["TBD", "TBD"], // winners of rightR16[0] & rightR16[1]
-    ["TBD", "TBD"], // winners of rightR16[2] & rightR16[3]
+    ["TBD", "TBD"], // Right QF1
+    ["TBD", "TBD"], // Right QF2
   ];
 
-  // Semifinals (one match per side: two names)
+  // Semifinals: ONE match per side.
   const leftSF = ["TBD", "TBD"];
   const rightSF = ["TBD", "TBD"];
 
-  // Center final (two names) + champion pill
-  const finalLeft = "TBD";
-  const finalRight = "TBD";
+  // Final (center): winners of the two semifinals.
+  const finalLeft = "SF Winner 1";
+  const finalRight = "SF Winner 2";
   const finalChamp = "TBD";
 
+  // Compose object for Bracket16
   const bracketData = {
     left: { R16: leftR16, QF: leftQF, SF: leftSF },
     right: { R16: rightR16, QF: rightQF, SF: rightSF },
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // ===== Losers bracket (you can edit these arrays live) =====
-  const lbData = {
-    // 4 matches (8 players)
-    R1: [
-      ["TBD", "TBD"],
-      ["TBD", "TBD"],
-      ["TBD", "TBD"],
-      ["TBD", "TBD"],
-    ],
-    // 2 matches made from winners of R1 (top & bottom halves)
-    R2A: [
-      ["TBD", "TBD"],
-      ["TBD", "TBD"],
-    ],
-    // 2 drop-in matches (labels INSIDE the boxes)
-    R2B: [
-      ["TBD", "WB R2 Loser 1"],
-      ["TBD", "WB R2 Loser 2"],
-    ],
-    // 2 matches
-    R3A: [
-      ["TBD", "TBD"],
-      ["TBD", "TBD"],
-    ],
-    // 2 matches (WB SF drop-ins)
-    R3B: [
-      ["TBD", "WB SF Loser 1"],
-      ["TBD", "WB SF Loser 2"],
-    ],
-    // 1 match
-    R4: [["TBD", "TBD"]],
-    // LB Final and LB Winner
-    LBF: ["TBD", "WB Final Loser"],
-    LBWinner: "TBD",
-  };
-
-  // header counters
+  // ---------- TEXT FOR SLOTS / STATUS ----------
   const capacity = regInfo?.capacity ?? 16;
   const registered = regInfo?.registered ?? 0;
   const remaining = regInfo?.remaining ?? Math.max(capacity - registered, 0);
@@ -141,33 +109,179 @@ export default function BracketPage() {
     ? "Full — waitlist"
     : `Open — ${remaining} left`;
 
-  // center banner texts (manual)
-  const wbFinalWinner = "WB Champion (TBD)";
-  const lbFinalWinner = "LB Champion (TBD)";
-  const grandChampion = "Tournament Champion (TBD)";
+  // ---------- MANUAL GRAND-FINAL BANNER TEXTS (CENTER WIDGET) ----------
+  const wbFinalWinner = "WB Champion (TBD)"; // set when WB Final ends
+  const lbFinalWinner = "LB Champion (TBD)"; // set when LB Final ends
+  const grandChampion = "Tournament Champion (TBD)"; // set when the event ends
+
+  // ---------- NEW: MANUAL PLACINGS (RIGHT HEADER COLUMN) ----------
+  // Update these as results come in
+  const placements = {
+    first: "TBD",
+    second: "TBD",
+    third: "TBD",
+    fourth: "TBD",
+    fifthToSixth: ["TBD", "TBD"],
+    seventhToEighth: ["TBD", "TBD"],
+    ninthToTwelfth: ["TBD", "TBD", "TBD", "TBD"],
+    thirteenthToSixteenth: ["TBD", "TBD", "TBD", "TBD"],
+  };
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* ===== Header ===== */}
+        {/* ===== Header (split: info + placings) ===== */}
         <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>CHAMPIONSHIP BRACKET — 16 PLAYERS</h2>
+          <div className="splitGrid">
+            {/* LEFT: tournament info */}
+            <div className="col">
+              <div className={styles.cardHeaderRow}>
+                <h2 className={styles.cardTitle}>CHAMPIONSHIP BRACKET — 16 PLAYERS</h2>
+              </div>
+              <p style={{ color: "#97a3b6", marginTop: 0 }}>
+                Double Elimination • Seeds auto-assigned
+              </p>
+
+              <div className={styles.detailGrid}>
+                <div className={styles.detailLabel}>SLOTS</div>
+                <div className={styles.detailValueHighlight}>{slotsText}</div>
+
+                <div className={styles.detailLabel}>STATUS</div>
+                <div className={styles.detailValue}>{statusText}</div>
+
+                <div className={styles.detailLabel}>STREAM</div>
+                <div className={styles.detailValue}>[TBD]</div>
+              </div>
+            </div>
+
+            {/* RIGHT: placings (manual) */}
+            <div className="col">
+              <div className="rankHeader">Placings (manual)</div>
+
+              <div className="rankRows">
+                <div className="rankRow">
+                  <div className="rankBadge gold">1st</div>
+                  <div className="rankNames">{placements.first}</div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge silver">2nd</div>
+                  <div className="rankNames">{placements.second}</div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge bronze">3rd</div>
+                  <div className="rankNames">{placements.third}</div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge">4th</div>
+                  <div className="rankNames">{placements.fourth}</div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge">5–6</div>
+                  <div className="rankNames">
+                    {placements.fifthToSixth.join(" • ")}
+                  </div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge">7–8</div>
+                  <div className="rankNames">
+                    {placements.seventhToEighth.join(" • ")}
+                  </div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge">9–12</div>
+                  <div className="rankNames">
+                    {placements.ninthToTwelfth.join(" • ")}
+                  </div>
+                </div>
+
+                <div className="rankRow">
+                  <div className="rankBadge">13–16</div>
+                  <div className="rankNames">
+                    {placements.thirteenthToSixteenth.join(" • ")}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p style={{ color: "#97a3b6", marginTop: 0 }}>
-            Double Elimination • Seeds auto-assigned
-          </p>
 
-          <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>SLOTS</div>
-            <div className={styles.detailValueHighlight}>{slotsText}</div>
+          {/* local styles for split header */}
+          <style jsx>{`
+            .splitGrid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 24px;
+              align-items: start;
+            }
+            @media (max-width: 980px) {
+              .splitGrid {
+                grid-template-columns: 1fr;
+              }
+            }
+            .col {
+              min-width: 0;
+            }
 
-            <div className={styles.detailLabel}>STATUS</div>
-            <div className={styles.detailValue}>{statusText}</div>
+            .rankHeader {
+              color: #dfe6f3;
+              font-weight: 900;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              font-size: 12px;
+              margin-bottom: 10px;
+              opacity: 0.9;
+            }
 
-            <div className={styles.detailLabel}>STREAM</div>
-            <div className={styles.detailValue}>[TBD]</div>
-          </div>
+            .rankRows {
+              display: grid;
+              gap: 10px;
+            }
+            .rankRow {
+              display: grid;
+              grid-template-columns: 80px 1fr;
+              align-items: center;
+              gap: 12px;
+              background: #0d1117;
+              border: 1px solid #273247;
+              border-radius: 10px;
+              padding: 10px 12px;
+            }
+            .rankBadge {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 8px;
+              padding: 6px 10px;
+              font-weight: 800;
+              font-size: 12px;
+              letter-spacing: 0.04em;
+              color: #0b0e13;
+              background: #e6edf8;
+            }
+            .rankBadge.gold {
+              background: #ffe08a;
+            }
+            .rankBadge.silver {
+              background: #d7dde7;
+            }
+            .rankBadge.bronze {
+              background: #f0b68a;
+            }
+
+            .rankNames {
+              color: #c9d4e6;
+              font-weight: 700;
+              font-size: 14px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+          `}</style>
         </section>
 
         {/* ===== Winners Bracket (full-bleed) ===== */}
@@ -226,9 +340,14 @@ export default function BracketPage() {
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket ===== */}
+        {/* ===== Losers Bracket (kept as-is) ===== */}
         <section className={`${styles.card} fullBleed`}>
-          <LosersBracket16 data={lbData} />
+          <LosersBracket16
+            lbR1={Array(8).fill(null)}
+            dropR2={Array(4).fill(null)}
+            dropSF={Array(2).fill(null)}
+            dropWBF={Array(1).fill(null)}
+          />
           <style jsx>{`
             .fullBleed {
               width: 100vw;
