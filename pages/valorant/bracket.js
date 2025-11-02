@@ -98,7 +98,7 @@ export default function BracketPage() {
   const lbData = {
     // 4 matches (8 players)
     R1: [
-      ["TBD", "TBD"],
+      ["Cactus", "TBD"],
       ["TBD", "TBD"],
       ["TBD", "TBD"],
       ["TBD", "TBD"],
