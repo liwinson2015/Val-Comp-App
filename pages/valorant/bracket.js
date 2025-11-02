@@ -195,7 +195,7 @@ export default function BracketPage() {
         {/* ===== Losers Bracket (kept as-is; edit inside its component when needed) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
-            lbR1={Array(8).fill(null)}   {/* fill later when you have LB names */}
+            lbR1={Array(8).fill(null)}   
             dropR2={Array(4).fill(null)}
             dropSF={Array(2).fill(null)}
             dropWBF={Array(1).fill(null)}
