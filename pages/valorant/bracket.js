@@ -56,7 +56,7 @@ export default function BracketPage() {
   const rightR16 = [
     ["叶秋风", "Squid"],
     ["Cactus", "July ya"],
-    ["Qenquin", "№NeedZzz"],
+    ["Qenquin", "Booey"],
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
 
