@@ -87,7 +87,7 @@ export default function BracketPage() {
   // Edit these strings during the event. Keep the WB drop-in labels inside the boxes.
   const lbData = {
     // LB Round 1: 8 players (4 matches)
-    R1:  ["LB P1","LB P2","LB P3","LB P4","LB P5","LB P6","LB P7","LB P8"],
+    R1:  ["Cactus","LB P2","LB P3","LB P4","LB P5","LB P6","LB P7","LB P8"],
 
     // LB Round 2A: 4 winners from R1 (2 matches)
     R2A: ["TBD","TBD","TBD","TBD"],
