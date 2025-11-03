@@ -114,14 +114,14 @@ export default function BracketPage() {
 
   // r3a: 2 matches (winners from r2)
   const lb_r3a = [
-    ["蓝蝴蝶ya", "TBD"],
+    ["蓝蝴蝶ya", "巧克力炸香蕉"],
     ["sparkle", "彼岸花ya"],
   ];
 
   // r3b: 2 matches (WB Semifinal losers drop in)
   const lb_r3b = [
     ["TBD", "WB SF Loser 1"],
-    ["TBD", "WB SF Loser 2"],
+    ["蓝蝴蝶ya", "WB SF Loser 2"],
   ];
 
   // r4: 1 match
