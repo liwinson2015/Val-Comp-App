@@ -65,7 +65,7 @@ export default function BracketPage() {
   ];
   const rightR16 = [
     ["叶秋风", "Squid"],
-    ["Cactus", "July ya"],
+    ["Cactus", "七月ya"],
     ["Qenquin", "Booey"],
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
@@ -76,7 +76,7 @@ export default function BracketPage() {
     ["TBD", "TBD"],      // LQF2
   ];
   const rightQF = [
-    ["叶秋风", "TBD"], // RQF1
+    ["叶秋风", "七月ya"], // RQF1
     ["TBD", "TBD"], // RQF2
   ];
 
@@ -100,7 +100,7 @@ export default function BracketPage() {
   const lb_r1 = [
     ["Chicken Wang", "海友糕手"],
     ["TBD", "TBD"],
-    ["Squid", "TBD"],
+    ["Squid", "Cactus"],
     ["TBD", "TBD"],
   ];
 
