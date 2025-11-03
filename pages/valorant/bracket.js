@@ -131,7 +131,7 @@ export default function BracketPage() {
   const lb_final = ["叶秋风", "temppjmdkrzyfekn"];
 
   // LB Winner pill
-  const lb_winner = "TBD";
+  const lb_winner = "叶秋风";
 
   // ============================
   // HEADER TEXTS
@@ -148,7 +148,7 @@ export default function BracketPage() {
 
   // Grand final banner texts
   const wbFinalWinner = "卡提希娅の仆人";
-  const lbFinalWinner = "LB Champion (TBD)";
+  const lbFinalWinner = "叶秋风";
   const grandChampion = "Tournament Champion (TBD)";
 
   // Manual ranking list for the right half of the header
