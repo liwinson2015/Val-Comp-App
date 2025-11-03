@@ -155,12 +155,12 @@ export default function BracketPage() {
   const placements = {
     first: "TBD",
     second: "TBD",
-    third: "TBD",
-    fourth: "TBD",
-    fifthToSixth: ["TBD", "TBD"],
-    seventhToEighth: ["TBD", "TBD"],
-    ninthToTwelfth: ["TBD", "TBD", "TBD", "TBD"],
-    thirteenthToSixteenth: ["TBD", "TBD", "TBD", "TBD"],
+    third: "temppjmdkrzyfekn",
+    fourth: "巧克力炸香蕉",
+    fifthToSixth: ["彼岸花ya", "SimpleFish"],
+    seventhToEighth: ["蓝蝴蝶ya", "sparkle"],
+    ninthToTwelfth: ["Booey", "海友糕手", "July ya", "Qenquin"],
+    thirteenthToSixteenth: ["Squid", "Cactus", "Ethan Sylor", "Chicken Wang"],
   };
 
   return (
