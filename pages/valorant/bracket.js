@@ -108,7 +108,7 @@ export default function BracketPage() {
   const lb_r2 = [
     ["Booey", "WB R2 Loser"],
     ["海友糕手", "WB R2 Loser"],
-    ["TBD", "WB R2 Loser"],
+    ["TBD", "July ya"],
     ["彼岸花ya", "WB R2 Loser"],
   ];
 
