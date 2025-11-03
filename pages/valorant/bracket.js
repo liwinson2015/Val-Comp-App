@@ -85,7 +85,7 @@ export default function BracketPage() {
   const rightSF = ["叶秋风", "卡提希娅の仆人"];
 
   // Final (center)
-  const finalLeft  = "SF Winner 1";
+  const finalLeft  = "temppjmdkrzyfekn";
   const finalRight = "卡提希娅の仆人";
   const finalChamp = "TBD";
 
