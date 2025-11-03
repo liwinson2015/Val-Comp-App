@@ -87,7 +87,7 @@ export default function BracketPage() {
   // Final (center)
   const finalLeft  = "temppjmdkrzyfekn";
   const finalRight = "卡提希娅の仆人";
-  const finalChamp = "TBD";
+  const finalChamp = "卡提希娅の仆人";
 
   const bracketData = {
     left:  { R16: leftR16,  QF: leftQF,  SF: leftSF },
@@ -128,7 +128,7 @@ export default function BracketPage() {
   const lb_r4 = [["巧克力炸香蕉", "叶秋风"]];
 
   // LB Final: 1 match
-  const lb_final = ["TBD", "WB Final Loser"];
+  const lb_final = ["TBD", "temppjmdkrzyfekn"];
 
   // LB Winner pill
   const lb_winner = "TBD";
@@ -147,7 +147,7 @@ export default function BracketPage() {
     : `Open — ${remaining} left`;
 
   // Grand final banner texts
-  const wbFinalWinner = "WB Champion (TBD)";
+  const wbFinalWinner = "卡提希娅の仆人";
   const lbFinalWinner = "LB Champion (TBD)";
   const grandChampion = "Tournament Champion (TBD)";
 
