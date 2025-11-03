@@ -72,7 +72,7 @@ export default function BracketPage() {
 
   // Winners bracket — Quarterfinals (2 matches per side)
   const leftQF = [
-    ["TBD", "蓝蝴蝶ya"], // LQF1
+    ["temppjmdkrzyfekn", "蓝蝴蝶ya"], // LQF1
     ["TBD", "TBD"],      // LQF2
   ];
   const rightQF = [
@@ -98,7 +98,7 @@ export default function BracketPage() {
   // Losers bracket — EDIT THESE during the event
   // r1: 4 matches (8 players)
   const lb_r1 = [
-    ["TBD", "海友糕手"],
+    ["Chicken Wang", "海友糕手"],
     ["TBD", "TBD"],
     ["Squid", "TBD"],
     ["TBD", "TBD"],
