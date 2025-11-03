@@ -125,7 +125,7 @@ export default function BracketPage() {
   ];
 
   // r4: 1 match
-  const lb_r4 = [["TBD", "叶秋风"]];
+  const lb_r4 = [["巧克力炸香蕉", "叶秋风"]];
 
   // LB Final: 1 match
   const lb_final = ["TBD", "WB Final Loser"];
