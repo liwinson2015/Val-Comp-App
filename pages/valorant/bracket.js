@@ -149,12 +149,12 @@ export default function BracketPage() {
   // Grand final banner texts
   const wbFinalWinner = "卡提希娅の仆人";
   const lbFinalWinner = "叶秋风";
-  const grandChampion = "Tournament Champion (TBD)";
+  const grandChampion = "叶秋风";
 
   // Manual ranking list for the right half of the header
   const placements = {
-    first: "TBD",
-    second: "TBD",
+    first: "叶秋风",
+    second: "卡提希娅の仆人",
     third: "temppjmdkrzyfekn",
     fourth: "巧克力炸香蕉",
     fifthToSixth: ["彼岸花ya", "SimpleFish"],
