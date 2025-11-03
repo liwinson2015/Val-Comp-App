@@ -82,7 +82,7 @@ export default function BracketPage() {
 
   // Winners bracket — Semifinals (1 match per side)
   const leftSF = ["TBD", "TBD"];
-  const rightSF = ["叶秋风", "TBD"];
+  const rightSF = ["叶秋风", "卡提希娅の仆人"];
 
   // Final (center)
   const finalLeft  = "SF Winner 1";
