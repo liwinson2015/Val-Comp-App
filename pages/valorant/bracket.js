@@ -120,12 +120,12 @@ export default function BracketPage() {
 
   // r3b: 2 matches (WB Semifinal losers drop in)
   const lb_r3b = [
-    ["TBD", "WB SF Loser 1"],
+    ["巧克力炸香蕉", "WB SF Loser 1"],
     ["彼岸花ya", "叶秋风"],
   ];
 
   // r4: 1 match
-  const lb_r4 = [["TBD", "TBD"]];
+  const lb_r4 = [["TBD", "叶秋风"]];
 
   // LB Final: 1 match
   const lb_final = ["TBD", "WB Final Loser"];
