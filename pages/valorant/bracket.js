@@ -81,7 +81,7 @@ export default function BracketPage() {
   ];
 
   // Winners bracket — Semifinals (1 match per side)
-  const leftSF = ["TBD", "TBD"];
+  const leftSF = ["temppjmdkrzyfekn", "TBD"];
   const rightSF = ["叶秋风", "卡提希娅の仆人"];
 
   // Final (center)
@@ -106,9 +106,9 @@ export default function BracketPage() {
 
   // r2: 4 matches (WB R2 drop-ins appear as the 2nd name in each pair)
   const lb_r2 = [
-    ["Booey", "WB R2 Loser"],
+    ["Booey", "蓝蝴蝶ya"],
     ["海友糕手", "WB R2 Loser"],
-    ["TBD", "July ya"],
+    ["Sparkle", "July ya"],
     ["彼岸花ya", "Qenquin"],
   ];
 
