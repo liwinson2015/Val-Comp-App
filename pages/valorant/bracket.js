@@ -73,7 +73,7 @@ export default function BracketPage() {
   // Winners bracket — Quarterfinals (2 matches per side)
   const leftQF = [
     ["temppjmdkrzyfekn", "蓝蝴蝶ya"], // LQF1
-    ["TBD", "SimpleFish"],      // LQF2
+    ["巧克力炸香蕉", "SimpleFish"],      // LQF2
   ];
   const rightQF = [
     ["叶秋风", "七月ya"], // RQF1
@@ -82,7 +82,7 @@ export default function BracketPage() {
 
   // Winners bracket — Semifinals (1 match per side)
   const leftSF = ["TBD", "TBD"];
-  const rightSF = ["TBD", "TBD"];
+  const rightSF = ["叶秋风", "TBD"];
 
   // Final (center)
   const finalLeft  = "SF Winner 1";
@@ -100,16 +100,16 @@ export default function BracketPage() {
   const lb_r1 = [
     ["Squid", "Booey"],
     ["Cactus", "海友糕手"],
-    ["", "Ethan Sylor"],
+    ["sparkle", "Ethan Sylor"],
     ["Chicken Wang", "彼岸花ya"],
   ];
 
   // r2: 4 matches (WB R2 drop-ins appear as the 2nd name in each pair)
   const lb_r2 = [
+    ["Booey", "WB R2 Loser"],
+    ["海友糕手", "WB R2 Loser"],
     ["TBD", "WB R2 Loser"],
-    ["TBD", "WB R2 Loser"],
-    ["TBD", "WB R2 Loser"],
-    ["TBD", "WB R2 Loser"],
+    ["彼岸花ya", "WB R2 Loser"],
   ];
 
   // r3a: 2 matches (winners from r2)
