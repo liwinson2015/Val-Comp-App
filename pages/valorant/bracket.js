@@ -128,7 +128,7 @@ export default function BracketPage() {
   const lb_r4 = [["巧克力炸香蕉", "叶秋风"]];
 
   // LB Final: 1 match
-  const lb_final = ["TBD", "temppjmdkrzyfekn"];
+  const lb_final = ["叶秋风", "temppjmdkrzyfekn"];
 
   // LB Winner pill
   const lb_winner = "TBD";
