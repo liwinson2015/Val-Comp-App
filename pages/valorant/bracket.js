@@ -109,7 +109,7 @@ export default function BracketPage() {
     ["Booey", "WB R2 Loser"],
     ["海友糕手", "WB R2 Loser"],
     ["TBD", "July ya"],
-    ["彼岸花ya", "WB R2 Loser"],
+    ["彼岸花ya", "Qenquin"],
   ];
 
   // r3a: 2 matches (winners from r2)
