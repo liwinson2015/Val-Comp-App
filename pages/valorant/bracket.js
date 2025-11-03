@@ -86,7 +86,7 @@ export default function BracketPage() {
 
   // Final (center)
   const finalLeft  = "SF Winner 1";
-  const finalRight = "SF Winner 2";
+  const finalRight = "卡提希娅の仆人";
   const finalChamp = "TBD";
 
   const bracketData = {
