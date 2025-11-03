@@ -5,15 +5,19 @@ import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
+// Change to your tournament id that /api/tournaments/[id]/registrations expects
 const TID = "VALO-SOLO-SKIRMISH-1";
 
 export default function BracketPage() {
+  // ---- auth (unchanged) ----
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
 
+  // ---- live registration counters ----
   const [regInfo, setRegInfo] = useState(null);
   const [loadingReg, setLoadingReg] = useState(true);
 
+  // --- check auth ---
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -31,6 +35,7 @@ export default function BracketPage() {
     return () => { ignore = true; };
   }, []);
 
+  // --- fetch live registrations for header counters ---
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -47,6 +52,11 @@ export default function BracketPage() {
     return () => { ignore = true; };
   }, []);
 
+  // ============================
+  // MANUAL BRACKET DATA (EDIT)
+  // ============================
+
+  // Winners bracket — Round of 16
   const leftR16 = [
     ["temppjmdkrzyfekn", "Chicken Wang"],
     ["海友糕手", "蓝蝴蝶ya"],
@@ -60,18 +70,21 @@ export default function BracketPage() {
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
 
+  // Winners bracket — Quarterfinals (2 matches per side)
   const leftQF = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
+    ["TBD", "蓝蝴蝶ya"], // LQF1
+    ["TBD", "TBD"],      // LQF2
   ];
   const rightQF = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
+    ["叶秋风", "TBD"], // RQF1
+    ["TBD", "TBD"], // RQF2
   ];
 
+  // Winners bracket — Semifinals (1 match per side)
   const leftSF = ["TBD", "TBD"];
   const rightSF = ["TBD", "TBD"];
 
+  // Final (center)
   const finalLeft  = "SF Winner 1";
   const finalRight = "SF Winner 2";
   const finalChamp = "TBD";
@@ -82,6 +95,47 @@ export default function BracketPage() {
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
+  // Losers bracket — EDIT THESE during the event
+  // r1: 4 matches (8 players)
+  const lb_r1 = [
+    ["TBD", "海友糕手"],
+    ["TBD", "TBD"],
+    ["Squid", "TBD"],
+    ["TBD", "TBD"],
+  ];
+
+  // r2: 4 matches (WB R2 drop-ins appear as the 2nd name in each pair)
+  const lb_r2 = [
+    ["TBD", "WB R2 Loser"],
+    ["TBD", "WB R2 Loser"],
+    ["TBD", "WB R2 Loser"],
+    ["TBD", "WB R2 Loser"],
+  ];
+
+  // r3a: 2 matches (winners from r2)
+  const lb_r3a = [
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
+  ];
+
+  // r3b: 2 matches (WB Semifinal losers drop in)
+  const lb_r3b = [
+    ["TBD", "WB SF Loser 1"],
+    ["TBD", "WB SF Loser 2"],
+  ];
+
+  // r4: 1 match
+  const lb_r4 = [["TBD", "TBD"]];
+
+  // LB Final: 1 match
+  const lb_final = ["TBD", "WB Final Loser"];
+
+  // LB Winner pill
+  const lb_winner = "TBD";
+
+  // ============================
+  // HEADER TEXTS
+  // ============================
   const capacity   = regInfo?.capacity ?? 16;
   const registered = regInfo?.registered ?? 0;
   const remaining  = regInfo?.remaining ?? Math.max(capacity - registered, 0);
@@ -92,11 +146,12 @@ export default function BracketPage() {
     ? "Full — waitlist"
     : `Open — ${remaining} left`;
 
+  // Grand final banner texts
   const wbFinalWinner = "WB Champion (TBD)";
   const lbFinalWinner = "LB Champion (TBD)";
   const grandChampion = "Tournament Champion (TBD)";
 
-  // Manual ranking panel
+  // Manual ranking list for the right half of the header
   const placements = {
     first: "TBD",
     second: "TBD",
@@ -111,7 +166,7 @@ export default function BracketPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* ===== Split header ===== */}
+        {/* ===== Split header (Info + Ranking) ===== */}
         <section className={styles.card}>
           <div className="splitGrid">
             {/* LEFT: info */}
@@ -131,14 +186,12 @@ export default function BracketPage() {
                 <div className={styles.detailValue}>{statusText}</div>
 
                 <div className={styles.detailLabel}>STREAM</div>
-                {/* CHANGED: show 5TQ instead of [TBD] */}
                 <div className={styles.detailValue}>5TQ</div>
               </div>
             </div>
 
             {/* RIGHT: ranking */}
             <div className="col">
-              {/* CHANGED: header label */}
               <div className="rankHeader">Ranking</div>
 
               <div className="rankRows">
@@ -201,22 +254,19 @@ export default function BracketPage() {
               align-items: start;
             }
             @media (max-width: 980px) {
-              .splitGrid {
-                grid-template-columns: 1fr;
-              }
+              .splitGrid { grid-template-columns: 1fr; }
             }
             .col { min-width: 0; }
 
             .rankHeader {
               color: #dfe6f3;
               font-weight: 900;
-              letter-spacing: 0.08em;
+              letter-spacing: .08em;
               text-transform: uppercase;
               font-size: 12px;
               margin-bottom: 10px;
-              opacity: 0.9;
+              opacity: .9;
             }
-
             .rankRows { display: grid; gap: 10px; }
             .rankRow {
               display: grid;
@@ -236,14 +286,13 @@ export default function BracketPage() {
               padding: 6px 10px;
               font-weight: 800;
               font-size: 12px;
-              letter-spacing: 0.04em;
+              letter-spacing: .04em;
               color: #0b0e13;
               background: #e6edf8;
             }
             .rankBadge.gold { background: #ffe08a; }
             .rankBadge.silver { background: #d7dde7; }
             .rankBadge.bronze { background: #f0b68a; }
-
             .rankNames {
               color: #c9d4e6;
               font-weight: 700;
@@ -255,7 +304,7 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== Winners Bracket (full-bleed) ===== */}
+        {/* ===== Winners Bracket ===== */}
         <section className={`${styles.card} fullBleed`}>
           {!loadingAuth && !loggedIn ? (
             <div
@@ -302,20 +351,23 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== CENTER GRAND FINAL ===== */}
+        {/* ===== Center Grand Final banner ===== */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket ===== */}
+        {/* ===== Losers Bracket (now fully editable via props) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
-            lbR1={Array(8).fill(null)}
-            dropR2={Array(4).fill(null)}
-            dropSF={Array(2).fill(null)}
-            dropWBF={Array(1).fill(null)}
+            r1={lb_r1}
+            r2={lb_r2}
+            r3a={lb_r3a}
+            r3b={lb_r3b}
+            r4={lb_r4}
+            lbFinal={lb_final}
+            lbWinner={lb_winner}
           />
           <style jsx>{`
             .fullBleed {
@@ -340,6 +392,7 @@ export default function BracketPage() {
           </ul>
         </section>
 
+        {/* ===== Footer ===== */}
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
             <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
