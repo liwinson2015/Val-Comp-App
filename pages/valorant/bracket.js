@@ -1,167 +1,241 @@
-// pages/valorant/bracket.js
-import React, { useEffect, useState } from "react";
+// pages/valorant/bracket-live.js
+import React from "react";
+import mongoose from "mongoose";
 import styles from "../../styles/Valorant.module.css";
 import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
 import GrandFinalCenter from "../../components/GrandFinalCenter";
 
-// Change to your tournament id that /api/tournaments/[id]/registrations expects
+import { connectToDatabase } from "../../lib/mongodb";
+import Tournament from "../../models/Tournament";
+import Player from "../../models/Player";
+
+// Tournament id used in admin (/admin/brackets/[id])
 const TID = "VALO-SOLO-SKIRMISH-1";
 
-export default function BracketPage() {
-  // ---- auth (unchanged) ----
-  const [loadingAuth, setLoadingAuth] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
+// ===== SERVER SIDE: load published bracket + players =====
+export async function getServerSideProps() {
+  await connectToDatabase();
 
-  // ---- live registration counters ----
-  const [regInfo, setRegInfo] = useState(null);
-  const [loadingReg, setLoadingReg] = useState(true);
+  const tournamentId = TID;
 
-  // --- check auth ---
-  useEffect(() => {
-    let ignore = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/whoami", { credentials: "same-origin" });
-        const data = await res.json();
-        if (!ignore) {
-          setLoggedIn(!!data.loggedIn);
-          setLoadingAuth(false);
-        }
-      } catch {
-        if (!ignore) setLoadingAuth(false);
-      }
-    })();
-    return () => { ignore = true; };
-  }, []);
+  const t = await Tournament.findOne({ tournamentId }).lean();
 
-  // --- fetch live registrations for header counters ---
-  useEffect(() => {
-    let ignore = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/tournaments/${TID}/registrations`);
-        const data = await res.json();
-        if (!ignore) setRegInfo(data);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (!ignore) setLoadingReg(false);
-      }
-    })();
-    return () => { ignore = true; };
-  }, []);
+  // If nothing or not published → show "not published" state
+  if (!t || !t.bracket || !t.bracket.isPublished) {
+    return {
+      props: {
+        tournamentId,
+        published: false,
+        bracket: null,
+        players: [],
+      },
+    };
+  }
 
-  // ============================
-  // MANUAL BRACKET DATA (EDIT)
-  // ============================
+  const bracket = t.bracket;
 
-  // Winners bracket — Round of 16
-  const leftR16 = [
-    ["temppjmdkrzyfekn", "Chicken Wang"],
-    ["海友糕手", "蓝蝴蝶ya"],
-    ["sparkle", "巧克力炸香蕉"],
-    ["彼岸花ya", "SimpleFish"],
-  ];
-  const rightR16 = [
-    ["叶秋风", "Squid"],
-    ["Cactus", "July ya"],
-    ["Qenquin", "Booey"],
-    ["Ethan Sylor", "卡提希娅の仆人"],
-  ];
+  // Collect all playerIds used in winners + losers rounds
+  const idSet = new Set();
 
-  // Winners bracket — Quarterfinals (2 matches per side)
+  (bracket.rounds || []).forEach((r) => {
+    (r.matches || []).forEach((m) => {
+      if (m.player1Id) idSet.add(m.player1Id.toString());
+      if (m.player2Id) idSet.add(m.player2Id.toString());
+      if (m.winnerId) idSet.add(m.winnerId.toString());
+    });
+  });
+
+  (bracket.losersRounds || []).forEach((r) => {
+    (r.matches || []).forEach((m) => {
+      if (m.player1Id) idSet.add(m.player1Id.toString());
+      if (m.player2Id) idSet.add(m.player2Id.toString());
+      if (m.winnerId) idSet.add(m.winnerId.toString());
+    });
+  });
+
+  const ids = Array.from(idSet);
+  let playerDocs = [];
+  if (ids.length > 0) {
+    const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+    playerDocs = await Player.find({ _id: { $in: objectIds } }).lean();
+  }
+
+  // Build a lookup array of players; pull IGN for this specific tournament
+  const players = playerDocs.map((p) => {
+    const reg = (p.registeredFor || []).find(
+      (r) => r.tournamentId === tournamentId
+    );
+
+    return {
+      _id: p._id.toString(),
+      username: p.username || "",
+      ign: reg?.ign || "",
+    };
+  });
+
+  return {
+    props: {
+      tournamentId,
+      published: true,
+      bracket: JSON.parse(
+        JSON.stringify({
+          rounds: bracket.rounds || [],
+          losersRounds: bracket.losersRounds || [],
+        })
+      ),
+      players,
+    },
+  };
+}
+
+// ===== HELPER: label from id (IGN only in public UI) =====
+function buildIdToLabel(players) {
+  const idToLabel = {};
+  for (const p of players || []) {
+    // Public bracket should show IGN only; fall back to username, then "Unknown"
+    idToLabel[p._id] = p.ign || p.username || "Unknown";
+  }
+  return idToLabel;
+}
+
+export default function BracketLivePage({
+  tournamentId,
+  published,
+  bracket,
+  players,
+}) {
+  // ===== HEADER REG INFO PLACEHOLDERS (you can wire real data later) =====
+  const capacity = 16;
+  const registered = players.length;
+  const remaining = Math.max(capacity - registered, 0);
+  const slotsText = `${registered} / ${capacity}`;
+  const statusText =
+    registered >= capacity ? "Full — waitlist" : `Open — ${remaining} left`;
+
+  if (!published) {
+    // Not published yet — simple message so you don't expose drafts
+    return (
+      <div className={styles.shell}>
+        <div className={styles.contentWrap}>
+          <section className={styles.card}>
+            <h2 className={styles.cardTitle}>Bracket for {tournamentId}</h2>
+            <p style={{ color: "#cbd5f5" }}>
+              This bracket has not been published yet. Use the admin page to
+              publish once it is ready.
+            </p>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  const idToLabel = buildIdToLabel(players);
+
+  function getLabel(id) {
+    if (!id) return "TBD";
+    return idToLabel[id] || "TBD";
+  }
+
+  // ===== WINNERS BRACKET MAPPING (ROUND OF 16) =====
+  const rounds = bracket?.rounds || [];
+  const round1 =
+    rounds.find((r) => r.roundNumber === 1) || rounds[0] || { matches: [] };
+  const r1Matches = round1.matches || [];
+
+  const leftR16 = [];
+  const rightR16 = [];
+
+  r1Matches.forEach((m, index) => {
+    const pair = [getLabel(m.player1Id), getLabel(m.player2Id)];
+    if (index < 4) {
+      leftR16.push(pair);
+    } else {
+      rightR16.push(pair);
+    }
+  });
+
+  // Pad to 4 matches per side so Bracket16 always has 8 matches total
+  while (leftR16.length < 4) {
+    leftR16.push(["TBD", "TBD"]);
+  }
+  while (rightR16.length < 4) {
+    rightR16.push(["TBD", "TBD"]);
+  }
+
+  // For now, later winners rounds are still placeholders
   const leftQF = [
-    ["temppjmdkrzyfekn", "蓝蝴蝶ya"], // LQF1
-    ["巧克力炸香蕉", "SimpleFish"],      // LQF2
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
   ];
   const rightQF = [
-    ["叶秋风", "七月ya"], // RQF1
-    ["Qenquin", "卡提希娅の仆人"], // RQF2
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
   ];
-
-  // Winners bracket — Semifinals (1 match per side)
-  const leftSF = ["temppjmdkrzyfekn", "SimpleFish"];
-  const rightSF = ["叶秋风", "卡提希娅の仆人"];
-
-  // Final (center)
-  const finalLeft  = "temppjmdkrzyfekn";
-  const finalRight = "卡提希娅の仆人";
-  const finalChamp = "卡提希娅の仆人";
+  const leftSF = ["TBD", "TBD"];
+  const rightSF = ["TBD", "TBD"];
+  const finalLeft = "TBD";
+  const finalRight = "TBD";
+  const finalChamp = "TBD";
 
   const bracketData = {
-    left:  { R16: leftR16,  QF: leftQF,  SF: leftSF },
+    left: { R16: leftR16, QF: leftQF, SF: leftSF },
     right: { R16: rightR16, QF: rightQF, SF: rightSF },
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // Losers bracket — EDIT THESE during the event
-  // r1: 4 matches (8 players)
-  const lb_r1 = [
-    ["Squid", "Booey"],
-    ["Cactus", "海友糕手"],
-    ["sparkle", "Ethan Sylor"],
-    ["Chicken Wang", "彼岸花ya"],
-  ];
+  // ===== LOSERS BRACKET MAPPING (ROUND 1 FROM DB) =====
+  const losersRounds = bracket?.losersRounds || [];
+  const lbRound1 =
+    losersRounds.find((r) => r.roundNumber === 1) ||
+    losersRounds[0] ||
+    { matches: [] };
+  const lbMatches1 = lbRound1.matches || [];
 
-  // r2: 4 matches (WB R2 drop-ins appear as the 2nd name in each pair)
+  const lb_r1 = lbMatches1.map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+
+  // Pad LB R1 to 4 matches so LosersBracket16 receives a consistent shape
+  while (lb_r1.length < 4) {
+    lb_r1.push(["TBD", "TBD"]);
+  }
+
+  // Other losers rounds remain placeholders for now
   const lb_r2 = [
-    ["Booey", "蓝蝴蝶ya"],
-    ["海友糕手", "巧克力炸香蕉"],
-    ["sparkle", "July ya"],
-    ["彼岸花ya", "Qenquin"],
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
   ];
-
-  // r3a: 2 matches (winners from r2)
   const lb_r3a = [
-    ["蓝蝴蝶ya", "巧克力炸香蕉"],
-    ["sparkle", "彼岸花ya"],
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
   ];
-
-  // r3b: 2 matches (WB Semifinal losers drop in)
   const lb_r3b = [
-    ["巧克力炸香蕉", "SimpleFish"],
-    ["彼岸花ya", "叶秋风"],
+    ["TBD", "TBD"],
+    ["TBD", "TBD"],
   ];
+  const lb_r4 = [["TBD", "TBD"]];
+  const lb_final = ["TBD", "TBD"];
+  const lb_winner = "TBD";
 
-  // r4: 1 match
-  const lb_r4 = [["巧克力炸香蕉", "叶秋风"]];
-
-  // LB Final: 1 match
-  const lb_final = ["叶秋风", "temppjmdkrzyfekn"];
-
-  // LB Winner pill
-  const lb_winner = "叶秋风";
-
-  // ============================
-  // HEADER TEXTS
-  // ============================
-  const capacity   = regInfo?.capacity ?? 16;
-  const registered = regInfo?.registered ?? 0;
-  const remaining  = regInfo?.remaining ?? Math.max(capacity - registered, 0);
-  const slotsText  = loadingReg ? "Loading…" : `${registered} / ${capacity}`;
-  const statusText = loadingReg
-    ? "Checking capacity…"
-    : regInfo?.isFull
-    ? "Full — waitlist"
-    : `Open — ${remaining} left`;
-
-  // Grand final banner texts
-  const wbFinalWinner = "卡提希娅の仆人";
-  const lbFinalWinner = "叶秋风";
-  const grandChampion = "叶秋风";
-
-  // Manual ranking list for the right half of the header
+  // Placements + grand final still manual/test placeholders
   const placements = {
-    first: "叶秋风",
-    second: "卡提希娅の仆人",
-    third: "temppjmdkrzyfekn",
-    fourth: "巧克力炸香蕉",
-    fifthToSixth: ["彼岸花ya", "SimpleFish"],
-    seventhToEighth: ["蓝蝴蝶ya", "sparkle"],
-    ninthToTwelfth: ["Booey", "海友糕手", "July ya", "Qenquin"],
-    thirteenthToSixteenth: ["Squid", "Cactus", "Ethan Sylor", "Chicken Wang"],
+    first: "TBD",
+    second: "TBD",
+    third: "TBD",
+    fourth: "TBD",
+    fifthToSixth: ["TBD", "TBD"],
+    seventhToEighth: ["TBD", "TBD"],
+    ninthToTwelfth: ["TBD", "TBD", "TBD", "TBD"],
+    thirteenthToSixteenth: ["TBD", "TBD", "TBD", "TBD"],
   };
+
+  const wbFinalWinner = "TBD";
+  const lbFinalWinner = "TBD";
+  const grandChampion = "TBD";
 
   return (
     <div className={styles.shell}>
@@ -172,10 +246,12 @@ export default function BracketPage() {
             {/* LEFT: info */}
             <div className="col">
               <div className={styles.cardHeaderRow}>
-                <h2 className={styles.cardTitle}>CHAMPIONSHIP BRACKET — 16 PLAYERS</h2>
+                <h2 className={styles.cardTitle}>
+                  CHAMPIONSHIP BRACKET — 16 PLAYERS
+                </h2>
               </div>
               <p style={{ color: "#97a3b6", marginTop: 0 }}>
-                Double Elimination • Seeds auto-assigned
+                Double Elimination • Seeds from admin bracket
               </p>
 
               <div className={styles.detailGrid}>
@@ -254,20 +330,27 @@ export default function BracketPage() {
               align-items: start;
             }
             @media (max-width: 980px) {
-              .splitGrid { grid-template-columns: 1fr; }
+              .splitGrid {
+                grid-template-columns: 1fr;
+              }
             }
-            .col { min-width: 0; }
+            .col {
+              min-width: 0;
+            }
 
             .rankHeader {
               color: #dfe6f3;
               font-weight: 900;
-              letter-spacing: .08em;
+              letter-spacing: 0.08em;
               text-transform: uppercase;
               font-size: 12px;
               margin-bottom: 10px;
-              opacity: .9;
+              opacity: 0.9;
             }
-            .rankRows { display: grid; gap: 10px; }
+            .rankRows {
+              display: grid;
+              gap: 10px;
+            }
             .rankRow {
               display: grid;
               grid-template-columns: 80px 1fr;
@@ -286,13 +369,19 @@ export default function BracketPage() {
               padding: 6px 10px;
               font-weight: 800;
               font-size: 12px;
-              letter-spacing: .04em;
+              letter-spacing: 0.04em;
               color: #0b0e13;
               background: #e6edf8;
             }
-            .rankBadge.gold { background: #ffe08a; }
-            .rankBadge.silver { background: #d7dde7; }
-            .rankBadge.bronze { background: #f0b68a; }
+            .rankBadge.gold {
+              background: #ffe08a;
+            }
+            .rankBadge.silver {
+              background: #d7dde7;
+            }
+            .rankBadge.bronze {
+              background: #f0b68a;
+            }
             .rankNames {
               color: #c9d4e6;
               font-weight: 700;
@@ -304,41 +393,9 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== Winners Bracket ===== */}
+        {/* ===== Winners Bracket (LIVE ROUND OF 16) ===== */}
         <section className={`${styles.card} fullBleed`}>
-          {!loadingAuth && !loggedIn ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                background: "#0d1117",
-                border: "1px solid #273247",
-                borderRadius: 10,
-                padding: "10px 12px",
-                color: "#c9d4e6",
-                marginBottom: 10,
-              }}
-            >
-              <div>Log in to view your placement.</div>
-              <a
-                href={`/api/auth/discord?next=${encodeURIComponent("/valorant/bracket")}`}
-                style={{
-                  background: "#5865F2",
-                  color: "#fff",
-                  textDecoration: "none",
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  fontWeight: 800,
-                }}
-              >
-                Log in with Discord
-              </a>
-            </div>
-          ) : null}
-
           <Bracket16 data={bracketData} />
-
           <style jsx>{`
             .fullBleed {
               width: 100vw;
@@ -351,14 +408,14 @@ export default function BracketPage() {
           `}</style>
         </section>
 
-        {/* ===== Center Grand Final banner ===== */}
+        {/* ===== Center Grand Final banner (still manual for now) ===== */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (now fully editable via props) ===== */}
+        {/* ===== Losers Bracket (LB R1 from DB, rest placeholders) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
             r1={lb_r1}
@@ -380,26 +437,6 @@ export default function BracketPage() {
             }
           `}</style>
         </section>
-
-        {/* ===== Rules ===== */}
-        <section className={styles.card}>
-          <h2 className={styles.cardTitle}>TOURNAMENT REMINDERS</h2>
-          <ul className={styles.rulesList}>
-            <li>Be available at <strong>7:00 PM EST</strong> for check-in.</li>
-            <li>No scripts, macros, or cheats — instant DQ.</li>
-            <li>Screenshot final score and DM in Discord within 5 minutes.</li>
-            <li>Winner receives the prize after verification.</li>
-          </ul>
-        </section>
-
-        {/* ===== Footer ===== */}
-        <footer className={styles.footer}>
-          <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
-            <div className={styles.footerSub}>Brackets, prize pools, leaderboards coming soon.</div>
-            <div className={styles.footerCopy}>© 2025 valcomp</div>
-          </div>
-        </footer>
       </div>
     </div>
   );
