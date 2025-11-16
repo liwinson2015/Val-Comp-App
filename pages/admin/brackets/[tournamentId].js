@@ -67,9 +67,22 @@ export async function getServerSideProps({ req, params }) {
 }
 
 // ---------- CLIENT SIDE BRACKET DISPLAY ----------
-function BracketDisplay({ tournamentId }) {
+function BracketDisplay({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
   const [bracket, setBracket] = useState(null);
+
+  // Build a quick lookup: playerId -> "IGN (username)"
+  const idToName = {};
+  for (const p of players || []) {
+    const labelBase = p.ign || p.username || "Unknown";
+    const labelExtra = p.username && p.ign ? ` (${p.username})` : "";
+    idToName[p._id] = `${labelBase}${labelExtra}`;
+  }
+
+  function getPlayerLabel(id) {
+    if (!id) return "TBD";
+    return idToName[id] || id; // fall back to id if somehow missing
+  }
 
   useEffect(() => {
     async function loadBracket() {
@@ -102,8 +115,9 @@ function BracketDisplay({ tournamentId }) {
             {round.matches.map((m, i) => (
               <li key={i} style={{ marginBottom: 8 }}>
                 <span>
-                  {m.player1Id || "TBD"} vs{" "}
-                  {m.player2Id ? m.player2Id : "BYE"}
+                  {getPlayerLabel(m.player1Id)}{" "}
+                  <strong>vs</strong>{" "}
+                  {m.player2Id ? getPlayerLabel(m.player2Id) : "BYE"}
                 </span>
               </li>
             ))}
@@ -261,7 +275,7 @@ export default function TournamentPlayersPage({ tournamentId, players }) {
       <h2 style={{ fontSize: "1.4rem", marginBottom: 12 }}>
         Generated Bracket
       </h2>
-      <BracketDisplay tournamentId={tournamentId} />
+      <BracketDisplay tournamentId={tournamentId} players={players} />
     </div>
   );
 }
