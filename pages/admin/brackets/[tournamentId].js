@@ -103,7 +103,11 @@ function BracketEditor({ tournamentId, players }) {
         const data = await res.json();
         const bracket = data.bracket || null;
 
-        if (!bracket || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
+        if (
+          !bracket ||
+          !Array.isArray(bracket.rounds) ||
+          bracket.rounds.length === 0
+        ) {
           setMatches([]);
         } else {
           const round1 =
@@ -219,14 +223,28 @@ function BracketEditor({ tournamentId, players }) {
 
   if (loading) return <p>Loading bracket...</p>;
 
-  // Set of player IDs currently used in any slot
+  // --- Count placements + find unused & duplicates ---
   const usedIds = new Set();
+  const placedCount = {};
+
   matches.forEach((m) => {
-    if (m.player1Id) usedIds.add(m.player1Id);
-    if (m.player2Id) usedIds.add(m.player2Id);
+    if (m.player1Id) {
+      usedIds.add(m.player1Id);
+      placedCount[m.player1Id] = (placedCount[m.player1Id] || 0) + 1;
+    }
+    if (m.player2Id) {
+      usedIds.add(m.player2Id);
+      placedCount[m.player2Id] = (placedCount[m.player2Id] || 0) + 1;
+    }
   });
 
+  const duplicatedIds = new Set(
+    Object.keys(placedCount).filter((id) => placedCount[id] > 1)
+  );
+
   const unusedPlayers = players.filter((p) => !usedIds.has(p._id));
+  const duplicatePlayers = players.filter((p) => duplicatedIds.has(p._id));
+
   const usedCount = usedIds.size;
   const totalCount = players.length;
 
@@ -275,7 +293,7 @@ function BracketEditor({ tournamentId, players }) {
       {/* Unplaced players list with + buttons */}
       <div
         style={{
-          marginBottom: 16,
+          marginBottom: 12,
           padding: "10px 12px",
           borderRadius: 8,
           background: "#020617",
@@ -290,7 +308,8 @@ function BracketEditor({ tournamentId, players }) {
             marginBottom: 6,
           }}
         >
-          Players not placed in Round 1:
+          Players <span style={{ color: "#93c5fd" }}>not placed</span> in Round
+          1:
         </div>
 
         {unusedPlayers.length === 0 ? (
@@ -348,6 +367,70 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
+      {/* Duplicate players list */}
+      <div
+        style={{
+          marginBottom: 16,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: "#111827",
+          border: duplicatePlayers.length ? "1px solid #f97373" : "1px solid #1f2937",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            color: duplicatePlayers.length ? "#fecaca" : "#e5e7eb",
+            marginBottom: 6,
+          }}
+        >
+          Players placed more than once:
+        </div>
+
+        {duplicatePlayers.length === 0 ? (
+          <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+            No duplicates detected. Each player appears in the bracket at most
+            once.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {duplicatePlayers.map((p) => (
+              <div
+                key={p._id}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 8px",
+                  borderRadius: 9999,
+                  background: "#7f1d1d",
+                  border: "1px solid #fecaca",
+                  fontSize: "0.8rem",
+                  color: "#fee2e2",
+                }}
+              >
+                <span>{p.ign || p.username || "Unknown"}</span>
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    opacity: 0.9,
+                  }}
+                >
+                  ×{placedCount[p._id] || 0}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {(!matches || matches.length === 0) && (
         <p style={{ color: "#9ca3af", marginBottom: 16 }}>
           No Round 1 bracket yet. Click &quot;Randomize from registrations&quot; to
@@ -358,85 +441,117 @@ function BracketEditor({ tournamentId, players }) {
       {matches && matches.length > 0 && (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {matches.map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  border: "1px solid #333",
-                  borderRadius: 8,
-                  padding: "10px 12px",
-                  background: "#111827",
-                }}
-              >
+            {matches.map((m, i) => {
+              const p1Dup =
+                m.player1Id && placedCount[m.player1Id] > 1 ? true : false;
+              const p2Dup =
+                m.player2Id && placedCount[m.player2Id] > 1 ? true : false;
+
+              return (
                 <div
+                  key={i}
                   style={{
-                    marginBottom: 6,
-                    fontSize: "0.9rem",
-                    color: "#9ca3af",
+                    border: "1px solid #333",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    background: "#111827",
                   }}
                 >
-                  Match {i + 1}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  <select
-                    value={m.player1Id || ""}
-                    onChange={(e) =>
-                      handleChangeMatch(i, "player1Id", e.target.value || null)
-                    }
+                  <div
                     style={{
-                      flex: "1 1 200px",
-                      background: "#020617",
-                      color: "white",
-                      borderRadius: 6,
-                      border: "1px solid #374151",
-                      padding: "6px 8px",
+                      marginBottom: 6,
                       fontSize: "0.9rem",
+                      color: "#9ca3af",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    <option value="">(empty slot)</option>
-                    {allOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                    vs
-                  </span>
-
-                  <select
-                    value={m.player2Id || ""}
-                    onChange={(e) =>
-                      handleChangeMatch(i, "player2Id", e.target.value || null)
-                    }
+                    <span>Match {i + 1}</span>
+                    {(p1Dup || p2Dup) && (
+                      <span
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#fecaca",
+                        }}
+                      >
+                        ⚠ This match contains a duplicate player
+                      </span>
+                    )}
+                  </div>
+                  <div
                     style={{
-                      flex: "1 1 200px",
-                      background: "#020617",
-                      color: "white",
-                      borderRadius: 6,
-                      border: "1px solid #374151",
-                      padding: "6px 8px",
-                      fontSize: "0.9rem",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      alignItems: "center",
                     }}
                   >
-                    <option value="">(BYE / empty)</option>
-                    {allOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    <select
+                      value={m.player1Id || ""}
+                      onChange={(e) =>
+                        handleChangeMatch(
+                          i,
+                          "player1Id",
+                          e.target.value || null
+                        )
+                      }
+                      style={{
+                        flex: "1 1 200px",
+                        background: "#020617",
+                        color: "white",
+                        borderRadius: 6,
+                        border: p1Dup
+                          ? "1px solid #f97373"
+                          : "1px solid #374151",
+                        padding: "6px 8px",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      <option value="">(empty slot)</option>
+                      {allOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                      vs
+                    </span>
+
+                    <select
+                      value={m.player2Id || ""}
+                      onChange={(e) =>
+                        handleChangeMatch(
+                          i,
+                          "player2Id",
+                          e.target.value || null
+                        )
+                      }
+                      style={{
+                        flex: "1 1 200px",
+                        background: "#020617",
+                        color: "white",
+                        borderRadius: 6,
+                        border: p2Dup
+                          ? "1px solid #f97373"
+                          : "1px solid #374151",
+                        padding: "6px 8px",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      <option value="">(BYE / empty)</option>
+                      {allOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button
