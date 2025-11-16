@@ -75,7 +75,7 @@ export async function getServerSideProps({ req, params }) {
 // ---------- CLIENT SIDE BRACKET (EDITABLE) ----------
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
-  const [matches, setMatches] = useState([]); // local editable round 1
+  const [matches, setMatches] = useState([]); // local editable round 1 (includes winnerId)
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
@@ -113,6 +113,7 @@ function BracketEditor({ tournamentId, players }) {
           const round1 =
             bracket.rounds.find((r) => r.roundNumber === 1) ||
             bracket.rounds[0];
+          // We expect matches to possibly have winnerId already
           setMatches(round1.matches || []);
         }
       } catch (err) {
@@ -130,6 +131,42 @@ function BracketEditor({ tournamentId, players }) {
     setMatches((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value || null };
+
+      // If you manually change player1/2 and that was the winner before,
+      // we keep winnerId ONLY if it still matches one of the new players.
+      if (
+        field === "player1Id" ||
+        field === "player2Id"
+      ) {
+        const m = copy[index];
+        if (
+          m.winnerId &&
+          m.winnerId !== m.player1Id &&
+          m.winnerId !== m.player2Id
+        ) {
+          m.winnerId = null;
+        }
+      }
+
+      return copy;
+    });
+  }
+
+  // Mark winner for a match (and store winnerId in match)
+  function handleSetWinner(index, which) {
+    setMatches((prev) => {
+      const copy = [...prev];
+      const m = { ...copy[index] };
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev; // can't pick empty
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+
+      copy[index] = m;
       return copy;
     });
   }
@@ -150,7 +187,12 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(data.error || "Failed to randomize bracket.");
       } else {
         // only update local state, do NOT save to DB
-        setMatches(data.matches || []);
+        // clear winnerId for fresh layout
+        const fresh = (data.matches || []).map((m) => ({
+          ...m,
+          winnerId: null,
+        }));
+        setMatches(fresh);
         setSaveMessage("Random layout generated (not saved yet).");
       }
     } catch (err) {
@@ -165,6 +207,8 @@ function BracketEditor({ tournamentId, players }) {
     setSaving(true);
     setSaveMessage("");
     try {
+      // We save the full round 1 matches INCLUDING winnerId,
+      // but the backend currently only stores round1.
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
@@ -177,7 +221,9 @@ function BracketEditor({ tournamentId, players }) {
         const err = await res.json().catch(() => ({}));
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
-        setSaveMessage("Bracket layout saved.");
+        setSaveMessage(
+          "Bracket layout and winners saved for Round 1. (Losers bracket is currently a preview only.)"
+        );
       }
     } catch (err) {
       console.error("Save error", err);
@@ -248,12 +294,44 @@ function BracketEditor({ tournamentId, players }) {
   const usedCount = usedIds.size;
   const totalCount = players.length;
 
+  // --- Compute winners & losers for Round 1 ---
+  const winners = [];
+  const losers = [];
+
+  matches.forEach((m) => {
+    if (!m.winnerId) return;
+    if (!m.player1Id || !m.player2Id) return; // ignore BYEs for now
+
+    const p1 = m.player1Id;
+    const p2 = m.player2Id;
+
+    winners.push(m.winnerId);
+    const loserId = m.winnerId === p1 ? p2 : p1;
+    losers.push(loserId);
+  });
+
+  // Build LB Round 1 preview by pairing losers in order
+  const lbPreviewMatches = [];
+  for (let i = 0; i < losers.length; i += 2) {
+    const p1 = losers[i] || null;
+    const p2 = losers[i + 1] || null;
+    if (!p1 && !p2) continue;
+    lbPreviewMatches.push([p1, p2]);
+  }
+
+  // Helpers to show names in LB preview
+  function labelFromId(id) {
+    if (!id) return "TBD";
+    return idToLabel[id] || "TBD";
+  }
+
   return (
     <div style={{ marginTop: 20 }}>
       <p style={{ color: "#bbb", marginBottom: 12 }}>
         This is your editable Round 1 bracket. You can randomize once as a
-        starting point, then manually adjust any slot. Nothing is saved until
-        you click &quot;Save bracket layout&quot;.
+        starting point, then manually adjust any slot. Mark winners to see
+        which players drop into the Losers Bracket preview. Nothing is saved
+        until you click &quot;Save bracket layout&quot;.
       </p>
 
       {/* Top controls + usage summary */}
@@ -287,6 +365,10 @@ function BracketEditor({ tournamentId, players }) {
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
           Placed: {usedCount} / {totalCount} players
+        </span>
+
+        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          Winners chosen: {winners.length} / {matches.length}
         </span>
       </div>
 
@@ -374,7 +456,9 @@ function BracketEditor({ tournamentId, players }) {
           padding: "10px 12px",
           borderRadius: 8,
           background: "#111827",
-          border: duplicatePlayers.length ? "1px solid #f97373" : "1px solid #1f2937",
+          border: duplicatePlayers.length
+            ? "1px solid #f97373"
+            : "1px solid #1f2937",
         }}
       >
         <div
@@ -440,12 +524,16 @@ function BracketEditor({ tournamentId, players }) {
 
       {matches && matches.length > 0 && (
         <>
+          {/* Round 1 matches with winner picker */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {matches.map((m, i) => {
               const p1Dup =
                 m.player1Id && placedCount[m.player1Id] > 1 ? true : false;
               const p2Dup =
                 m.player2Id && placedCount[m.player2Id] > 1 ? true : false;
+
+              const isWinnerP1 = m.winnerId && m.winnerId === m.player1Id;
+              const isWinnerP2 = m.winnerId && m.winnerId === m.player2Id;
 
               return (
                 <div
@@ -485,6 +573,7 @@ function BracketEditor({ tournamentId, players }) {
                       flexWrap: "wrap",
                       gap: 12,
                       alignItems: "center",
+                      marginBottom: 8,
                     }}
                   >
                     <select
@@ -549,9 +638,126 @@ function BracketEditor({ tournamentId, players }) {
                       ))}
                     </select>
                   </div>
+
+                  {/* Winner picker */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      alignItems: "center",
+                      fontSize: "0.85rem",
+                      color: "#e5e7eb",
+                    }}
+                  >
+                    <span>Winner:</span>
+                    <button
+                      type="button"
+                      disabled={!m.player1Id}
+                      onClick={() => handleSetWinner(i, "p1")}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 9999,
+                        border: isWinnerP1
+                          ? "1px solid #4ade80"
+                          : "1px solid #374151",
+                        background: isWinnerP1 ? "#064e3b" : "#020617",
+                        color: isWinnerP1 ? "#bbf7d0" : "#e5e7eb",
+                        cursor: m.player1Id ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {m.player1Id ? idToLabel[m.player1Id] : "Empty"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!m.player2Id}
+                      onClick={() => handleSetWinner(i, "p2")}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 9999,
+                        border: isWinnerP2
+                          ? "1px solid #4ade80"
+                          : "1px solid #374151",
+                        background: isWinnerP2 ? "#064e3b" : "#020617",
+                        color: isWinnerP2 ? "#bbf7d0" : "#e5e7eb",
+                        cursor: m.player2Id ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {m.player2Id ? idToLabel[m.player2Id] : "Empty"}
+                    </button>
+                  </div>
                 </div>
               );
             })}
+          </div>
+
+          {/* Losers bracket PREVIEW (Round 1) */}
+          <div
+            style={{
+              marginTop: 24,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "#020617",
+              border: "1px solid #1f2937",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.95rem",
+                fontWeight: 600,
+                color: "#e5e7eb",
+                marginBottom: 6,
+              }}
+            >
+              Losers Bracket — Round 1 (preview)
+            </div>
+            <p
+              style={{
+                fontSize: "0.8rem",
+                color: "#9ca3af",
+                marginBottom: 10,
+              }}
+            >
+              As you select winners above, the corresponding losers are paired
+              here in order: (Loser of M1 vs Loser of M2), (Loser of M3 vs
+              Loser of M4), and so on. This is a preview only; we&apos;ll wire
+              this into the real Losers Bracket UI and persistence next.
+            </p>
+
+            {lbPreviewMatches.length === 0 ? (
+              <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                No losers yet. Mark winners in Round 1 to see matchups here.
+              </div>
+            ) : (
+              <ul
+                style={{
+                  listStyle: "none",
+                  paddingLeft: 0,
+                  margin: 0,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                {lbPreviewMatches.map((pair, idx) => (
+                  <li
+                    key={idx}
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      background: "#0b1120",
+                      border: "1px solid #111827",
+                      fontSize: "0.85rem",
+                      color: "#e5e7eb",
+                    }}
+                  >
+                    LB Match {idx + 1}:{" "}
+                    <strong>{labelFromId(pair[0])}</strong> vs{" "}
+                    <strong>{labelFromId(pair[1])}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <button
@@ -570,7 +776,7 @@ function BracketEditor({ tournamentId, players }) {
               fontWeight: 600,
             }}
           >
-            {saving ? "Saving..." : "💾 Save bracket layout"}
+            {saving ? "Saving..." : "💾 Save bracket layout + winners"}
           </button>
         </>
       )}
