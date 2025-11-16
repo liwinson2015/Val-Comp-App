@@ -70,9 +70,8 @@ export default function AdminBracketsPage({ tournaments }) {
     <div style={{ padding: "40px 20px", maxWidth: 800, margin: "0 auto" }}>
       <h1 style={{ fontSize: "1.8rem", marginBottom: 8 }}>Admin – Brackets</h1>
       <p style={{ marginBottom: 24, color: "#ccc" }}>
-        This shows every tournament that has registrations and how many players
-        are in each. Next, we&apos;ll build the page where you can place these
-        players into brackets.
+        Click a tournament to view all players registered for it. Next, we&apos;ll
+        add tools to place them into brackets.
       </p>
 
       {tournaments.length === 0 ? (
@@ -105,31 +104,64 @@ export default function AdminBracketsPage({ tournaments }) {
               >
                 # of Players
               </th>
+              <th
+                style={{
+                  textAlign: "right",
+                  padding: "8px 6px",
+                  borderBottom: "1px solid #333",
+                }}
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
-            {tournaments.map((t) => (
-              <tr key={t.tournamentId}>
-                <td
-                  style={{
-                    padding: "8px 6px",
-                    borderBottom: "1px solid #222",
-                  }}
-                >
-                  {t.tournamentId}
-                  {/* later this will link to /admin/brackets/[tournamentId] */}
-                </td>
-                <td
-                  style={{
-                    padding: "8px 6px",
-                    textAlign: "right",
-                    borderBottom: "1px solid #222",
-                  }}
-                >
-                  {t.count}
-                </td>
-              </tr>
-            ))}
+            {tournaments.map((t) => {
+              const encodedId = encodeURIComponent(t.tournamentId);
+              return (
+                <tr key={t.tournamentId}>
+                  <td
+                    style={{
+                      padding: "8px 6px",
+                      borderBottom: "1px solid #222",
+                    }}
+                  >
+                    {t.tournamentId}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px 6px",
+                      textAlign: "right",
+                      borderBottom: "1px solid #222",
+                    }}
+                  >
+                    {t.count}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px 6px",
+                      textAlign: "right",
+                      borderBottom: "1px solid #222",
+                    }}
+                  >
+                    <a
+                      href={`/admin/brackets/${encodedId}`}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        background: "#1f2933",
+                        border: "1px solid #374151",
+                        color: "white",
+                        textDecoration: "none",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      View players
+                    </a>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
