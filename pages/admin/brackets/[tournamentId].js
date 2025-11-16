@@ -72,10 +72,35 @@ export async function getServerSideProps({ req, params }) {
   };
 }
 
+// ---------- HELPER (client-side) ----------
+function computeLosersFromMatches(matches) {
+  const losers = [];
+  (matches || []).forEach((m) => {
+    if (!m.winnerId) return;
+    if (!m.player1Id || !m.player2Id) return; // ignore BYE matches
+    const loser =
+      m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+    losers.push(loser);
+  });
+  return losers;
+}
+
+function buildPairsFromIds(ids) {
+  const pairs = [];
+  for (let i = 0; i < ids.length; i += 2) {
+    const p1 = ids[i] || null;
+    const p2 = ids[i + 1] || null;
+    if (!p1 && !p2) continue;
+    pairs.push([p1, p2]);
+  }
+  return pairs;
+}
+
 // ---------- CLIENT SIDE BRACKET (EDITABLE) ----------
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
-  const [matches, setMatches] = useState([]); // local editable round 1 (includes winnerId)
+  const [matches, setMatches] = useState([]); // Round 1 (includes winnerId)
+  const [lbMatches, setLbMatches] = useState([]); // Losers Bracket Round 1 (preview/randomized)
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
@@ -113,7 +138,7 @@ function BracketEditor({ tournamentId, players }) {
           const round1 =
             bracket.rounds.find((r) => r.roundNumber === 1) ||
             bracket.rounds[0];
-          // We expect matches to possibly have winnerId already
+          // round1.matches may or may not already have winnerId
           setMatches(round1.matches || []);
         }
       } catch (err) {
@@ -132,12 +157,8 @@ function BracketEditor({ tournamentId, players }) {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value || null };
 
-      // If you manually change player1/2 and that was the winner before,
-      // we keep winnerId ONLY if it still matches one of the new players.
-      if (
-        field === "player1Id" ||
-        field === "player2Id"
-      ) {
+      // If the winner no longer matches either player, clear it
+      if (field === "player1Id" || field === "player2Id") {
         const m = copy[index];
         if (
           m.winnerId &&
@@ -152,14 +173,14 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // Mark winner for a match (and store winnerId in match)
+  // Mark winner for a match (store winnerId)
   function handleSetWinner(index, which) {
     setMatches((prev) => {
       const copy = [...prev];
       const m = { ...copy[index] };
 
       if (which === "p1") {
-        if (!m.player1Id) return prev; // can't pick empty
+        if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
       } else if (which === "p2") {
         if (!m.player2Id) return prev;
@@ -186,13 +207,12 @@ function BracketEditor({ tournamentId, players }) {
       if (!res.ok) {
         setSaveMessage(data.error || "Failed to randomize bracket.");
       } else {
-        // only update local state, do NOT save to DB
-        // clear winnerId for fresh layout
         const fresh = (data.matches || []).map((m) => ({
           ...m,
           winnerId: null,
         }));
         setMatches(fresh);
+        setLbMatches([]); // reset LB preview on fresh random
         setSaveMessage("Random layout generated (not saved yet).");
       }
     } catch (err) {
@@ -207,8 +227,8 @@ function BracketEditor({ tournamentId, players }) {
     setSaving(true);
     setSaveMessage("");
     try {
-      // We save the full round 1 matches INCLUDING winnerId,
-      // but the backend currently only stores round1.
+      // We save the full round 1 matches INCLUDING winnerId.
+      // For now, LB matches are preview-only and not persisted yet.
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
@@ -222,7 +242,7 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Bracket layout and winners saved for Round 1. (Losers bracket is currently a preview only.)"
+          "Bracket layout and winners saved for Round 1. (Losers Round 1 is currently a preview only.)"
         );
       }
     } catch (err) {
@@ -238,7 +258,6 @@ function BracketEditor({ tournamentId, players }) {
     setMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
 
-      // If already placed, do nothing
       const alreadyPlaced = copy.some(
         (m) => m.player1Id === playerId || m.player2Id === playerId
       );
@@ -247,7 +266,6 @@ function BracketEditor({ tournamentId, players }) {
         return copy;
       }
 
-      // Find first empty slot
       for (let m of copy) {
         if (!m.player1Id) {
           m.player1Id = playerId;
@@ -261,10 +279,32 @@ function BracketEditor({ tournamentId, players }) {
         }
       }
 
-      // No empty slots
       setSaveMessage("No empty slots left in this round.");
       return copy;
     });
+  }
+
+  // Randomize Losers Bracket Round 1 from current losers
+  function handleRandomizeLB() {
+    const losers = computeLosersFromMatches(matches);
+    if (losers.length < 2) {
+      setSaveMessage(
+        "You need at least 2 completed matches (with winners) to randomize LB Round 1."
+      );
+      return;
+    }
+
+    const shuffled = [...losers];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const pairs = buildPairsFromIds(shuffled);
+    setLbMatches(pairs);
+    setSaveMessage(
+      "Losers Bracket Round 1 randomized (preview only, not saved yet)."
+    );
   }
 
   if (loading) return <p>Loading bracket...</p>;
@@ -294,32 +334,12 @@ function BracketEditor({ tournamentId, players }) {
   const usedCount = usedIds.size;
   const totalCount = players.length;
 
-  // --- Compute winners & losers for Round 1 ---
-  const winners = [];
-  const losers = [];
+  const losers = computeLosersFromMatches(matches);
+  const winnersChosen = losers.length; // same count as winners
+  const effectiveLbMatches =
+    lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losers);
 
-  matches.forEach((m) => {
-    if (!m.winnerId) return;
-    if (!m.player1Id || !m.player2Id) return; // ignore BYEs for now
-
-    const p1 = m.player1Id;
-    const p2 = m.player2Id;
-
-    winners.push(m.winnerId);
-    const loserId = m.winnerId === p1 ? p2 : p1;
-    losers.push(loserId);
-  });
-
-  // Build LB Round 1 preview by pairing losers in order
-  const lbPreviewMatches = [];
-  for (let i = 0; i < losers.length; i += 2) {
-    const p1 = losers[i] || null;
-    const p2 = losers[i + 1] || null;
-    if (!p1 && !p2) continue;
-    lbPreviewMatches.push([p1, p2]);
-  }
-
-  // Helpers to show names in LB preview
+  // Helper for LB labels
   function labelFromId(id) {
     if (!id) return "TBD";
     return idToLabel[id] || "TBD";
@@ -329,9 +349,9 @@ function BracketEditor({ tournamentId, players }) {
     <div style={{ marginTop: 20 }}>
       <p style={{ color: "#bbb", marginBottom: 12 }}>
         This is your editable Round 1 bracket. You can randomize once as a
-        starting point, then manually adjust any slot. Mark winners to see
-        which players drop into the Losers Bracket preview. Nothing is saved
-        until you click &quot;Save bracket layout&quot;.
+        starting point, then manually adjust any slot. Mark winners to build
+        the Losers Bracket pool. Nothing is saved until you click
+        &quot;Save bracket layout&quot;.
       </p>
 
       {/* Top controls + usage summary */}
@@ -368,7 +388,7 @@ function BracketEditor({ tournamentId, players }) {
         </span>
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          Winners chosen: {winners.length} / {matches.length}
+          Winners chosen: {winnersChosen} / {matches.length}
         </span>
       </div>
 
@@ -692,7 +712,7 @@ function BracketEditor({ tournamentId, players }) {
             })}
           </div>
 
-          {/* Losers bracket PREVIEW (Round 1) */}
+          {/* Losers bracket PREVIEW (Round 1) with randomization */}
           <div
             style={{
               marginTop: 24,
@@ -704,14 +724,42 @@ function BracketEditor({ tournamentId, players }) {
           >
             <div
               style={{
-                fontSize: "0.95rem",
-                fontWeight: 600,
-                color: "#e5e7eb",
-                marginBottom: 6,
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                gap: 8,
+                alignItems: "center",
+                marginBottom: 8,
               }}
             >
-              Losers Bracket — Round 1 (preview)
+              <div
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  color: "#e5e7eb",
+                }}
+              >
+                Losers Bracket — Round 1 (preview)
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRandomizeLB}
+                style={{
+                  background: "#f97316",
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  color: "white",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                🎲 Randomize LB Round 1
+              </button>
             </div>
+
             <p
               style={{
                 fontSize: "0.8rem",
@@ -719,15 +767,16 @@ function BracketEditor({ tournamentId, players }) {
                 marginBottom: 10,
               }}
             >
-              As you select winners above, the corresponding losers are paired
-              here in order: (Loser of M1 vs Loser of M2), (Loser of M3 vs
-              Loser of M4), and so on. This is a preview only; we&apos;ll wire
-              this into the real Losers Bracket UI and persistence next.
+              The loser of each finished match is collected into a pool. When
+              you click &quot;Randomize LB Round 1&quot;, that pool is shuffled
+              and paired into matches here. This is a preview only for now; we&apos;ll
+              wire it into the real Losers Bracket UI and persistence later.
             </p>
 
-            {lbPreviewMatches.length === 0 ? (
+            {effectiveLbMatches.length === 0 ? (
               <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                No losers yet. Mark winners in Round 1 to see matchups here.
+                No losers yet. Mark winners in Round 1 to build the losers
+                pool, then click &quot;Randomize LB Round 1&quot;.
               </div>
             ) : (
               <ul
@@ -739,7 +788,7 @@ function BracketEditor({ tournamentId, players }) {
                   gap: 6,
                 }}
               >
-                {lbPreviewMatches.map((pair, idx) => (
+                {effectiveLbMatches.map((pair, idx) => (
                   <li
                     key={idx}
                     style={{
