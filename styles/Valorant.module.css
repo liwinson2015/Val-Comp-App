@@ -247,3 +247,15 @@
   color: #8b93a7;
   font-size: 0.8rem;
 }
+
+/* 🔴 NEW: Accent link style used on My Registrations page */
+.linkAccent {
+  color: #ff4655;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.linkAccent:hover {
+  text-decoration: underline;
+}
