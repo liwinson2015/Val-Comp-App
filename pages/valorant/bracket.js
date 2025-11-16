@@ -1,4 +1,4 @@
-// pages/valorant/bracket-live.js
+// pages/valorant/bracket.js
 import React from "react";
 import mongoose from "mongoose";
 import styles from "../../styles/Valorant.module.css";
@@ -99,7 +99,7 @@ function buildIdToLabel(players) {
   return idToLabel;
 }
 
-export default function BracketLivePage({
+export default function BracketPage({
   tournamentId,
   published,
   bracket,
@@ -137,8 +137,10 @@ export default function BracketLivePage({
     return idToLabel[id] || "TBD";
   }
 
-  // ===== WINNERS BRACKET MAPPING (ROUND OF 16) =====
+  // ===== WINNERS BRACKET MAPPING =====
   const rounds = bracket?.rounds || [];
+
+  // Round 1 → Round of 16
   const round1 =
     rounds.find((r) => r.roundNumber === 1) || rounds[0] || { matches: [] };
   const r1Matches = round1.matches || [];
@@ -163,15 +165,31 @@ export default function BracketLivePage({
     rightR16.push(["TBD", "TBD"]);
   }
 
-  // For now, later winners rounds are still placeholders
-  const leftQF = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
-  const rightQF = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
+  // Round 2 → Quarterfinals (QF)
+  const round2 = rounds.find((r) => r.roundNumber === 2) || null;
+  const r2Matches = (round2 && round2.matches) || [];
+
+  const leftQF = [];
+  const rightQF = [];
+
+  r2Matches.forEach((m, index) => {
+    const pair = [getLabel(m.player1Id), getLabel(m.player2Id)];
+    if (index < 2) {
+      leftQF.push(pair);
+    } else {
+      rightQF.push(pair);
+    }
+  });
+
+  // Pad QF to 2 matches per side
+  while (leftQF.length < 2) {
+    leftQF.push(["TBD", "TBD"]);
+  }
+  while (rightQF.length < 2) {
+    rightQF.push(["TBD", "TBD"]);
+  }
+
+  // Semifinals + final still manual / TBD for now
   const leftSF = ["TBD", "TBD"];
   const rightSF = ["TBD", "TBD"];
   const finalLeft = "TBD";
@@ -184,8 +202,10 @@ export default function BracketLivePage({
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // ===== LOSERS BRACKET MAPPING (ROUND 1 FROM DB) =====
+  // ===== LOSERS BRACKET MAPPING =====
   const losersRounds = bracket?.losersRounds || [];
+
+  // LB Round 1
   const lbRound1 =
     losersRounds.find((r) => r.roundNumber === 1) ||
     losersRounds[0] ||
@@ -197,18 +217,27 @@ export default function BracketLivePage({
     getLabel(m.player2Id),
   ]);
 
-  // Pad LB R1 to 4 matches so LosersBracket16 receives a consistent shape
   while (lb_r1.length < 4) {
     lb_r1.push(["TBD", "TBD"]);
   }
 
-  // Other losers rounds remain placeholders for now
-  const lb_r2 = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
+  // LB Round 2
+  const lbRound2 =
+    losersRounds.find((r) => r.roundNumber === 2) ||
+    losersRounds[1] ||
+    { matches: [] };
+  const lbMatches2 = lbRound2.matches || [];
+
+  const lb_r2 = lbMatches2.map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+
+  while (lb_r2.length < 4) {
+    lb_r2.push(["TBD", "TBD"]);
+  }
+
+  // Later losers rounds still placeholders
   const lb_r3a = [
     ["TBD", "TBD"],
     ["TBD", "TBD"],
@@ -393,7 +422,7 @@ export default function BracketLivePage({
           `}</style>
         </section>
 
-        {/* ===== Winners Bracket (LIVE ROUND OF 16) ===== */}
+        {/* ===== Winners Bracket (LIVE R16 + QF) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <Bracket16 data={bracketData} />
           <style jsx>{`
@@ -415,7 +444,7 @@ export default function BracketLivePage({
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (LB R1 from DB, rest placeholders) ===== */}
+        {/* ===== Losers Bracket (LB R1 + LB R2 from DB, rest placeholders) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
             r1={lb_r1}
