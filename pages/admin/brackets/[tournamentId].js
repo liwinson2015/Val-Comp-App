@@ -1,9 +1,10 @@
 // pages/admin/brackets/[tournamentId].js
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 
+// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
   const player = await getCurrentPlayerFromReq(req);
 
@@ -65,6 +66,55 @@ export async function getServerSideProps({ req, params }) {
   };
 }
 
+// ---------- CLIENT SIDE BRACKET DISPLAY ----------
+function BracketDisplay({ tournamentId }) {
+  const [loading, setLoading] = useState(true);
+  const [bracket, setBracket] = useState(null);
+
+  useEffect(() => {
+    async function loadBracket() {
+      try {
+        const res = await fetch(
+          `/api/admin/brackets/${encodeURIComponent(tournamentId)}/get`
+        );
+        const data = await res.json();
+        setBracket(data.bracket || null);
+      } catch (err) {
+        console.error("Failed to load bracket", err);
+        setBracket(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadBracket();
+  }, [tournamentId]);
+
+  if (loading) return <p>Loading bracket...</p>;
+  if (!bracket) return <p>No bracket generated yet.</p>;
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      {bracket.rounds.map((round) => (
+        <div key={round.roundNumber} style={{ marginBottom: 30 }}>
+          <h3 style={{ marginBottom: 8 }}>Round {round.roundNumber}</h3>
+          <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+            {round.matches.map((m, i) => (
+              <li key={i} style={{ marginBottom: 8 }}>
+                <span>
+                  {m.player1Id || "TBD"} vs{" "}
+                  {m.player2Id ? m.player2Id : "BYE"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------- MAIN PAGE ----------
 export default function TournamentPlayersPage({ tournamentId, players }) {
   return (
     <div style={{ padding: "40px 20px", maxWidth: 900, margin: "0 auto" }}>
@@ -72,10 +122,33 @@ export default function TournamentPlayersPage({ tournamentId, players }) {
         Players in {tournamentId}
       </h1>
       <p style={{ marginBottom: 16, color: "#ccc" }}>
-        This is the full list of players registered for this tournament. Next,
-        we&apos;ll add controls to place them into brackets (manual or
-        randomized).
+        This is the full list of players registered for this tournament.
       </p>
+
+      {/* Generate Bracket button */}
+      <form
+        method="POST"
+        action={`/api/admin/brackets/${encodeURIComponent(
+          tournamentId
+        )}/generate`}
+        style={{ marginBottom: "20px" }}
+      >
+        <button
+          type="submit"
+          style={{
+            background: "#2563eb",
+            padding: "10px 16px",
+            borderRadius: "8px",
+            border: "none",
+            color: "white",
+            cursor: "pointer",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+          }}
+        >
+          🔀 Generate Round 1 Bracket
+        </button>
+      </form>
 
       <a
         href="/admin/brackets"
@@ -182,6 +255,13 @@ export default function TournamentPlayersPage({ tournamentId, players }) {
           </tbody>
         </table>
       )}
+
+      {/* Bracket display section */}
+      <hr style={{ margin: "40px 0", borderColor: "#333" }} />
+      <h2 style={{ fontSize: "1.4rem", marginBottom: 12 }}>
+        Generated Bracket
+      </h2>
+      <BracketDisplay tournamentId={tournamentId} />
     </div>
   );
 }
