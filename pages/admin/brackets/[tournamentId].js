@@ -99,7 +99,7 @@ function buildPairsFromIds(ids) {
 // ---------- CLIENT SIDE BRACKET (EDITABLE) ----------
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
-  const [matches, setMatches] = useState([]);   // Round 1 (includes winnerId)
+  const [matches, setMatches] = useState([]); // Round 1 (includes winnerId)
   const [lbMatches, setLbMatches] = useState([]); // LB Round 1 (preview/editable)
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -139,6 +139,25 @@ function BracketEditor({ tournamentId, players }) {
             bracket.rounds.find((r) => r.roundNumber === 1) ||
             bracket.rounds[0];
           setMatches(round1.matches || []);
+        }
+
+        // If losersRounds already exist, hydrate LB Round 1 too (optional)
+        if (
+          bracket &&
+          Array.isArray(bracket.losersRounds) &&
+          bracket.losersRounds.length > 0
+        ) {
+          const lb1 =
+            bracket.losersRounds.find((r) => r.roundNumber === 1) ||
+            bracket.losersRounds[0];
+          if (lb1 && Array.isArray(lb1.matches)) {
+            setLbMatches(
+              lb1.matches.map((m) => ({
+                player1Id: m.player1Id || null,
+                player2Id: m.player2Id || null,
+              }))
+            );
+          }
         }
       } catch (err) {
         console.error("Failed to load bracket", err);
@@ -222,11 +241,12 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-    async function handleSave() {
+  // 🔥 UPDATED: save WB Round 1 + LB Round 1
+  async function handleSave() {
     setSaving(true);
     setSaveMessage("");
     try {
-      // Build the LB payload: if you edited LB, use lbMatches;
+      // Build LB payload: if you edited LB, use lbMatches;
       // otherwise, auto-generate from current losers.
       const losers = computeLosersFromMatches(matches);
       const effectiveLbMatches =
@@ -238,7 +258,7 @@ function BracketEditor({ tournamentId, players }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            matches,          // winners round 1
+            matches, // winners round 1
             lbMatches: effectiveLbMatches, // losers round 1
           }),
         }
@@ -259,7 +279,6 @@ function BracketEditor({ tournamentId, players }) {
       setSaving(false);
     }
   }
-
 
   // Add a player to the first available empty slot (player1 then player2)
   function handleAddPlayerToBracket(playerId) {
@@ -937,7 +956,7 @@ function BracketEditor({ tournamentId, players }) {
               fontWeight: 600,
             }}
           >
-            {saving ? "Saving..." : "💾 Save bracket layout + winners"}
+            {saving ? "Saving..." : "💾 Save bracket layout + winners + LB R1"}
           </button>
         </>
       )}
