@@ -95,7 +95,7 @@ export default function ValorantEventPage() {
               </a>
 
               <a
-                href="https://discord.gg/yuGpPr6MAa"
+                href="https://discord.gg/qUzCCK8nuc"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
