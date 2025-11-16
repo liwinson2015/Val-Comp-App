@@ -72,26 +72,26 @@ export async function getServerSideProps({ req, params }) {
   };
 }
 
-// ---------- HELPER (client-side) ----------
+// ---------- HELPERS (client-side) ----------
 function computeLosersFromMatches(matches) {
   const losers = [];
   (matches || []).forEach((m) => {
     if (!m.winnerId) return;
-    if (!m.player1Id || !m.player2Id) return; // ignore BYE matches
-    const loser =
-      m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+    if (!m.player1Id || !m.player2Id) return; // ignore BYEs
+    const loser = m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
     losers.push(loser);
   });
   return losers;
 }
 
+// Turn an array of ids into LB match objects
 function buildPairsFromIds(ids) {
   const pairs = [];
   for (let i = 0; i < ids.length; i += 2) {
     const p1 = ids[i] || null;
     const p2 = ids[i + 1] || null;
     if (!p1 && !p2) continue;
-    pairs.push([p1, p2]);
+    pairs.push({ player1Id: p1, player2Id: p2 });
   }
   return pairs;
 }
@@ -99,8 +99,8 @@ function buildPairsFromIds(ids) {
 // ---------- CLIENT SIDE BRACKET (EDITABLE) ----------
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
-  const [matches, setMatches] = useState([]); // Round 1 (includes winnerId)
-  const [lbMatches, setLbMatches] = useState([]); // Losers Bracket Round 1 (preview/randomized)
+  const [matches, setMatches] = useState([]);   // Round 1 (includes winnerId)
+  const [lbMatches, setLbMatches] = useState([]); // LB Round 1 (preview/editable)
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
@@ -138,7 +138,6 @@ function BracketEditor({ tournamentId, players }) {
           const round1 =
             bracket.rounds.find((r) => r.roundNumber === 1) ||
             bracket.rounds[0];
-          // round1.matches may or may not already have winnerId
           setMatches(round1.matches || []);
         }
       } catch (err) {
@@ -157,7 +156,7 @@ function BracketEditor({ tournamentId, players }) {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value || null };
 
-      // If the winner no longer matches either player, clear it
+      // If winner no longer matches either player, clear it
       if (field === "player1Id" || field === "player2Id") {
         const m = copy[index];
         if (
@@ -212,7 +211,7 @@ function BracketEditor({ tournamentId, players }) {
           winnerId: null,
         }));
         setMatches(fresh);
-        setLbMatches([]); // reset LB preview on fresh random
+        setLbMatches([]); // reset LB on fresh random
         setSaveMessage("Random layout generated (not saved yet).");
       }
     } catch (err) {
@@ -227,14 +226,12 @@ function BracketEditor({ tournamentId, players }) {
     setSaving(true);
     setSaveMessage("");
     try {
-      // We save the full round 1 matches INCLUDING winnerId.
-      // For now, LB matches are preview-only and not persisted yet.
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ matches }),
+          body: JSON.stringify({ matches }), // LB still preview-only for now
         }
       );
       if (!res.ok) {
@@ -242,7 +239,7 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Bracket layout and winners saved for Round 1. (Losers Round 1 is currently a preview only.)"
+          "Bracket layout and winners saved for Round 1. (Losers Round 1 is preview-only for now.)"
         );
       }
     } catch (err) {
@@ -303,8 +300,30 @@ function BracketEditor({ tournamentId, players }) {
     const pairs = buildPairsFromIds(shuffled);
     setLbMatches(pairs);
     setSaveMessage(
-      "Losers Bracket Round 1 randomized (preview only, not saved yet)."
+      "Losers Bracket Round 1 randomized. You can manually adjust the pairs below."
     );
+  }
+
+  // Manually edit LB Round 1 slot
+  function handleChangeLbMatch(index, slot, value) {
+    setLbMatches((prev) => {
+      let base = prev;
+
+      // If LB hasn't been initialized yet, build it from current losers first
+      if (base.length === 0) {
+        const losers = computeLosersFromMatches(matches);
+        base = buildPairsFromIds(losers);
+      }
+
+      const copy = base.map((m) => ({ ...m }));
+      if (!copy[index]) {
+        // index out of range (shouldn't happen, but guard)
+        return copy;
+      }
+
+      copy[index][slot] = value || null;
+      return copy;
+    });
   }
 
   if (loading) return <p>Loading bracket...</p>;
@@ -334,12 +353,19 @@ function BracketEditor({ tournamentId, players }) {
   const usedCount = usedIds.size;
   const totalCount = players.length;
 
+  // losers & lb matches
   const losers = computeLosersFromMatches(matches);
-  const winnersChosen = losers.length; // same count as winners
+  const winnersChosen = losers.length; // same as winners count
   const effectiveLbMatches =
     lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losers);
 
-  // Helper for LB labels
+  // options for LB dropdowns: only players who actually lost
+  const uniqueLoserIds = Array.from(new Set(losers));
+  const loserOptions = uniqueLoserIds.map((id) => ({
+    value: id,
+    label: idToLabel[id] || "TBD",
+  }));
+
   function labelFromId(id) {
     if (!id) return "TBD";
     return idToLabel[id] || "TBD";
@@ -712,7 +738,7 @@ function BracketEditor({ tournamentId, players }) {
             })}
           </div>
 
-          {/* Losers bracket PREVIEW (Round 1) with randomization */}
+          {/* Losers bracket PREVIEW (Round 1) with random + manual edit */}
           <div
             style={{
               marginTop: 24,
@@ -739,7 +765,7 @@ function BracketEditor({ tournamentId, players }) {
                   color: "#e5e7eb",
                 }}
               >
-                Losers Bracket — Round 1 (preview)
+                Losers Bracket — Round 1 (preview & editable)
               </div>
 
               <button
@@ -767,29 +793,27 @@ function BracketEditor({ tournamentId, players }) {
                 marginBottom: 10,
               }}
             >
-              The loser of each finished match is collected into a pool. When
-              you click &quot;Randomize LB Round 1&quot;, that pool is shuffled
-              and paired into matches here. This is a preview only for now; we&apos;ll
-              wire it into the real Losers Bracket UI and persistence later.
+              The loser of each finished match is collected into a pool. You can
+              randomize that pool into LB R1, then manually adjust any matchup
+              below. This is preview-only for now; we&apos;ll persist it and hook it
+              into the public Losers Bracket view later.
             </p>
 
             {effectiveLbMatches.length === 0 ? (
               <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
                 No losers yet. Mark winners in Round 1 to build the losers
-                pool, then click &quot;Randomize LB Round 1&quot;.
+                pool, then click &quot;Randomize LB Round 1&quot; or start editing.
               </div>
             ) : (
-              <ul
+              <div
                 style={{
-                  listStyle: "none",
-                  paddingLeft: 0,
-                  margin: 0,
-                  display: "grid",
-                  gap: 6,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
                 }}
               >
                 {effectiveLbMatches.map((pair, idx) => (
-                  <li
+                  <div
                     key={idx}
                     style={{
                       padding: "6px 8px",
@@ -800,12 +824,89 @@ function BracketEditor({ tournamentId, players }) {
                       color: "#e5e7eb",
                     }}
                   >
-                    LB Match {idx + 1}:{" "}
-                    <strong>{labelFromId(pair[0])}</strong> vs{" "}
-                    <strong>{labelFromId(pair[1])}</strong>
-                  </li>
+                    <div
+                      style={{
+                        marginBottom: 4,
+                        fontSize: "0.8rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      LB Match {idx + 1}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <select
+                        value={pair.player1Id || ""}
+                        onChange={(e) =>
+                          handleChangeLbMatch(
+                            idx,
+                            "player1Id",
+                            e.target.value || null
+                          )
+                        }
+                        style={{
+                          flex: "1 1 200px",
+                          background: "#020617",
+                          color: "white",
+                          borderRadius: 6,
+                          border: "1px solid #374151",
+                          padding: "6px 8px",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <option value="">(TBD)</option>
+                        {loserOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <span
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        vs
+                      </span>
+
+                      <select
+                        value={pair.player2Id || ""}
+                        onChange={(e) =>
+                          handleChangeLbMatch(
+                            idx,
+                            "player2Id",
+                            e.target.value || null
+                          )
+                        }
+                        style={{
+                          flex: "1 1 200px",
+                          background: "#020617",
+                          color: "white",
+                          borderRadius: 6,
+                          border: "1px solid #374151",
+                          padding: "6px 8px",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <option value="">(TBD)</option>
+                        {loserOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 
