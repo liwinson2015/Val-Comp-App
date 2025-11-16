@@ -317,5 +317,5 @@ const dropdownItem = {
   textDecoration: "none",
   color: "white",
   fontSize: "0.9rem",
-  borderBottom: "1px solid "#2e2e2e",
+  borderBottom: "1px solid #2e2e2e",
 };
