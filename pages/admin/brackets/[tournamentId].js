@@ -80,7 +80,7 @@ function BracketEditor({ tournamentId, players }) {
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
-  // lookup: playerId -> "IGN (username)"
+  // lookup: playerId -> "IGN (username)" (for admin view)
   const idToLabel = {};
   for (const p of players || []) {
     const base = p.ign || p.username || "Unknown";
@@ -183,6 +183,40 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
+  // Add a player to the first available empty slot (player1 then player2)
+  function handleAddPlayerToBracket(playerId) {
+    setMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+
+      // If already placed, do nothing
+      const alreadyPlaced = copy.some(
+        (m) => m.player1Id === playerId || m.player2Id === playerId
+      );
+      if (alreadyPlaced) {
+        setSaveMessage("That player is already placed in the bracket.");
+        return copy;
+      }
+
+      // Find first empty slot
+      for (let m of copy) {
+        if (!m.player1Id) {
+          m.player1Id = playerId;
+          setSaveMessage("Player added to the next available slot.");
+          return copy;
+        }
+        if (!m.player2Id) {
+          m.player2Id = playerId;
+          setSaveMessage("Player added to the next available slot.");
+          return copy;
+        }
+      }
+
+      // No empty slots
+      setSaveMessage("No empty slots left in this round.");
+      return copy;
+    });
+  }
+
   if (loading) return <p>Loading bracket...</p>;
 
   // Set of player IDs currently used in any slot
@@ -192,6 +226,10 @@ function BracketEditor({ tournamentId, players }) {
     if (m.player2Id) usedIds.add(m.player2Id);
   });
 
+  const unusedPlayers = players.filter((p) => !usedIds.has(p._id));
+  const usedCount = usedIds.size;
+  const totalCount = players.length;
+
   return (
     <div style={{ marginTop: 20 }}>
       <p style={{ color: "#bbb", marginBottom: 12 }}>
@@ -200,6 +238,7 @@ function BracketEditor({ tournamentId, players }) {
         you click &quot;Save bracket layout&quot;.
       </p>
 
+      {/* Top controls + usage summary */}
       <div
         style={{
           display: "flex",
@@ -229,8 +268,84 @@ function BracketEditor({ tournamentId, players }) {
         </button>
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          Used in bracket: {usedIds.size} / {players.length} players
+          Placed: {usedCount} / {totalCount} players
         </span>
+      </div>
+
+      {/* Unplaced players list with + buttons */}
+      <div
+        style={{
+          marginBottom: 16,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: "#020617",
+          border: "1px solid #1f2937",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            color: "#e5e7eb",
+            marginBottom: 6,
+          }}
+        >
+          Players not placed in Round 1:
+        </div>
+
+        {unusedPlayers.length === 0 ? (
+          <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+            All registered players are currently placed in the bracket.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {unusedPlayers.map((p) => (
+              <div
+                key={p._id}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 8px",
+                  borderRadius: 9999,
+                  background: "#0f172a",
+                  border: "1px solid #1f2937",
+                  fontSize: "0.8rem",
+                  color: "#e5e7eb",
+                }}
+              >
+                <span>{p.ign || p.username || "Unknown"}</span>
+                <button
+                  type="button"
+                  onClick={() => handleAddPlayerToBracket(p._id)}
+                  style={{
+                    border: "none",
+                    borderRadius: "9999px",
+                    width: 20,
+                    height: 20,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: "#22c55e",
+                    color: "#0b1120",
+                  }}
+                  title="Add to next empty slot"
+                >
+                  +
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {(!matches || matches.length === 0) && (
