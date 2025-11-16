@@ -7,6 +7,9 @@ import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
+/* ============================================================
+   🔥 FIXED FULL getServerSideProps — Option A (correct logic)
+   ============================================================ */
 export async function getServerSideProps({ req }) {
   try {
     const cookies = cookie?.parse
@@ -14,6 +17,7 @@ export async function getServerSideProps({ req }) {
       : {};
     const playerId = cookies.playerId || null;
 
+    // Not logged in → send to Discord OAuth
     if (!playerId) {
       return { redirect: { destination: "/api/auth/discord", permanent: false } };
     }
@@ -25,18 +29,10 @@ export async function getServerSideProps({ req }) {
       return { redirect: { destination: "/api/auth/discord", permanent: false } };
     }
 
-    // ✅ Only count "confirmed" registrations
-    const regByCollection = await Registration.findOne({
-      tournament: TOURNAMENT_ID,
-      discordTag: player.discordId,
-      status: "confirmed",
-    }).lean();
-
-    const regByPlayerArray = Array.isArray(player.registeredFor)
+    // 🔥 CLEAN + CORRECT: Only use Player.registeredFor
+    const alreadyRegistered = Array.isArray(player.registeredFor)
       ? player.registeredFor.some((r) => r?.tournamentId === TOURNAMENT_ID)
       : false;
-
-    const alreadyRegistered = !!(regByCollection || regByPlayerArray);
 
     return {
       props: {
@@ -58,6 +54,9 @@ export async function getServerSideProps({ req }) {
   }
 }
 
+/* ============================================================
+   🔥 The React component (unchanged except it uses alreadyRegistered)
+   ============================================================ */
 export default function ValorantRegisterPage(props) {
   const {
     username,
@@ -241,7 +240,7 @@ export default function ValorantRegisterPage(props) {
           </div>
         </div>
 
-        {/* ✅ Unified case: same page, dynamic button */}
+        {/* Registration Form */}
         <div
           style={{
             fontSize: "0.7rem",
