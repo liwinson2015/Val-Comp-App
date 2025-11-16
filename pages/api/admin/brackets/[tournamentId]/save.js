@@ -1,74 +1,82 @@
 // pages/api/admin/brackets/[tournamentId]/save.js
-import { getCurrentPlayerFromReq } from "../../../../../lib/getCurrentPlayer";
-import { connectToDatabase } from "../../../../../lib/mongodb";
-import Tournament from "../../../../../models/Tournament";
+import { connectToDatabase } from "../../../../lib/mongodb";
+import Tournament from "../../../../models/Tournament";
+import { getCurrentPlayerFromReq } from "../../../../lib/getCurrentPlayer";
+
+function sanitizeMatch(input) {
+  if (!input) return null;
+  const { player1Id = null, player2Id = null, winnerId = null } = input;
+  return {
+    player1Id: player1Id || null,
+    player2Id: player2Id || null,
+    winnerId: winnerId || null,
+  };
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const admin = await getCurrentPlayerFromReq(req);
-  if (!admin || !admin.isAdmin) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+  try {
+    await connectToDatabase();
 
-  await connectToDatabase();
-
-  const rawId = req.query.tournamentId;
-  const tournamentId = decodeURIComponent(rawId);
-
-  const { matches } = req.body || {};
-  if (!Array.isArray(matches)) {
-    return res.status(400).json({ error: "Invalid matches payload." });
-  }
-
-  // Ensure structure is clean
-  const cleanedMatches = matches.map((m) => ({
-    player1Id: m.player1Id || null,
-    player2Id: m.player2Id || null,
-    winnerId: m.winnerId || null,
-  }));
-
-  // Load existing tournament (if any)
-  let t = await Tournament.findOne({ tournamentId });
-
-  if (!t) {
-    // If somehow no tournament doc yet, create one with just round 1
-    t = new Tournament({
-      tournamentId,
-      bracket: {
-        rounds: [
-          {
-            roundNumber: 1,
-            matches: cleanedMatches,
-          },
-        ],
-        isPublished: false,
-      },
-    });
-  } else {
-    // Update just round 1, keep other rounds if they exist
-    const existing = t.bracket || {};
-    let rounds = existing.rounds || [];
-
-    const idx = rounds.findIndex((r) => r.roundNumber === 1);
-    if (idx === -1) {
-      rounds.unshift({
-        roundNumber: 1,
-        matches: cleanedMatches,
-      });
-    } else {
-      rounds[idx].matches = cleanedMatches;
+    // Auth & admin check
+    const player = await getCurrentPlayerFromReq(req);
+    if (!player || !player.isAdmin) {
+      return res.status(403).json({ error: "Admin only" });
     }
 
-    t.bracket = {
-      ...existing,
-      rounds,
+    const rawId = req.query.tournamentId;
+    const tournamentId = decodeURIComponent(rawId);
+
+    const body = req.body || {};
+    const matches = Array.isArray(body.matches) ? body.matches : null;
+    const lbMatches = Array.isArray(body.lbMatches) ? body.lbMatches : null;
+
+    if (!matches) {
+      return res.status(400).json({ error: "Missing matches array" });
+    }
+
+    // Build winners Round 1
+    const rounds = [
+      {
+        roundNumber: 1,
+        type: "winners",
+        matches: matches.map((m) => sanitizeMatch(m)),
+      },
+    ];
+
+    // Optional: build losers Round 1
+    const losersRounds = lbMatches
+      ? [
+          {
+            roundNumber: 1,
+            type: "losers",
+            matches: lbMatches.map((m) => sanitizeMatch(m)),
+          },
+        ]
+      : [];
+
+    const update = {
+      $set: {
+        "bracket.rounds": rounds,
+      },
     };
+
+    if (losersRounds.length > 0) {
+      update.$set["bracket.losersRounds"] = losersRounds;
+    }
+
+    await Tournament.findOneAndUpdate(
+      { tournamentId },
+      update,
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Error saving bracket:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
-
-  await t.save();
-
-  return res.status(200).json({ ok: true });
 }

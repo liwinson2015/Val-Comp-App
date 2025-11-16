@@ -222,24 +222,34 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-  async function handleSave() {
+    async function handleSave() {
     setSaving(true);
     setSaveMessage("");
     try {
+      // Build the LB payload: if you edited LB, use lbMatches;
+      // otherwise, auto-generate from current losers.
+      const losers = computeLosersFromMatches(matches);
+      const effectiveLbMatches =
+        lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losers);
+
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ matches }), // LB still preview-only for now
+          body: JSON.stringify({
+            matches,          // winners round 1
+            lbMatches: effectiveLbMatches, // losers round 1
+          }),
         }
       );
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Bracket layout and winners saved for Round 1. (Losers Round 1 is preview-only for now.)"
+          "Bracket layout and winners saved for Round 1, and Losers Round 1 stored as well."
         );
       }
     } catch (err) {
@@ -249,6 +259,7 @@ function BracketEditor({ tournamentId, players }) {
       setSaving(false);
     }
   }
+
 
   // Add a player to the first available empty slot (player1 then player2)
   function handleAddPlayerToBracket(playerId) {
