@@ -66,24 +66,27 @@ export async function getServerSideProps({ req, params }) {
   };
 }
 
-// ---------- CLIENT SIDE BRACKET DISPLAY ----------
-function BracketDisplay({ tournamentId, players }) {
+// ---------- CLIENT SIDE BRACKET (EDITABLE) ----------
+function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
-  const [bracket, setBracket] = useState(null);
+  const [matches, setMatches] = useState([]); // local editable round 1
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
-  // Build a quick lookup: playerId -> "IGN (username)"
-  const idToName = {};
+  // lookup: playerId -> "IGN (username)"
+  const idToLabel = {};
   for (const p of players || []) {
-    const labelBase = p.ign || p.username || "Unknown";
-    const labelExtra = p.username && p.ign ? ` (${p.username})` : "";
-    idToName[p._id] = `${labelBase}${labelExtra}`;
+    const base = p.ign || p.username || "Unknown";
+    const extra = p.username && p.ign ? ` (${p.username})` : "";
+    idToLabel[p._id] = `${base}${extra}`;
   }
 
-  function getPlayerLabel(id) {
-    if (!id) return "TBD";
-    return idToName[id] || id; // fall back to id if somehow missing
-  }
+  const allOptions = players.map((p) => ({
+    value: p._id,
+    label: idToLabel[p._id],
+  }));
 
+  // Load current bracket (round 1) from API
   useEffect(() => {
     async function loadBracket() {
       try {
@@ -91,10 +94,17 @@ function BracketDisplay({ tournamentId, players }) {
           `/api/admin/brackets/${encodeURIComponent(tournamentId)}/get`
         );
         const data = await res.json();
-        setBracket(data.bracket || null);
+        const bracket = data.bracket || null;
+
+        if (!bracket || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
+          setMatches([]);
+        } else {
+          const round1 = bracket.rounds.find((r) => r.roundNumber === 1) || bracket.rounds[0];
+          setMatches(round1.matches || []);
+        }
       } catch (err) {
         console.error("Failed to load bracket", err);
-        setBracket(null);
+        setMatches([]);
       } finally {
         setLoading(false);
       }
@@ -103,27 +113,162 @@ function BracketDisplay({ tournamentId, players }) {
     loadBracket();
   }, [tournamentId]);
 
+  function handleChangeMatch(index, field, value) {
+    setMatches((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value || null };
+      return copy;
+    });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const res = await fetch(
+        `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matches }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setSaveMessage(err.error || "Failed to save bracket.");
+      } else {
+        setSaveMessage("Bracket layout saved.");
+      }
+    } catch (err) {
+      console.error("Save error", err);
+      setSaveMessage("Error saving bracket.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) return <p>Loading bracket...</p>;
-  if (!bracket) return <p>No bracket generated yet.</p>;
+
+  if (!matches || matches.length === 0) {
+    return <p>No bracket generated yet. Use “Generate Round 1 Bracket” first.</p>;
+  }
+
+  // Set of player IDs currently used in any slot (for your mental “used / unused” tracking)
+  const usedIds = new Set();
+  matches.forEach((m) => {
+    if (m.player1Id) usedIds.add(m.player1Id);
+    if (m.player2Id) usedIds.add(m.player2Id);
+  });
 
   return (
     <div style={{ marginTop: 20 }}>
-      {bracket.rounds.map((round) => (
-        <div key={round.roundNumber} style={{ marginBottom: 30 }}>
-          <h3 style={{ marginBottom: 8 }}>Round {round.roundNumber}</h3>
-          <ul style={{ listStyle: "none", paddingLeft: 0 }}>
-            {round.matches.map((m, i) => (
-              <li key={i} style={{ marginBottom: 8 }}>
-                <span>
-                  {getPlayerLabel(m.player1Id)}{" "}
-                  <strong>vs</strong>{" "}
-                  {m.player2Id ? getPlayerLabel(m.player2Id) : "BYE"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      <p style={{ color: "#bbb", marginBottom: 12 }}>
+        This is your editable Round 1 bracket. You can change any slot using the dropdowns
+        below. Save when you’re happy.
+      </p>
+
+      <div style={{ marginBottom: 20, fontSize: "0.9rem", color: "#9ca3af" }}>
+        <strong>Used in bracket:</strong> {usedIds.size} / {players.length} players
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {matches.map((m, i) => (
+          <div
+            key={i}
+            style={{
+              border: "1px solid #333",
+              borderRadius: 8,
+              padding: "10px 12px",
+              background: "#111827",
+            }}
+          >
+            <div style={{ marginBottom: 6, fontSize: "0.9rem", color: "#9ca3af" }}>
+              Match {i + 1}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 12,
+                alignItems: "center",
+              }}
+            >
+              <select
+                value={m.player1Id || ""}
+                onChange={(e) =>
+                  handleChangeMatch(i, "player1Id", e.target.value || null)
+                }
+                style={{
+                  flex: "1 1 200px",
+                  background: "#020617",
+                  color: "white",
+                  borderRadius: 6,
+                  border: "1px solid #374151",
+                  padding: "6px 8px",
+                  fontSize: "0.9rem",
+                }}
+              >
+                <option value="">(empty slot)</option>
+                {allOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+
+              <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>vs</span>
+
+              <select
+                value={m.player2Id || ""}
+                onChange={(e) =>
+                  handleChangeMatch(i, "player2Id", e.target.value || null)
+                }
+                style={{
+                  flex: "1 1 200px",
+                  background: "#020617",
+                  color: "white",
+                  borderRadius: 6,
+                  border: "1px solid #374151",
+                  padding: "6px 8px",
+                  fontSize: "0.9rem",
+                }}
+              >
+                <option value="">(BYE / empty)</option>
+                {allOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          marginTop: 20,
+          background: saving ? "#1d4ed8" : "#2563eb",
+          padding: "10px 16px",
+          borderRadius: 8,
+          border: "none",
+          color: "white",
+          cursor: saving ? "default" : "pointer",
+          fontSize: "0.95rem",
+          fontWeight: 600,
+        }}
+      >
+        {saving ? "Saving..." : "💾 Save bracket layout"}
+      </button>
+
+      {saveMessage && (
+        <p style={{ marginTop: 8, fontSize: "0.9rem", color: "#a5b4fc" }}>
+          {saveMessage}
+        </p>
+      )}
     </div>
   );
 }
@@ -270,12 +415,12 @@ export default function TournamentPlayersPage({ tournamentId, players }) {
         </table>
       )}
 
-      {/* Bracket display section */}
+      {/* Editable bracket section */}
       <hr style={{ margin: "40px 0", borderColor: "#333" }} />
       <h2 style={{ fontSize: "1.4rem", marginBottom: 12 }}>
-        Generated Bracket
+        Round 1 – Editable Bracket
       </h2>
-      <BracketDisplay tournamentId={tournamentId} players={players} />
+      <BracketEditor tournamentId={tournamentId} players={players} />
     </div>
   );
 }
