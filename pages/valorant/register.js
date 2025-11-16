@@ -1,35 +1,45 @@
-// /pages/valorant/register.js
+// pages/valorant/register.js
 import * as cookie from "cookie";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-import Registration from "../../models/Registration";
 import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
-/* ============================================================
-   🔥 FIXED FULL getServerSideProps — Option A (correct logic)
-   ============================================================ */
 export async function getServerSideProps({ req }) {
   try {
-    const cookies = cookie?.parse
-      ? cookie.parse(req.headers.cookie || "")
-      : {};
+    // Safely read cookies
+    const cookies = cookie?.parse ? cookie.parse(req.headers.cookie || "") : {};
     const playerId = cookies.playerId || null;
 
-    // Not logged in → send to Discord OAuth
+    // Not logged in → send through Discord and come back here
     if (!playerId) {
-      return { redirect: { destination: "/api/auth/discord", permanent: false } };
+      return {
+        redirect: {
+          destination: `/api/auth/discord?next=${encodeURIComponent(
+            "/valorant/register"
+          )}`,
+          permanent: false,
+        },
+      };
     }
 
     await connectToDatabase();
 
     const player = await Player.findById(playerId).lean();
     if (!player) {
-      return { redirect: { destination: "/api/auth/discord", permanent: false } };
+      // Stale cookie → force new login
+      return {
+        redirect: {
+          destination: `/api/auth/discord?next=${encodeURIComponent(
+            "/valorant/register"
+          )}`,
+          permanent: false,
+        },
+      };
     }
 
-    // 🔥 CLEAN + CORRECT: Only use Player.registeredFor
+    // Check if they’re already registered for this tournament
     const alreadyRegistered = Array.isArray(player.registeredFor)
       ? player.registeredFor.some((r) => r?.tournamentId === TOURNAMENT_ID)
       : false;
@@ -54,9 +64,6 @@ export async function getServerSideProps({ req }) {
   }
 }
 
-/* ============================================================
-   🔥 The React component (unchanged except it uses alreadyRegistered)
-   ============================================================ */
 export default function ValorantRegisterPage(props) {
   const {
     username,
@@ -75,16 +82,36 @@ export default function ValorantRegisterPage(props) {
 
   if (gsspError) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0f0f0f", color: "white", padding: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Something went wrong</h1>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0f0f0f",
+          color: "white",
+          padding: 24,
+        }}
+      >
+        <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+          Something went wrong
+        </h1>
         <p style={{ opacity: 0.8 }}>Please refresh in a few seconds.</p>
-        <pre style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>{errorMessage}</pre>
+        <pre
+          style={{
+            marginTop: 12,
+            fontSize: 12,
+            opacity: 0.7,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {errorMessage}
+        </pre>
       </div>
     );
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!ign || !rank) return;
+
     setSubmitting(true);
     setMessage("");
 
@@ -107,6 +134,7 @@ export default function ValorantRegisterPage(props) {
         window.location.href = "/valorant/success";
       }
     } catch (err) {
+      console.error("registration submit error:", err);
       setMessage("Network error submitting registration.");
     } finally {
       setSubmitting(false);
@@ -176,7 +204,8 @@ export default function ValorantRegisterPage(props) {
               marginTop: "0.5rem",
             }}
           >
-            1v1 aim duels, bragging rights, prize TBD. Finish below to lock your spot.
+            1v1 aim duels, bragging rights, prize TBD. Finish below to lock
+            your spot.
           </div>
         </div>
 
@@ -225,7 +254,9 @@ export default function ValorantRegisterPage(props) {
           )}
 
           <div style={{ lineHeight: 1.3 }}>
-            <div style={{ color: "white", fontWeight: 600, fontSize: "0.9rem" }}>
+            <div
+              style={{ color: "white", fontWeight: 600, fontSize: "0.9rem" }}
+            >
               {username}
             </div>
             <div
@@ -240,7 +271,7 @@ export default function ValorantRegisterPage(props) {
           </div>
         </div>
 
-        {/* Registration Form */}
+        {/* Form */}
         <div
           style={{
             fontSize: "0.7rem",
@@ -373,7 +404,8 @@ export default function ValorantRegisterPage(props) {
             textAlign: "center",
           }}
         >
-          By confirming, you agree to play at the scheduled time. No smurfing. No cheats. Clips may be streamed.
+          By confirming, you agree to play at the scheduled time. No smurfing.
+          No cheats. Clips may be streamed.
         </div>
       </div>
     </div>
