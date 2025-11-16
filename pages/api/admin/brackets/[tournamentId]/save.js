@@ -31,32 +31,53 @@ export default async function handler(req, res) {
     const tournamentId = decodeURIComponent(rawId);
 
     const body = req.body || {};
-    const matches = Array.isArray(body.matches) ? body.matches : null;
-    const lbMatches = Array.isArray(body.lbMatches) ? body.lbMatches : null;
+    const matchesR1 = Array.isArray(body.matches) ? body.matches : null; // Round 1
+    const matchesR2 = Array.isArray(body.matches2) ? body.matches2 : null; // QF / Round 2
 
-    if (!matches) {
-      return res.status(400).json({ error: "Missing matches array" });
+    const lbMatchesR1 = Array.isArray(body.lbMatches) ? body.lbMatches : null; // LB Round 1
+    const lbMatchesR2 = Array.isArray(body.lbMatches2) ? body.lbMatches2 : null; // LB Round 2
+
+    if (!matchesR1) {
+      return res.status(400).json({ error: "Missing matches (Round 1) array" });
     }
 
-    // Build winners Round 1
-    const rounds = [
-      {
-        roundNumber: 1,
-        type: "winners",
-        matches: matches.map((m) => sanitizeMatch(m)),
-      },
-    ];
+    const rounds = [];
 
-    // Optional: build losers Round 1
-    const losersRounds = lbMatches
-      ? [
-          {
-            roundNumber: 1,
-            type: "losers",
-            matches: lbMatches.map((m) => sanitizeMatch(m)),
-          },
-        ]
-      : [];
+    // Winners Round 1
+    rounds.push({
+      roundNumber: 1,
+      type: "winners",
+      matches: matchesR1.map((m) => sanitizeMatch(m)),
+    });
+
+    // Winners Round 2 (Quarterfinals) if provided
+    if (matchesR2 && matchesR2.length > 0) {
+      rounds.push({
+        roundNumber: 2,
+        type: "winners",
+        matches: matchesR2.map((m) => sanitizeMatch(m)),
+      });
+    }
+
+    const losersRounds = [];
+
+    // Losers Round 1
+    if (lbMatchesR1 && lbMatchesR1.length > 0) {
+      losersRounds.push({
+        roundNumber: 1,
+        type: "losers",
+        matches: lbMatchesR1.map((m) => sanitizeMatch(m)),
+      });
+    }
+
+    // Losers Round 2 (from QF losers)
+    if (lbMatchesR2 && lbMatchesR2.length > 0) {
+      losersRounds.push({
+        roundNumber: 2,
+        type: "losers",
+        matches: lbMatchesR2.map((m) => sanitizeMatch(m)),
+      });
+    }
 
     const update = {
       $set: {

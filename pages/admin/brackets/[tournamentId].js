@@ -99,8 +99,13 @@ function buildPairsFromIds(ids) {
 // ---------- CLIENT SIDE BRACKET (EDITABLE) ----------
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
+
   const [matches, setMatches] = useState([]); // Round 1 (includes winnerId)
-  const [lbMatches, setLbMatches] = useState([]); // LB Round 1 (preview/editable)
+  const [lbMatches, setLbMatches] = useState([]); // LB Round 1
+
+  const [qfMatches, setQfMatches] = useState([]); // Round 2 (Quarterfinals)
+  const [lbMatches2, setLbMatches2] = useState([]); // LB Round 2
+
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
@@ -118,7 +123,7 @@ function BracketEditor({ tournamentId, players }) {
     label: idToLabel[p._id],
   }));
 
-  // Load current saved bracket (round 1) from API
+  // Load current saved bracket (rounds + losers rounds) from API
   useEffect(() => {
     async function loadBracket() {
       try {
@@ -128,31 +133,48 @@ function BracketEditor({ tournamentId, players }) {
         const data = await res.json();
         const bracket = data.bracket || null;
 
-        if (
-          !bracket ||
-          !Array.isArray(bracket.rounds) ||
-          bracket.rounds.length === 0
-        ) {
+        if (!bracket || !Array.isArray(bracket.rounds)) {
           setMatches([]);
+          setQfMatches([]);
         } else {
+          const rounds = bracket.rounds || [];
+
           const round1 =
-            bracket.rounds.find((r) => r.roundNumber === 1) ||
-            bracket.rounds[0];
-          setMatches(round1.matches || []);
+            rounds.find(
+              (r) => r.roundNumber === 1 && r.type === "winners"
+            ) || rounds[0];
+          setMatches(round1?.matches || []);
+
+          const round2 =
+            rounds.find(
+              (r) => r.roundNumber === 2 && r.type === "winners"
+            ) || null;
+          setQfMatches(round2?.matches || []);
         }
 
-        // If losersRounds already exist, hydrate LB Round 1 too (optional)
-        if (
-          bracket &&
-          Array.isArray(bracket.losersRounds) &&
-          bracket.losersRounds.length > 0
-        ) {
+        if (bracket && Array.isArray(bracket.losersRounds)) {
+          const lrs = bracket.losersRounds || [];
+
           const lb1 =
-            bracket.losersRounds.find((r) => r.roundNumber === 1) ||
-            bracket.losersRounds[0];
+            lrs.find(
+              (r) => r.roundNumber === 1 && r.type === "losers"
+            ) || lrs[0];
           if (lb1 && Array.isArray(lb1.matches)) {
             setLbMatches(
               lb1.matches.map((m) => ({
+                player1Id: m.player1Id || null,
+                player2Id: m.player2Id || null,
+              }))
+            );
+          }
+
+          const lb2 =
+            lrs.find(
+              (r) => r.roundNumber === 2 && r.type === "losers"
+            ) || null;
+          if (lb2 && Array.isArray(lb2.matches)) {
+            setLbMatches2(
+              lb2.matches.map((m) => ({
                 player1Id: m.player1Id || null,
                 player2Id: m.player2Id || null,
               }))
@@ -162,6 +184,9 @@ function BracketEditor({ tournamentId, players }) {
       } catch (err) {
         console.error("Failed to load bracket", err);
         setMatches([]);
+        setQfMatches([]);
+        setLbMatches([]);
+        setLbMatches2([]);
       } finally {
         setLoading(false);
       }
@@ -191,9 +216,48 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // Mark winner for a match (store winnerId)
-  function handleSetWinner(index, which) {
+  function handleChangeQFMatch(index, field, value) {
+    setQfMatches((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value || null };
+
+      if (field === "player1Id" || field === "player2Id") {
+        const m = copy[index];
+        if (
+          m.winnerId &&
+          m.winnerId !== m.player1Id &&
+          m.winnerId !== m.player2Id
+        ) {
+          m.winnerId = null;
+        }
+      }
+
+      return copy;
+    });
+  }
+
+  // Mark winner for a match in Round 1
+  function handleSetWinnerR1(index, which) {
     setMatches((prev) => {
+      const copy = [...prev];
+      const m = { ...copy[index] };
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+
+      copy[index] = m;
+      return copy;
+    });
+  }
+
+  // Mark winner for a match in Round 2 (QF)
+  function handleSetWinnerQF(index, which) {
+    setQfMatches((prev) => {
       const copy = [...prev];
       const m = { ...copy[index] };
 
@@ -230,7 +294,9 @@ function BracketEditor({ tournamentId, players }) {
           winnerId: null,
         }));
         setMatches(fresh);
-        setLbMatches([]); // reset LB on fresh random
+        setLbMatches([]);
+        setQfMatches([]);
+        setLbMatches2([]);
         setSaveMessage("Random layout generated (not saved yet).");
       }
     } catch (err) {
@@ -241,16 +307,48 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-  // 🔥 UPDATED: save WB Round 1 + LB Round 1
+  // Build QF from Round 1 winners
+  function handleBuildQF() {
+    const winners = [];
+    (matches || []).forEach((m) => {
+      if (m.winnerId) winners.push(m.winnerId);
+    });
+
+    if (winners.length < 2) {
+      setSaveMessage(
+        "You need at least 2 winners in Round 1 before building Quarterfinals."
+      );
+      return;
+    }
+
+    const pairs = buildPairsFromIds(winners).slice(0, 4); // up to 4 QF matches
+    const qf = pairs.map((p) => ({
+      player1Id: p.player1Id || null,
+      player2Id: p.player2Id || null,
+      winnerId: null,
+    }));
+
+    setQfMatches(qf);
+    setLbMatches2([]);
+    setSaveMessage(
+      "Quarterfinals built from Round 1 winners. You can adjust them manually."
+    );
+  }
+
+  // 🔥 Save R1, QF (R2), LB1, LB2
   async function handleSave() {
     setSaving(true);
     setSaveMessage("");
     try {
-      // Build LB payload: if you edited LB, use lbMatches;
-      // otherwise, auto-generate from current losers.
-      const losers = computeLosersFromMatches(matches);
-      const effectiveLbMatches =
-        lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losers);
+      // LB Round 1 from losers of R1
+      const losersR1 = computeLosersFromMatches(matches);
+      const effectiveLbR1 =
+        lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losersR1);
+
+      // LB Round 2 from losers of QF
+      const losersR2 = computeLosersFromMatches(qfMatches);
+      const effectiveLbR2 =
+        lbMatches2.length > 0 ? lbMatches2 : buildPairsFromIds(losersR2);
 
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
@@ -258,8 +356,10 @@ function BracketEditor({ tournamentId, players }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            matches, // winners round 1
-            lbMatches: effectiveLbMatches, // losers round 1
+            matches, // Round 1
+            matches2: qfMatches, // Round 2 (QF)
+            lbMatches: effectiveLbR1, // LB Round 1
+            lbMatches2: effectiveLbR2, // LB Round 2
           }),
         }
       );
@@ -269,7 +369,7 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Bracket layout and winners saved for Round 1, and Losers Round 1 stored as well."
+          "Saved: Round 1, Quarterfinals, and Losers R1 & R2 to the database."
         );
       }
     } catch (err) {
@@ -280,7 +380,7 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-  // Add a player to the first available empty slot (player1 then player2)
+  // Add a player to the first available empty slot (Round 1 only)
   function handleAddPlayerToBracket(playerId) {
     setMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
@@ -289,34 +389,34 @@ function BracketEditor({ tournamentId, players }) {
         (m) => m.player1Id === playerId || m.player2Id === playerId
       );
       if (alreadyPlaced) {
-        setSaveMessage("That player is already placed in the bracket.");
+        setSaveMessage("That player is already placed in the Round 1 bracket.");
         return copy;
       }
 
       for (let m of copy) {
         if (!m.player1Id) {
           m.player1Id = playerId;
-          setSaveMessage("Player added to the next available slot.");
+          setSaveMessage("Player added to the next available Round 1 slot.");
           return copy;
         }
         if (!m.player2Id) {
           m.player2Id = playerId;
-          setSaveMessage("Player added to the next available slot.");
+          setSaveMessage("Player added to the next available Round 1 slot.");
           return copy;
         }
       }
 
-      setSaveMessage("No empty slots left in this round.");
+      setSaveMessage("No empty Round 1 slots left.");
       return copy;
     });
   }
 
-  // Randomize Losers Bracket Round 1 from current losers
-  function handleRandomizeLB() {
+  // Randomize LB Round 1 from losers of R1
+  function handleRandomizeLB1() {
     const losers = computeLosersFromMatches(matches);
     if (losers.length < 2) {
       setSaveMessage(
-        "You need at least 2 completed matches (with winners) to randomize LB Round 1."
+        "You need at least 2 completed Round 1 matches (with winners) to randomize LB Round 1."
       );
       return;
     }
@@ -334,23 +434,58 @@ function BracketEditor({ tournamentId, players }) {
     );
   }
 
+  // Randomize LB Round 2 from losers of QF
+  function handleRandomizeLB2() {
+    const losers = computeLosersFromMatches(qfMatches);
+    if (losers.length < 2) {
+      setSaveMessage(
+        "You need at least 2 completed Quarterfinal matches (with winners) to randomize LB Round 2."
+      );
+      return;
+    }
+
+    const shuffled = [...losers];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const pairs = buildPairsFromIds(shuffled);
+    setLbMatches2(pairs);
+    setSaveMessage(
+      "Losers Bracket Round 2 randomized. You can manually adjust the pairs below."
+    );
+  }
+
   // Manually edit LB Round 1 slot
-  function handleChangeLbMatch(index, slot, value) {
+  function handleChangeLbMatch1(index, slot, value) {
     setLbMatches((prev) => {
       let base = prev;
 
-      // If LB hasn't been initialized yet, build it from current losers first
       if (base.length === 0) {
         const losers = computeLosersFromMatches(matches);
         base = buildPairsFromIds(losers);
       }
 
       const copy = base.map((m) => ({ ...m }));
-      if (!copy[index]) {
-        // index out of range (shouldn't happen, but guard)
-        return copy;
+      if (!copy[index]) return copy;
+      copy[index][slot] = value || null;
+      return copy;
+    });
+  }
+
+  // Manually edit LB Round 2 slot
+  function handleChangeLbMatch2(index, slot, value) {
+    setLbMatches2((prev) => {
+      let base = prev;
+
+      if (base.length === 0) {
+        const losers = computeLosersFromMatches(qfMatches);
+        base = buildPairsFromIds(losers);
       }
 
+      const copy = base.map((m) => ({ ...m }));
+      if (!copy[index]) return copy;
       copy[index][slot] = value || null;
       return copy;
     });
@@ -358,7 +493,7 @@ function BracketEditor({ tournamentId, players }) {
 
   if (loading) return <p>Loading bracket...</p>;
 
-  // --- Count placements + find unused & duplicates ---
+  // --- Count placements + find unused & duplicates in Round 1 only ---
   const usedIds = new Set();
   const placedCount = {};
 
@@ -383,15 +518,29 @@ function BracketEditor({ tournamentId, players }) {
   const usedCount = usedIds.size;
   const totalCount = players.length;
 
-  // losers & lb matches
-  const losers = computeLosersFromMatches(matches);
-  const winnersChosen = losers.length; // same as winners count
-  const effectiveLbMatches =
-    lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losers);
+  // losers & LB matches
+  const losersR1 = computeLosersFromMatches(matches);
+  const winnersChosenR1 = losersR1.length;
 
-  // options for LB dropdowns: only players who actually lost
-  const uniqueLoserIds = Array.from(new Set(losers));
-  const loserOptions = uniqueLoserIds.map((id) => ({
+  const effectiveLbMatches1 =
+    lbMatches.length > 0 ? lbMatches : buildPairsFromIds(losersR1);
+
+  // options for LB1 dropdowns: only players who actually lost in R1
+  const uniqueLoserIdsR1 = Array.from(new Set(losersR1));
+  const loserOptionsR1 = uniqueLoserIdsR1.map((id) => ({
+    value: id,
+    label: idToLabel[id] || "TBD",
+  }));
+
+  // LB Round 2
+  const losersR2 = computeLosersFromMatches(qfMatches);
+  const winnersChosenR2 = losersR2.length;
+
+  const effectiveLbMatches2 =
+    lbMatches2.length > 0 ? lbMatches2 : buildPairsFromIds(losersR2);
+
+  const uniqueLoserIdsR2 = Array.from(new Set(losersR2));
+  const loserOptionsR2 = uniqueLoserIdsR2.map((id) => ({
     value: id,
     label: idToLabel[id] || "TBD",
   }));
@@ -404,10 +553,10 @@ function BracketEditor({ tournamentId, players }) {
   return (
     <div style={{ marginTop: 20 }}>
       <p style={{ color: "#bbb", marginBottom: 12 }}>
-        This is your editable Round 1 bracket. You can randomize once as a
-        starting point, then manually adjust any slot. Mark winners to build
-        the Losers Bracket pool. Nothing is saved until you click
-        &quot;Save bracket layout&quot;.
+        This is your editable double-elimination bracket. You can randomize as a
+        starting point, then manually adjust any slot. Mark winners in each
+        round to build the losers bracket. Nothing is saved until you click
+        &quot;Save bracket&quot;.
       </p>
 
       {/* Top controls + usage summary */}
@@ -436,19 +585,23 @@ function BracketEditor({ tournamentId, players }) {
             fontWeight: 600,
           }}
         >
-          {randomizing ? "Randomizing..." : "🔀 Randomize from registrations"}
+          {randomizing ? "Randomizing..." : "🔀 Randomize Round 1 from registrations"}
         </button>
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          Placed: {usedCount} / {totalCount} players
+          Placed in Round 1: {usedCount} / {totalCount} players
         </span>
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          Winners chosen: {winnersChosen} / {matches.length}
+          R1 winners chosen: {winnersChosenR1}
+        </span>
+
+        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          QF winners chosen: {winnersChosenR2}
         </span>
       </div>
 
-      {/* Unplaced players list with + buttons */}
+      {/* Unplaced players list with + buttons (Round 1 only) */}
       <div
         style={{
           marginBottom: 12,
@@ -472,7 +625,7 @@ function BracketEditor({ tournamentId, players }) {
 
         {unusedPlayers.length === 0 ? (
           <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-            All registered players are currently placed in the bracket.
+            All registered players are currently placed in Round 1.
           </div>
         ) : (
           <div
@@ -515,7 +668,7 @@ function BracketEditor({ tournamentId, players }) {
                     background: "#22c55e",
                     color: "#0b1120",
                   }}
-                  title="Add to next empty slot"
+                  title="Add to next empty Round 1 slot"
                 >
                   +
                 </button>
@@ -525,7 +678,7 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
-      {/* Duplicate players list */}
+      {/* Duplicate players list (Round 1 only) */}
       <div
         style={{
           marginBottom: 16,
@@ -545,13 +698,12 @@ function BracketEditor({ tournamentId, players }) {
             marginBottom: 6,
           }}
         >
-          Players placed more than once:
+          Players placed more than once in Round 1:
         </div>
 
         {duplicatePlayers.length === 0 ? (
           <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-            No duplicates detected. Each player appears in the bracket at most
-            once.
+            No duplicates detected in Round 1. Each player appears at most once.
           </div>
         ) : (
           <div
@@ -593,14 +745,24 @@ function BracketEditor({ tournamentId, players }) {
 
       {(!matches || matches.length === 0) && (
         <p style={{ color: "#9ca3af", marginBottom: 16 }}>
-          No Round 1 bracket yet. Click &quot;Randomize from registrations&quot; to
-          create a layout, then adjust it as needed and save.
+          No Round 1 bracket yet. Click &quot;Randomize Round 1 from
+          registrations&quot; to create a layout, then adjust and save.
         </p>
       )}
 
+      {/* ===== ROUND 1 (WINNERS) ===== */}
       {matches && matches.length > 0 && (
         <>
-          {/* Round 1 matches with winner picker */}
+          <h3
+            style={{
+              marginTop: 10,
+              marginBottom: 8,
+              fontSize: "1.2rem",
+              color: "#e5e7eb",
+            }}
+          >
+            Round 1 — Seeds
+          </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {matches.map((m, i) => {
               const p1Dup =
@@ -639,7 +801,7 @@ function BracketEditor({ tournamentId, players }) {
                           color: "#fecaca",
                         }}
                       >
-                        ⚠ This match contains a duplicate player
+                        ⚠ Contains a duplicate Round 1 player
                       </span>
                     )}
                   </div>
@@ -730,7 +892,7 @@ function BracketEditor({ tournamentId, players }) {
                     <button
                       type="button"
                       disabled={!m.player1Id}
-                      onClick={() => handleSetWinner(i, "p1")}
+                      onClick={() => handleSetWinnerR1(i, "p1")}
                       style={{
                         padding: "4px 8px",
                         borderRadius: 9999,
@@ -742,13 +904,13 @@ function BracketEditor({ tournamentId, players }) {
                         cursor: m.player1Id ? "pointer" : "not-allowed",
                       }}
                     >
-                      {m.player1Id ? idToLabel[m.player1Id] : "Empty"}
+                      {m.player1Id ? labelFromId(m.player1Id) : "Empty"}
                     </button>
 
                     <button
                       type="button"
                       disabled={!m.player2Id}
-                      onClick={() => handleSetWinner(i, "p2")}
+                      onClick={() => handleSetWinnerR1(i, "p2")}
                       style={{
                         padding: "4px 8px",
                         borderRadius: 9999,
@@ -760,7 +922,7 @@ function BracketEditor({ tournamentId, players }) {
                         cursor: m.player2Id ? "pointer" : "not-allowed",
                       }}
                     >
-                      {m.player2Id ? idToLabel[m.player2Id] : "Empty"}
+                      {m.player2Id ? labelFromId(m.player2Id) : "Empty"}
                     </button>
                   </div>
                 </div>
@@ -768,7 +930,7 @@ function BracketEditor({ tournamentId, players }) {
             })}
           </div>
 
-          {/* Losers bracket PREVIEW (Round 1) with random + manual edit */}
+          {/* ===== LOSERS BRACKET ROUND 1 ===== */}
           <div
             style={{
               marginTop: 24,
@@ -795,12 +957,12 @@ function BracketEditor({ tournamentId, players }) {
                   color: "#e5e7eb",
                 }}
               >
-                Losers Bracket — Round 1 (preview & editable)
+                Losers Bracket — Round 1
               </div>
 
               <button
                 type="button"
-                onClick={handleRandomizeLB}
+                onClick={handleRandomizeLB1}
                 style={{
                   background: "#f97316",
                   padding: "6px 10px",
@@ -823,16 +985,14 @@ function BracketEditor({ tournamentId, players }) {
                 marginBottom: 10,
               }}
             >
-              The loser of each finished match is collected into a pool. You can
-              randomize that pool into LB R1, then manually adjust any matchup
-              below. This is preview-only for now; we&apos;ll persist it and hook it
-              into the public Losers Bracket view later.
+              The loser of each completed Round 1 match is collected into a pool.
+              You can randomize that pool into LB R1, then manually adjust any
+              matchup below.
             </p>
 
-            {effectiveLbMatches.length === 0 ? (
+            {effectiveLbMatches1.length === 0 ? (
               <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                No losers yet. Mark winners in Round 1 to build the losers
-                pool, then click &quot;Randomize LB Round 1&quot; or start editing.
+                No losers yet. Mark winners in Round 1 to build the LB pool.
               </div>
             ) : (
               <div
@@ -842,7 +1002,7 @@ function BracketEditor({ tournamentId, players }) {
                   gap: 8,
                 }}
               >
-                {effectiveLbMatches.map((pair, idx) => (
+                {effectiveLbMatches1.map((pair, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -861,7 +1021,7 @@ function BracketEditor({ tournamentId, players }) {
                         color: "#9ca3af",
                       }}
                     >
-                      LB Match {idx + 1}
+                      LB R1 Match {idx + 1}
                     </div>
                     <div
                       style={{
@@ -874,7 +1034,7 @@ function BracketEditor({ tournamentId, players }) {
                       <select
                         value={pair.player1Id || ""}
                         onChange={(e) =>
-                          handleChangeLbMatch(
+                          handleChangeLbMatch1(
                             idx,
                             "player1Id",
                             e.target.value || null
@@ -891,7 +1051,7 @@ function BracketEditor({ tournamentId, players }) {
                         }}
                       >
                         <option value="">(TBD)</option>
-                        {loserOptions.map((opt) => (
+                        {loserOptionsR1.map((opt) => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
@@ -910,7 +1070,7 @@ function BracketEditor({ tournamentId, players }) {
                       <select
                         value={pair.player2Id || ""}
                         onChange={(e) =>
-                          handleChangeLbMatch(
+                          handleChangeLbMatch1(
                             idx,
                             "player2Id",
                             e.target.value || null
@@ -927,7 +1087,372 @@ function BracketEditor({ tournamentId, players }) {
                         }}
                       >
                         <option value="">(TBD)</option>
-                        {loserOptions.map((opt) => (
+                        {loserOptionsR1.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ===== ROUND 2 (QUARTERFINALS) ===== */}
+          <h3
+            style={{
+              marginTop: 32,
+              marginBottom: 8,
+              fontSize: "1.2rem",
+              color: "#e5e7eb",
+            }}
+          >
+            Round 2 — Quarterfinals
+          </h3>
+
+          <div
+            style={{
+              marginBottom: 10,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleBuildQF}
+              style={{
+                background: "#22c55e",
+                padding: "6px 10px",
+                borderRadius: 6,
+                border: "none",
+                color: "white",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              🔁 Build Quarterfinals from Round 1 winners
+            </button>
+            <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+              This takes all Round 1 winners in order and pairs them into QF
+              matches.
+            </span>
+          </div>
+
+          {qfMatches.length === 0 ? (
+            <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+              No Quarterfinals yet. Click &quot;Build Quarterfinals from Round 1
+              winners&quot; after you&apos;ve marked winners in Round 1, or fill them
+              manually.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {qfMatches.map((m, i) => {
+                const isWinnerP1 = m.winnerId && m.winnerId === m.player1Id;
+                const isWinnerP2 = m.winnerId && m.winnerId === m.player2Id;
+
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      border: "1px solid #333",
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                      background: "#111827",
+                    }}
+                  >
+                    <div
+                      style={{
+                        marginBottom: 6,
+                        fontSize: "0.9rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      Quarterfinal Match {i + 1}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 12,
+                        alignItems: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <select
+                        value={m.player1Id || ""}
+                        onChange={(e) =>
+                          handleChangeQFMatch(
+                            i,
+                            "player1Id",
+                            e.target.value || null
+                          )
+                        }
+                        style={{
+                          flex: "1 1 200px",
+                          background: "#020617",
+                          color: "white",
+                          borderRadius: 6,
+                          border: "1px solid #374151",
+                          padding: "6px 8px",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        <option value="">(empty slot)</option>
+                        {allOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                        vs
+                      </span>
+
+                      <select
+                        value={m.player2Id || ""}
+                        onChange={(e) =>
+                          handleChangeQFMatch(
+                            i,
+                            "player2Id",
+                            e.target.value || null
+                          )
+                        }
+                        style={{
+                          flex: "1 1 200px",
+                          background: "#020617",
+                          color: "white",
+                          borderRadius: 6,
+                          border: "1px solid #374151",
+                          padding: "6px 8px",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        <option value="">(empty slot)</option>
+                        {allOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Winner picker QF */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 10,
+                        alignItems: "center",
+                        fontSize: "0.85rem",
+                        color: "#e5e7eb",
+                      }}
+                    >
+                      <span>Winner:</span>
+                      <button
+                        type="button"
+                        disabled={!m.player1Id}
+                        onClick={() => handleSetWinnerQF(i, "p1")}
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: 9999,
+                          border: isWinnerP1
+                            ? "1px solid #4ade80"
+                            : "1px solid #374151",
+                          background: isWinnerP1 ? "#064e3b" : "#020617",
+                          color: isWinnerP1 ? "#bbf7d0" : "#e5e7eb",
+                          cursor: m.player1Id ? "pointer" : "not-allowed",
+                        }}
+                      >
+                        {m.player1Id ? labelFromId(m.player1Id) : "Empty"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!m.player2Id}
+                        onClick={() => handleSetWinnerQF(i, "p2")}
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: 9999,
+                          border: isWinnerP2
+                            ? "1px solid #4ade80"
+                            : "1px solid #374151",
+                          background: isWinnerP2 ? "#064e3b" : "#020617",
+                          color: isWinnerP2 ? "#bbf7d0" : "#e5e7eb",
+                          cursor: m.player2Id ? "pointer" : "not-allowed",
+                        }}
+                      >
+                        {m.player2Id ? labelFromId(m.player2Id) : "Empty"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ===== LOSERS BRACKET ROUND 2 ===== */}
+          <div
+            style={{
+              marginTop: 24,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "#020617",
+              border: "1px solid #1f2937",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                gap: 8,
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  color: "#e5e7eb",
+                }}
+              >
+                Losers Bracket — Round 2
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRandomizeLB2}
+                style={{
+                  background: "#f97316",
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  color: "white",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                🎲 Randomize LB Round 2
+              </button>
+            </div>
+
+            <p
+              style={{
+                fontSize: "0.8rem",
+                color: "#9ca3af",
+                marginBottom: 10,
+              }}
+            >
+              The losers of each completed Quarterfinal match are collected into
+              the LB Round 2 pool. Randomize or manually adjust matchups here.
+            </p>
+
+            {effectiveLbMatches2.length === 0 ? (
+              <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                No QF losers yet. Mark QF winners first.
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                {effectiveLbMatches2.map((pair, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      background: "#0b1120",
+                      border: "1px solid #111827",
+                      fontSize: "0.85rem",
+                      color: "#e5e7eb",
+                    }}
+                  >
+                    <div
+                      style={{
+                        marginBottom: 4,
+                        fontSize: "0.8rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      LB R2 Match {idx + 1}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <select
+                        value={pair.player1Id || ""}
+                        onChange={(e) =>
+                          handleChangeLbMatch2(
+                            idx,
+                            "player1Id",
+                            e.target.value || null
+                          )
+                        }
+                        style={{
+                          flex: "1 1 200px",
+                          background: "#020617",
+                          color: "white",
+                          borderRadius: 6,
+                          border: "1px solid #374151",
+                          padding: "6px 8px",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <option value="">(TBD)</option>
+                        {loserOptionsR2.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <span
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        vs
+                      </span>
+
+                      <select
+                        value={pair.player2Id || ""}
+                        onChange={(e) =>
+                          handleChangeLbMatch2(
+                            idx,
+                            "player2Id",
+                            e.target.value || null
+                          )
+                        }
+                        style={{
+                          flex: "1 1 200px",
+                          background: "#020617",
+                          color: "white",
+                          borderRadius: 6,
+                          border: "1px solid #374151",
+                          padding: "6px 8px",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <option value="">(TBD)</option>
+                        {loserOptionsR2.map((opt) => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
@@ -945,7 +1470,7 @@ function BracketEditor({ tournamentId, players }) {
             onClick={handleSave}
             disabled={saving}
             style={{
-              marginTop: 20,
+              marginTop: 24,
               background: saving ? "#1d4ed8" : "#2563eb",
               padding: "10px 16px",
               borderRadius: 8,
@@ -956,7 +1481,9 @@ function BracketEditor({ tournamentId, players }) {
               fontWeight: 600,
             }}
           >
-            {saving ? "Saving..." : "💾 Save bracket layout + winners + LB R1"}
+            {saving
+              ? "Saving..."
+              : "💾 Save R1 + QF + Losers R1 & R2 to DB"}
           </button>
         </>
       )}
@@ -1167,7 +1694,7 @@ export default function TournamentPlayersPage({
       {/* Editable bracket section */}
       <hr style={{ margin: "40px 0", borderColor: "#333" }} />
       <h2 style={{ fontSize: "1.4rem", marginBottom: 12 }}>
-        Round 1 – Editable Bracket
+        Bracket Editor — Winners R1 / QF + Losers R1 / R2
       </h2>
       <BracketEditor tournamentId={tournamentId} players={players} />
     </div>
