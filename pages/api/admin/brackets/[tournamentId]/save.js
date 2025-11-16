@@ -1,6 +1,6 @@
 // pages/api/admin/brackets/[tournamentId]/save.js
 import { connectToDatabase } from "../../../../../lib/mongodb";
-import Tournament from "../../../../models/Tournament";
+import Tournament from "../../../../../models/Tournament";
 import { getCurrentPlayerFromReq } from "../../../../../lib/getCurrentPlayer";
 
 function sanitizeMatch(input) {
