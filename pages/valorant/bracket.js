@@ -65,7 +65,7 @@ export default function BracketPage() {
   ];
   const rightR16 = [
     ["叶秋风", "Squid"],
-    ["Cactus", "七月ya"],
+    ["Cactus", "July ya"],
     ["Qenquin", "Booey"],
     ["Ethan Sylor", "卡提希娅の仆人"],
   ];
@@ -108,7 +108,7 @@ export default function BracketPage() {
   const lb_r2 = [
     ["Booey", "蓝蝴蝶ya"],
     ["海友糕手", "巧克力炸香蕉"],
-    ["Sparkle", "July ya"],
+    ["sparkle", "July ya"],
     ["彼岸花ya", "Qenquin"],
   ];
 
