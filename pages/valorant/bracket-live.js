@@ -78,13 +78,12 @@ export async function getServerSideProps() {
   };
 }
 
-// ===== HELPER: label from id =====
+// ===== HELPER: label from id (IGN only in public UI) =====
 function buildIdToLabel(players) {
   const idToLabel = {};
   for (const p of players || []) {
-    const base = p.ign || p.username || "Unknown";
-    const extra = p.username && p.ign ? ` (${p.username})` : "";
-    idToLabel[p._id] = `${base}${extra}`;
+    // Public bracket should show IGN only; fall back to username, then "Unknown"
+    idToLabel[p._id] = p.ign || p.username || "Unknown";
   }
   return idToLabel;
 }
@@ -100,9 +99,10 @@ export default function BracketLivePage({
   const registered = players.length;
   const remaining = Math.max(capacity - registered, 0);
   const slotsText = `${registered} / ${capacity}`;
-  const statusText = registered >= capacity
-    ? "Full — waitlist"
-    : `Open — ${remaining} left`;
+  const statusText =
+    registered >= capacity
+      ? "Full — waitlist"
+      : `Open — ${remaining} left`;
 
   if (!published) {
     // Not published yet — simple message so you don't expose drafts
@@ -110,9 +110,7 @@ export default function BracketLivePage({
       <div className={styles.shell}>
         <div className={styles.contentWrap}>
           <section className={styles.card}>
-            <h2 className={styles.cardTitle}>
-              Bracket for {tournamentId}
-            </h2>
+            <h2 className={styles.cardTitle}>Bracket for {tournamentId}</h2>
             <p style={{ color: "#cbd5f5" }}>
               This bracket has not been published yet. Use the admin page to
               publish once it is ready.
