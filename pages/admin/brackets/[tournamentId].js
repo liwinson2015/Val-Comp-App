@@ -72,6 +72,7 @@ function BracketEditor({ tournamentId, players }) {
   const [matches, setMatches] = useState([]); // local editable round 1
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [randomizing, setRandomizing] = useState(false);
 
   // lookup: playerId -> "IGN (username)"
   const idToLabel = {};
@@ -86,7 +87,7 @@ function BracketEditor({ tournamentId, players }) {
     label: idToLabel[p._id],
   }));
 
-  // Load current bracket (round 1) from API
+  // Load current saved bracket (round 1) from API
   useEffect(() => {
     async function loadBracket() {
       try {
@@ -99,7 +100,9 @@ function BracketEditor({ tournamentId, players }) {
         if (!bracket || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
           setMatches([]);
         } else {
-          const round1 = bracket.rounds.find((r) => r.roundNumber === 1) || bracket.rounds[0];
+          const round1 =
+            bracket.rounds.find((r) => r.roundNumber === 1) ||
+            bracket.rounds[0];
           setMatches(round1.matches || []);
         }
       } catch (err) {
@@ -119,6 +122,33 @@ function BracketEditor({ tournamentId, players }) {
       copy[index] = { ...copy[index], [field]: value || null };
       return copy;
     });
+  }
+
+  async function handleRandomize() {
+    setRandomizing(true);
+    setSaveMessage("");
+    try {
+      const res = await fetch(
+        `/api/admin/brackets/${encodeURIComponent(tournamentId)}/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveMessage(data.error || "Failed to randomize bracket.");
+      } else {
+        // 🔥 IMPORTANT: only update local state, do NOT save to DB
+        setMatches(data.matches || []);
+        setSaveMessage("Random layout generated (not saved yet).");
+      }
+    } catch (err) {
+      console.error("Randomize error", err);
+      setSaveMessage("Error generating random layout.");
+    } finally {
+      setRandomizing(false);
+    }
   }
 
   async function handleSave() {
@@ -149,11 +179,7 @@ function BracketEditor({ tournamentId, players }) {
 
   if (loading) return <p>Loading bracket...</p>;
 
-  if (!matches || matches.length === 0) {
-    return <p>No bracket generated yet. Use “Generate Round 1 Bracket” first.</p>;
-  }
-
-  // Set of player IDs currently used in any slot (for your mental “used / unused” tracking)
+  // Set of player IDs currently used in any slot
   const usedIds = new Set();
   matches.forEach((m) => {
     if (m.player1Id) usedIds.add(m.player1Id);
@@ -163,106 +189,155 @@ function BracketEditor({ tournamentId, players }) {
   return (
     <div style={{ marginTop: 20 }}>
       <p style={{ color: "#bbb", marginBottom: 12 }}>
-        This is your editable Round 1 bracket. You can change any slot using the dropdowns
-        below. Save when you’re happy.
+        This is your editable Round 1 bracket. You can randomize once as a
+        starting point, then manually adjust any slot. Nothing is saved until
+        you click &quot;Save bracket layout&quot;.
       </p>
 
-      <div style={{ marginBottom: 20, fontSize: "0.9rem", color: "#9ca3af" }}>
-        <strong>Used in bracket:</strong> {usedIds.size} / {players.length} players
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {matches.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              border: "1px solid #333",
-              borderRadius: 8,
-              padding: "10px 12px",
-              background: "#111827",
-            }}
-          >
-            <div style={{ marginBottom: 6, fontSize: "0.9rem", color: "#9ca3af" }}>
-              Match {i + 1}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 12,
-                alignItems: "center",
-              }}
-            >
-              <select
-                value={m.player1Id || ""}
-                onChange={(e) =>
-                  handleChangeMatch(i, "player1Id", e.target.value || null)
-                }
-                style={{
-                  flex: "1 1 200px",
-                  background: "#020617",
-                  color: "white",
-                  borderRadius: 6,
-                  border: "1px solid #374151",
-                  padding: "6px 8px",
-                  fontSize: "0.9rem",
-                }}
-              >
-                <option value="">(empty slot)</option>
-                {allOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-
-              <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>vs</span>
-
-              <select
-                value={m.player2Id || ""}
-                onChange={(e) =>
-                  handleChangeMatch(i, "player2Id", e.target.value || null)
-                }
-                style={{
-                  flex: "1 1 200px",
-                  background: "#020617",
-                  color: "white",
-                  borderRadius: 6,
-                  border: "1px solid #374151",
-                  padding: "6px 8px",
-                  fontSize: "0.9rem",
-                }}
-              >
-                <option value="">(BYE / empty)</option>
-                {allOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saving}
+      <div
         style={{
-          marginTop: 20,
-          background: saving ? "#1d4ed8" : "#2563eb",
-          padding: "10px 16px",
-          borderRadius: 8,
-          border: "none",
-          color: "white",
-          cursor: saving ? "default" : "pointer",
-          fontSize: "0.95rem",
-          fontWeight: 600,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          alignItems: "center",
+          marginBottom: 12,
         }}
       >
-        {saving ? "Saving..." : "💾 Save bracket layout"}
-      </button>
+        <button
+          type="button"
+          onClick={handleRandomize}
+          disabled={randomizing || players.length < 2}
+          style={{
+            background: randomizing ? "#1d4ed8" : "#2563eb",
+            padding: "8px 14px",
+            borderRadius: 8,
+            border: "none",
+            color: "white",
+            cursor:
+              randomizing || players.length < 2 ? "not-allowed" : "pointer",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+          }}
+        >
+          {randomizing ? "Randomizing..." : "🔀 Randomize from registrations"}
+        </button>
+
+        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          Used in bracket: {usedIds.size} / {players.length} players
+        </span>
+      </div>
+
+      {(!matches || matches.length === 0) && (
+        <p style={{ color: "#9ca3af", marginBottom: 16 }}>
+          No Round 1 bracket yet. Click &quot;Randomize from registrations&quot; to
+          create a layout, then adjust it as needed and save.
+        </p>
+      )}
+
+      {matches && matches.length > 0 && (
+        <>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {matches.map((m, i) => (
+              <div
+                key={i}
+                style={{
+                  border: "1px solid #333",
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  background: "#111827",
+                }}
+              >
+                <div
+                  style={{
+                    marginBottom: 6,
+                    fontSize: "0.9rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  Match {i + 1}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <select
+                    value={m.player1Id || ""}
+                    onChange={(e) =>
+                      handleChangeMatch(i, "player1Id", e.target.value || null)
+                    }
+                    style={{
+                      flex: "1 1 200px",
+                      background: "#020617",
+                      color: "white",
+                      borderRadius: 6,
+                      border: "1px solid #374151",
+                      padding: "6px 8px",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <option value="">(empty slot)</option>
+                    {allOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                    vs
+                  </span>
+
+                  <select
+                    value={m.player2Id || ""}
+                    onChange={(e) =>
+                      handleChangeMatch(i, "player2Id", e.target.value || null)
+                    }
+                    style={{
+                      flex: "1 1 200px",
+                      background: "#020617",
+                      color: "white",
+                      borderRadius: 6,
+                      border: "1px solid #374151",
+                      padding: "6px 8px",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <option value="">(BYE / empty)</option>
+                    {allOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              marginTop: 20,
+              background: saving ? "#1d4ed8" : "#2563eb",
+              padding: "10px 16px",
+              borderRadius: 8,
+              border: "none",
+              color: "white",
+              cursor: saving ? "default" : "pointer",
+              fontSize: "0.95rem",
+              fontWeight: 600,
+            }}
+          >
+            {saving ? "Saving..." : "💾 Save bracket layout"}
+          </button>
+        </>
+      )}
 
       {saveMessage && (
         <p style={{ marginTop: 8, fontSize: "0.9rem", color: "#a5b4fc" }}>
@@ -283,31 +358,6 @@ export default function TournamentPlayersPage({ tournamentId, players }) {
       <p style={{ marginBottom: 16, color: "#ccc" }}>
         This is the full list of players registered for this tournament.
       </p>
-
-      {/* Generate Bracket button */}
-      <form
-        method="POST"
-        action={`/api/admin/brackets/${encodeURIComponent(
-          tournamentId
-        )}/generate`}
-        style={{ marginBottom: "20px" }}
-      >
-        <button
-          type="submit"
-          style={{
-            background: "#2563eb",
-            padding: "10px 16px",
-            borderRadius: "8px",
-            border: "none",
-            color: "white",
-            cursor: "pointer",
-            fontSize: "0.95rem",
-            fontWeight: 600,
-          }}
-        >
-          🔀 Generate Round 1 Bracket
-        </button>
-      </form>
 
       <a
         href="/admin/brackets"
