@@ -21,6 +21,7 @@ export async function getServerSideProps() {
 
   const t = await Tournament.findOne({ tournamentId }).lean();
 
+  // If nothing or not published → show "not published" state
   if (!t || !t.bracket || !t.bracket.isPublished) {
     return {
       props: {
@@ -33,13 +34,23 @@ export async function getServerSideProps() {
   }
 
   const bracket = t.bracket;
+
+  // Collect all playerIds used in winners + losers rounds
   const idSet = new Set();
 
   (bracket.rounds || []).forEach((r) => {
     (r.matches || []).forEach((m) => {
-      if (m.player1Id) idSet.add(m.player1Id);
-      if (m.player2Id) idSet.add(m.player2Id);
-      if (m.winnerId) idSet.add(m.winnerId);
+      if (m.player1Id) idSet.add(m.player1Id.toString());
+      if (m.player2Id) idSet.add(m.player2Id.toString());
+      if (m.winnerId) idSet.add(m.winnerId.toString());
+    });
+  });
+
+  (bracket.losersRounds || []).forEach((r) => {
+    (r.matches || []).forEach((m) => {
+      if (m.player1Id) idSet.add(m.player1Id.toString());
+      if (m.player2Id) idSet.add(m.player2Id.toString());
+      if (m.winnerId) idSet.add(m.winnerId.toString());
     });
   });
 
@@ -50,9 +61,8 @@ export async function getServerSideProps() {
     playerDocs = await Player.find({ _id: { $in: objectIds } }).lean();
   }
 
-  // Build a lookup of id -> IGN/username (for this tournament)
+  // Build a lookup array of players; pull IGN for this specific tournament
   const players = playerDocs.map((p) => {
-    // Find this tournament's registration, if present
     const reg = (p.registeredFor || []).find(
       (r) => r.tournamentId === tournamentId
     );
@@ -71,6 +81,7 @@ export async function getServerSideProps() {
       bracket: JSON.parse(
         JSON.stringify({
           rounds: bracket.rounds || [],
+          losersRounds: bracket.losersRounds || [],
         })
       ),
       players,
@@ -100,9 +111,7 @@ export default function BracketLivePage({
   const remaining = Math.max(capacity - registered, 0);
   const slotsText = `${registered} / ${capacity}`;
   const statusText =
-    registered >= capacity
-      ? "Full — waitlist"
-      : `Open — ${remaining} left`;
+    registered >= capacity ? "Full — waitlist" : `Open — ${remaining} left`;
 
   if (!published) {
     // Not published yet — simple message so you don't expose drafts
@@ -128,14 +137,12 @@ export default function BracketLivePage({
     return idToLabel[id] || "TBD";
   }
 
-  // ===== MAP GENERIC ROUND DATA -> YOUR Bracket16 DATA SHAPE =====
+  // ===== WINNERS BRACKET MAPPING (ROUND OF 16) =====
   const rounds = bracket?.rounds || [];
   const round1 =
     rounds.find((r) => r.roundNumber === 1) || rounds[0] || { matches: [] };
   const r1Matches = round1.matches || [];
 
-  // We expect up to 8 matches in Round of 16.
-  // Left side = first 4 matches; Right side = last 4.
   const leftR16 = [];
   const rightR16 = [];
 
@@ -148,7 +155,7 @@ export default function BracketLivePage({
     }
   });
 
-  // If fewer than 4 matches per side, pad with TBDs so Bracket16 doesn't break
+  // Pad to 4 matches per side so Bracket16 always has 8 matches total
   while (leftR16.length < 4) {
     leftR16.push(["TBD", "TBD"]);
   }
@@ -156,8 +163,7 @@ export default function BracketLivePage({
     rightR16.push(["TBD", "TBD"]);
   }
 
-  // For now, we keep later rounds MANUAL/PLACEHOLDERS.
-  // You can update these once you have winner-advancing logic wired up.
+  // For now, later winners rounds are still placeholders
   const leftQF = [
     ["TBD", "TBD"],
     ["TBD", "TBD"],
@@ -178,15 +184,25 @@ export default function BracketLivePage({
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // Losers bracket & placements are STILL MANUAL here,
-  // since we haven't modeled double-elim drops in the backend yet.
-  // You can copy your existing values or leave as minimal placeholders.
-  const lb_r1 = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
+  // ===== LOSERS BRACKET MAPPING (ROUND 1 FROM DB) =====
+  const losersRounds = bracket?.losersRounds || [];
+  const lbRound1 =
+    losersRounds.find((r) => r.roundNumber === 1) ||
+    losersRounds[0] ||
+    { matches: [] };
+  const lbMatches1 = lbRound1.matches || [];
+
+  const lb_r1 = lbMatches1.map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+
+  // Pad LB R1 to 4 matches so LosersBracket16 receives a consistent shape
+  while (lb_r1.length < 4) {
+    lb_r1.push(["TBD", "TBD"]);
+  }
+
+  // Other losers rounds remain placeholders for now
   const lb_r2 = [
     ["TBD", "TBD"],
     ["TBD", "TBD"],
@@ -205,6 +221,7 @@ export default function BracketLivePage({
   const lb_final = ["TBD", "TBD"];
   const lb_winner = "TBD";
 
+  // Placements + grand final still manual/test placeholders
   const placements = {
     first: "TBD",
     second: "TBD",
@@ -379,7 +396,6 @@ export default function BracketLivePage({
         {/* ===== Winners Bracket (LIVE ROUND OF 16) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <Bracket16 data={bracketData} />
-
           <style jsx>{`
             .fullBleed {
               width: 100vw;
@@ -399,7 +415,7 @@ export default function BracketLivePage({
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (manual placeholders) ===== */}
+        {/* ===== Losers Bracket (LB R1 from DB, rest placeholders) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
             r1={lb_r1}
