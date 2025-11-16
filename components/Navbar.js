@@ -19,7 +19,8 @@ export default function Navbar() {
 
     (async () => {
       try {
-        const res = await fetch("/api/whoami", { credentials: "same-origin" });
+        // ⬇️ changed to /api/me
+        const res = await fetch("/api/me", { credentials: "same-origin" });
         const data = await res.json();
         if (!ignore) {
           setLoggedIn(!!data.loggedIn);
@@ -61,6 +62,9 @@ export default function Navbar() {
       ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64`
       : null;
 
+  // ✅ admin flag from user
+  const isAdmin = !!user?.isAdmin;
+
   return (
     <header
       className="nav-shell"
@@ -83,7 +87,9 @@ export default function Navbar() {
           className="nav-links"
           style={{ overflow: "visible", position: "relative", zIndex: 1 }}
         >
-          <a href="/" className="nav-link">Home</a>
+          <a href="/" className="nav-link">
+            Home
+          </a>
 
           {/* Tournaments dropdown (click-only) */}
           <div
@@ -111,7 +117,13 @@ export default function Navbar() {
               }}
             >
               Tournaments
-              <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
               </svg>
             </button>
@@ -150,8 +162,12 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Bracket tab removed per your request */}
-          {/* <a href="/valorant/bracket" className="nav-link">Bracket</a> */}
+          {/* ⭐ Admin link: only visible if logged in AND admin */}
+          {!loading && loggedIn && isAdmin && (
+            <a href="/admin" className="nav-link">
+              Admin
+            </a>
+          )}
 
           {/* Discord shortcut (only when logged in) */}
           {!loading && loggedIn && (
@@ -167,7 +183,9 @@ export default function Navbar() {
 
           {/* Right side (Login or Profile) */}
           {loading ? (
-            <span className="nav-link" style={{ opacity: 0.6 }}>...</span>
+            <span className="nav-link" style={{ opacity: 0.6 }}>
+              ...
+            </span>
           ) : loggedIn ? (
             <div
               className="nav-link profile-dropdown"
@@ -216,7 +234,13 @@ export default function Navbar() {
                   />
                 )}
                 <span>{user?.username || "Profile"}</span>
-                <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
                   <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
                 </svg>
               </button>
@@ -237,12 +261,20 @@ export default function Navbar() {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <a href="/profile" className="nav-link" style={dropdownItem}
-                     onClick={() => setProfileOpen(false)}>
+                  <a
+                    href="/profile"
+                    className="nav-link"
+                    style={dropdownItem}
+                    onClick={() => setProfileOpen(false)}
+                  >
                     View Profile
                   </a>
-                  <a href="/account/registrations" className="nav-link" style={dropdownItem}
-                     onClick={() => setProfileOpen(false)}>
+                  <a
+                    href="/account/registrations"
+                    className="nav-link"
+                    style={dropdownItem}
+                    onClick={() => setProfileOpen(false)}
+                  >
                     My Registrations
                   </a>
                   <a
@@ -258,7 +290,9 @@ export default function Navbar() {
             </div>
           ) : (
             <a
-              href={`/api/auth/discord?next=${encodeURIComponent(router.asPath || "/")}`}
+              href={`/api/auth/discord?next=${encodeURIComponent(
+                router.asPath || "/"
+              )}`}
               className="nav-link login-link"
               style={{
                 background: "#5865F2",
@@ -283,5 +317,5 @@ const dropdownItem = {
   textDecoration: "none",
   color: "white",
   fontSize: "0.9rem",
-  borderBottom: "1px solid #2e2e2e",
+  borderBottom: "1px solid "#2e2e2e",
 };
