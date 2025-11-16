@@ -17,6 +17,13 @@ const PlayerSchema = new mongoose.Schema(
     discriminator: {
       type: String,
     },
+
+    // 🔥 NEW FIELD (admin control)
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+
     registeredFor: [
       {
         tournamentId: String,
