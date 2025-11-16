@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
+import Tournament from "../../../models/Tournament";
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
@@ -58,10 +59,15 @@ export async function getServerSideProps({ req, params }) {
     };
   });
 
+  // Load tournament to get publish status
+  const t = await Tournament.findOne({ tournamentId }).lean();
+  const isPublished = !!t?.bracket?.isPublished;
+
   return {
     props: {
       tournamentId,
       players: playerRows,
+      isPublished,
     },
   };
 }
@@ -139,7 +145,7 @@ function BracketEditor({ tournamentId, players }) {
       if (!res.ok) {
         setSaveMessage(data.error || "Failed to randomize bracket.");
       } else {
-        // 🔥 IMPORTANT: only update local state, do NOT save to DB
+        // only update local state, do NOT save to DB
         setMatches(data.matches || []);
         setSaveMessage("Random layout generated (not saved yet).");
       }
@@ -349,12 +355,89 @@ function BracketEditor({ tournamentId, players }) {
 }
 
 // ---------- MAIN PAGE ----------
-export default function TournamentPlayersPage({ tournamentId, players }) {
+export default function TournamentPlayersPage({
+  tournamentId,
+  players,
+  isPublished,
+}) {
   return (
     <div style={{ padding: "40px 20px", maxWidth: 900, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: 8 }}>
+      <h1 style={{ fontSize: "1.6rem", marginBottom: 4 }}>
         Players in {tournamentId}
       </h1>
+
+      {/* Publish status + buttons */}
+      <div
+        style={{
+          marginBottom: 16,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: "#020617",
+          border: "1px solid #1f2933",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <span style={{ fontSize: "0.9rem" }}>
+          Status:{" "}
+          <strong
+            style={{
+              color: isPublished ? "#4ade80" : "#fbbf24",
+            }}
+          >
+            {isPublished ? "Published (visible to players)" : "Draft (hidden)"}
+          </strong>
+        </span>
+
+        <form
+          method="POST"
+          action={`/api/admin/brackets/${encodeURIComponent(
+            tournamentId
+          )}/publish?state=publish`}
+        >
+          <button
+            type="submit"
+            style={{
+              background: "#16a34a",
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "none",
+              color: "white",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            ✅ Publish
+          </button>
+        </form>
+
+        <form
+          method="POST"
+          action={`/api/admin/brackets/${encodeURIComponent(
+            tournamentId
+          )}/publish?state=unpublish`}
+        >
+          <button
+            type="submit"
+            style={{
+              background: "#6b7280",
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "none",
+              color: "white",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            🚫 Unpublish
+          </button>
+        </form>
+      </div>
+
       <p style={{ marginBottom: 16, color: "#ccc" }}>
         This is the full list of players registered for this tournament.
       </p>

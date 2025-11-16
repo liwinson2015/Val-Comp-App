@@ -1,3 +1,4 @@
+// models/Tournament.js
 import mongoose from "mongoose";
 
 const MatchSchema = new mongoose.Schema(
@@ -19,7 +20,8 @@ const RoundSchema = new mongoose.Schema(
 
 const TournamentSchema = new mongoose.Schema(
   {
-    tournamentId: { type: String, unique: true }, // same ID used in registrations
+    // this should match the tournamentId used in Player.registeredFor.tournamentId
+    tournamentId: { type: String, unique: true },
     bracket: {
       rounds: [RoundSchema],
       isPublished: { type: Boolean, default: false },
