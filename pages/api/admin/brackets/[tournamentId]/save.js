@@ -5,7 +5,11 @@ import { getCurrentPlayerFromReq } from "../../../../../lib/getCurrentPlayer";
 
 function sanitizeMatch(input) {
   if (!input) return null;
-  const { player1Id = null, player2Id = null, winnerId = null } = input;
+  const {
+    player1Id = null,
+    player2Id = null,
+    winnerId = null,
+  } = input;
   return {
     player1Id: player1Id || null,
     player2Id: player2Id || null,
@@ -21,7 +25,6 @@ export default async function handler(req, res) {
   try {
     await connectToDatabase();
 
-    // Auth & admin check
     const player = await getCurrentPlayerFromReq(req);
     if (!player || !player.isAdmin) {
       return res.status(403).json({ error: "Admin only" });
@@ -31,27 +34,20 @@ export default async function handler(req, res) {
     const tournamentId = decodeURIComponent(rawId);
 
     const body = req.body || {};
-    const matchesR1 = Array.isArray(body.matches) ? body.matches : null; // Round 1
-    const matchesR2 = Array.isArray(body.matches2) ? body.matches2 : null; // QF / Round 2
-
-    const lbMatchesR1 = Array.isArray(body.lbMatches) ? body.lbMatches : null; // LB Round 1
-    const lbMatchesR2 = Array.isArray(body.lbMatches2) ? body.lbMatches2 : null; // LB Round 2
-
-    if (!matchesR1) {
-      return res.status(400).json({ error: "Missing matches (Round 1) array" });
-    }
+    const matchesR1 = Array.isArray(body.matches) ? body.matches : [];
+    const matchesR2 = Array.isArray(body.matches2) ? body.matches2 : [];
+    const lbMatchesR1 = Array.isArray(body.lbMatches) ? body.lbMatches : [];
+    const lbMatchesR2 = Array.isArray(body.lbMatches2) ? body.lbMatches2 : [];
 
     const rounds = [];
-
-    // Winners Round 1
-    rounds.push({
-      roundNumber: 1,
-      type: "winners",
-      matches: matchesR1.map((m) => sanitizeMatch(m)),
-    });
-
-    // Winners Round 2 (Quarterfinals) if provided
-    if (matchesR2 && matchesR2.length > 0) {
+    if (matchesR1.length > 0) {
+      rounds.push({
+        roundNumber: 1,
+        type: "winners",
+        matches: matchesR1.map((m) => sanitizeMatch(m)),
+      });
+    }
+    if (matchesR2.length > 0) {
       rounds.push({
         roundNumber: 2,
         type: "winners",
@@ -60,18 +56,14 @@ export default async function handler(req, res) {
     }
 
     const losersRounds = [];
-
-    // Losers Round 1
-    if (lbMatchesR1 && lbMatchesR1.length > 0) {
+    if (lbMatchesR1.length > 0) {
       losersRounds.push({
         roundNumber: 1,
         type: "losers",
         matches: lbMatchesR1.map((m) => sanitizeMatch(m)),
       });
     }
-
-    // Losers Round 2 (from QF losers)
-    if (lbMatchesR2 && lbMatchesR2.length > 0) {
+    if (lbMatchesR2.length > 0) {
       losersRounds.push({
         roundNumber: 2,
         type: "losers",
@@ -87,6 +79,9 @@ export default async function handler(req, res) {
 
     if (losersRounds.length > 0) {
       update.$set["bracket.losersRounds"] = losersRounds;
+    } else {
+      // optionally clear losersRounds if none
+      update.$unset = { "bracket.losersRounds": "" };
     }
 
     await Tournament.findOneAndUpdate(
