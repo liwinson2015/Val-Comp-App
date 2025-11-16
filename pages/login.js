@@ -8,7 +8,7 @@ export async function getServerSideProps({ req }) {
 
   // Already signed in → skip this page
   if (playerId) {
-    return { redirect: { destination: "/", permanent: false } };
+    return { redirect: { destination: "/profile", permanent: false } };
   }
 
   // Not signed in → render the login card below
