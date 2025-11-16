@@ -32,7 +32,7 @@ export async function getServerSideProps({ req }) {
       return {
         redirect: {
           destination: `/api/auth/discord?next=${encodeURIComponent(
-            "/"
+            "/valorant/register"
           )}`,
           permanent: false,
         },
