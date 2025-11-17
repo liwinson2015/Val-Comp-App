@@ -36,8 +36,12 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const matchesR1 = Array.isArray(body.matches) ? body.matches : [];
     const matchesR2 = Array.isArray(body.matches2) ? body.matches2 : [];
+    const matchesR3 = Array.isArray(body.matches3) ? body.matches3 : [];
+
     const lbMatchesR1 = Array.isArray(body.lbMatches) ? body.lbMatches : [];
     const lbMatchesR2 = Array.isArray(body.lbMatches2) ? body.lbMatches2 : [];
+    const lbMatchesR3 = Array.isArray(body.lbMatches3) ? body.lbMatches3 : [];
+    const lbMatchesR4 = Array.isArray(body.lbMatches4) ? body.lbMatches4 : [];
 
     const rounds = [];
     if (matchesR1.length > 0) {
@@ -52,6 +56,13 @@ export default async function handler(req, res) {
         roundNumber: 2,
         type: "winners",
         matches: matchesR2.map((m) => sanitizeMatch(m)),
+      });
+    }
+    if (matchesR3.length > 0) {
+      rounds.push({
+        roundNumber: 3,
+        type: "winners",
+        matches: matchesR3.map((m) => sanitizeMatch(m)),
       });
     }
 
@@ -70,6 +81,20 @@ export default async function handler(req, res) {
         matches: lbMatchesR2.map((m) => sanitizeMatch(m)),
       });
     }
+    if (lbMatchesR3.length > 0) {
+      losersRounds.push({
+        roundNumber: 3,
+        type: "losers",
+        matches: lbMatchesR3.map((m) => sanitizeMatch(m)),
+      });
+    }
+    if (lbMatchesR4.length > 0) {
+      losersRounds.push({
+        roundNumber: 4,
+        type: "losers",
+        matches: lbMatchesR4.map((m) => sanitizeMatch(m)),
+      });
+    }
 
     const update = {
       $set: {
@@ -80,7 +105,6 @@ export default async function handler(req, res) {
     if (losersRounds.length > 0) {
       update.$set["bracket.losersRounds"] = losersRounds;
     } else {
-      // optionally clear losersRounds if none
       update.$unset = { "bracket.losersRounds": "" };
     }
 

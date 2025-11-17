@@ -106,11 +106,14 @@ function buildPairsFromIds(ids) {
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
 
-  const [matches, setMatches] = useState([]);     // Winners Round 1
-  const [qfMatches, setQfMatches] = useState([]); // Winners Round 2 (QF)
+  const [matches, setMatches] = useState([]);      // Winners Round 1
+  const [qfMatches, setQfMatches] = useState([]);  // Winners Round 2 (QF)
+  const [sfMatches, setSfMatches] = useState([]);  // Winners Round 3 (Semifinals)
 
-  const [lbMatches1, setLbMatches1] = useState([]); // LB Round 1 (with winnerId)
-  const [lbMatches2, setLbMatches2] = useState([]); // LB Round 2
+  const [lbMatches1, setLbMatches1] = useState([]);  // LB R1
+  const [lbMatches2, setLbMatches2] = useState([]);  // LB R2
+  const [lbMatches3a, setLbMatches3a] = useState([]); // LB R3A
+  const [lbMatches3b, setLbMatches3b] = useState([]); // LB R3B
 
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -141,6 +144,7 @@ function BracketEditor({ tournamentId, players }) {
         if (!bracket || !Array.isArray(bracket.rounds)) {
           setMatches([]);
           setQfMatches([]);
+          setSfMatches([]);
         } else {
           const rounds = bracket.rounds || [];
 
@@ -155,6 +159,12 @@ function BracketEditor({ tournamentId, players }) {
               (r) => r.roundNumber === 2 && r.type === "winners"
             ) || null;
           setQfMatches(round2?.matches || []);
+
+          const round3 =
+            rounds.find(
+              (r) => r.roundNumber === 3 && r.type === "winners"
+            ) || null;
+          setSfMatches(round3?.matches || []);
         }
 
         if (bracket && Array.isArray(bracket.losersRounds)) {
@@ -187,13 +197,44 @@ function BracketEditor({ tournamentId, players }) {
               }))
             );
           }
+
+          const lb3 =
+            lrs.find(
+              (r) => r.roundNumber === 3 && r.type === "losers"
+            ) || null;
+          if (lb3 && Array.isArray(lb3.matches)) {
+            setLbMatches3a(
+              lb3.matches.map((m) => ({
+                player1Id: m.player1Id || null,
+                player2Id: m.player2Id || null,
+                winnerId: m.winnerId || null,
+              }))
+            );
+          }
+
+          const lb4 =
+            lrs.find(
+              (r) => r.roundNumber === 4 && r.type === "losers"
+            ) || null;
+          if (lb4 && Array.isArray(lb4.matches)) {
+            setLbMatches3b(
+              lb4.matches.map((m) => ({
+                player1Id: m.player1Id || null,
+                player2Id: m.player2Id || null,
+                winnerId: m.winnerId || null,
+              }))
+            );
+          }
         }
       } catch (err) {
         console.error("Failed to load bracket", err);
         setMatches([]);
         setQfMatches([]);
+        setSfMatches([]);
         setLbMatches1([]);
         setLbMatches2([]);
+        setLbMatches3a([]);
+        setLbMatches3b([]);
       } finally {
         setLoading(false);
       }
@@ -261,8 +302,11 @@ function BracketEditor({ tournamentId, players }) {
         }));
         setMatches(fresh);
         setLbMatches1([]);
-        setQfMatches([]);
         setLbMatches2([]);
+        setLbMatches3a([]);
+        setLbMatches3b([]);
+        setQfMatches([]);
+        setSfMatches([]);
         setSaveMessage(
           "Random Round 1 generated (not saved yet). Set winners and save when ready."
         );
@@ -458,7 +502,10 @@ function BracketEditor({ tournamentId, players }) {
       winnerId: null,
     }));
     setQfMatches(qf);
+    setSfMatches([]);
     setLbMatches2([]);
+    setLbMatches3a([]);
+    setLbMatches3b([]);
     setSaveMessage(
       "Quarterfinals built from Round 1 winners. Adjust and set winners."
     );
@@ -502,6 +549,8 @@ function BracketEditor({ tournamentId, players }) {
     }
 
     setLbMatches2(pairs);
+    setLbMatches3a([]);
+    setLbMatches3b([]);
     setSaveMessage(
       "Losers Bracket Round 2 built: each LB R1 winner vs a QF loser. You can still adjust."
     );
@@ -509,6 +558,184 @@ function BracketEditor({ tournamentId, players }) {
 
   function handleChangeLbMatch2(index, slot, value) {
     setLbMatches2((prev) => {
+      const base = prev.length > 0 ? prev : [];
+      const copy = base.map((m) => ({ ...m }));
+      if (!copy[index]) return copy;
+      copy[index][slot] = value || null;
+      return copy;
+    });
+  }
+
+  // ------- Winners Round 3 (Semifinals) -------
+  function handleChangeSFMatch(index, field, value) {
+    setSfMatches((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value || null };
+
+      if (field === "player1Id" || field === "player2Id") {
+        const m = copy[index];
+        if (
+          m.winnerId &&
+          m.winnerId !== m.player1Id &&
+          m.winnerId !== m.player2Id
+        ) {
+          m.winnerId = null;
+        }
+      }
+
+      return copy;
+    });
+  }
+
+  function handleSetWinnerSF(index, which) {
+    setSfMatches((prev) => {
+      const copy = [...prev];
+      const m = { ...copy[index] };
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+
+      copy[index] = m;
+      return copy;
+    });
+  }
+
+  function handleBuildSF() {
+    const winnersQF = computeWinnersFromMatches(qfMatches);
+    if (winnersQF.length < 2) {
+      setSaveMessage(
+        "You need Quarterfinal winners before building Semifinals."
+      );
+      return;
+    }
+
+    const pairs = buildPairsFromIds(winnersQF).slice(0, 2); // 2 SF matches max
+    const sf = pairs.map((p) => ({
+      player1Id: p.player1Id || null,
+      player2Id: p.player2Id || null,
+      winnerId: null,
+    }));
+    setSfMatches(sf);
+    setLbMatches3a([]);
+    setLbMatches3b([]);
+    setSaveMessage(
+      "Semifinals built from Quarterfinal winners. Adjust and set winners."
+    );
+  }
+
+  const sfLosers = computeLosersFromMatches(sfMatches);
+
+  // ------- LB Round 3A (LB R2 winners vs each other) -------
+  function handleBuildLB3A() {
+    if (lbMatches2.length === 0) {
+      setSaveMessage(
+        "Build LB Round 2 and set its winners before building LB Round 3A."
+      );
+      return;
+    }
+
+    const lb2Winners = computeWinnersFromMatches(lbMatches2);
+    if (lb2Winners.length < 2) {
+      setSaveMessage(
+        "You need winners from LB Round 2 to build LB Round 3A."
+      );
+      return;
+    }
+
+    const pairs = buildPairsFromIds(lb2Winners).slice(0, 2); // up to 2 matches
+    const lb3a = pairs.map((p) => ({
+      player1Id: p.player1Id || null,
+      player2Id: p.player2Id || null,
+      winnerId: null,
+    }));
+
+    setLbMatches3a(lb3a);
+    setLbMatches3b([]);
+    setSaveMessage(
+      "Losers Bracket Round 3A built from LB Round 2 winners. Set winners to prepare for 3B."
+    );
+  }
+
+  function handleChangeLbMatch3A(index, slot, value) {
+    setLbMatches3a((prev) => {
+      const base = prev.length > 0 ? prev : [];
+      const copy = base.map((m) => ({ ...m }));
+      if (!copy[index]) return copy;
+      copy[index][slot] = value || null;
+
+      const m = copy[index];
+      if (
+        m.winnerId &&
+        m.winnerId !== m.player1Id &&
+        m.winnerId !== m.player2Id
+      ) {
+        m.winnerId = null;
+      }
+
+      return copy;
+    });
+  }
+
+  function handleSetWinnerLB3A(index, which) {
+    setLbMatches3a((prev) => {
+      const copy = [...prev];
+      const m = { ...copy[index] };
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+
+      copy[index] = m;
+      return copy;
+    });
+  }
+
+  const lb3aWinners = computeWinnersFromMatches(lbMatches3a);
+
+  // ------- LB Round 3B (LB3A winners vs Winners-SF losers) -------
+  function handleBuildLB3B() {
+    if (lb3aWinners.length === 0) {
+      setSaveMessage(
+        "Set winners for LB Round 3A before building LB Round 3B."
+      );
+      return;
+    }
+
+    if (sfLosers.length === 0) {
+      setSaveMessage(
+        "Set winners for Winners Semifinals so losers can drop into LB Round 3B."
+      );
+      return;
+    }
+
+    const maxLen = Math.max(lb3aWinners.length, sfLosers.length);
+    const pairs = [];
+    for (let i = 0; i < maxLen; i++) {
+      pairs.push({
+        // usually LB3A winner is the 'lower' bracket side
+        player1Id: lb3aWinners[i] || null,
+        player2Id: sfLosers[i] || null,
+        winnerId: null,
+      });
+    }
+
+    setLbMatches3b(pairs);
+    setSaveMessage(
+      "Losers Bracket Round 3B built: LB3A winners vs Winners-SF losers."
+    );
+  }
+
+  function handleChangeLbMatch3B(index, slot, value) {
+    setLbMatches3b((prev) => {
       const base = prev.length > 0 ? prev : [];
       const copy = base.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
@@ -528,10 +755,13 @@ function BracketEditor({ tournamentId, players }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            matches,    // Winners R1
-            matches2: qfMatches, // Winners R2 (QF)
-            lbMatches: lbMatches1,  // LB R1
-            lbMatches2,             // LB R2
+            matches,        // Winners R1
+            matches2: qfMatches, // Winners QF
+            matches3: sfMatches, // Winners Semis
+            lbMatches: lbMatches1,   // LB R1
+            lbMatches2: lbMatches2,  // LB R2
+            lbMatches3: lbMatches3a, // LB R3A
+            lbMatches4: lbMatches3b, // LB R3B
           }),
         }
       );
@@ -541,7 +771,7 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Saved: Winners R1, QF, and Losers R1 & R2 to the database."
+          "Saved: Winners R1/QF/SF and Losers R1/R2/R3A/R3B to the database."
         );
       }
     } catch (err) {
@@ -559,6 +789,13 @@ function BracketEditor({ tournamentId, players }) {
 
   if (loading) return <p>Loading bracket...</p>;
 
+  // ====== derived counts for status badges ======
+  const losersR2Count = losersR2.length;
+  const lb2WinnerCount = computeWinnersFromMatches(lbMatches2).length;
+  const sfWinnerCount = computeWinnersFromMatches(sfMatches).length;
+  const lb3aWinnerCount = lb3aWinners.length;
+
+  // ================== RENDER =====================
   return (
     <div style={{ marginTop: 20 }}>
       <p style={{ color: "#bbb", marginBottom: 12 }}>
@@ -607,11 +844,23 @@ function BracketEditor({ tournamentId, players }) {
         </span>
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          QF losers: {winnersChosenR2}
+          QF losers: {losersR2Count}
+        </span>
+
+        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          LB2 winners: {lb2WinnerCount}
+        </span>
+
+        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          SF winners: {sfWinnerCount}
+        </span>
+
+        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          LB3A winners: {lb3aWinnerCount}
         </span>
       </div>
 
-      {/* Unplaced players list (Round 1) */}
+      {/* Unplaced players (R1) */}
       <div
         style={{
           marginBottom: 12,
@@ -682,7 +931,7 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
-      {/* Duplicate players in R1 */}
+      {/* Duplicate players */}
       <div
         style={{
           marginBottom: 16,
@@ -1165,7 +1414,7 @@ function BracketEditor({ tournamentId, players }) {
           color: "#e5e7eb",
         }}
       >
-        Round 2 — Quarterfinals
+        Round 2 — Quarterfinals (Winners)
       </h3>
 
       <div
@@ -1522,6 +1771,599 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
+      {/* ===== ROUND 3 (SEMI-FINALS, WINNERS) ===== */}
+      <h3
+        style={{
+          marginTop: 32,
+          marginBottom: 8,
+          fontSize: "1.2rem",
+          color: "#e5e7eb",
+        }}
+      >
+        Round 3 — Semifinals (Winners)
+      </h3>
+
+      <div
+        style={{
+          marginBottom: 10,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleBuildSF}
+          style={{
+            background: "#22c55e",
+            padding: "6px 10px",
+            borderRadius: 6,
+            border: "none",
+            color: "white",
+            fontSize: "0.85rem",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          🔁 Build Semifinals from QF winners
+        </button>
+        <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+          This pairs Quarterfinal winners into two Semifinal matches.
+        </span>
+      </div>
+
+      {sfMatches.length === 0 ? (
+        <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          No Semifinals yet. Build them from QF winners.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {sfMatches.map((m, i) => {
+            const isWinnerP1 =
+              m.winnerId && m.winnerId === m.player1Id && !!m.player1Id;
+            const isWinnerP2 =
+              m.winnerId && m.winnerId === m.player2Id && !!m.player2Id;
+
+            return (
+              <div
+                key={i}
+                style={{
+                  border: "1px solid #333",
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  background: "#111827",
+                }}
+              >
+                <div
+                  style={{
+                    marginBottom: 6,
+                    fontSize: "0.9rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  SF Match {i + 1}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    alignItems: "center",
+                    marginBottom: 8,
+                  }}
+                >
+                  <select
+                    value={m.player1Id || ""}
+                    onChange={(e) =>
+                      handleChangeSFMatch(
+                        i,
+                        "player1Id",
+                        e.target.value || null
+                      )
+                    }
+                    style={{
+                      flex: "1 1 200px",
+                      background: "#020617",
+                      color: "white",
+                      borderRadius: 6,
+                      border: "1px solid #374151",
+                      padding: "6px 8px",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <option value="">(empty slot)</option>
+                    {allOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                    vs
+                  </span>
+
+                  <select
+                    value={m.player2Id || ""}
+                    onChange={(e) =>
+                      handleChangeSFMatch(
+                        i,
+                        "player2Id",
+                        e.target.value || null
+                      )
+                    }
+                    style={{
+                      flex: "1 1 200px",
+                      background: "#020617",
+                      color: "white",
+                      borderRadius: 6,
+                      border: "1px solid #374151",
+                      padding: "6px 8px",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <option value="">(empty slot)</option>
+                    {allOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    alignItems: "center",
+                    fontSize: "0.85rem",
+                    color: "#e5e7eb",
+                  }}
+                >
+                  <span>Winner:</span>
+                  <button
+                    type="button"
+                    disabled={!m.player1Id}
+                    onClick={() => handleSetWinnerSF(i, "p1")}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 9999,
+                      border: isWinnerP1
+                        ? "1px solid #4ade80"
+                        : "1px solid #374151",
+                      background: isWinnerP1 ? "#064e3b" : "#020617",
+                      color: isWinnerP1 ? "#bbf7d0" : "#e5e7eb",
+                      cursor: m.player1Id ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    {m.player1Id ? labelFromId(m.player1Id) : "Empty"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!m.player2Id}
+                    onClick={() => handleSetWinnerSF(i, "p2")}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 9999,
+                      border: isWinnerP2
+                        ? "1px solid #4ade80"
+                        : "1px solid #374151",
+                      background: isWinnerP2 ? "#064e3b" : "#020617",
+                      color: isWinnerP2 ? "#bbf7d0" : "#e5e7eb",
+                      cursor: m.player2Id ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    {m.player2Id ? labelFromId(m.player2Id) : "Empty"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ===== LB ROUND 3A ===== */}
+      <div
+        style={{
+          marginTop: 24,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: "#020617",
+          border: "1px solid #1f2937",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            gap: 8,
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.95rem",
+              fontWeight: 600,
+              color: "#e5e7eb",
+            }}
+          >
+            Losers Bracket — Round 3A
+          </div>
+
+          <button
+            type="button"
+            onClick={handleBuildLB3A}
+            style={{
+              background: "#f97316",
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "none",
+              color: "white",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            🔁 Build LB 3A from LB 2 winners
+          </button>
+        </div>
+
+        <p
+          style={{
+            fontSize: "0.8rem",
+            color: "#9ca3af",
+            marginBottom: 10,
+          }}
+        >
+          Winners of LB Round 2 fight each other here to leave 2 players for LB
+          Round 3B.
+        </p>
+
+        {lbMatches3a.length === 0 ? (
+          <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+            No LB Round 3A yet. Build LB 3A after LB2 winners are chosen.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {lbMatches3a.map((pair, idx) => {
+              const isWinnerP1 =
+                pair.winnerId &&
+                pair.winnerId === pair.player1Id &&
+                !!pair.player1Id;
+              const isWinnerP2 =
+                pair.winnerId &&
+                pair.winnerId === pair.player2Id &&
+                !!pair.player2Id;
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    background: "#0b1120",
+                    border: "1px solid #111827",
+                    fontSize: "0.85rem",
+                    color: "#e5e7eb",
+                  }}
+                >
+                  <div
+                    style={{
+                      marginBottom: 4,
+                      fontSize: "0.8rem",
+                      color: "#9ca3af",
+                    }}
+                  >
+                    LB R3A Match {idx + 1}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      alignItems: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <select
+                      value={pair.player1Id || ""}
+                      onChange={(e) =>
+                        handleChangeLbMatch3A(
+                          idx,
+                          "player1Id",
+                          e.target.value || null
+                        )
+                      }
+                      style={{
+                        flex: "1 1 200px",
+                        background: "#020617",
+                        color: "white",
+                        borderRadius: 6,
+                        border: "1px solid #374151",
+                        padding: "6px 8px",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      <option value="">(TBD)</option>
+                      {allOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <span
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      vs
+                    </span>
+
+                    <select
+                      value={pair.player2Id || ""}
+                      onChange={(e) =>
+                        handleChangeLbMatch3A(
+                          idx,
+                          "player2Id",
+                          e.target.value || null
+                        )
+                      }
+                      style={{
+                        flex: "1 1 200px",
+                        background: "#020617",
+                        color: "white",
+                        borderRadius: 6,
+                        border: "1px solid #374151",
+                        padding: "6px 8px",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      <option value="">(TBD)</option>
+                      {allOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      alignItems: "center",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    <span>Winner:</span>
+                    <button
+                      type="button"
+                      disabled={!pair.player1Id}
+                      onClick={() => handleSetWinnerLB3A(idx, "p1")}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 9999,
+                        border: isWinnerP1
+                          ? "1px solid #4ade80"
+                          : "1px solid #374151",
+                        background: isWinnerP1 ? "#064e3b" : "#020617",
+                        color: isWinnerP1 ? "#bbf7d0" : "#e5e7eb",
+                        cursor: pair.player1Id ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {pair.player1Id ? labelFromId(pair.player1Id) : "Empty"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!pair.player2Id}
+                      onClick={() => handleSetWinnerLB3A(idx, "p2")}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 9999,
+                        border: isWinnerP2
+                          ? "1px solid #4ade80"
+                          : "1px solid #374151",
+                        background: isWinnerP2 ? "#064e3b" : "#020617",
+                        color: isWinnerP2 ? "#bbf7d0" : "#e5e7eb",
+                        cursor: pair.player2Id ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {pair.player2Id ? labelFromId(pair.player2Id) : "Empty"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ===== LB ROUND 3B ===== */}
+      <div
+        style={{
+          marginTop: 24,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: "#020617",
+          border: "1px solid #1f2937",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            gap: 8,
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.95rem",
+              fontWeight: 600,
+              color: "#e5e7eb",
+            }}
+          >
+            Losers Bracket — Round 3B
+          </div>
+
+          <button
+            type="button"
+            onClick={handleBuildLB3B}
+            style={{
+              background: "#f97316",
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "none",
+              color: "white",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            🔁 Build LB 3B from LB 3A winners + Winners-SF losers
+          </button>
+        </div>
+
+        <p
+          style={{
+            fontSize: "0.8rem",
+            color: "#9ca3af",
+            marginBottom: 10,
+          }}
+        >
+          Each LB 3A winner is paired against a loser from the Winners
+          Semifinals.
+        </p>
+
+        {lbMatches3b.length === 0 ? (
+          <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+            No LB Round 3B yet. Build LB 3A, set LB 3A winners, and set SF
+            winners first.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {lbMatches3b.map((pair, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  background: "#0b1120",
+                  border: "1px solid #111827",
+                  fontSize: "0.85rem",
+                  color: "#e5e7eb",
+                }}
+              >
+                <div
+                  style={{
+                    marginBottom: 4,
+                    fontSize: "0.8rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  LB R3B Match {idx + 1}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <select
+                    value={pair.player1Id || ""}
+                    onChange={(e) =>
+                      handleChangeLbMatch3B(
+                        idx,
+                        "player1Id",
+                        e.target.value || null
+                      )
+                    }
+                    style={{
+                      flex: "1 1 200px",
+                      background: "#020617",
+                      color: "white",
+                      borderRadius: 6,
+                      border: "1px solid #374151",
+                      padding: "6px 8px",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    <option value="">(TBD)</option>
+                    {allOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#9ca3af",
+                    }}
+                  >
+                    vs
+                  </span>
+
+                  <select
+                    value={pair.player2Id || ""}
+                    onChange={(e) =>
+                      handleChangeLbMatch3B(
+                        idx,
+                        "player2Id",
+                        e.target.value || null
+                      )
+                    }
+                    style={{
+                      flex: "1 1 200px",
+                      background: "#020617",
+                      color: "white",
+                      borderRadius: 6,
+                      border: "1px solid #374151",
+                      padding: "6px 8px",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    <option value="">(TBD)</option>
+                    {allOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ===== SAVE BUTTON ===== */}
       <button
         type="button"
@@ -1541,7 +2383,7 @@ function BracketEditor({ tournamentId, players }) {
       >
         {saving
           ? "Saving..."
-          : "💾 Save Winners R1 + QF + Losers R1 & R2 to DB"}
+          : "💾 Save Winners R1/QF/SF + Losers R1/R2/R3A/R3B"}
       </button>
 
       {saveMessage && (
@@ -1749,7 +2591,7 @@ export default function TournamentPlayersPage({
 
       <hr style={{ margin: "40px 0", borderColor: "#333" }} />
       <h2 style={{ fontSize: "1.4rem", marginBottom: 12 }}>
-        Bracket Editor — Winners R1 / QF + Losers R1 / R2
+        Bracket Editor — Winners R1/QF/SF + Losers R1/R2/R3A/R3B
       </h2>
       <BracketEditor tournamentId={tournamentId} players={players} />
     </div>
