@@ -35,7 +35,7 @@ export async function getServerSideProps() {
 
   const bracket = t.bracket;
 
-  // Collect all playerIds used in winners + losers rounds + finals
+  // Collect all playerIds used in winners + losers rounds + finals + ranking
   const idSet = new Set();
 
   (bracket.rounds || []).forEach((r) => {
@@ -63,6 +63,23 @@ export async function getServerSideProps() {
       if (fin.winnerId) idSet.add(fin.winnerId.toString());
     }
   });
+
+  // Ranking player IDs (1st–16th)
+  const ranking = bracket.ranking || null;
+  if (ranking) {
+    const maybeAdd = (id) => {
+      if (id) idSet.add(id.toString());
+    };
+    maybeAdd(ranking.first);
+    maybeAdd(ranking.second);
+    maybeAdd(ranking.third);
+    maybeAdd(ranking.fourth);
+
+    (ranking.fiveToSix || []).forEach((id) => maybeAdd(id));
+    (ranking.sevenToEight || []).forEach((id) => maybeAdd(id));
+    (ranking.nineToTwelve || []).forEach((id) => maybeAdd(id));
+    (ranking.thirteenToSixteen || []).forEach((id) => maybeAdd(id));
+  }
 
   const ids = Array.from(idSet);
   let playerDocs = [];
@@ -95,6 +112,7 @@ export async function getServerSideProps() {
           winnersFinal: bracket.winnersFinal || null,
           losersFinal: bracket.losersFinal || null,
           grandFinal: bracket.grandFinal || null,
+          ranking: bracket.ranking || null,
         })
       ),
       players,
@@ -145,6 +163,13 @@ export default function BracketPage({
 
   const idToLabel = buildIdToLabel(players);
   const getLabel = (id) => (id ? idToLabel[id] || "TBD" : "TBD");
+
+  // Small helper for lists in ranking UI
+  const mapList = (arr, targetLen) => {
+    const out = (arr || []).map((id) => getLabel(id));
+    while (out.length < targetLen) out.push("TBD");
+    return out;
+  };
 
   // ===== WINNERS BRACKET MAPPING (R16, QF, SF) =====
   const rounds = bracket?.rounds || [];
@@ -284,10 +309,7 @@ export default function BracketPage({
 
   const lb_final =
     losersFinal && (losersFinal.player1Id || losersFinal.player2Id)
-      ? [
-          getLabel(losersFinal.player1Id),
-          getLabel(losersFinal.player2Id),
-        ]
+      ? [getLabel(losersFinal.player1Id), getLabel(losersFinal.player2Id)]
       : ["TBD", "TBD"];
 
   const lb_winner =
@@ -295,16 +317,26 @@ export default function BracketPage({
       ? getLabel(losersFinal.winnerId)
       : "TBD";
 
-  // Placements + grand final still placeholders for now (can be wired later)
+  // ===== RANKING (1st–16th) FROM BRACKET.RANKING =====
+  const rankingData = bracket?.ranking || null;
+
   const placements = {
-    first: "TBD",
-    second: "TBD",
-    third: "TBD",
-    fourth: "TBD",
-    fifthToSixth: ["TBD", "TBD"],
-    seventhToEighth: ["TBD", "TBD"],
-    ninthToTwelfth: ["TBD", "TBD", "TBD", "TBD"],
-    thirteenthToSixteenth: ["TBD", "TBD", "TBD", "TBD"],
+    first: rankingData ? getLabel(rankingData.first) : "TBD",
+    second: rankingData ? getLabel(rankingData.second) : "TBD",
+    third: rankingData ? getLabel(rankingData.third) : "TBD",
+    fourth: rankingData ? getLabel(rankingData.fourth) : "TBD",
+    fifthToSixth: rankingData
+      ? mapList(rankingData.fiveToSix || [], 2)
+      : ["TBD", "TBD"],
+    seventhToEighth: rankingData
+      ? mapList(rankingData.sevenToEight || [], 2)
+      : ["TBD", "TBD"],
+    ninthToTwelfth: rankingData
+      ? mapList(rankingData.nineToTwelve || [], 4)
+      : ["TBD", "TBD", "TBD", "TBD"],
+    thirteenthToSixteenth: rankingData
+      ? mapList(rankingData.thirteenToSixteen || [], 4)
+      : ["TBD", "TBD", "TBD", "TBD"],
   };
 
   const grandFinal = bracket?.grandFinal || null;
@@ -448,7 +480,7 @@ export default function BracketPage({
             .rankBadge {
               display: inline-flex;
               align-items: center;
-              justifyContent: center;
+              justify-content: center;
               border-radius: 8px;
               padding: 6px 10px;
               font-weight: 800;
