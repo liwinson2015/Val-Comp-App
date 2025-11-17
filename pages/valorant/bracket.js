@@ -448,7 +448,7 @@ export default function BracketPage({
             .rankBadge {
               display: inline-flex;
               align-items: center;
-              justify-content: center;
+              justifyContent: center;
               border-radius: 8px;
               padding: 6px 10px;
               font-weight: 800;
@@ -477,6 +477,13 @@ export default function BracketPage({
           `}</style>
         </section>
 
+        {/* ===== Grand Final banner on top ===== */}
+        <GrandFinalCenter
+          wbChampion={wbFinalWinner}
+          lbChampion={lbFinalWinner}
+          champion={grandChampion}
+        />
+
         {/* ===== Winners Bracket (LIVE) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <Bracket16 data={bracketData} />
@@ -491,13 +498,6 @@ export default function BracketPage({
             }
           `}</style>
         </section>
-
-        {/* ===== Center Grand Final banner ===== */}
-        <GrandFinalCenter
-          wbChampion={wbFinalWinner}
-          lbChampion={lbFinalWinner}
-          champion={grandChampion}
-        />
 
         {/* ===== Losers Bracket (LB R1–R4 + LB Final) ===== */}
         <section className={`${styles.card} fullBleed`}>
