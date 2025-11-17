@@ -1,90 +1,153 @@
 // components/GrandFinalCenter.jsx
 import React from "react";
-import s from "../styles/GrandFinalCenter.module.css";
+import styles from "../styles/Valorant.module.css";
 
-/** Refined inline SVG trophy — gold, modern, crisp edges */
-function TrophyIcon({ className }) {
+export default function GrandFinalCenter({ wbChampion, lbChampion, champion }) {
+  const grand = champion || "TBD";
+  const wb = wbChampion || "TBD";
+  const lb = lbChampion || "TBD";
+
   return (
-    <svg
-      className={className}
-      viewBox="0 0 64 64"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFD700" />
-          <stop offset="50%" stopColor="#FFC300" />
-          <stop offset="100%" stopColor="#E6AC00" />
-        </linearGradient>
-      </defs>
-
-      {/* Trophy Cup */}
-      <path
-        d="M16 8h32v8a16 16 0 0 1-32 0V8z"
-        fill="url(#grad)"
-        stroke="#b38600"
-        strokeWidth="2"
-      />
-      {/* Handles */}
-      <path
-        d="M14 10c-4 0-6 4-6 9 0 5 2 9 8 9v-4c-3 0-4-2-4-5 0-3 1-5 4-5V10zM50 10c4 0 6 4 6 9 0 5-2 9-8 9v-4c3 0 4-2 4-5 0-3-1-5-4-5V10z"
-        fill="url(#grad)"
-        stroke="#b38600"
-        strokeWidth="1.5"
-      />
-      {/* Stem */}
-      <rect x="28" y="24" width="8" height="12" fill="url(#grad)" />
-      {/* Base */}
-      <rect
-        x="20"
-        y="36"
-        width="24"
-        height="8"
-        rx="1"
-        fill="url(#grad)"
-        stroke="#b38600"
-        strokeWidth="1.5"
-      />
-      {/* Shine highlights */}
-      <circle cx="32" cy="12" r="2" fill="white" opacity="0.8" />
-      <circle cx="25" cy="16" r="1.2" fill="white" opacity="0.7" />
-      <circle cx="39" cy="16" r="1.2" fill="white" opacity="0.7" />
-    </svg>
-  );
-}
-
-/** Centered Grand Final with Trophy above Champion */
-export default function GrandFinalCenter({
-  wbChampion = "WB Champion",
-  lbChampion = "LB Champion",
-  champion = "TBD",
-}) {
-  return (
-    <div className={s.wrap}>
-      <div className={s.row}>
-        {/* LEFT (WB side) */}
-        <div className={`${s.source} ${s.left}`}>
-          <div className={s.slot}>{wbChampion}</div>
-          <div className={`${s.arm} ${s.armLeft}`} />
-        </div>
-
-        {/* CENTER — Grand Final with trophy */}
-        <div className={s.center}>
-          <div className={s.trophyWrap}>
-            <TrophyIcon className={s.trophyIcon} />
+    <section className={styles.card}>
+      <div className="gfWrapper">
+        {/* LEFT: paths (WB / LB champions) */}
+        <div className="sideCol">
+          <div className="pathBox">
+            <div className="pathLabel">Winners Bracket Champion</div>
+            <div className="pathName">{wb}</div>
           </div>
-          <div className={s.title}>GRAND FINAL</div>
-          <div className={s.gfBox}>{champion}</div>
-          <div className={s.reset}>Reset match if LB side wins first set</div>
+          <div className="pathBox">
+            <div className="pathLabel">Losers Bracket Champion</div>
+            <div className="pathName">{lb}</div>
+          </div>
         </div>
 
-        {/* RIGHT (LB side) */}
-        <div className={`${s.source} ${s.right}`}>
-          <div className={`${s.arm} ${s.armRight}`} />
-          <div className={s.slot}>{lbChampion}</div>
+        {/* CENTER: GRAND CHAMPION */}
+        <div className="centerCol">
+          <div className="gfTag">Grand Final</div>
+          <div className="gfTitle">Tournament Champion</div>
+          <div className="gfName">{grand}</div>
+          <div className="gfSub">
+            Winner of Winners Bracket vs Losers Bracket
+          </div>
+        </div>
+
+        {/* RIGHT: simple summary */}
+        <div className="sideCol rightCol">
+          <div className="summaryBox">
+            <div className="summaryLabel">Path to Glory</div>
+            <ul className="summaryList">
+              <li>Upper bracket winner: {wb}</li>
+              <li>Lower bracket winner: {lb}</li>
+              <li>Grand champion: {grand}</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
+
+      <style jsx>{`
+        .gfWrapper {
+          display: grid;
+          grid-template-columns: 1.2fr 1.6fr 1.2fr;
+          gap: 20px;
+          align-items: stretch;
+        }
+        @media (max-width: 980px) {
+          .gfWrapper {
+            grid-template-columns: 1fr;
+          }
+        }
+        .sideCol {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .rightCol {
+          align-items: stretch;
+        }
+
+        .pathBox {
+          background: #050816;
+          border-radius: 12px;
+          border: 1px solid #1f2937;
+          padding: 10px 12px;
+        }
+        .pathLabel {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #9ca3af;
+          margin-bottom: 4px;
+        }
+        .pathName {
+          font-size: 14px;
+          font-weight: 700;
+          color: #e5e7eb;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .centerCol {
+          text-align: center;
+          background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+          border-radius: 16px;
+          border: 1px solid #4b5563;
+          padding: 18px 16px 20px;
+          box-shadow: 0 0 20px rgba(15, 23, 42, 0.8);
+        }
+        .gfTag {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #93c5fd;
+          margin-bottom: 4px;
+        }
+        .gfTitle {
+          font-size: 15px;
+          font-weight: 800;
+          color: #e5e7eb;
+          margin-bottom: 6px;
+        }
+        .gfName {
+          font-size: 24px;
+          font-weight: 900;
+          color: #facc15;
+          text-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+          margin-bottom: 6px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .gfSub {
+          font-size: 12px;
+          color: #9ca3af;
+        }
+
+        .summaryBox {
+          background: #050816;
+          border-radius: 12px;
+          border: 1px solid #1f2937;
+          padding: 10px 12px;
+        }
+        .summaryLabel {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #9ca3af;
+          margin-bottom: 6px;
+        }
+        .summaryList {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          font-size: 12px;
+          color: #e5e7eb;
+        }
+        .summaryList li + li {
+          margin-top: 4px;
+        }
+      `}</style>
+    </section>
   );
 }
