@@ -1391,12 +1391,71 @@ function BracketEditor({ tournamentId, players }) {
       return copy;
     });
   }
+  // ===== Ranking computation (1st–16th) =====
+  function computeRanking() {
+    const ranking = {
+      first: null,
+      second: null,
+      third: null,
+      fourth: null,
+      fiveToSix: [],
+      sevenToEight: [],
+      nineToTwelve: [],
+      thirteenToSixteen: [],
+    };
+
+    const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
+
+    // 13–16: LB Round 1 losers
+    ranking.thirteenToSixteen = uniq(computeLosersFromMatches(lbMatches1));
+
+    // 9–12: LB Round 2 losers
+    ranking.nineToTwelve = uniq(computeLosersFromMatches(lbMatches2));
+
+    // 7–8: LB Round 3A losers
+    ranking.sevenToEight = uniq(computeLosersFromMatches(lbMatches3a));
+
+    // 5–6: LB Round 3B losers
+    ranking.fiveToSix = uniq(computeLosersFromMatches(lbMatches3b));
+
+    // 4th: loser of LB Round 4 (single match)
+    if (lbMatches4 && lbMatches4[0]) {
+      const m = lbMatches4[0];
+      if (m.winnerId && m.player1Id && m.player2Id) {
+        ranking.fourth =
+          m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+      }
+    }
+
+    // 3rd: loser of Losers Final (LB Final, single match)
+    if (lbFinalMatches && lbFinalMatches[0]) {
+      const m = lbFinalMatches[0];
+      if (m.winnerId && m.player1Id && m.player2Id) {
+        ranking.third =
+          m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+      }
+    }
+
+    // 1st / 2nd: Grand Final winner & loser (single match)
+    if (grandFinalMatches && grandFinalMatches[0]) {
+      const m = grandFinalMatches[0];
+      if (m.winnerId && m.player1Id && m.player2Id) {
+        ranking.first = m.winnerId;
+        ranking.second =
+          m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+      }
+    }
+
+    return ranking;
+  }
 
   // ===== Save all =====
   async function handleSave() {
     setSaving(true);
     setSaveMessage("");
     try {
+      const ranking = computeRanking();
+
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
@@ -1414,6 +1473,7 @@ function BracketEditor({ tournamentId, players }) {
             winnersFinal: wbFinalMatches, // WB Final
             lbFinal: lbFinalMatches, // LB Final
             grandFinal: grandFinalMatches, // Grand Final
+            ranking, // 1st–16th placements
           }),
         }
       );
@@ -1423,7 +1483,7 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Saved: Winners R1/QF/SF, Losers R1–R4, Winners Final, Losers Final, and Grand Final."
+          "Saved: Winners R1/QF/SF, Losers R1–R4, Winners Final, Losers Final, Grand Final, and ranking 1st–16th."
         );
       }
     } catch (err) {
@@ -1991,7 +2051,6 @@ function BracketEditor({ tournamentId, players }) {
     </div>
   );
 }
-
 // ---------- Small reusable block for each round ----------
 function RoundBlock({
   title,
@@ -2019,14 +2078,17 @@ function RoundBlock({
           No matches in this round yet.
         </div>
       )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {matches.map((m, i) => {
           const isWinnerP1 = m.winnerId === m.player1Id && !!m.player1Id;
           const isWinnerP2 = m.winnerId === m.player2Id && !!m.player2Id;
+
           const p1Dup =
             showDupWarning &&
             m.player1Id &&
             placedCount[m.player1Id] > 1;
+
           const p2Dup =
             showDupWarning &&
             m.player2Id &&
@@ -2042,6 +2104,7 @@ function RoundBlock({
                 background: "#020617",
               }}
             >
+              {/* Match header */}
               <div
                 style={{
                   marginBottom: 4,
@@ -2052,13 +2115,14 @@ function RoundBlock({
                 }}
               >
                 <span>Match {i + 1}</span>
-                {showDupWarning && (p1Dup || p2Dup) && (
+                {(p1Dup || p2Dup) && (
                   <span style={{ color: "#fecaca", fontSize: "0.8rem" }}>
                     ⚠ Duplicate player in this match
                   </span>
                 )}
               </div>
 
+              {/* Player selectors */}
               <div
                 style={{
                   display: "flex",
@@ -2068,6 +2132,7 @@ function RoundBlock({
                   marginBottom: 6,
                 }}
               >
+                {/* Player 1 */}
                 <select
                   value={m.player1Id || ""}
                   onChange={(e) =>
@@ -2097,6 +2162,7 @@ function RoundBlock({
                   vs
                 </span>
 
+                {/* Player 2 */}
                 <select
                   value={m.player2Id || ""}
                   onChange={(e) =>
@@ -2123,6 +2189,7 @@ function RoundBlock({
                 </select>
               </div>
 
+              {/* Winner buttons */}
               <div
                 style={{
                   marginTop: 4,
@@ -2132,6 +2199,8 @@ function RoundBlock({
                 }}
               >
                 <span style={{ color: "#9ca3af" }}>Winner:</span>
+
+                {/* Winner P1 */}
                 <button
                   type="button"
                   onClick={() => onSetWinner(i, "p1")}
@@ -2147,6 +2216,8 @@ function RoundBlock({
                 >
                   {m.player1Id ? labelFromId(m.player1Id) : "Player 1"}
                 </button>
+
+                {/* Winner P2 */}
                 <button
                   type="button"
                   onClick={() => onSetWinner(i, "p2")}
