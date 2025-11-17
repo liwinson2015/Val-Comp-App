@@ -5,11 +5,7 @@ import { getCurrentPlayerFromReq } from "../../../../../lib/getCurrentPlayer";
 
 function sanitizeMatch(input) {
   if (!input) return null;
-  const {
-    player1Id = null,
-    player2Id = null,
-    winnerId = null,
-  } = input;
+  const { player1Id = null, player2Id = null, winnerId = null } = input;
   return {
     player1Id: player1Id || null,
     player2Id: player2Id || null,
@@ -42,7 +38,9 @@ export default async function handler(req, res) {
     const lbMatchesR2 = Array.isArray(body.lbMatches2) ? body.lbMatches2 : [];
     const lbMatchesR3 = Array.isArray(body.lbMatches3) ? body.lbMatches3 : [];
     const lbMatchesR4 = Array.isArray(body.lbMatches4) ? body.lbMatches4 : [];
+    const lbMatchesR5 = Array.isArray(body.lbMatches5) ? body.lbMatches5 : []; // ✅ NEW
 
+    // ===== winners rounds =====
     const rounds = [];
     if (matchesR1.length > 0) {
       rounds.push({
@@ -66,6 +64,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // ===== losers rounds =====
     const losersRounds = [];
     if (lbMatchesR1.length > 0) {
       losersRounds.push({
@@ -95,6 +94,14 @@ export default async function handler(req, res) {
         matches: lbMatchesR4.map((m) => sanitizeMatch(m)),
       });
     }
+    if (lbMatchesR5.length > 0) {
+      // ✅ THIS IS YOUR LB ROUND 4 COLUMN ON THE PUBLIC BRACKET
+      losersRounds.push({
+        roundNumber: 5,
+        type: "losers",
+        matches: lbMatchesR5.map((m) => sanitizeMatch(m)),
+      });
+    }
 
     const update = {
       $set: {
@@ -108,11 +115,10 @@ export default async function handler(req, res) {
       update.$unset = { "bracket.losersRounds": "" };
     }
 
-    await Tournament.findOneAndUpdate(
-      { tournamentId },
-      update,
-      { upsert: true, new: true }
-    );
+    await Tournament.findOneAndUpdate({ tournamentId }, update, {
+      upsert: true,
+      new: true,
+    });
 
     return res.status(200).json({ ok: true });
   } catch (err) {
