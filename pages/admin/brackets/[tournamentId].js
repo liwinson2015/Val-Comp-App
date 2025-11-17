@@ -646,21 +646,53 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // ===== Winners Round 2 (QF) =====
+  // ===== Winners Round 2 (QF) – FIXED SLOTS =====
   function handleBuildQF() {
-    if (winnersR1.length < 2) {
-      setSaveMessage(
-        "You need Round 1 winners before building Quarterfinals."
-      );
+    if (!matches.length) {
+      setSaveMessage("You need Round 1 matches before building Quarterfinals.");
       return;
     }
-    const pairs = buildPairsFromIds(winnersR1).slice(0, 4);
-    const qf = pairs.map((p) => ({
-      player1Id: p.player1Id || null,
-      player2Id: p.player2Id || null,
-      winnerId: null,
-    }));
-    setQfMatches(qf);
+
+    // Fixed mapping by index:
+    // R1[0] + R1[1] → QF[0]
+    // R1[2] + R1[3] → QF[1]
+    // R1[4] + R1[5] → QF[2]
+    // R1[6] + R1[7] → QF[3]
+    const totalR1 = matches.length;
+    const numQF = Math.ceil(totalR1 / 2);
+    const nextQF = [];
+
+    for (let i = 0; i < numQF; i++) {
+      const r1IndexA = i * 2;
+      const r1IndexB = i * 2 + 1;
+
+      const mA = matches[r1IndexA] || {};
+      const mB = matches[r1IndexB] || {};
+
+      const r1WinnerA = mA.winnerId || null;
+      const r1WinnerB = mB.winnerId || null;
+
+      // Preserve any manual edits where possible
+      const existing = qfMatches[i] || {
+        player1Id: null,
+        player2Id: null,
+        winnerId: null,
+      };
+
+      const player1Id = r1WinnerA || existing.player1Id || null;
+      const player2Id = r1WinnerB || existing.player2Id || null;
+
+      let winnerId = existing.winnerId;
+      if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
+        winnerId = null;
+      }
+
+      nextQF.push({ player1Id, player2Id, winnerId });
+    }
+
+    setQfMatches(nextQF);
+
+    // Downstream depends on QF → clear it
     setSfMatches([]);
     setLbMatches2([]);
     setLbMatches3a([]);
@@ -669,7 +701,10 @@ function BracketEditor({ tournamentId, players }) {
     setWbFinalMatches([emptyFinalMatch]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-    setSaveMessage("Quarterfinals built from Round 1 winners.");
+
+    setSaveMessage(
+      "Quarterfinals built from Round 1 winners with fixed slots. Unfinished R1 matches leave empty QF slots."
+    );
   }
 
   function handleChangeQFMatch(index, field, value) {
@@ -710,41 +745,59 @@ function BracketEditor({ tournamentId, players }) {
   const losersR2 = computeLosersFromMatches(qfMatches);
   const winnersR2 = computeWinnersFromMatches(qfMatches);
 
-  // ===== LB Round 2 (LB1 winners vs QF losers) =====
+  // ===== LB Round 2 (LB1 winners vs QF losers, FIXED BY INDEX) =====
   function handleBuildLB2() {
-    const lbWinners1 = computeWinnersFromMatches(lbMatches1);
+    const totalLB1 = lbMatches1.length;
+    const totalQF = qfMatches.length;
+    const numLB2 = Math.max(totalLB1, totalQF);
 
-    if (!lbWinners1.length) {
+    if (!numLB2) {
       setSaveMessage(
-        "Set winners for LB Round 1 before building LB Round 2."
-      );
-      return;
-    }
-    if (!losersR2.length) {
-      setSaveMessage(
-        "Set Quarterfinal winners so losers can drop into LB Round 2."
+        "You need LB Round 1 and Quarterfinals before building LB Round 2."
       );
       return;
     }
 
-    const maxLen = Math.max(lbWinners1.length, losersR2.length);
-    const pairs = [];
-    for (let i = 0; i < maxLen; i++) {
-      pairs.push({
-        player1Id: lbWinners1[i] || null,
-        player2Id: losersR2[i] || null,
+    const nextLB2 = [];
+
+    for (let i = 0; i < numLB2; i++) {
+      const lb1 = lbMatches1[i] || {};
+      const qf = qfMatches[i] || {};
+
+      const lbWinner = lb1.winnerId || null;
+
+      // Loser of this specific QF match (same index i)
+      let qfLoser = null;
+      if (qf.winnerId && qf.player1Id && qf.player2Id) {
+        qfLoser = qf.winnerId === qf.player1Id ? qf.player2Id : qf.player1Id;
+      }
+
+      const existing = lbMatches2[i] || {
+        player1Id: null,
+        player2Id: null,
         winnerId: null,
-      });
+      };
+
+      const player1Id = lbWinner || existing.player1Id || null;
+      const player2Id = qfLoser || existing.player2Id || null;
+
+      let winnerId = existing.winnerId;
+      if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
+        winnerId = null;
+      }
+
+      nextLB2.push({ player1Id, player2Id, winnerId });
     }
 
-    setLbMatches2(pairs);
+    setLbMatches2(nextLB2);
     setLbMatches3a([]);
     setLbMatches3b([]);
     setLbMatches4([]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
+
     setSaveMessage(
-      "Losers Bracket Round 2 built: each LB R1 winner vs a QF loser."
+      "Losers Bracket Round 2 built: each LB1 winner faces the aligned QF loser (fixed slots)."
     );
   }
 
@@ -782,28 +835,60 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // ===== Winners Round 3 (SF) =====
+  // ===== Winners Round 3 (SF) – FIXED SLOTS =====
   function handleBuildSF() {
-    if (winnersR2.length < 2) {
+    if (!qfMatches.length) {
       setSaveMessage(
-        "You need Quarterfinal winners before building Semifinals."
+        "You need Quarterfinal matches before building Semifinals."
       );
       return;
     }
-    const pairs = buildPairsFromIds(winnersR2).slice(0, 2);
-    const sf = pairs.map((p) => ({
-      player1Id: p.player1Id || null,
-      player2Id: p.player2Id || null,
-      winnerId: null,
-    }));
-    setSfMatches(sf);
+
+    // Fixed mapping:
+    // QF[0] + QF[1] winners → SF[0]
+    // QF[2] + QF[3] winners → SF[1]
+    const totalQF = qfMatches.length;
+    const numSF = Math.ceil(totalQF / 2);
+    const nextSF = [];
+
+    for (let i = 0; i < numSF; i++) {
+      const qfIndexA = i * 2;
+      const qfIndexB = i * 2 + 1;
+
+      const qa = qfMatches[qfIndexA] || {};
+      const qb = qfMatches[qfIndexB] || {};
+
+      const winnerA = qa.winnerId || null;
+      const winnerB = qb.winnerId || null;
+
+      const existing = sfMatches[i] || {
+        player1Id: null,
+        player2Id: null,
+        winnerId: null,
+      };
+
+      const player1Id = winnerA || existing.player1Id || null;
+      const player2Id = winnerB || existing.player2Id || null;
+
+      let winnerId = existing.winnerId;
+      if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
+        winnerId = null;
+      }
+
+      nextSF.push({ player1Id, player2Id, winnerId });
+    }
+
+    setSfMatches(nextSF);
     setLbMatches3a([]);
     setLbMatches3b([]);
     setLbMatches4([]);
     setWbFinalMatches([emptyFinalMatch]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-    setSaveMessage("Semifinals built from Quarterfinal winners.");
+
+    setSaveMessage(
+      "Semifinals built from Quarterfinal winners with fixed slots. Unfinished QF matches leave empty SF slots."
+    );
   }
 
   function handleChangeSFMatch(index, field, value) {
@@ -842,30 +927,57 @@ function BracketEditor({ tournamentId, players }) {
 
   const sfLosers = computeLosersFromMatches(sfMatches);
 
-  // ===== LB Round 3A (LB2 winners vs each other) =====
+  // ===== LB Round 3A (LB2 winners vs each other, FIXED BY INDEX) =====
   function handleBuildLB3A() {
-    const lb2Winners = computeWinnersFromMatches(lbMatches2);
-    if (lb2Winners.length < 2) {
+    if (!lbMatches2.length) {
       setSaveMessage(
-        "You need winners from LB Round 2 to build LB Round 3A."
+        "You need LB Round 2 matches before building LB Round 3A."
       );
       return;
     }
 
-    const pairs = buildPairsFromIds(lb2Winners).slice(0, 2);
-    const lb3a = pairs.map((p) => ({
-      player1Id: p.player1Id || null,
-      player2Id: p.player2Id || null,
-      winnerId: null,
-    }));
+    // Fixed mapping:
+    // LB2[0] + LB2[1] winners → LB3A[0]
+    // LB2[2] + LB2[3] winners → LB3A[1]
+    const totalLB2 = lbMatches2.length;
+    const numLB3A = Math.ceil(totalLB2 / 2);
+    const nextLB3A = [];
 
-    setLbMatches3a(lb3a);
+    for (let i = 0; i < numLB3A; i++) {
+      const lb2IndexA = i * 2;
+      const lb2IndexB = i * 2 + 1;
+
+      const mA = lbMatches2[lb2IndexA] || {};
+      const mB = lbMatches2[lb2IndexB] || {};
+
+      const winnerA = mA.winnerId || null;
+      const winnerB = mB.winnerId || null;
+
+      const existing = lbMatches3a[i] || {
+        player1Id: null,
+        player2Id: null,
+        winnerId: null,
+      };
+
+      const player1Id = winnerA || existing.player1Id || null;
+      const player2Id = winnerB || existing.player2Id || null;
+
+      let winnerId = existing.winnerId;
+      if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
+        winnerId = null;
+      }
+
+      nextLB3A.push({ player1Id, player2Id, winnerId });
+    }
+
+    setLbMatches3a(nextLB3A);
     setLbMatches3b([]);
     setLbMatches4([]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
+
     setSaveMessage(
-      "Losers Bracket Round 3A built from LB Round 2 winners."
+      "Losers Bracket Round 3A built from LB Round 2 winners with fixed slots."
     );
   }
 
@@ -905,37 +1017,62 @@ function BracketEditor({ tournamentId, players }) {
 
   const lb3aWinners = computeWinnersFromMatches(lbMatches3a);
 
-  // ===== LB Round 3B (LB3A winners vs SF losers) =====
+  // ===== LB Round 3B (LB3A winners vs SF losers, FIXED BY INDEX) =====
   function handleBuildLB3B() {
-    if (!lb3aWinners.length) {
+    if (!lbMatches3a.length) {
       setSaveMessage(
         "Set winners for LB Round 3A before building LB Round 3B."
       );
       return;
     }
-    if (!sfLosers.length) {
+    if (!sfMatches.length) {
       setSaveMessage(
-        "Set winners for Winners Semifinals so losers can drop into LB Round 3B."
+        "Set Winners Semifinals results so losers can drop into LB Round 3B."
       );
       return;
     }
 
-    const maxLen = Math.max(lb3aWinners.length, sfLosers.length);
-    const pairs = [];
-    for (let i = 0; i < maxLen; i++) {
-      pairs.push({
-        player1Id: lb3aWinners[i] || null,
-        player2Id: sfLosers[i] || null,
+    // Fixed mapping:
+    // LB3A[0] winner vs SF[0] loser → LB3B[0]
+    // LB3A[1] winner vs SF[1] loser → LB3B[1]
+    const numLB3B = Math.max(lbMatches3a.length, sfMatches.length);
+    const nextLB3B = [];
+
+    for (let i = 0; i < numLB3B; i++) {
+      const lb3A = lbMatches3a[i] || {};
+      const sf = sfMatches[i] || {};
+
+      const lb3AWinner = lb3A.winnerId || null;
+
+      let sfLoser = null;
+      if (sf.winnerId && sf.player1Id && sf.player2Id) {
+        sfLoser = sf.winnerId === sf.player1Id ? sf.player2Id : sf.player1Id;
+      }
+
+      const existing = lbMatches3b[i] || {
+        player1Id: null,
+        player2Id: null,
         winnerId: null,
-      });
+      };
+
+      const player1Id = lb3AWinner || existing.player1Id || null;
+      const player2Id = sfLoser || existing.player2Id || null;
+
+      let winnerId = existing.winnerId;
+      if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
+        winnerId = null;
+      }
+
+      nextLB3B.push({ player1Id, player2Id, winnerId });
     }
 
-    setLbMatches3b(pairs);
+    setLbMatches3b(nextLB3B);
     setLbMatches4([]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
+
     setSaveMessage(
-      "Losers Bracket Round 3B built: LB3A winners vs Winners-SF losers."
+      "Losers Bracket Round 3B built: each LB3A winner faces the aligned SF loser (fixed slots)."
     );
   }
 
@@ -975,27 +1112,54 @@ function BracketEditor({ tournamentId, players }) {
 
   const lb3bWinners = computeWinnersFromMatches(lbMatches3b);
 
-  // ===== LB Round 4 (LB3B winners vs each other) =====
+  // ===== LB Round 4 (LB3B winners vs each other, FIXED BY INDEX) =====
   function handleBuildLB4() {
-    if (lb3bWinners.length < 2) {
+    if (!lbMatches3b.length) {
       setSaveMessage(
         "You need winners from LB Round 3B to build LB Round 4."
       );
       return;
     }
 
-    const pairs = buildPairsFromIds(lb3bWinners).slice(0, 1); // 1 match
-    const lb4 = pairs.map((p) => ({
-      player1Id: p.player1Id || null,
-      player2Id: p.player2Id || null,
-      winnerId: null,
-    }));
+    // Fixed mapping:
+    // LB3B[0] + LB3B[1] winners → LB4[0]
+    const totalLB3B = lbMatches3b.length;
+    const numLB4 = Math.ceil(totalLB3B / 2);
+    const nextLB4 = [];
 
-    setLbMatches4(lb4);
+    for (let i = 0; i < numLB4; i++) {
+      const indexA = i * 2;
+      const indexB = i * 2 + 1;
+
+      const mA = lbMatches3b[indexA] || {};
+      const mB = lbMatches3b[indexB] || {};
+
+      const winnerA = mA.winnerId || null;
+      const winnerB = mB.winnerId || null;
+
+      const existing = lbMatches4[i] || {
+        player1Id: null,
+        player2Id: null,
+        winnerId: null,
+      };
+
+      const player1Id = winnerA || existing.player1Id || null;
+      const player2Id = winnerB || existing.player2Id || null;
+
+      let winnerId = existing.winnerId;
+      if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
+        winnerId = null;
+      }
+
+      nextLB4.push({ player1Id, player2Id, winnerId });
+    }
+
+    setLbMatches4(nextLB4);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
+
     setSaveMessage(
-      "Losers Bracket Round 4 built from LB 3B winners. Set this winner to feed into LB Final later."
+      "Losers Bracket Round 4 built from LB3B winners with fixed slots."
     );
   }
 
