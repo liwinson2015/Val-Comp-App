@@ -143,11 +143,12 @@ export default function BracketAdminPage({
           alignItems: "center",
         }}
       >
+        {/* PUBLISH = state=publish */}
         <form
           method="POST"
           action={`/api/admin/brackets/${encodeURIComponent(
             tournamentId
-          )}/publish`}
+          )}/publish?state=publish`}
         >
           <button
             type="submit"
@@ -166,11 +167,12 @@ export default function BracketAdminPage({
           </button>
         </form>
 
+        {/* UNPUBLISH = state=unpublish */}
         <form
           method="POST"
           action={`/api/admin/brackets/${encodeURIComponent(
             tournamentId
-          )}/unpublish`}
+          )}/publish?state=unpublish`}
         >
           <button
             type="submit"
@@ -194,7 +196,6 @@ export default function BracketAdminPage({
     </div>
   );
 }
-
 
 // ---------- BRACKET EDITOR ----------
 function BracketEditor({ tournamentId, players }) {
