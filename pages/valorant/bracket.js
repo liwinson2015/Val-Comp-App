@@ -13,151 +13,6 @@ import Player from "../../models/Player";
 // Tournament id used in admin (/admin/brackets/[id])
 const TID = "VALO-SOLO-SKIRMISH-1";
 
-// ===== SERVER-SIDE HELPERS FOR RANKING =====
-function computeLosersFromMatches(matches = []) {
-  const losers = [];
-  (matches || []).forEach((m) => {
-    if (!m || !m.winnerId) return;
-    if (!m.player1Id || !m.player2Id) return;
-    const loser = m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
-    losers.push(loser);
-  });
-  return losers;
-}
-
-function uniqIds(arr = []) {
-  const set = new Set();
-  (arr || []).forEach((id) => {
-    if (id) set.add(id.toString());
-  });
-  return Array.from(set);
-}
-
-function computeRankingFromBracket(bracket) {
-  if (!bracket) {
-    return {
-      first: null,
-      second: null,
-      third: null,
-      fourth: null,
-      fiveToSix: [],
-      sevenToEight: [],
-      nineToTwelve: [],
-      thirteenToSixteen: [],
-    };
-  }
-
-  const losersRounds = bracket.losersRounds || [];
-
-  const findLRMatches = (roundNum) =>
-    (
-      losersRounds.find(
-        (r) => r.roundNumber === roundNum && r.type === "losers"
-      ) || { matches: [] }
-    ).matches || [];
-
-  // Raw losers by round (may contain duplicates, we’ll clean later)
-  const lb1Losers = computeLosersFromMatches(findLRMatches(1)); // 13–16
-  const lb2Losers = computeLosersFromMatches(findLRMatches(2)); // 9–12
-  const lb3aLosers = computeLosersFromMatches(findLRMatches(3)); // 7–8
-  const lb3bLosers = computeLosersFromMatches(findLRMatches(4)); // 5–6
-  const lb4Losers = computeLosersFromMatches(findLRMatches(5)); // 4th
-
-  const losersFinal = bracket.losersFinal || null;
-  const grandFinal = bracket.grandFinal || null;
-
-  // --- 1 & 2: Grand final decides first and second ---
-  let firstCandidate = null;
-  let secondCandidate = null;
-  if (
-    grandFinal &&
-    grandFinal.winnerId &&
-    grandFinal.player1Id &&
-    grandFinal.player2Id
-  ) {
-    firstCandidate = grandFinal.winnerId;
-    secondCandidate =
-      grandFinal.winnerId === grandFinal.player1Id
-        ? grandFinal.player2Id
-        : grandFinal.player1Id;
-  }
-
-  // --- 3: Losers final loser is 3rd ---
-  let thirdCandidate = null;
-  if (
-    losersFinal &&
-    losersFinal.winnerId &&
-    losersFinal.player1Id &&
-    losersFinal.player2Id
-  ) {
-    thirdCandidate =
-      losersFinal.winnerId === losersFinal.player1Id
-        ? losersFinal.player2Id
-        : losersFinal.player1Id;
-  }
-
-  // --- 4: LB Round 4 (roundNumber 5) loser is 4th ---
-  let fourthCandidate = null;
-  if (lb4Losers.length > 0) {
-    fourthCandidate = lb4Losers[0] || null;
-  }
-
-  // --- 5–6, 7–8, 9–12, 13–16 from losers of LB rounds ---
-  // We’ll assign with priority and make sure no one appears twice.
-  const assigned = new Set();
-
-  const pickSingle = (id) => {
-    if (!id) return null;
-    const key = id.toString();
-    if (assigned.has(key)) return null;
-    assigned.add(key);
-    return id;
-  };
-
-  const pickMany = (list, maxCount) => {
-    const result = [];
-    for (const id of list || []) {
-      if (!id) continue;
-      const key = id.toString();
-      if (assigned.has(key)) continue;
-      assigned.add(key);
-      result.push(id);
-      if (maxCount && result.length >= maxCount) break;
-    }
-    return result;
-  };
-
-  // Priority: best → worst.
-  const first = pickSingle(firstCandidate);
-  const second = pickSingle(secondCandidate);
-  const third = pickSingle(thirdCandidate);
-  const fourth = pickSingle(fourthCandidate);
-
-  // 5–6: losers of LB Round 3B (roundNumber 4)
-  const fiveToSix = pickMany(lb3bLosers, 2);
-
-  // 7–8: losers of LB Round 3A (roundNumber 3)
-  const sevenToEight = pickMany(lb3aLosers, 2);
-
-  // 9–12: losers of LB Round 2 (roundNumber 2)
-  const nineToTwelve = pickMany(lb2Losers, 4);
-
-  // 13–16: losers of LB Round 1 (roundNumber 1)
-  const thirteenToSixteen = pickMany(lb1Losers, 4);
-
-  return {
-    first,
-    second,
-    third,
-    fourth,
-    fiveToSix,
-    sevenToEight,
-    nineToTwelve,
-    thirteenToSixteen,
-  };
-}
-
-
 // ===== SERVER SIDE: load published bracket + players =====
 export async function getServerSideProps() {
   await connectToDatabase();
@@ -178,18 +33,12 @@ export async function getServerSideProps() {
     };
   }
 
-  const bracketDoc = t.bracket;
+  const bracket = t.bracket;
 
-  // Compute ranking either from stored field or live from bracket structure
-  const ranking =
-    bracketDoc.ranking && Object.keys(bracketDoc.ranking).length
-      ? bracketDoc.ranking
-      : computeRankingFromBracket(bracketDoc);
-
-  // Collect all playerIds used in winners + losers rounds + finals + ranking
+  // Collect all playerIds used in winners + losers rounds + finals
   const idSet = new Set();
 
-  (bracketDoc.rounds || []).forEach((r) => {
+  (bracket.rounds || []).forEach((r) => {
     (r.matches || []).forEach((m) => {
       if (m.player1Id) idSet.add(m.player1Id.toString());
       if (m.player2Id) idSet.add(m.player2Id.toString());
@@ -197,7 +46,7 @@ export async function getServerSideProps() {
     });
   });
 
-  (bracketDoc.losersRounds || []).forEach((r) => {
+  (bracket.losersRounds || []).forEach((r) => {
     (r.matches || []).forEach((m) => {
       if (m.player1Id) idSet.add(m.player1Id.toString());
       if (m.player2Id) idSet.add(m.player2Id.toString());
@@ -207,29 +56,13 @@ export async function getServerSideProps() {
 
   // Finals player IDs
   ["winnersFinal", "losersFinal", "grandFinal"].forEach((key) => {
-    const fin = bracketDoc[key];
+    const fin = bracket[key];
     if (fin) {
       if (fin.player1Id) idSet.add(fin.player1Id.toString());
       if (fin.player2Id) idSet.add(fin.player2Id.toString());
       if (fin.winnerId) idSet.add(fin.winnerId.toString());
     }
   });
-
-  // Ranking player IDs (1st–16th)
-  if (ranking) {
-    const maybeAdd = (id) => {
-      if (id) idSet.add(id.toString());
-    };
-    maybeAdd(ranking.first);
-    maybeAdd(ranking.second);
-    maybeAdd(ranking.third);
-    maybeAdd(ranking.fourth);
-
-    (ranking.fiveToSix || []).forEach((id) => maybeAdd(id));
-    (ranking.sevenToEight || []).forEach((id) => maybeAdd(id));
-    (ranking.nineToTwelve || []).forEach((id) => maybeAdd(id));
-    (ranking.thirteenToSixteen || []).forEach((id) => maybeAdd(id));
-  }
 
   const ids = Array.from(idSet);
   let playerDocs = [];
@@ -257,12 +90,11 @@ export async function getServerSideProps() {
       published: true,
       bracket: JSON.parse(
         JSON.stringify({
-          rounds: bracketDoc.rounds || [],
-          losersRounds: bracketDoc.losersRounds || [],
-          winnersFinal: bracketDoc.winnersFinal || null,
-          losersFinal: bracketDoc.losersFinal || null,
-          grandFinal: bracketDoc.grandFinal || null,
-          ranking: ranking || null,
+          rounds: bracket.rounds || [],
+          losersRounds: bracket.losersRounds || [],
+          winnersFinal: bracket.winnersFinal || null,
+          losersFinal: bracket.losersFinal || null,
+          grandFinal: bracket.grandFinal || null,
         })
       ),
       players,
@@ -314,9 +146,9 @@ export default function BracketPage({
   const idToLabel = buildIdToLabel(players);
   const getLabel = (id) => (id ? idToLabel[id] || "TBD" : "TBD");
 
-  // Small helper for lists in ranking UI
-  const mapList = (arr, targetLen) => {
-    const out = (arr || []).map((id) => getLabel(id));
+  // Helper for padding name lists
+  const padNames = (arr, targetLen) => {
+    const out = [...(arr || [])];
     while (out.length < targetLen) out.push("TBD");
     return out;
   };
@@ -467,28 +299,6 @@ export default function BracketPage({
       ? getLabel(losersFinal.winnerId)
       : "TBD";
 
-  // ===== RANKING (1st–16th) FROM BRACKET.RANKING (already computed server-side) =====
-  const rankingData = bracket?.ranking || null;
-
-  const placements = {
-    first: rankingData ? getLabel(rankingData.first) : "TBD",
-    second: rankingData ? getLabel(rankingData.second) : "TBD",
-    third: rankingData ? getLabel(rankingData.third) : "TBD",
-    fourth: rankingData ? getLabel(rankingData.fourth) : "TBD",
-    fifthToSixth: rankingData
-      ? mapList(rankingData.fiveToSix || [], 2)
-      : ["TBD", "TBD"],
-    seventhToEighth: rankingData
-      ? mapList(rankingData.sevenToEight || [], 2)
-      : ["TBD", "TBD"],
-    ninthToTwelfth: rankingData
-      ? mapList(rankingData.nineToTwelve || [], 4)
-      : ["TBD", "TBD", "TBD", "TBD"],
-    thirteenthToSixteenth: rankingData
-      ? mapList(rankingData.thirteenToSixteen || [], 4)
-      : ["TBD", "TBD", "TBD", "TBD"],
-  };
-
   const grandFinal = bracket?.grandFinal || null;
 
   const wbFinalWinner =
@@ -502,6 +312,69 @@ export default function BracketPage({
     grandFinal && grandFinal.winnerId
       ? getLabel(grandFinal.winnerId)
       : "TBD";
+
+  // ===== RANKING LOGIC (computed directly from losers rounds + finals) =====
+  const getLoserNamesFromMatches = (matches) => {
+    const out = [];
+    (matches || []).forEach((m) => {
+      if (!m || !m.winnerId || !m.player1Id || !m.player2Id) return;
+      const loserId =
+        m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+      out.push(getLabel(loserId));
+    });
+    return out;
+  };
+
+  // Losers in each LB round
+  const lb1LosersNames = getLoserNamesFromMatches(lb1.matches); // 13–16
+  const lb2LosersNames = getLoserNamesFromMatches(lb2.matches); // 9–12
+  const lb3aLosersNames = getLoserNamesFromMatches(lb3.matches); // 7–8
+  const lb3bLosersNames = getLoserNamesFromMatches(lb4.matches); // 5–6
+  const lb4LoserName =
+    getLoserNamesFromMatches(lb5.matches)[0] || "TBD"; // 4th
+
+  // Loser of LB Final = 3rd place (your mapping)
+  let lbFinalLoserName = "TBD";
+  if (
+    losersFinal &&
+    losersFinal.winnerId &&
+    losersFinal.player1Id &&
+    losersFinal.player2Id
+  ) {
+    const loserId =
+      losersFinal.winnerId === losersFinal.player1Id
+        ? losersFinal.player2Id
+        : losersFinal.player1Id;
+    lbFinalLoserName = getLabel(loserId);
+  }
+
+  // Grand Final: 1st & 2nd
+  let firstPlaceName = "TBD";
+  let secondPlaceName = "TBD";
+  if (
+    grandFinal &&
+    grandFinal.winnerId &&
+    grandFinal.player1Id &&
+    grandFinal.player2Id
+  ) {
+    firstPlaceName = getLabel(grandFinal.winnerId);
+    const loserId =
+      grandFinal.winnerId === grandFinal.player1Id
+        ? grandFinal.player2Id
+        : grandFinal.player1Id;
+    secondPlaceName = getLabel(loserId);
+  }
+
+  const placements = {
+    first: firstPlaceName,
+    second: secondPlaceName,
+    third: lbFinalLoserName,
+    fourth: lb4LoserName,
+    fifthToSixth: padNames(lb3bLosersNames, 2),
+    seventhToEighth: padNames(lb3aLosersNames, 2),
+    ninthToTwelfth: padNames(lb2LosersNames, 4),
+    thirteenthToSixteenth: padNames(lb1LosersNames, 4),
+  };
 
   return (
     <div className={styles.shell}>
