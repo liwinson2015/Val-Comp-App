@@ -77,6 +77,9 @@ export default async function handler(req, res) {
       ? body.grandFinal
       : [];
 
+    // 🔹 NEW: ranking from client (1st–16th)
+    const ranking = body.ranking || null;
+
     // Sanitize all matches
     const matchesR1 = matchesR1Raw.map((m) => sanitizeMatch(m));
     const matchesR2 = matchesR2Raw.map((m) => sanitizeMatch(m));
@@ -257,9 +260,8 @@ export default async function handler(req, res) {
     }
 
     // Slot 2: Losers Final winner
-    const lfWinner = losersFinal && losersFinal.winnerId
-      ? losersFinal.winnerId
-      : null;
+    const lfWinner =
+      losersFinal && losersFinal.winnerId ? losersFinal.winnerId : null;
     if (lfWinner && !grandFinal.player2Id) {
       grandFinal.player2Id = lfWinner;
     }
@@ -273,7 +275,7 @@ export default async function handler(req, res) {
     }
 
     // =====================================================================
-    // SAVE TO DB
+    // SAVE TO DB (including ranking)
     // =====================================================================
 
     const update = {
@@ -282,12 +284,15 @@ export default async function handler(req, res) {
         "bracket.winnersFinal": winnersFinal,
         "bracket.losersFinal": losersFinal,
         "bracket.grandFinal": grandFinal,
+        // 🔹 NEW: persist ranking with bracket
+        "bracket.ranking": ranking || null,
       },
     };
 
     if (losersRounds.length > 0) {
       update.$set["bracket.losersRounds"] = losersRounds;
     } else {
+      // keep ranking even if losersRounds are cleared
       update.$unset = { "bracket.losersRounds": "" };
     }
 
