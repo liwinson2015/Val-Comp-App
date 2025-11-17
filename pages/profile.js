@@ -59,7 +59,9 @@ export async function getServerSideProps({ req }) {
   // Compute simple stats from history if placement exists
   const played = history.length;
   const wins = history.filter((h) => Number(h.placement) === 1).length;
-  const top4 = history.filter((h) => Number(h.placement) > 0 && Number(h.placement) <= 4).length;
+  const top4 = history.filter(
+    (h) => Number(h.placement) > 0 && Number(h.placement) <= 4
+  ).length;
   const bestFinish =
     history.reduce((best, h) => {
       const p = Number(h.placement);
@@ -86,7 +88,11 @@ export async function getServerSideProps({ req }) {
           mode: h.mode || "—",
           date: h.date || h.start || null,
           placement:
-            typeof h.placement === "number" ? h.placement : (h.placement ? Number(h.placement) : null),
+            typeof h.placement === "number"
+              ? h.placement
+              : h.placement
+              ? Number(h.placement)
+              : null,
           result: h.result || null,
         }))
         .sort((a, b) => {
@@ -181,7 +187,9 @@ export default function Profile({ username, discordId, avatar, stats, history })
                     <div key={h.id} className={styles.tableRow}>
                       <div className={styles.eventCell}>
                         <div className={styles.eventName}>{h.name}</div>
-                        <div className={styles.eventSubtle}>#{h.id.toString().slice(0, 8)}</div>
+                        <div className={styles.eventSubtle}>
+                          #{h.id.toString().slice(0, 8)}
+                        </div>
                       </div>
                       <div className={styles.cell}>{h.game}</div>
                       <div className={styles.cell}>{h.mode}</div>
@@ -189,7 +197,13 @@ export default function Profile({ username, discordId, avatar, stats, history })
                       <div className={styles.cell}>{h.result || "—"}</div>
                       <div className={styles.cell}>
                         {typeof h.placement === "number" ? (
-                          <span className={h.placement === 1 ? styles.placementGold : styles.placement}>
+                          <span
+                            className={
+                              h.placement === 1
+                                ? styles.placementGold
+                                : styles.placement
+                            }
+                          >
                             {`#${h.placement}`}
                           </span>
                         ) : (
@@ -208,11 +222,11 @@ export default function Profile({ username, discordId, avatar, stats, history })
                 Join your first bracket to build your competitive profile.
               </div>
               <div className={styles.emptyActions}>
-                <a href="/tournaments-hub/valorant-types" className={styles.primaryBtn}>
+                <a
+                  href="/tournaments-hub/valorant-types"
+                  className={styles.primaryBtn}
+                >
                   Browse Tournaments
-                </a>
-                <a href="/valorant" className={styles.secondaryBtn}>
-                  View Event Details
                 </a>
               </div>
             </div>
@@ -230,7 +244,8 @@ export default function Profile({ username, discordId, avatar, stats, history })
               <div>
                 <div className={styles.linkedLabel}>Discord</div>
                 <div className={styles.linkedValue}>
-                  Connected as <span className={styles.mono}>{username || "Unknown"}</span>
+                  Connected as{" "}
+                  <span className={styles.mono}>{username || "Unknown"}</span>
                 </div>
               </div>
             </div>
@@ -248,7 +263,8 @@ export default function Profile({ username, discordId, avatar, stats, history })
 
         {/* Footer-ish small print */}
         <div className={styles.mutedFoot}>
-          Stats update when brackets close. More analytics (W/L, K/D, streaks) coming soon.
+          Stats update when brackets close. More analytics (W/L, K/D, streaks)
+          coming soon.
         </div>
       </div>
     </div>
