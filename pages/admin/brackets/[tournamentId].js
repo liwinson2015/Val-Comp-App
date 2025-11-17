@@ -419,6 +419,35 @@ function BracketEditor({ tournamentId, players }) {
     loadBracket();
   }, [tournamentId]);
 
+  // ===== AUTO-BUILD: Winners Final from Winners Semifinals =====
+  useEffect(() => {
+    const winnersSF = computeWinnersFromMatches(sfMatches);
+    if (winnersSF.length < 2) return;
+
+    setWbFinalMatches((prev) => {
+      const current = prev && prev[0] ? prev[0] : emptyFinalMatch;
+
+      // If admin already filled WB Final, don't overwrite
+      if (current.player1Id || current.player2Id) {
+        return prev;
+      }
+
+      return [
+        {
+          player1Id: winnersSF[0],
+          player2Id: winnersSF[1],
+          // keep winner if still consistent, else clear
+          winnerId:
+            current.winnerId &&
+            (current.winnerId === winnersSF[0] ||
+              current.winnerId === winnersSF[1])
+              ? current.winnerId
+              : null,
+        },
+      ];
+    });
+  }, [sfMatches]);
+
   // ===== Shared helpers =====
   function labelFromId(id) {
     if (!id) return "TBD";
@@ -1034,6 +1063,68 @@ function BracketEditor({ tournamentId, players }) {
         if (!m.player2Id) return prev;
         m.winnerId = m.player2Id;
       }
+
+      const winnerId = m.winnerId || null;
+      let loserId = null;
+      if (m.player1Id && m.player2Id && winnerId) {
+        loserId = winnerId === m.player1Id ? m.player2Id : m.player1Id;
+      }
+
+      // Auto-fill Losers Final (LB Final) and Grand Final slot 1
+      if (winnerId || loserId) {
+        const lb4Winners = computeWinnersFromMatches(lbMatches4);
+        const lb4Winner = lb4Winners[0] || null;
+
+        // Auto-fill LB Final vs LB4 winner
+        if (lb4Winner || loserId) {
+          setLbFinalMatches((prevLB) => {
+            const next = prevLB.map((mm) => ({ ...mm }));
+            if (!next[0]) {
+              next[0] = { player1Id: null, player2Id: null, winnerId: null };
+            }
+            const lf = next[0];
+
+            // Only fill empty slots so admin can still override manually
+            if (!lf.player1Id && lb4Winner) lf.player1Id = lb4Winner;
+            if (!lf.player2Id && loserId) lf.player2Id = loserId;
+
+            if (
+              lf.winnerId &&
+              lf.winnerId !== lf.player1Id &&
+              lf.winnerId !== lf.player2Id
+            ) {
+              lf.winnerId = null;
+            }
+            return next;
+          });
+        }
+
+        // Auto-fill Grand Final slot 1 with Winners Final winner
+        if (winnerId) {
+          setGrandFinalMatches((prevGF) => {
+            const next = prevGF.map((mm) => ({ ...mm }));
+            if (!next[0]) {
+              next[0] = { player1Id: null, player2Id: null, winnerId: null };
+            }
+            const gf = next[0];
+
+            if (!gf.player1Id) {
+              gf.player1Id = winnerId;
+            }
+
+            if (
+              gf.winnerId &&
+              gf.winnerId !== gf.player1Id &&
+              gf.winnerId !== gf.player2Id
+            ) {
+              gf.winnerId = null;
+            }
+
+            return next;
+          });
+        }
+      }
+
       return copy;
     });
   }
@@ -1069,6 +1160,34 @@ function BracketEditor({ tournamentId, players }) {
         if (!m.player2Id) return prev;
         m.winnerId = m.player2Id;
       }
+
+      const winnerId = m.winnerId || null;
+
+      // Auto-fill Grand Final slot 2 with Losers Final winner
+      if (winnerId) {
+        setGrandFinalMatches((prevGF) => {
+          const next = prevGF.map((mm) => ({ ...mm }));
+          if (!next[0]) {
+            next[0] = { player1Id: null, player2Id: null, winnerId: null };
+          }
+          const gf = next[0];
+
+          if (!gf.player2Id) {
+            gf.player2Id = winnerId;
+          }
+
+          if (
+            gf.winnerId &&
+            gf.winnerId !== gf.player1Id &&
+            gf.winnerId !== gf.player2Id
+          ) {
+            gf.winnerId = null;
+          }
+
+          return next;
+        });
+      }
+
       return copy;
     });
   }
