@@ -106,12 +106,12 @@ function buildPairsFromIds(ids) {
 function BracketEditor({ tournamentId, players }) {
   const [loading, setLoading] = useState(true);
 
-  const [matches, setMatches] = useState([]);      // Winners Round 1
-  const [qfMatches, setQfMatches] = useState([]);  // Winners Round 2 (QF)
-  const [sfMatches, setSfMatches] = useState([]);  // Winners Round 3 (Semifinals)
+  const [matches, setMatches] = useState([]); // Winners Round 1
+  const [qfMatches, setQfMatches] = useState([]); // Winners Round 2 (QF)
+  const [sfMatches, setSfMatches] = useState([]); // Winners Round 3 (Semis)
 
-  const [lbMatches1, setLbMatches1] = useState([]);  // LB R1
-  const [lbMatches2, setLbMatches2] = useState([]);  // LB R2
+  const [lbMatches1, setLbMatches1] = useState([]); // LB R1
+  const [lbMatches2, setLbMatches2] = useState([]); // LB R2
   const [lbMatches3a, setLbMatches3a] = useState([]); // LB R3A
   const [lbMatches3b, setLbMatches3b] = useState([]); // LB R3B
 
@@ -562,6 +562,34 @@ function BracketEditor({ tournamentId, players }) {
       const copy = base.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
       copy[index][slot] = value || null;
+
+      const m = copy[index];
+      if (
+        m.winnerId &&
+        m.winnerId !== m.player1Id &&
+        m.winnerId !== m.player2Id
+      ) {
+        m.winnerId = null;
+      }
+
+      return copy;
+    });
+  }
+
+  function handleSetWinnerLB2(index, which) {
+    setLbMatches2((prev) => {
+      const copy = [...prev];
+      const m = { ...copy[index] };
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+
+      copy[index] = m;
       return copy;
     });
   }
@@ -721,7 +749,6 @@ function BracketEditor({ tournamentId, players }) {
     const pairs = [];
     for (let i = 0; i < maxLen; i++) {
       pairs.push({
-        // usually LB3A winner is the 'lower' bracket side
         player1Id: lb3aWinners[i] || null,
         player2Id: sfLosers[i] || null,
         winnerId: null,
@@ -755,11 +782,11 @@ function BracketEditor({ tournamentId, players }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            matches,        // Winners R1
+            matches, // Winners R1
             matches2: qfMatches, // Winners QF
             matches3: sfMatches, // Winners Semis
-            lbMatches: lbMatches1,   // LB R1
-            lbMatches2: lbMatches2,  // LB R2
+            lbMatches: lbMatches1, // LB R1
+            lbMatches2: lbMatches2, // LB R2
             lbMatches3: lbMatches3a, // LB R3A
             lbMatches4: lbMatches3b, // LB R3B
           }),
@@ -1450,7 +1477,8 @@ function BracketEditor({ tournamentId, players }) {
 
       {qfMatches.length === 0 ? (
         <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          No Quarterfinals yet. Build them from Round 1 winners or fill manually.
+          No Quarterfinals yet. Build them from Round 1 winners or fill
+          manually.
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1657,7 +1685,7 @@ function BracketEditor({ tournamentId, players }) {
           }}
         >
           Each LB R1 winner is paired against a loser from the Quarterfinals.
-          You can still adjust these matchups manually.
+          You can still adjust these matchups manually and then mark winners.
         </p>
 
         {lbMatches2.length === 0 ? (
@@ -1673,100 +1701,159 @@ function BracketEditor({ tournamentId, players }) {
               gap: 8,
             }}
           >
-            {lbMatches2.map((pair, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  background: "#0b1120",
-                  border: "1px solid #111827",
-                  fontSize: "0.85rem",
-                  color: "#e5e7eb",
-                }}
-              >
-                <div
-                  style={{
-                    marginBottom: 4,
-                    fontSize: "0.8rem",
-                    color: "#9ca3af",
-                  }}
-                >
-                  LB R2 Match {idx + 1}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 10,
-                    alignItems: "center",
-                  }}
-                >
-                  <select
-                    value={pair.player1Id || ""}
-                    onChange={(e) =>
-                      handleChangeLbMatch2(
-                        idx,
-                        "player1Id",
-                        e.target.value || null
-                      )
-                    }
-                    style={{
-                      flex: "1 1 200px",
-                      background: "#020617",
-                      color: "white",
-                      borderRadius: 6,
-                      border: "1px solid #374151",
-                      padding: "6px 8px",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    <option value="">(TBD)</option>
-                    {allOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+            {lbMatches2.map((pair, idx) => {
+              const isWinnerP1 =
+                pair.winnerId &&
+                pair.winnerId === pair.player1Id &&
+                !!pair.player1Id;
+              const isWinnerP2 =
+                pair.winnerId &&
+                pair.winnerId === pair.player2Id &&
+                !!pair.player2Id;
 
-                  <span
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    background: "#0b1120",
+                    border: "1px solid #111827",
+                    fontSize: "0.85rem",
+                    color: "#e5e7eb",
+                  }}
+                >
+                  <div
                     style={{
+                      marginBottom: 4,
                       fontSize: "0.8rem",
                       color: "#9ca3af",
                     }}
                   >
-                    vs
-                  </span>
-
-                  <select
-                    value={pair.player2Id || ""}
-                    onChange={(e) =>
-                      handleChangeLbMatch2(
-                        idx,
-                        "player2Id",
-                        e.target.value || null
-                      )
-                    }
+                    LB R2 Match {idx + 1}
+                  </div>
+                  <div
                     style={{
-                      flex: "1 1 200px",
-                      background: "#020617",
-                      color: "white",
-                      borderRadius: 6,
-                      border: "1px solid #374151",
-                      padding: "6px 8px",
-                      fontSize: "0.85rem",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      alignItems: "center",
+                      marginBottom: 6,
                     }}
                   >
-                    <option value="">(TBD)</option>
-                    {allOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    <select
+                      value={pair.player1Id || ""}
+                      onChange={(e) =>
+                        handleChangeLbMatch2(
+                          idx,
+                          "player1Id",
+                          e.target.value || null
+                        )
+                      }
+                      style={{
+                        flex: "1 1 200px",
+                        background: "#020617",
+                        color: "white",
+                        borderRadius: 6,
+                        border: "1px solid #374151",
+                        padding: "6px 8px",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      <option value="">(TBD)</option>
+                      {allOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <span
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      vs
+                    </span>
+
+                    <select
+                      value={pair.player2Id || ""}
+                      onChange={(e) =>
+                        handleChangeLbMatch2(
+                          idx,
+                          "player2Id",
+                          e.target.value || null
+                        )
+                      }
+                      style={{
+                        flex: "1 1 200px",
+                        background: "#020617",
+                        color: "white",
+                        borderRadius: 6,
+                        border: "1px solid #374151",
+                        padding: "6px 8px",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      <option value="">(TBD)</option>
+                      {allOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      alignItems: "center",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    <span>Winner:</span>
+                    <button
+                      type="button"
+                      disabled={!pair.player1Id}
+                      onClick={() => handleSetWinnerLB2(idx, "p1")}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 9999,
+                        border: isWinnerP1
+                          ? "1px solid #4ade80"
+                          : "1px solid #374151",
+                        background: isWinnerP1 ? "#064e3b" : "#020617",
+                        color: isWinnerP1 ? "#bbf7d0" : "#e5e7eb",
+                        cursor: pair.player1Id ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {pair.player1Id ? labelFromId(pair.player1Id) : "Empty"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!pair.player2Id}
+                      onClick={() => handleSetWinnerLB2(idx, "p2")}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 9999,
+                        border: isWinnerP2
+                          ? "1px solid #4ade80"
+                          : "1px solid #374151",
+                        background: isWinnerP2 ? "#064e3b" : "#020617",
+                        color: isWinnerP2 ? "#bbf7d0" : "#e5e7eb",
+                        cursor: pair.player2Id ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {pair.player2Id ? labelFromId(pair.player2Id) : "Empty"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
