@@ -35,7 +35,7 @@ export async function getServerSideProps() {
 
   const bracket = t.bracket;
 
-  // Collect all playerIds used in winners + losers rounds
+  // Collect all playerIds used in winners + losers rounds + finals
   const idSet = new Set();
 
   (bracket.rounds || []).forEach((r) => {
@@ -52,6 +52,16 @@ export async function getServerSideProps() {
       if (m.player2Id) idSet.add(m.player2Id.toString());
       if (m.winnerId) idSet.add(m.winnerId.toString());
     });
+  });
+
+  // Finals player IDs
+  ["winnersFinal", "losersFinal", "grandFinal"].forEach((key) => {
+    const fin = bracket[key];
+    if (fin) {
+      if (fin.player1Id) idSet.add(fin.player1Id.toString());
+      if (fin.player2Id) idSet.add(fin.player2Id.toString());
+      if (fin.winnerId) idSet.add(fin.winnerId.toString());
+    }
   });
 
   const ids = Array.from(idSet);
@@ -82,6 +92,9 @@ export async function getServerSideProps() {
         JSON.stringify({
           rounds: bracket.rounds || [],
           losersRounds: bracket.losersRounds || [],
+          winnersFinal: bracket.winnersFinal || null,
+          losersFinal: bracket.losersFinal || null,
+          grandFinal: bracket.grandFinal || null,
         })
       ),
       players,
@@ -191,10 +204,22 @@ export default function BracketPage({
     ];
   }
 
-  // Winners final + champion still manual / TBD for now
-  const finalLeft = "TBD";
-  const finalRight = "TBD";
-  const finalChamp = "TBD";
+  // Winners Final from bracket.winnersFinal
+  const winnersFinal = bracket?.winnersFinal || null;
+
+  let finalLeft = "TBD";
+  let finalRight = "TBD";
+  let finalChamp = "TBD";
+
+  if (winnersFinal) {
+    if (winnersFinal.player1Id || winnersFinal.player2Id) {
+      finalLeft = getLabel(winnersFinal.player1Id);
+      finalRight = getLabel(winnersFinal.player2Id);
+    }
+    if (winnersFinal.winnerId) {
+      finalChamp = getLabel(winnersFinal.winnerId);
+    }
+  }
 
   const bracketData = {
     left: { R16: leftR16, QF: leftQF, SF: leftSF },
@@ -254,10 +279,23 @@ export default function BracketPage({
   while (lb_r3b.length < 2) lb_r3b.push(["TBD", "TBD"]);
   while (lb_r4.length < 1) lb_r4.push(["TBD", "TBD"]);
 
-  const lb_final = ["TBD", "TBD"]; // LB final and winner still manual
-  const lb_winner = "TBD";
+  // LB Final + LB winner
+  const losersFinal = bracket?.losersFinal || null;
 
-  // Placements + grand final still placeholders
+  const lb_final =
+    losersFinal && (losersFinal.player1Id || losersFinal.player2Id)
+      ? [
+          getLabel(losersFinal.player1Id),
+          getLabel(losersFinal.player2Id),
+        ]
+      : ["TBD", "TBD"];
+
+  const lb_winner =
+    losersFinal && losersFinal.winnerId
+      ? getLabel(losersFinal.winnerId)
+      : "TBD";
+
+  // Placements + grand final still placeholders for now (can be wired later)
   const placements = {
     first: "TBD",
     second: "TBD",
@@ -269,9 +307,19 @@ export default function BracketPage({
     thirteenthToSixteenth: ["TBD", "TBD", "TBD", "TBD"],
   };
 
-  const wbFinalWinner = "TBD";
-  const lbFinalWinner = "TBD";
-  const grandChampion = "TBD";
+  const grandFinal = bracket?.grandFinal || null;
+
+  const wbFinalWinner =
+    winnersFinal && winnersFinal.winnerId
+      ? getLabel(winnersFinal.winnerId)
+      : "TBD";
+
+  const lbFinalWinner = lb_winner;
+
+  const grandChampion =
+    grandFinal && grandFinal.winnerId
+      ? getLabel(grandFinal.winnerId)
+      : "TBD";
 
   return (
     <div className={styles.shell}>
@@ -444,14 +492,14 @@ export default function BracketPage({
           `}</style>
         </section>
 
-        {/* ===== Center Grand Final banner (still manual for now) ===== */}
+        {/* ===== Center Grand Final banner ===== */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (LB R1–R4 from DB) ===== */}
+        {/* ===== Losers Bracket (LB R1–R4 + LB Final) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
             r1={lb_r1}

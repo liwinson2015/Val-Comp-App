@@ -199,6 +199,8 @@ export default function BracketAdminPage({
 
 // ---------- BRACKET EDITOR ----------
 function BracketEditor({ tournamentId, players }) {
+  const emptyFinalMatch = { player1Id: null, player2Id: null, winnerId: null };
+
   const [loading, setLoading] = useState(true);
 
   // Winners
@@ -212,6 +214,12 @@ function BracketEditor({ tournamentId, players }) {
   const [lbMatches3a, setLbMatches3a] = useState([]); // LB R3A
   const [lbMatches3b, setLbMatches3b] = useState([]); // LB R3B
   const [lbMatches4, setLbMatches4] = useState([]); // LB R4
+
+  // Finals
+  const [wbFinalMatches, setWbFinalMatches] = useState([emptyFinalMatch]);
+  const [lbFinalMatches, setLbFinalMatches] = useState([emptyFinalMatch]);
+  const [grandFinalMatches, setGrandFinalMatches] =
+    useState([emptyFinalMatch]);
 
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -348,6 +356,48 @@ function BracketEditor({ tournamentId, players }) {
           setLbMatches3b([]);
           setLbMatches4([]);
         }
+
+        // winners final (WB Final)
+        if (bracket && bracket.winnersFinal) {
+          const wf = bracket.winnersFinal;
+          setWbFinalMatches([
+            {
+              player1Id: wf.player1Id || null,
+              player2Id: wf.player2Id || null,
+              winnerId: wf.winnerId || null,
+            },
+          ]);
+        } else {
+          setWbFinalMatches([emptyFinalMatch]);
+        }
+
+        // losers final (LB Final)
+        if (bracket && bracket.losersFinal) {
+          const lf = bracket.losersFinal;
+          setLbFinalMatches([
+            {
+              player1Id: lf.player1Id || null,
+              player2Id: lf.player2Id || null,
+              winnerId: lf.winnerId || null,
+            },
+          ]);
+        } else {
+          setLbFinalMatches([emptyFinalMatch]);
+        }
+
+        // grand final
+        if (bracket && bracket.grandFinal) {
+          const gf = bracket.grandFinal;
+          setGrandFinalMatches([
+            {
+              player1Id: gf.player1Id || null,
+              player2Id: gf.player2Id || null,
+              winnerId: gf.winnerId || null,
+            },
+          ]);
+        } else {
+          setGrandFinalMatches([emptyFinalMatch]);
+        }
       } catch (err) {
         console.error("Failed to load bracket", err);
         setMatches([]);
@@ -358,6 +408,9 @@ function BracketEditor({ tournamentId, players }) {
         setLbMatches3a([]);
         setLbMatches3b([]);
         setLbMatches4([]);
+        setWbFinalMatches([emptyFinalMatch]);
+        setLbFinalMatches([emptyFinalMatch]);
+        setGrandFinalMatches([emptyFinalMatch]);
       } finally {
         setLoading(false);
       }
@@ -436,6 +489,9 @@ function BracketEditor({ tournamentId, players }) {
         setLbMatches3a([]);
         setLbMatches3b([]);
         setLbMatches4([]);
+        setWbFinalMatches([emptyFinalMatch]);
+        setLbFinalMatches([emptyFinalMatch]);
+        setGrandFinalMatches([emptyFinalMatch]);
         setSaveMessage(
           "Random Round 1 generated (not saved yet). Set winners and save when ready."
         );
@@ -580,6 +636,9 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a([]);
     setLbMatches3b([]);
     setLbMatches4([]);
+    setWbFinalMatches([emptyFinalMatch]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage("Quarterfinals built from Round 1 winners.");
   }
 
@@ -652,6 +711,8 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a([]);
     setLbMatches3b([]);
     setLbMatches4([]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage(
       "Losers Bracket Round 2 built: each LB R1 winner vs a QF loser."
     );
@@ -709,6 +770,9 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a([]);
     setLbMatches3b([]);
     setLbMatches4([]);
+    setWbFinalMatches([emptyFinalMatch]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage("Semifinals built from Quarterfinal winners.");
   }
 
@@ -768,6 +832,8 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a(lb3a);
     setLbMatches3b([]);
     setLbMatches4([]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage(
       "Losers Bracket Round 3A built from LB Round 2 winners."
     );
@@ -836,6 +902,8 @@ function BracketEditor({ tournamentId, players }) {
 
     setLbMatches3b(pairs);
     setLbMatches4([]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage(
       "Losers Bracket Round 3B built: LB3A winners vs Winners-SF losers."
     );
@@ -886,7 +954,7 @@ function BracketEditor({ tournamentId, players }) {
       return;
     }
 
-    const pairs = buildPairsFromIds(lb3bWinners).slice(0, 1); // typically 1 match
+    const pairs = buildPairsFromIds(lb3bWinners).slice(0, 1); // 1 match
     const lb4 = pairs.map((p) => ({
       player1Id: p.player1Id || null,
       player2Id: p.player2Id || null,
@@ -894,6 +962,8 @@ function BracketEditor({ tournamentId, players }) {
     }));
 
     setLbMatches4(lb4);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage(
       "Losers Bracket Round 4 built from LB 3B winners. Set this winner to feed into LB Final later."
     );
@@ -933,6 +1003,111 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
+  // ===== Winners Final (WB Final) =====
+  function handleChangeWbFinal(index, field, value) {
+    setWbFinalMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      copy[index] = { ...copy[index], [field]: value || null };
+
+      const m = copy[index];
+      if (
+        (field === "player1Id" || field === "player2Id") &&
+        m.winnerId &&
+        m.winnerId !== m.player1Id &&
+        m.winnerId !== m.player2Id
+      ) {
+        m.winnerId = null;
+      }
+      return copy;
+    });
+  }
+
+  function handleSetWinnerWbFinal(index, which) {
+    setWbFinalMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      const m = copy[index];
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+      return copy;
+    });
+  }
+
+  // ===== Losers Final =====
+  function handleChangeLbFinal(index, field, value) {
+    setLbFinalMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      copy[index] = { ...copy[index], [field]: value || null };
+
+      const m = copy[index];
+      if (
+        (field === "player1Id" || field === "player2Id") &&
+        m.winnerId &&
+        m.winnerId !== m.player1Id &&
+        m.winnerId !== m.player2Id
+      ) {
+        m.winnerId = null;
+      }
+      return copy;
+    });
+  }
+
+  function handleSetWinnerLbFinal(index, which) {
+    setLbFinalMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      const m = copy[index];
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+      return copy;
+    });
+  }
+
+  // ===== Grand Final =====
+  function handleChangeGrandFinal(index, field, value) {
+    setGrandFinalMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      copy[index] = { ...copy[index], [field]: value || null };
+
+      const m = copy[index];
+      if (
+        (field === "player1Id" || field === "player2Id") &&
+        m.winnerId &&
+        m.winnerId !== m.player1Id &&
+        m.winnerId !== m.player2Id
+      ) {
+        m.winnerId = null;
+      }
+      return copy;
+    });
+  }
+
+  function handleSetWinnerGrandFinal(index, which) {
+    setGrandFinalMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      const m = copy[index];
+
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+      return copy;
+    });
+  }
+
   // ===== Save all =====
   async function handleSave() {
     setSaving(true);
@@ -952,6 +1127,9 @@ function BracketEditor({ tournamentId, players }) {
             lbMatches3: lbMatches3a, // LB R3A
             lbMatches4: lbMatches3b, // LB R3B
             lbMatches5: lbMatches4, // LB R4
+            winnersFinal: wbFinalMatches, // WB Final
+            lbFinal: lbFinalMatches, // LB Final
+            grandFinal: grandFinalMatches, // Grand Final
           }),
         }
       );
@@ -961,7 +1139,7 @@ function BracketEditor({ tournamentId, players }) {
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
         setSaveMessage(
-          "Saved: Winners R1/QF/SF + Losers R1/R2/R3A/R3B/R4 to the database."
+          "Saved: Winners R1/QF/SF, Losers R1–R4, Winners Final, Losers Final, and Grand Final."
         );
       }
     } catch (err) {
@@ -1363,6 +1541,69 @@ function BracketEditor({ tournamentId, players }) {
         allOptions={allOptions}
         labelFromId={labelFromId}
       />
+
+      {/* ===== Winners Final ===== */}
+      <div style={{ marginTop: 18 }}>
+        <h3
+          style={{
+            fontSize: "1.05rem",
+            marginBottom: 6,
+            color: "#e5e7eb",
+          }}
+        >
+          Winners Bracket Final
+        </h3>
+        <RoundBlock
+          title="Winners Final"
+          matches={wbFinalMatches}
+          onChange={handleChangeWbFinal}
+          onSetWinner={handleSetWinnerWbFinal}
+          allOptions={allOptions}
+          labelFromId={labelFromId}
+        />
+      </div>
+
+      {/* ===== Losers Final ===== */}
+      <div style={{ marginTop: 18 }}>
+        <h3
+          style={{
+            fontSize: "1.05rem",
+            marginBottom: 6,
+            color: "#e5e7eb",
+          }}
+        >
+          Losers Bracket Final
+        </h3>
+        <RoundBlock
+          title="Losers Final"
+          matches={lbFinalMatches}
+          onChange={handleChangeLbFinal}
+          onSetWinner={handleSetWinnerLbFinal}
+          allOptions={allOptions}
+          labelFromId={labelFromId}
+        />
+      </div>
+
+      {/* ===== Grand Final ===== */}
+      <div style={{ marginTop: 18 }}>
+        <h3
+          style={{
+            fontSize: "1.05rem",
+            marginBottom: 6,
+            color: "#e5e7eb",
+          }}
+        >
+          Grand Final
+        </h3>
+        <RoundBlock
+          title="Grand Final"
+          matches={grandFinalMatches}
+          onChange={handleChangeGrandFinal}
+          onSetWinner={handleSetWinnerGrandFinal}
+          allOptions={allOptions}
+          labelFromId={labelFromId}
+        />
+      </div>
 
       {/* Save + status */}
       <div style={{ marginTop: 24 }}>

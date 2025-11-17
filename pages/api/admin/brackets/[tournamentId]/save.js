@@ -38,7 +38,23 @@ export default async function handler(req, res) {
     const lbMatchesR2 = Array.isArray(body.lbMatches2) ? body.lbMatches2 : [];
     const lbMatchesR3 = Array.isArray(body.lbMatches3) ? body.lbMatches3 : [];
     const lbMatchesR4 = Array.isArray(body.lbMatches4) ? body.lbMatches4 : [];
-    const lbMatchesR5 = Array.isArray(body.lbMatches5) ? body.lbMatches5 : []; // ✅ NEW
+    const lbMatchesR5 = Array.isArray(body.lbMatches5) ? body.lbMatches5 : []; // LB R4 (your UI)
+
+    const winnersFinalArr = Array.isArray(body.winnersFinal)
+      ? body.winnersFinal
+      : [];
+    const lbFinalArr = Array.isArray(body.lbFinal) ? body.lbFinal : [];
+    const grandFinalArr = Array.isArray(body.grandFinal)
+      ? body.grandFinal
+      : [];
+
+    const winnersFinal = winnersFinalArr[0]
+      ? sanitizeMatch(winnersFinalArr[0])
+      : null;
+    const losersFinal = lbFinalArr[0] ? sanitizeMatch(lbFinalArr[0]) : null;
+    const grandFinal = grandFinalArr[0]
+      ? sanitizeMatch(grandFinalArr[0])
+      : null;
 
     // ===== winners rounds =====
     const rounds = [];
@@ -64,7 +80,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ===== losers rounds =====
+    // ===== losers rounds (LB R1–R4 in your UI) =====
     const losersRounds = [];
     if (lbMatchesR1.length > 0) {
       losersRounds.push({
@@ -95,7 +111,7 @@ export default async function handler(req, res) {
       });
     }
     if (lbMatchesR5.length > 0) {
-      // ✅ THIS IS YOUR LB ROUND 4 COLUMN ON THE PUBLIC BRACKET
+      // This is the LB ROUND 4 column on your public bracket
       losersRounds.push({
         roundNumber: 5,
         type: "losers",
@@ -106,6 +122,9 @@ export default async function handler(req, res) {
     const update = {
       $set: {
         "bracket.rounds": rounds,
+        "bracket.winnersFinal": winnersFinal,
+        "bracket.losersFinal": losersFinal,
+        "bracket.grandFinal": grandFinal,
       },
     };
 
