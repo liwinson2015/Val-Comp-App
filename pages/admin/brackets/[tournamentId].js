@@ -222,6 +222,7 @@ function BracketEditor({ tournamentId, players }) {
     useState([emptyFinalMatch]);
 
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
@@ -1269,6 +1270,56 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
+  // ===== RESET all (use reset API) =====
+  async function handleReset() {
+    if (
+      !window.confirm(
+        "Are you sure you want to RESET the entire bracket for this tournament? This will clear all rounds, finals, and results from the database. This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setResetting(true);
+    setSaveMessage("");
+    try {
+      const res = await fetch(
+        `/api/admin/brackets/${encodeURIComponent(tournamentId)}/reset`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setSaveMessage(data.error || "Failed to reset bracket.");
+      } else {
+        // Clear all local state back to fresh / empty
+        setMatches([]);
+        setQfMatches([]);
+        setSfMatches([]);
+        setLbMatches1([]);
+        setLbMatches2([]);
+        setLbMatches3a([]);
+        setLbMatches3b([]);
+        setLbMatches4([]);
+        setWbFinalMatches([emptyFinalMatch]);
+        setLbFinalMatches([emptyFinalMatch]);
+        setGrandFinalMatches([emptyFinalMatch]);
+
+        setSaveMessage(
+          "Bracket has been reset. All winners/losers and rounds are cleared in the database."
+        );
+      }
+    } catch (err) {
+      console.error("Reset error", err);
+      setSaveMessage("Error resetting bracket.");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   if (loading) return <p style={{ color: "#e5e7eb" }}>Loading bracket…</p>;
 
   const losersR2Count = losersR2.length;
@@ -1308,6 +1359,24 @@ function BracketEditor({ tournamentId, players }) {
           {randomizing
             ? "Randomizing..."
             : "🔀 Randomize Round 1 from registrations"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={resetting}
+          style={{
+            background: resetting ? "#7f1d1d" : "#b91c1c",
+            padding: "8px 14px",
+            borderRadius: 8,
+            border: "none",
+            color: "white",
+            cursor: resetting ? "wait" : "pointer",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+          }}
+        >
+          {resetting ? "Resetting..." : "🧹 Reset entire bracket"}
         </button>
 
         <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
