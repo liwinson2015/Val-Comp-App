@@ -58,6 +58,24 @@ const BracketSchema = new Schema(
       type: [RoundSchema],
       default: [],
     },
+
+    // ✅ NEW: Winners bracket final (upper final)
+    winnersFinal: {
+      type: MatchSchema,
+      default: null,
+    },
+
+    // ✅ NEW: Losers bracket final
+    losersFinal: {
+      type: MatchSchema,
+      default: null,
+    },
+
+    // ✅ NEW: True grand final (winner of WB vs winner of LB)
+    grandFinal: {
+      type: MatchSchema,
+      default: null,
+    },
   },
   { _id: false }
 );
