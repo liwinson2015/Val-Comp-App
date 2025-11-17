@@ -110,12 +110,15 @@ export default function BracketAdminPage({
       <h1 style={{ fontSize: "1.6rem", marginBottom: 8, color: "#e5e7eb" }}>
         Admin Bracket Editor — {tournamentId}
       </h1>
-      <p style={{ color: "#9ca3af", marginBottom: 10 }}>
+
+      <p style={{ color: "#9ca3af", marginBottom: 8 }}>
         Only you (admin) can see this page. Adjust seeds, set winners, and
-        build the losers bracket. Then hit <strong>Save</strong>, and when
-        you&apos;re happy you can publish from your publish controls.
+        build the losers bracket. Then hit <strong>Save</strong>. When
+        you&apos;re happy, use the buttons below to publish or hide the
+        public bracket.
       </p>
-      <p style={{ color: "#d1d5db", marginBottom: 20 }}>
+
+      <p style={{ color: "#d1d5db", marginBottom: 10 }}>
         Current publish status:{" "}
         <span
           style={{
@@ -130,10 +133,68 @@ export default function BracketAdminPage({
         </span>
       </p>
 
+      {/* === PUBLISH / UNPUBLISH BUTTONS === */}
+      <div
+        style={{
+          marginBottom: 20,
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <form
+          method="POST"
+          action={`/api/admin/brackets/${encodeURIComponent(
+            tournamentId
+          )}/publish`}
+        >
+          <button
+            type="submit"
+            style={{
+              background: "#10b981",
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              color: "white",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+            }}
+          >
+            📢 Publish bracket (make live)
+          </button>
+        </form>
+
+        <form
+          method="POST"
+          action={`/api/admin/brackets/${encodeURIComponent(
+            tournamentId
+          )}/unpublish`}
+        >
+          <button
+            type="submit"
+            style={{
+              background: "#ef4444",
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              color: "white",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+            }}
+          >
+            ❌ Unpublish (hide)
+          </button>
+        </form>
+      </div>
+
       <BracketEditor tournamentId={tournamentId} players={players} />
     </div>
   );
 }
+
 
 // ---------- BRACKET EDITOR ----------
 function BracketEditor({ tournamentId, players }) {
