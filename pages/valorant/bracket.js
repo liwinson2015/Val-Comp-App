@@ -105,7 +105,7 @@ export default function BracketPage({
   bracket,
   players,
 }) {
-  // ===== HEADER REG INFO PLACEHOLDERS (you can wire real data later) =====
+  // ===== HEADER REG INFO PLACEHOLDERS =====
   const capacity = 16;
   const registered = players.length;
   const remaining = Math.max(capacity - registered, 0);
@@ -131,67 +131,67 @@ export default function BracketPage({
   }
 
   const idToLabel = buildIdToLabel(players);
+  const getLabel = (id) => (id ? idToLabel[id] || "TBD" : "TBD");
 
-  function getLabel(id) {
-    if (!id) return "TBD";
-    return idToLabel[id] || "TBD";
-  }
-
-  // ===== WINNERS BRACKET MAPPING =====
+  // ===== WINNERS BRACKET MAPPING (R16, QF, SF) =====
   const rounds = bracket?.rounds || [];
 
-  // Round 1 → Round of 16
-  const round1 =
-    rounds.find((r) => r.roundNumber === 1) || rounds[0] || { matches: [] };
-  const r1Matches = round1.matches || [];
+  const r1 =
+    rounds.find((r) => r.roundNumber === 1 && r.type === "winners") ||
+    rounds[0] ||
+    { matches: [] };
+  const r2 =
+    rounds.find((r) => r.roundNumber === 2 && r.type === "winners") || {
+      matches: [],
+    };
+  const r3 =
+    rounds.find((r) => r.roundNumber === 3 && r.type === "winners") || {
+      matches: [],
+    };
 
+  const r1Matches = r1.matches || [];
+  const r2Matches = r2.matches || [];
+  const r3Matches = r3.matches || [];
+
+  // Round of 16: up to 8 matches → 4 left, 4 right
   const leftR16 = [];
   const rightR16 = [];
-
   r1Matches.forEach((m, index) => {
     const pair = [getLabel(m.player1Id), getLabel(m.player2Id)];
-    if (index < 4) {
-      leftR16.push(pair);
-    } else {
-      rightR16.push(pair);
-    }
+    if (index < 4) leftR16.push(pair);
+    else rightR16.push(pair);
   });
+  while (leftR16.length < 4) leftR16.push(["TBD", "TBD"]);
+  while (rightR16.length < 4) rightR16.push(["TBD", "TBD"]);
 
-  // Pad to 4 matches per side so Bracket16 always has 8 matches total
-  while (leftR16.length < 4) {
-    leftR16.push(["TBD", "TBD"]);
-  }
-  while (rightR16.length < 4) {
-    rightR16.push(["TBD", "TBD"]);
-  }
-
-  // Round 2 → Quarterfinals (QF)
-  const round2 = rounds.find((r) => r.roundNumber === 2) || null;
-  const r2Matches = (round2 && round2.matches) || [];
-
+  // Quarterfinals: up to 4 matches → 2 left, 2 right
   const leftQF = [];
   const rightQF = [];
-
   r2Matches.forEach((m, index) => {
     const pair = [getLabel(m.player1Id), getLabel(m.player2Id)];
-    if (index < 2) {
-      leftQF.push(pair);
-    } else {
-      rightQF.push(pair);
-    }
+    if (index < 2) leftQF.push(pair);
+    else rightQF.push(pair);
   });
+  while (leftQF.length < 2) leftQF.push(["TBD", "TBD"]);
+  while (rightQF.length < 2) rightQF.push(["TBD", "TBD"]);
 
-  // Pad QF to 2 matches per side
-  while (leftQF.length < 2) {
-    leftQF.push(["TBD", "TBD"]);
+  // Semifinals: usually 2 matches → one left, one right
+  let leftSF = ["TBD", "TBD"];
+  let rightSF = ["TBD", "TBD"];
+  if (r3Matches[0]) {
+    leftSF = [
+      getLabel(r3Matches[0].player1Id),
+      getLabel(r3Matches[0].player2Id),
+    ];
   }
-  while (rightQF.length < 2) {
-    rightQF.push(["TBD", "TBD"]);
+  if (r3Matches[1]) {
+    rightSF = [
+      getLabel(r3Matches[1].player1Id),
+      getLabel(r3Matches[1].player2Id),
+    ];
   }
 
-  // Semifinals + final still manual / TBD for now
-  const leftSF = ["TBD", "TBD"];
-  const rightSF = ["TBD", "TBD"];
+  // Winners final + champion still manual / TBD for now
   const finalLeft = "TBD";
   const finalRight = "TBD";
   const finalChamp = "TBD";
@@ -202,55 +202,62 @@ export default function BracketPage({
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
-  // ===== LOSERS BRACKET MAPPING =====
+  // ===== LOSERS BRACKET MAPPING (LB R1–R4) =====
   const losersRounds = bracket?.losersRounds || [];
 
-  // LB Round 1
-  const lbRound1 =
-    losersRounds.find((r) => r.roundNumber === 1) ||
+  const lb1 =
+    losersRounds.find((r) => r.roundNumber === 1 && r.type === "losers") ||
     losersRounds[0] ||
     { matches: [] };
-  const lbMatches1 = lbRound1.matches || [];
+  const lb2 =
+    losersRounds.find((r) => r.roundNumber === 2 && r.type === "losers") || {
+      matches: [],
+    };
+  const lb3 =
+    losersRounds.find((r) => r.roundNumber === 3 && r.type === "losers") || {
+      matches: [],
+    };
+  const lb4 =
+    losersRounds.find((r) => r.roundNumber === 4 && r.type === "losers") || {
+      matches: [],
+    };
+  const lb5 =
+    losersRounds.find((r) => r.roundNumber === 5 && r.type === "losers") || {
+      matches: [],
+    };
 
-  const lb_r1 = lbMatches1.map((m) => [
+  const lb_r1 = (lb1.matches || []).map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+  const lb_r2 = (lb2.matches || []).map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+  const lb_r3a = (lb3.matches || []).map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+  const lb_r3b = (lb4.matches || []).map((m) => [
+    getLabel(m.player1Id),
+    getLabel(m.player2Id),
+  ]);
+  const lb_r4 = (lb5.matches || []).map((m) => [
     getLabel(m.player1Id),
     getLabel(m.player2Id),
   ]);
 
-  while (lb_r1.length < 4) {
-    lb_r1.push(["TBD", "TBD"]);
-  }
+  // Pad to shapes expected by LosersBracket16
+  while (lb_r1.length < 4) lb_r1.push(["TBD", "TBD"]);
+  while (lb_r2.length < 4) lb_r2.push(["TBD", "TBD"]);
+  while (lb_r3a.length < 2) lb_r3a.push(["TBD", "TBD"]);
+  while (lb_r3b.length < 2) lb_r3b.push(["TBD", "TBD"]);
+  while (lb_r4.length < 1) lb_r4.push(["TBD", "TBD"]);
 
-  // LB Round 2
-  const lbRound2 =
-    losersRounds.find((r) => r.roundNumber === 2) ||
-    losersRounds[1] ||
-    { matches: [] };
-  const lbMatches2 = lbRound2.matches || [];
-
-  const lb_r2 = lbMatches2.map((m) => [
-    getLabel(m.player1Id),
-    getLabel(m.player2Id),
-  ]);
-
-  while (lb_r2.length < 4) {
-    lb_r2.push(["TBD", "TBD"]);
-  }
-
-  // Later losers rounds still placeholders
-  const lb_r3a = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
-  const lb_r3b = [
-    ["TBD", "TBD"],
-    ["TBD", "TBD"],
-  ];
-  const lb_r4 = [["TBD", "TBD"]];
-  const lb_final = ["TBD", "TBD"];
+  const lb_final = ["TBD", "TBD"]; // LB final and winner still manual
   const lb_winner = "TBD";
 
-  // Placements + grand final still manual/test placeholders
+  // Placements + grand final still placeholders
   const placements = {
     first: "TBD",
     second: "TBD",
@@ -422,7 +429,7 @@ export default function BracketPage({
           `}</style>
         </section>
 
-        {/* ===== Winners Bracket (LIVE R16 + QF) ===== */}
+        {/* ===== Winners Bracket (LIVE) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <Bracket16 data={bracketData} />
           <style jsx>{`
@@ -444,7 +451,7 @@ export default function BracketPage({
           champion={grandChampion}
         />
 
-        {/* ===== Losers Bracket (LB R1 + LB R2 from DB, rest placeholders) ===== */}
+        {/* ===== Losers Bracket (LB R1–R4 from DB) ===== */}
         <section className={`${styles.card} fullBleed`}>
           <LosersBracket16
             r1={lb_r1}
