@@ -1,9 +1,59 @@
 // /pages/valorant/index.js
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/Valorant.module.css";
+import { connectToDatabase } from "../../lib/mongodb";
+import Tournament from "../../models/Tournament";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // keep this in sync with your catalog/key
 
+// ---------- SERVER SIDE: block page if tournament is full ----------
+export async function getServerSideProps() {
+  await connectToDatabase();
+
+  const t = await Tournament.findOne({ tournamentId: TOURNAMENT_ID }).lean();
+
+  if (!t) {
+    // If somehow the tournament doesn't exist, just 404
+    return { notFound: true };
+  }
+
+  // Try to detect "full" in a robust way based on plausible fields
+  const maxPlayers =
+    typeof t.maxPlayers === "number"
+      ? t.maxPlayers
+      : t.slots ||
+        t.capacity ||
+        0; // fallback if you named it differently
+
+  let currentCount = 0;
+
+  if (Array.isArray(t.registeredPlayers)) {
+    currentCount = t.registeredPlayers.length;
+  } else if (Array.isArray(t.players)) {
+    currentCount = t.players.length;
+  } else if (typeof t.currentPlayers === "number") {
+    currentCount = t.currentPlayers;
+  }
+
+  const isFull =
+    t.isFull === true || // if you manually set this flag in the DB
+    (maxPlayers > 0 && currentCount >= maxPlayers);
+
+  if (isFull) {
+    // 🚫 HARD BLOCK: can't land on this page at all
+    return {
+      redirect: {
+        destination: "/tournaments-hub/valorant-types?full=1",
+        permanent: false,
+      },
+    };
+  }
+
+  // If not full, page loads normally
+  return { props: {} };
+}
+
+// ---------- CLIENT SIDE PAGE ----------
 export default function ValorantEventPage() {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -129,23 +179,30 @@ export default function ValorantEventPage() {
 
             <div className={styles.detailLabel}>Format</div>
             <div className={styles.detailValue}>
-              Best-of-1 • First to <strong>20</strong> kills • <strong>Win by 2</strong>
+              Best-of-1 • First to <strong>20</strong> kills •{" "}
+              <strong>Win by 2</strong>
             </div>
 
             <div className={styles.detailLabel}>Map</div>
-            <div className={styles.detailValue}>Randomized: Skirmish A, B, or C</div>
+            <div className={styles.detailValue}>
+              Randomized: Skirmish A, B, or C
+            </div>
 
             <div className={styles.detailLabel}>Server</div>
             <div className={styles.detailValue}>NA (custom lobby)</div>
 
             <div className={styles.detailLabel}>Check-in</div>
-            <div className={styles.detailValue}>15 minutes before start in Discord</div>
+            <div className={styles.detailValue}>
+              15 minutes before start in Discord
+            </div>
 
             <div className={styles.detailLabel}>Entry</div>
             <div className={styles.detailValue}>Free</div>
 
             <div className={styles.detailLabel}>Prize</div>
-            <div className={styles.detailValue}>Skin (TBD) + bragging rights</div>
+            <div className={styles.detailValue}>
+              Skin (TBD) + bragging rights
+            </div>
           </div>
         </section>
 
@@ -159,17 +216,20 @@ export default function ValorantEventPage() {
               <strong>Match:</strong> <strong>Best-of-1</strong>.
             </li>
             <li>
-              <strong>Game Win Condition:</strong> First to <strong>20</strong> kills and
-              must lead by <strong>2</strong> (win-by-two).
+              <strong>Game Win Condition:</strong> First to <strong>20</strong>{" "}
+              kills and must lead by <strong>2</strong> (win-by-two).
             </li>
             <li>
-              <strong>No time cap.</strong> Play continues until win-by-two is achieved.
+              <strong>No time cap.</strong> Play continues until win-by-two is
+              achieved.
             </li>
             <li>
-              <strong>Map:</strong> Randomized each match between <em>Skirmish A / B / C</em>.
+              <strong>Map:</strong> Randomized each match between{" "}
+              <em>Skirmish A / B / C</em>.
             </li>
             <li>
-              <strong>Lobby:</strong> Admin/stream host invites both players. Be online and ready at your match time.
+              <strong>Lobby:</strong> Admin/stream host invites both players. Be
+              online and ready at your match time.
             </li>
           </ul>
         </section>
@@ -183,9 +243,13 @@ export default function ValorantEventPage() {
             <li>No smurfing. No cheats, scripts, or third-party aim tools.</li>
             <li>No-shows: 5-minute grace, then you may be replaced by a sub.</li>
             <li>
-              Disconnects before 3 kills → remake; after 3 kills → continue from score unless admin rules otherwise.
+              Disconnects before 3 kills → remake; after 3 kills → continue
+              from score unless admin rules otherwise.
             </li>
-            <li>Report scores in Discord with a screenshot; both players must confirm.</li>
+            <li>
+              Report scores in Discord with a screenshot; both players must
+              confirm.
+            </li>
             <li>Admins have final say on disputes.</li>
           </ul>
         </section>
@@ -202,7 +266,9 @@ export default function ValorantEventPage() {
             </div>
 
             <div className={styles.detailLabel}>Round Pace</div>
-            <div className={styles.detailValue}>Please be ready; matches fire back-to-back</div>
+            <div className={styles.detailValue}>
+              Please be ready; matches fire back-to-back
+            </div>
 
             <div className={styles.detailLabel}>Report</div>
             <div className={styles.detailValue}>
@@ -210,7 +276,9 @@ export default function ValorantEventPage() {
             </div>
 
             <div className={styles.detailLabel}>Stream</div>
-            <div className={styles.detailValue}>Select matches may be streamed or clipped</div>
+            <div className={styles.detailValue}>
+              Select matches may be streamed or clipped
+            </div>
           </div>
         </section>
 
@@ -223,7 +291,8 @@ export default function ValorantEventPage() {
             <li>Must join Discord and respond to check-in pings.</li>
             <li>One entry per player. Duplicate entries will be removed.</li>
             <li>
-              If you’ve already registered, the Register page will show you as locked-in automatically.
+              If you’ve already registered, the Register page will show you as
+              locked-in automatically.
             </li>
           </ul>
         </section>
