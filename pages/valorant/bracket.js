@@ -49,66 +49,101 @@ function computeRankingFromBracket(bracket) {
 
   const losersRounds = bracket.losersRounds || [];
 
-  const findLR = (roundNum) =>
-    (losersRounds.find(
-      (r) => r.roundNumber === roundNum && r.type === "losers"
-    ) || { matches: [] }).matches || [];
+  const findLRMatches = (roundNum) =>
+    (
+      losersRounds.find(
+        (r) => r.roundNumber === roundNum && r.type === "losers"
+      ) || { matches: [] }
+    ).matches || [];
 
-  // Mapping you gave:
-  // 13–16 → LB Round 1 losers  (roundNumber 1)
-  // 9–12  → LB Round 2 losers  (roundNumber 2)
-  // 7–8   → LB Round 3A losers (roundNumber 3)
-  // 5–6   → LB Round 3B losers (roundNumber 4)
-  // 4th   → LB Round 4 loser   (roundNumber 5)
-  // 3rd   → losers final loser
-  // 2nd   → grand final loser
-  // 1st   → grand final winner
-  const lb1Matches = findLR(1);
-  const lb2Matches = findLR(2);
-  const lb3Matches = findLR(3); // 3A
-  const lb4Matches = findLR(4); // 3B
-  const lb5Matches = findLR(5); // R4
-
-  const thirteenToSixteen = uniqIds(computeLosersFromMatches(lb1Matches));
-  const nineToTwelve = uniqIds(computeLosersFromMatches(lb2Matches));
-  const sevenToEight = uniqIds(computeLosersFromMatches(lb3Matches));
-  const fiveToSix = uniqIds(computeLosersFromMatches(lb4Matches));
-
-  let fourth = null;
-  const lb4Losers = computeLosersFromMatches(lb5Matches);
-  if (lb4Losers.length > 0) {
-    fourth = lb4Losers[0] || null;
-  }
+  // Raw losers by round (may contain duplicates, we’ll clean later)
+  const lb1Losers = computeLosersFromMatches(findLRMatches(1)); // 13–16
+  const lb2Losers = computeLosersFromMatches(findLRMatches(2)); // 9–12
+  const lb3aLosers = computeLosersFromMatches(findLRMatches(3)); // 7–8
+  const lb3bLosers = computeLosersFromMatches(findLRMatches(4)); // 5–6
+  const lb4Losers = computeLosersFromMatches(findLRMatches(5)); // 4th
 
   const losersFinal = bracket.losersFinal || null;
-  let third = null;
-  if (
-    losersFinal &&
-    losersFinal.winnerId &&
-    losersFinal.player1Id &&
-    losersFinal.player2Id
-  ) {
-    third =
-      losersFinal.winnerId === losersFinal.player1Id
-        ? losersFinal.player2Id
-        : losersFinal.player1Id;
-  }
-
   const grandFinal = bracket.grandFinal || null;
-  let first = null;
-  let second = null;
+
+  // --- 1 & 2: Grand final decides first and second ---
+  let firstCandidate = null;
+  let secondCandidate = null;
   if (
     grandFinal &&
     grandFinal.winnerId &&
     grandFinal.player1Id &&
     grandFinal.player2Id
   ) {
-    first = grandFinal.winnerId;
-    second =
+    firstCandidate = grandFinal.winnerId;
+    secondCandidate =
       grandFinal.winnerId === grandFinal.player1Id
         ? grandFinal.player2Id
         : grandFinal.player1Id;
   }
+
+  // --- 3: Losers final loser is 3rd ---
+  let thirdCandidate = null;
+  if (
+    losersFinal &&
+    losersFinal.winnerId &&
+    losersFinal.player1Id &&
+    losersFinal.player2Id
+  ) {
+    thirdCandidate =
+      losersFinal.winnerId === losersFinal.player1Id
+        ? losersFinal.player2Id
+        : losersFinal.player1Id;
+  }
+
+  // --- 4: LB Round 4 (roundNumber 5) loser is 4th ---
+  let fourthCandidate = null;
+  if (lb4Losers.length > 0) {
+    fourthCandidate = lb4Losers[0] || null;
+  }
+
+  // --- 5–6, 7–8, 9–12, 13–16 from losers of LB rounds ---
+  // We’ll assign with priority and make sure no one appears twice.
+  const assigned = new Set();
+
+  const pickSingle = (id) => {
+    if (!id) return null;
+    const key = id.toString();
+    if (assigned.has(key)) return null;
+    assigned.add(key);
+    return id;
+  };
+
+  const pickMany = (list, maxCount) => {
+    const result = [];
+    for (const id of list || []) {
+      if (!id) continue;
+      const key = id.toString();
+      if (assigned.has(key)) continue;
+      assigned.add(key);
+      result.push(id);
+      if (maxCount && result.length >= maxCount) break;
+    }
+    return result;
+  };
+
+  // Priority: best → worst.
+  const first = pickSingle(firstCandidate);
+  const second = pickSingle(secondCandidate);
+  const third = pickSingle(thirdCandidate);
+  const fourth = pickSingle(fourthCandidate);
+
+  // 5–6: losers of LB Round 3B (roundNumber 4)
+  const fiveToSix = pickMany(lb3bLosers, 2);
+
+  // 7–8: losers of LB Round 3A (roundNumber 3)
+  const sevenToEight = pickMany(lb3aLosers, 2);
+
+  // 9–12: losers of LB Round 2 (roundNumber 2)
+  const nineToTwelve = pickMany(lb2Losers, 4);
+
+  // 13–16: losers of LB Round 1 (roundNumber 1)
+  const thirteenToSixteen = pickMany(lb1Losers, 4);
 
   return {
     first,
@@ -121,6 +156,7 @@ function computeRankingFromBracket(bracket) {
     thirteenToSixteen,
   };
 }
+
 
 // ===== SERVER SIDE: load published bracket + players =====
 export async function getServerSideProps() {
