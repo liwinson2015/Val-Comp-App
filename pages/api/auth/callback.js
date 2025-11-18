@@ -7,13 +7,17 @@ function parseCookies(header = "") {
   return Object.fromEntries(
     header
       .split(";")
-      .map(v => v.trim())
+      .map((v) => v.trim())
       .filter(Boolean)
-      .map(kv => {
+      .map((kv) => {
         const i = kv.indexOf("=");
         const k = i >= 0 ? kv.slice(0, i) : kv;
         const v = i >= 0 ? kv.slice(i + 1) : "";
-        try { return [k, decodeURIComponent(v)]; } catch { return [k, v]; }
+        try {
+          return [k, decodeURIComponent(v)];
+        } catch {
+          return [k, v];
+        }
       })
   );
 }
@@ -22,7 +26,9 @@ export default async function handler(req, res) {
   try {
     const code = req.query.code;
     if (!code) {
-      return res.status(400).send("No 'code' found. Did you come here from Discord?");
+      return res
+        .status(400)
+        .send("No 'code' found. Did you come here from Discord?");
     }
 
     const clientId = process.env.DISCORD_CLIENT_ID;
@@ -41,23 +47,27 @@ export default async function handler(req, res) {
         redirect_uri: redirectUri,
       }),
     });
+
     if (!tokenResponse.ok) {
       const errText = await tokenResponse.text();
       console.error("[callback] token exchange failed:", errText);
       return res.status(500).send("Failed to exchange code for token");
     }
+
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    // 2) Get Discord user
+    // 2) Get Discord user (now includes email if you requested "identify email" scope)
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+
     if (!userResponse.ok) {
       const errText = await userResponse.text();
       console.error("[callback] fetch discord user failed:", errText);
       return res.status(500).send("Failed to fetch Discord user");
     }
+
     const discordUser = await userResponse.json();
 
     // 3) DB
@@ -69,9 +79,22 @@ export default async function handler(req, res) {
       avatar: discordUser.avatar || "",
       discriminator: discordUser.discriminator || "",
     };
+
+    // ✅ Only set email if Discord actually sent one
+    // (prevents overwriting an existing email with undefined)
+    if (discordUser.email) {
+      update.email = discordUser.email;
+    }
+
     const playerDoc = await Player.findOneAndUpdate(
       { discordId: discordUser.id },
-      { $set: update, $setOnInsert: { discordId: discordUser.id, registeredFor: [] } },
+      {
+        $set: update,
+        $setOnInsert: {
+          discordId: discordUser.id,
+          registeredFor: [],
+        },
+      },
       { upsert: true, new: true }
     );
 
@@ -84,10 +107,12 @@ export default async function handler(req, res) {
       "SameSite=Lax",
       "Max-Age=2592000", // 30 days
       isProd ? "Secure" : null,
-    ].filter(Boolean).join("; ");
+    ]
+      .filter(Boolean)
+      .join("; ");
 
     const cookies = parseCookies(req.headers.cookie);
-    const next = cookies.post_login_redirect || "/valorant"; // ✅ changed from /valorant/register
+    const next = cookies.post_login_redirect || "/valorant";
 
     const clearPostLogin = [
       "post_login_redirect=;",
@@ -96,15 +121,19 @@ export default async function handler(req, res) {
       "SameSite=Lax",
       "HttpOnly",
       isProd ? "Secure" : null,
-    ].filter(Boolean).join("; ");
+    ]
+      .filter(Boolean)
+      .join("; ");
 
     res.setHeader("Set-Cookie", [sessionCookie, clearPostLogin]);
 
-    // ✅ 6) Redirect straight to /valorant
+    // Redirect back to where they were supposed to go
     res.writeHead(302, { Location: next });
     return res.end();
   } catch (err) {
     console.error("[callback] internal error:", err);
-    return res.status(500).send("Internal server error in callback: " + err.message);
+    return res
+      .status(500)
+      .send("Internal server error in callback: " + err.message);
   }
 }

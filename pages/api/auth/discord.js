@@ -4,7 +4,9 @@
 export default function handler(req, res) {
   const clientId = process.env.DISCORD_CLIENT_ID;
   const redirectUri = process.env.DISCORD_REDIRECT_URI; // MUST match Discord portal exactly
-  const scope = "identify";
+
+  // ✅ Request both basic identity + email
+  const scope = "identify email";
 
   if (!clientId || !redirectUri) {
     return res.status(500).send("Discord OAuth is not configured.");

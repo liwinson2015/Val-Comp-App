@@ -18,6 +18,12 @@ const PlayerSchema = new mongoose.Schema(
       type: String,
     },
 
+    // ✅ New: email from Discord OAuth ("identify email" scope)
+    email: {
+      type: String,
+      default: null,
+    },
+
     // 🔥 Existing admin flag
     isAdmin: {
       type: Boolean,
@@ -38,7 +44,7 @@ const PlayerSchema = new mongoose.Schema(
         // ign = name only (what your backend already uses!)
         ign: String,
 
-        // NEW FIELD — full Riot ID ("name#tagline")
+        // full Riot ID ("name#tagline")
         fullIgn: String,
 
         rank: String,
