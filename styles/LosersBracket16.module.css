@@ -1,36 +1,33 @@
-/* Compact losers bracket (matches winners style), centered & scaled */
+/* Losers bracket: aligned like a real tournament bracket, centered & scaled */
 
 .lbViewport{
-  --colw: clamp(140px, 11vw, 190px);
-  --gap:  clamp(20px, 2.4vw, 30px);
+  --colw: clamp(120px, 9vw, 160px);
+  --gap:  clamp(18px, 2.2vw, 26px);
 
-  /* box sizes */
-  --slotH: 40px;                 /* slightly flat but readable */
-  --pairGapInside: 10px;
+  /* slot + match geometry */
+  --slotH: 40px;           /* medium height, a bit flat */
+  --pairGapInside: 10px;   /* gap between top/bottom slots of one match */
   --pairPad: 4px;
 
+  /* total height of a match block (two slots) */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  /* vertical rhythms */
-  --r1Space: 24px;               /* space between the 4 R1 matchups */
-  --r2Space: calc(var(--pairH) + 20px);
-  --r3Space: calc(var(--pairH) + var(--r2Space));
-  --r4Space: calc(var(--pairH) + var(--r3Space));
+  /* base spacing: distance between matches in the FIRST round */
+  --r1Space: 24px;         /* vertical gap between R1 matches */
 
-  /* lines & joins */
-  --line: #4b5563;
+  /* for formulas later */
+  --line: #2a2f36;
   --joinW: 2px;
   --stub: 10px;
   --arm:  calc(var(--gap) - var(--stub));
 
-  /* VCT-style dark slots with purple edge */
-  --slotBgLeft: #020617;
-  --slotBgRight: #7c3aed;
-  --slotBorder: #111827;
-  --textBright: #e5e7eb;
+  /* light slots for now (we can restyle later) */
+  --slotBg: #f5f7fb;
+  --slotBorder: #cfd7ea;
+  --textDark: #0f1320;
 
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(520px, 60vh, 700px);
+  --stageH: clamp(520px, 62vh, 720px);
 
   --topSpace: 120px;
   --fitW: calc(100vw / var(--stageW));
@@ -78,28 +75,57 @@
   display:grid;
 }
 
-/* spacing per round */
+/* ---------- vertical spacing logic ---------- */
+/* R1: base rhythm. Distance between match centers = pairH + r1Space */
 
-.r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
+.r1 .pair{
+  margin: calc(var(--r1Space)/2) 0;
+}
 
-/* R2 aligned between R1 feeders: same rhythm + shift down by half a matchup */
-.r2  .pair{ margin: calc(var(--r1Space)/2) 0; }
-.r2  .stack{ margin-top: calc(var(--pairH) / 2); }
+/* R2: same rhythm as R1, but the entire column is shifted down by
+   half of one "center-to-center" distance so each R2 match sits
+   BETWEEN the two R1 matches that feed it. */
+.r2 .pair{
+  margin: calc(var(--r1Space)/2) 0; /* same D as R1 */
+}
+/* shift R2 down by (pairH + r1Space)/2 */
+.r2 .stack{
+  margin-top: calc( (var(--pairH) + var(--r1Space)) / 2 );
+}
 
-/* keep others a bit roomier */
-.r3a .pair{ margin: 18px 0; }
-.r3b .pair{ margin: 18px 0; }
-.r4  .pair{ margin: 22px 0; }
-.rFinal .pair{ margin: 26px 0; }
+/* R3A & R3B: they are fed by R2. We use the same base rhythm, but
+   shift them further down by one full "step" so visually they sit
+   under the correct groups of R2 matches. */
+.r3a .pair,
+.r3b .pair{
+  margin: calc(var(--r1Space)/2) 0;
+}
+.r3a .stack,
+.r3b .stack{
+  margin-top: calc( var(--pairH) + var(--r1Space) );
+}
 
-/* pair / slots */
+/* R4 + LB Final: single matches fed by previous rounds.
+   They follow the same general offset as R3 to keep everything
+   visually grouped. You can tweak these later if you want a
+   slightly higher/lower position. */
+.r4 .pair,
+.rFinal .pair{
+  margin: calc(var(--r1Space)/2) 0;
+}
+.r4 .stack,
+.rFinal .stack{
+  margin-top: calc( var(--pairH) + var(--r1Space) );
+}
+
+/* ---------- match boxes + connectors ---------- */
 
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
 }
 
-/* small stub on right going into next column */
+/* small horizontal stub on the right connecting to the next column */
 .pair::after{
   content:"";
   position:absolute;
@@ -113,22 +139,15 @@
 
 .slot{
   height: var(--slotH);
-  border-radius: 6px;
-  border: 1px solid var(--slotBorder);
-  /* VCT-style bar: dark left, purple right */
-  background: linear-gradient(
-    to right,
-    var(--slotBgLeft) 0%,
-    var(--slotBgLeft) 78%,
-    var(--slotBgRight) 78%,
-    var(--slotBgRight) 100%
-  );
+  border: 2px solid var(--slotBorder);
+  border-radius: 0;
+  background: var(--slotBg);
   display:flex;
   align-items:center;
-  justify-content:center;  /* keep names centered like you asked earlier */
-  padding: 0 12px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.75);
-  text-align:center;
+  justify-content:center;
+  padding: 0 10px;
+  box-shadow: none;
+  text-align: center;
 }
 
 .slot + .slot{
@@ -136,7 +155,7 @@
 }
 
 .label{
-  color: var(--textBright);
+  color: var(--textDark);
   font-weight: 700;
   font-size: 13px;
   white-space:nowrap;
@@ -144,7 +163,7 @@
   text-overflow:ellipsis;
 }
 
-/* collectors + arms for rounds that feed from previous column */
+/* vertical collectors + arms from previous column */
 
 .r2 .pair,
 .r3a .pair,
@@ -163,7 +182,7 @@
     left calc(var(--gap) * -1)              50%;
 }
 
-/* LB winner */
+/* ---------- LB winner pill ---------- */
 
 .lbWinnerCol{
   display:flex;
@@ -182,25 +201,16 @@
 
 .lbWinnerPill{
   min-width: var(--colw);
-  background: linear-gradient(
-    to right,
-    var(--slotBgLeft) 0%,
-    var(--slotBgLeft) 65%,
-    var(--slotBgRight) 65%,
-    var(--slotBgRight) 100%
-  );
-  border:1px solid var(--slotBorder);
+  background:#1c2952;
+  border:2px solid #122040;
   color:#ffffff;
-  border-radius:999px;
-  padding:10px 20px;
+  border-radius:8px;
+  padding:10px 16px;
   display:flex;
   align-items:center;
   justify-content:center;
-  box-shadow:0 16px 40px rgba(0,0,0,0.85);
 }
 
 .lbWinnerText{
   font-weight:800;
-  font-size:14px;
-  letter-spacing:0.04em;
 }
