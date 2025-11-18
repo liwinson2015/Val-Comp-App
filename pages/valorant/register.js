@@ -2,9 +2,11 @@
 import * as cookie from "cookie";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
+import Registration from "../../models/Registration";
 import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
+const MAX_SLOTS = 16;
 
 const VALORANT_RANK_TIERS = [
   "Iron",
@@ -20,19 +22,94 @@ const VALORANT_RANK_TIERS = [
 
 const VALORANT_DIVISIONS = ["1", "2", "3"];
 
-// 🚫 SERVER SIDE: this event is closed/full → always redirect
-export async function getServerSideProps() {
-  return {
-    redirect: {
-      destination: "/tournaments-hub/valorant-types?full=1",
-      permanent: false,
-    },
-  };
+// ---------- SERVER SIDE ----------
+export async function getServerSideProps({ req }) {
+  try {
+    await connectToDatabase();
+
+    const cookies = cookie.parse(req.headers.cookie || "");
+    const playerId = cookies.playerId || null;
+
+    // Require login via Discord
+    if (!playerId) {
+      const next = "/valorant/register";
+      const encoded = encodeURIComponent(next);
+      return {
+        redirect: {
+          destination: `/api/auth/discord?next=${encoded}`,
+          permanent: false,
+        },
+      };
+    }
+
+    const player = await Player.findById(playerId).lean();
+    if (!player) {
+      const next = "/valorant/register";
+      const encoded = encodeURIComponent(next);
+      return {
+        redirect: {
+          destination: `/api/auth/discord?next=${encoded}`,
+          permanent: false,
+        },
+      };
+    }
+
+    // Count how many registrations this tournament already has
+    const currentCount = await Registration.countDocuments({
+      tournament: TOURNAMENT_ID,
+    });
+
+    // If full, ALWAYS redirect to "full" page (prevents manual URL entry)
+    if (currentCount >= MAX_SLOTS) {
+      return {
+        redirect: {
+          destination: "/tournaments-hub/valorant-types?full=1",
+          permanent: false,
+        },
+      };
+    }
+
+    // Check if this player is already registered
+    const alreadyInRegistration = await Registration.findOne({
+      discordTag: player.discordId,
+      tournament: TOURNAMENT_ID,
+    }).lean();
+
+    const alreadyInPlayerArray = (player.registeredFor || []).some(
+      (entry) => entry.tournamentId === TOURNAMENT_ID
+    );
+
+    const alreadyRegistered = !!(alreadyInRegistration || alreadyInPlayerArray);
+
+    return {
+      props: {
+        username: player.username || player.discordTag || "",
+        discordId: player.discordId || "",
+        avatar: player.avatar || player.discordAvatar || null,
+        playerId: String(player._id),
+        alreadyRegistered,
+        gsspError: false,
+        errorMessage: "",
+      },
+    };
+  } catch (err) {
+    console.error("[valorant/register] getServerSideProps error:", err);
+    return {
+      props: {
+        username: "",
+        discordId: "",
+        avatar: null,
+        playerId: null,
+        alreadyRegistered: false,
+        gsspError: true,
+        errorMessage: String(err?.message || err),
+      },
+    };
+  }
 }
 
+// ---------- CLIENT SIDE ----------
 export default function ValorantRegisterPage(props) {
-  // This component won't actually render for users anymore because of the redirect,
-  // but we keep it here in case you want to re-open or reuse this page later.
   const {
     username,
     discordId,
@@ -105,7 +182,7 @@ export default function ValorantRegisterPage(props) {
           playerId,
           tournamentId: TOURNAMENT_ID,
           ign,
-          rank, // now "Peak Rank" combined
+          rank, // now Peak Rank combined
         }),
       });
 
