@@ -1,5 +1,8 @@
-/* Losers bracket: each matchup is one .pair (2 players)
-   R1 match 1 and R2 match 1 now share the SAME vertical center. */
+/* Losers bracket: structured so that:
+   - R1 match 1 & R2 match 1 share the same center
+   - R3A match 1 is centered between R2 match 1 & 2
+   - R3A match 2 is centered between R2 match 3 & 4
+*/
 
 .lbViewport{
   --colw: clamp(120px, 9vw, 160px);
@@ -60,12 +63,7 @@
 
 .round{ position:relative; }
 
-/* IMPORTANT:
-   We force ALL titles to have the SAME height so that
-   the top of every .stack (R1, R2, R3, ...) starts at
-   the same Y position.
-   Then if R1 and R2 use the same margins, their match 1 centers are equal.
-*/
+/* Force all titles to same height so columns start at same Y */
 .roundTitle{
   color:#dfe6f3;
   font-weight:900;
@@ -74,9 +72,9 @@
   text-transform:uppercase;
   margin-bottom:8px;
 
-  height: 24px;         /* fixed height for every title */
-  line-height: 24px;    /* vertically center the text in that height */
-  white-space: nowrap;  /* prevent R2 title from wrapping to 2 lines */
+  height: 24px;
+  line-height: 24px;
+  white-space: nowrap;
 }
 
 /* container for matches in each column */
@@ -88,34 +86,63 @@
 /* ---------- vertical spacing logic ---------- */
 
 /* R1: base rhythm. each .pair = one matchup
-   .pair[0] == plusle vs Booey (LB Round 1, match 1)
+   .r1 .pair[0] == plusle vs Booey
 */
 .r1 .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R2:
-   we give it the EXACT SAME margins and NO extra offset.
-   Because .roundTitle heights are forced equal above,
-   the top of R1 .stack and R2 .stack is the same.
-
-   ⇒ R2 .pair[0] (Booey vs 蓝蝴蝶ya) has the same center Y
-      as R1 .pair[0] (plusle vs Booey).
+/* R2: same rhythm and no offset.
+   ⇒ .r2 .pair[0] (Booey vs 蓝蝴蝶ya) center == R1 match 1 center.
 */
 .r2 .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 .r2 .stack{
-  margin-top: 0;  /* explicitly say no vertical shift */
+  margin-top: 0;
 }
 
-/* R3A & R3B: keep simple rhythm for now (we can tune later) */
-.r3a .pair,
+/* R3A:
+   We want:
+   - R3A match 1 centered between R2 match 1 & 2
+   - R3A match 2 centered between R2 match 3 & 4
+
+   Let:
+   step = distance between centers of R2 matches = pairH + r1Space.
+
+   Then we need:
+   center(R3A_1) = center(R2_1) + 0.5*step
+   center(R3A_2) = center(R2_1) + 2.5*step
+
+   That implies:
+   - distance between R3A_1 and R3A_2 centers = 2*step
+   - stack offset from top = 0.5*step
+
+   center distance for R3A = pairH + 2*M3 (M3 = margin on .pair)
+
+   So:
+   pairH + 2*M3 = 2*(pairH + r1Space)
+   => M3 = (pairH/2) + r1Space
+
+   And stack offset = 0.5*step = (pairH + r1Space)/2
+*/
+
+/* margin between the two R3A matches (very large on purpose) */
+.r3a .pair{
+  margin: calc( (var(--pairH) / 2) + var(--r1Space) ) 0;
+}
+
+/* shift the entire R3A column down by half a step of R2 spacing */
+.r3a .stack{
+  margin-top: calc( (var(--pairH) + var(--r1Space)) / 2 );
+}
+
+/* R3B: keep simple for now (we can tune later the same way if needed) */
 .r3b .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R4 + LB Final: same base rhythm; can tweak separately later */
+/* R4 + LB Final: same base rhythm for now */
 .r4 .pair,
 .rFinal .pair{
   margin: calc(var(--r1Space)/2) 0;
