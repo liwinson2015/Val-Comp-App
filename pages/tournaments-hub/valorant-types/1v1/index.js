@@ -49,9 +49,8 @@ export default function Valorant1v1ListPage() {
       server: "NA (custom lobby)",
       maps: "Skirmish A / B / C (random)",
       rules: "No smurfing • No cheats",
-      // 🔴 OLD: detailsUrl: "/valorant",
-      // 🔵 NEW: go straight to registration page
-      detailsUrl: "/valorant/register",
+      // IMPORTANT: this is where View details goes
+      detailsUrl: "/valorant",
     },
   ];
 
@@ -81,7 +80,6 @@ export default function Valorant1v1ListPage() {
                   <span className={styles.tag}>{statusLabel}</span>
                   <h3 className={styles.tTitle}>{t.title}</h3>
 
-                  {/* Tournament ID */}
                   <p
                     style={{
                       color: "#9fb0c5",

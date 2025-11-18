@@ -1,42 +1,107 @@
-// /pages/valorant/index.js
+// pages/valorant/index.js
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "../../styles/Valorant.module.css";
+import { connectToDatabase } from "../../lib/mongodb";
+import Player from "../../models/Player";
+import { tournamentsById as catalog } from "../../lib/tournaments";
 
-const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // keep this in sync with your catalog/key
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
-// ---------- SERVER SIDE: always redirect away (tournament closed/full) ----------
+// ---------- SERVER SIDE: only redirect if FULL ----------
 export async function getServerSideProps() {
-  return {
-    redirect: {
-      destination: "/tournaments-hub/valorant-types?full=1",
-      permanent: false,
-    },
-  };
+  try {
+    await connectToDatabase();
+
+    // capacity from your catalog if present, otherwise 16
+    const t = catalog[TOURNAMENT_ID];
+    const capacity = t?.capacity ?? 16;
+
+    const registeredCount = await Player.countDocuments({
+      "registeredFor.tournamentId": TOURNAMENT_ID,
+    });
+
+    const isFull = registeredCount >= capacity;
+
+    if (isFull) {
+      // Tournament full → don't allow manual entry to this page
+      return {
+        redirect: {
+          destination: "/tournaments-hub/valorant-types?full=1",
+          permanent: false,
+        },
+      };
+    }
+
+    // Not full → let the page render, with current slots info
+    return {
+      props: {
+        initialRegistered: registeredCount,
+        capacity,
+      },
+    };
+  } catch (err) {
+    console.error("[/valorant] getServerSideProps error:", err);
+    // Fail open: if the check breaks, still show the page
+    return {
+      props: {
+        initialRegistered: null,
+        capacity: null,
+        error: true,
+      },
+    };
+  }
 }
 
-// ---------- CLIENT SIDE PAGE (will not be seen because of redirect) ----------
-export default function ValorantEventPage() {
-  const [loading, setLoading] = useState(true);
+// ---------- CLIENT SIDE PAGE ----------
+export default function ValorantEventPage({
+  initialRegistered,
+  capacity,
+  error,
+}) {
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+
+  // Optional: keep a slots display, seeded from server
+  const [slotsUsed, setSlotsUsed] = useState(initialRegistered);
+  const [slotsCapacity] = useState(capacity ?? 16);
 
   useEffect(() => {
     let ignore = false;
 
     (async () => {
       try {
-        const url = `/api/registration/status?tournamentId=${encodeURIComponent(
+        // Check login + registration status for this tournament
+        const statusUrl = `/api/registration/status?tournamentId=${encodeURIComponent(
           TOURNAMENT_ID
         )}`;
-        const res = await fetch(url, { credentials: "same-origin" });
-        const data = await res.json();
+        const statusRes = await fetch(statusUrl, {
+          credentials: "same-origin",
+        });
+        const statusData = await statusRes.json();
+
         if (!ignore) {
-          setLoggedIn(!!data.loggedIn);
-          setIsRegistered(!!data.isRegistered);
-          setLoading(false);
+          setLoggedIn(!!statusData.loggedIn);
+          setIsRegistered(!!statusData.isRegistered);
         }
-      } catch {
-        if (!ignore) setLoading(false);
+
+        // Optionally refresh slots from the same API used on the 1v1 list
+        const regInfoRes = await fetch(
+          `/api/tournaments/${TOURNAMENT_ID}/registrations`,
+          { cache: "no-store" }
+        );
+        const regInfo = await regInfoRes.json();
+        if (!ignore) {
+          if (typeof regInfo.registered === "number") {
+            setSlotsUsed(regInfo.registered);
+          }
+        }
+
+        if (!ignore) setLoadingStatus(false);
+      } catch (e) {
+        console.error("[/valorant] client status error:", e);
+        if (!ignore) setLoadingStatus(false);
       }
     })();
 
@@ -45,216 +110,175 @@ export default function ValorantEventPage() {
     };
   }, []);
 
-  // Decide what the red button would do (but this component won't actually render for users)
-  let registerHref = "/valorant/register";
-  let registerLabel = "Register";
-  let disabled = false;
+  const isChecking = loadingStatus;
+  const isErrored = !!error;
 
-  if (!loggedIn) {
-    registerHref = `/api/auth/discord?next=${encodeURIComponent(
-      "/valorant/register"
-    )}`;
+  // CTA button logic
+  let ctaLabel = "Register now";
+  let ctaHref = "/valorant/register";
+  let ctaDisabled = false;
+
+  if (isChecking) {
+    ctaLabel = "Checking status…";
+    ctaHref = null;
+    ctaDisabled = true;
+  } else if (!loggedIn) {
+    ctaLabel = "Log in with Discord";
+    const next = encodeURIComponent("/valorant");
+    ctaHref = `/api/auth/discord?next=${next}`;
+    ctaDisabled = false;
   } else if (isRegistered) {
-    registerHref = "/account/registrations";
-    registerLabel = "View my registration";
+    ctaLabel = "Already registered";
+    ctaHref = null;
+    ctaDisabled = true;
   }
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Hero */}
+        {/* Hero / Header */}
         <section className={styles.hero}>
           <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>VALORANT TOURNAMENT</div>
-            <h1 className={styles.heroTitle}>VALORANT — Solo Skirmish #1</h1>
+            <div className={styles.heroBadge}>VALORANT 1v1</div>
+            <h1 className={styles.heroTitle}>Valorant Skirmish Tournament #1</h1>
             <p className={styles.heroSubtitle}>
-              1v1 skirmish duels. Bragging rights. Skin prize for the winner.
+              Solo 1v1 skirmish hosted by 5TQ. Claim your slot, climb the
+              bracket, and show off your aim.
             </p>
-
-            {/* Buttons */}
-            <div
-              style={{
-                marginTop: 16,
-                display: "flex",
-                gap: 10,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <a
-                href={registerHref}
-                style={{
-                  display: "inline-block",
-                  background: "#ff0046",
-                  color: "white",
-                  fontWeight: 700,
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  boxShadow: "0 10px 30px rgba(255,0,70,0.35)",
-                  opacity: loading ? 0.7 : 1,
-                  pointerEvents: loading ? "none" : "auto",
-                }}
-                aria-disabled={disabled || loading}
-                onClick={(e) => {
-                  if (disabled || loading) e.preventDefault();
-                }}
-              >
-                {registerLabel}
-              </a>
-
-              <a
-                href="https://discord.gg/qUzCCK8nuc"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "inline-block",
-                  background: "#2a2f3a",
-                  color: "white",
-                  fontWeight: 700,
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  border: "1px solid #3a4150",
-                }}
-              >
-                Join Discord
-              </a>
-            </div>
           </div>
         </section>
 
-        {/* Quick facts */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>QUICK FACTS</h2>
-          </div>
-          <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>Mode</div>
-            <div className={styles.detailValue}>1v1 Skirmish</div>
+        {/* Main card */}
+        <section className={styles.panel}>
+          <article className={styles.mainCard}>
+            <div className={styles.cardGlow} />
 
-            <div className={styles.detailLabel}>Slots</div>
-            <div className={styles.detailValue}>16 Players</div>
+            <header className={styles.cardHead}>
+              <div className={styles.cardStatusRow}>
+                <span className={styles.tag}>OPEN</span>
+                <span className={styles.tournamentId}>
+                  Tournament ID:{" "}
+                  <strong className={styles.tournamentIdValue}>
+                    {TOURNAMENT_ID}
+                  </strong>
+                </span>
+              </div>
+              <p className={styles.cardMeta}>
+                Hosted by 5TQ • Starts November 2nd, 2025
+              </p>
+            </header>
 
-            <div className={styles.detailLabel}>Format</div>
-            <div className={styles.detailValue}>
-              Best-of-1 • First to <strong>20</strong> kills •{" "}
-              <strong>Win by 2</strong>
+            <div className={styles.cardBody}>
+              {/* Left column info */}
+              <div className={styles.infoCol}>
+                <div className={styles.factRow}>
+                  <div className={styles.factLabel}>Format</div>
+                  <div className={styles.factValue}>
+                    1v1 • Single Elimination
+                  </div>
+                </div>
+                <div className={styles.factRow}>
+                  <div className={styles.factLabel}>Check-in</div>
+                  <div className={styles.factValue}>
+                    15 min before start (Discord)
+                  </div>
+                </div>
+                <div className={styles.factRow}>
+                  <div className={styles.factLabel}>Prize</div>
+                  <div className={styles.factValue}>
+                    Skin (TBD) + bragging rights
+                  </div>
+                </div>
+                <div className={styles.factRow}>
+                  <div className={styles.factLabel}>Server</div>
+                  <div className={styles.factValue}>NA (custom lobby)</div>
+                </div>
+                <div className={styles.factRow}>
+                  <div className={styles.factLabel}>Maps</div>
+                  <div className={styles.factValue}>
+                    Skirmish A / B / C (random)
+                  </div>
+                </div>
+                <div className={styles.factRow}>
+                  <div className={styles.factLabel}>Rules</div>
+                  <div className={styles.factValue}>
+                    No smurfing • No cheats
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column: slots + CTA */}
+              <div className={styles.sideCol}>
+                <div className={styles.slotsBox}>
+                  <div className={styles.slotsLabel}>Slots</div>
+                  <div className={styles.slotsValue}>
+                    {slotsUsed == null || slotsCapacity == null
+                      ? "—"
+                      : `${slotsUsed} / ${slotsCapacity}`}
+                  </div>
+                  {isErrored && (
+                    <div className={styles.slotsNote}>
+                      (Could not refresh status; values may be slightly stale.)
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.ctaWrap}>
+                  {ctaHref ? (
+                    <Link
+                      href={ctaHref}
+                      className={styles.primaryBtn}
+                      aria-disabled={ctaDisabled ? "true" : "false"}
+                      style={
+                        ctaDisabled
+                          ? {
+                              pointerEvents: "none",
+                              opacity: 0.7,
+                              cursor: "default",
+                            }
+                          : undefined
+                      }
+                    >
+                      {ctaLabel}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.primaryBtn}
+                      disabled={ctaDisabled}
+                      style={
+                        ctaDisabled
+                          ? {
+                              pointerEvents: "none",
+                              opacity: 0.7,
+                              cursor: "default",
+                            }
+                          : undefined
+                      }
+                    >
+                      {ctaLabel}
+                    </button>
+                  )}
+
+                  <p className={styles.smallNote}>
+                    You&apos;ll need to log in with Discord to secure your slot.
+                    No alt accounts, smurfing, or cheating allowed.
+                  </p>
+                </div>
+              </div>
             </div>
-
-            <div className={styles.detailLabel}>Map</div>
-            <div className={styles.detailValue}>
-              Randomized: Skirmish A, B, or C
-            </div>
-
-            <div className={styles.detailLabel}>Server</div>
-            <div className={styles.detailValue}>NA (custom lobby)</div>
-
-            <div className={styles.detailLabel}>Check-in</div>
-            <div className={styles.detailValue}>
-              15 minutes before start in Discord
-            </div>
-
-            <div className={styles.detailLabel}>Entry</div>
-            <div className={styles.detailValue}>Free</div>
-
-            <div className={styles.detailLabel}>Prize</div>
-            <div className={styles.detailValue}>
-              Skin (TBD) + bragging rights
-            </div>
-          </div>
+          </article>
         </section>
 
-        {/* Format & Scoring */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>FORMAT & SCORING</h2>
-          </div>
-          <ul className={styles.rulesList}>
-            <li>
-              <strong>Match:</strong> <strong>Best-of-1</strong>.
-            </li>
-            <li>
-              <strong>Game Win Condition:</strong> First to <strong>20</strong>{" "}
-              kills and must lead by <strong>2</strong> (win-by-two).
-            </li>
-            <li>
-              <strong>No time cap.</strong> Play continues until win-by-two is
-                achieved.
-            </li>
-            <li>
-              <strong>Map:</strong> Randomized each match between{" "}
-              <em>Skirmish A / B / C</em>.
-            </li>
-            <li>
-              <strong>Lobby:</strong> Admin/stream host invites both players. Be
-              online and ready at your match time.
-            </li>
-          </ul>
-        </section>
-
-        {/* Rules & Conduct */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>RULES & CONDUCT</h2>
-          </div>
-          <ul className={styles.rulesList}>
-            <li>No smurfing. No cheats, scripts, or third-party aim tools.</li>
-            <li>No-shows: 5-minute grace, then you may be replaced by a sub.</li>
-            <li>
-              Disconnects before 3 kills → remake; after 3 kills → continue
-              from score unless admin rules otherwise.
-            </li>
-            <li>
-              Report scores in Discord with a screenshot; both players must
-              confirm.
-            </li>
-            <li>Admins have final say on disputes.</li>
-          </ul>
-        </section>
-
-        {/* Schedule & Reporting */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>SCHEDULE & REPORTING</h2>
-          </div>
-          <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>Check-in</div>
-            <div className={styles.detailValue}>
-              15 minutes before bracket start in <strong>#check-in</strong>
-            </div>
-
-            <div className={styles.detailLabel}>Round Pace</div>
-            <div className={styles.detailValue}>
-              Please be ready; matches fire back-to-back
-            </div>
-
-            <div className={styles.detailLabel}>Report</div>
-            <div className={styles.detailValue}>
-              Post final score + screenshot in <strong>#match-report</strong>
-            </div>
-
-            <div className={styles.detailLabel}>Stream</div>
-            <div className={styles.detailValue}>
-              Select matches may be streamed or clipped
-            </div>
-          </div>
-        </section>
-
-        {/* Eligibility / Registration policy */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>ELIGIBILITY & REGISTRATION</h2>
-          </div>
-          <ul className={styles.rulesList}>
-            <li>Must join Discord and respond to check-in pings.</li>
-            <li>One entry per player. Duplicate entries will be removed.</li>
-            <li>
-              If you’ve already registered, the Register page will show you as
-              locked-in automatically.
-            </li>
-          </ul>
-        </section>
+        {/* Back link */}
+        <div className={styles.backBar}>
+          <Link
+            href="/tournaments-hub/valorant-types/1v1"
+            className={styles.ghostBtn}
+          >
+            ← Back to 1v1 list
+          </Link>
+        </div>
       </div>
     </div>
   );
