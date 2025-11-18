@@ -1,22 +1,25 @@
 // pages/admin/index.js
 import React from "react";
+import { useRouter } from "next/router";
+import styles from "../../styles/AdminDashboard.module.css";
+import { connectToDatabase } from "../../lib/mongodb";
+import Player from "../../models/Player";
 import { getCurrentPlayerFromReq } from "../../lib/getCurrentPlayer";
-import styles from "../../styles/Valorant.module.css";
 
+// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req }) {
   const player = await getCurrentPlayerFromReq(req);
 
-  // 1) Not logged in → send to Discord login, then back to /admin
   if (!player) {
+    const encoded = encodeURIComponent("/admin");
     return {
       redirect: {
-        destination: "/api/auth/discord?next=/admin",
+        destination: `/api/auth/discord?next=${encoded}`,
         permanent: false,
       },
     };
   }
 
-  // 2) Logged in but not admin → send to home page
   if (!player.isAdmin) {
     return {
       redirect: {
@@ -26,104 +29,121 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  // 3) Admin → allow access
+  // (Optional) you can load some basic stats later
+  await connectToDatabase();
+  const totalPlayers = await Player.countDocuments({});
+  // const totalTournaments = 0; // placeholder for when you add tournaments
+
   return {
     props: {
       player: {
-        _id: player._id.toString(),
-        username: player.username || "",
-        discordId: player.discordId || "",
+        username: player.username,
+        discordId: player.discordId,
+        email: player.email || null,
+      },
+      stats: {
+        totalPlayers,
+        // totalTournaments,
       },
     },
   };
 }
 
-export default function AdminDashboard({ player }) {
+// ---------- PAGE COMPONENT ----------
+export default function AdminDashboard({ player, stats }) {
+  const router = useRouter();
+
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.contentWrapper}>
-        <h1 className={styles.pageTitle}>Admin Dashboard</h1>
-
-        <p className={styles.subtitle}>
-          Logged in as <strong>{player.username || "Unknown"}</strong> (Discord
-          ID: {player.discordId || "N/A"})
-        </p>
-
-        <p style={{ marginBottom: "1.5rem" }}>
-          This is your private admin area. From here we&apos;ll add tools to
-          create tournaments, randomize brackets, and manage players.
-        </p>
-
-        <ul style={{ marginBottom: "2rem" }}>
-          <li>✅ Only admin accounts (isAdmin = true) can see this page</li>
-          <li>❌ Non-admin accounts will be redirected to /</li>
-          <li>❌ Logged-out users will be sent to Discord login</li>
-        </ul>
-
-        {/* 🔥 Admin tools section */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-          <a
-            href="/admin/brackets"
-            style={{
-              padding: "10px 16px",
-              borderRadius: "8px",
-              background: "#1f2933",
-              border: "1px solid #374151",
-              color: "white",
-              textDecoration: "none",
-              fontSize: "0.95rem",
-            }}
-          >
-            🧩 Manage Brackets
-          </a>
-
-          <a
-            href="/admin/players"
-            style={{
-              padding: "10px 16px",
-              borderRadius: "8px",
-              background: "#1f2933",
-              border: "1px solid #374151",
-              color: "white",
-              textDecoration: "none",
-              fontSize: "0.95rem",
-            }}
-          >
-            👤 Manage Players
-          </a>
-
-          {/* placeholders for future tools */}
-          <a
-            href="/admin"
-            style={{
-              padding: "10px 16px",
-              borderRadius: "8px",
-              background: "#111827",
-              border: "1px dashed #374151",
-              color: "#9ca3af",
-              textDecoration: "none",
-              fontSize: "0.9rem",
-              pointerEvents: "none",
-            }}
-          >
-            (coming soon) Tournaments
-          </a>
-          <a
-            href="/admin"
-            style={{
-              padding: "10px 16px",
-              borderRadius: "8px",
-              background: "#111827",
-              border: "1px dashed #374151",
-              color: "#9ca3af",
-              textDecoration: "none",
-              fontSize: "0.9rem",
-              pointerEvents: "none",
-            }}
-          >
-            (coming soon) Announcements
-          </a>
+    <div className={styles.page}>
+      <div className={styles.headerRow}>
+        <div>
+          <h1 className={styles.title}>Admin Dashboard</h1>
+          <p className={styles.subtitle}>
+            Welcome back, <span className={styles.highlight}>{player.username}</span>
+          </p>
         </div>
+        <div className={styles.badge}>ADMIN</div>
+      </div>
+
+      <div className={styles.grid}>
+        {/* LEFT: Admin info + system status */}
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Account Overview</h2>
+          <p className={styles.cardText}>
+            Logged in as <span className={styles.bold}>{player.username}</span>
+          </p>
+          <p className={styles.cardMeta}>
+            Discord ID: <span className={styles.mono}>{player.discordId}</span>
+          </p>
+          {player.email && (
+            <p className={styles.cardMeta}>
+              Email: <span className={styles.mono}>{player.email}</span>
+            </p>
+          )}
+
+          <div className={styles.statusList}>
+            <div className={styles.statusItem}>
+              <span className={styles.statusDot + " " + styles.ok} />
+              Only <span className={styles.bold}>admin accounts</span> can access this page.
+            </div>
+            <div className={styles.statusItem}>
+              <span className={styles.statusDot + " " + styles.warn} />
+              Non-admin users are redirected to the home page.
+            </div>
+            <div className={styles.statusItem}>
+              <span className={styles.statusDot + " " + styles.error} />
+              Logged-out users are sent to Discord login.
+            </div>
+          </div>
+
+          <div className={styles.statsRow}>
+            <div className={styles.statBox}>
+              <div className={styles.statLabel}>Total Players</div>
+              <div className={styles.statValue}>{stats.totalPlayers}</div>
+            </div>
+            <div className={styles.statBox}>
+              <div className={styles.statLabel}>Tournaments</div>
+              <div className={styles.statValue}>coming soon</div>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT: Quick actions */}
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Quick Actions</h2>
+          <p className={styles.cardText}>
+            Use these tools to manage brackets, players, and upcoming events.
+          </p>
+
+          <div className={styles.buttonGrid}>
+            <button
+              className={styles.primaryButton}
+              onClick={() => router.push("/admin/brackets")}
+            >
+              🧩 Manage Brackets
+            </button>
+
+            <button
+              className={styles.secondaryButton}
+              onClick={() => router.push("/admin/players")}
+            >
+              👥 Manage Players
+            </button>
+
+            <button className={styles.disabledButton} disabled>
+              🏆 Tournaments (soon)
+            </button>
+
+            <button className={styles.disabledButton} disabled>
+              📢 Announcements (soon)
+            </button>
+          </div>
+
+          <div className={styles.helperText}>
+            Future tools will let you create tournaments, schedule matches, and
+            send announcements directly to registered players.
+          </div>
+        </section>
       </div>
     </div>
   );
