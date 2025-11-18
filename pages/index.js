@@ -180,7 +180,7 @@ export default function HomePage({ featured }) {
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>TEAMFIGHT TACTICS</div>
-                <div className={styles.gameDesc}>Free for all</div>
+                <div className={styles.gameDesc}>FFA and DBU</div>
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>FUTURE TITLES</div>
