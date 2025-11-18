@@ -4,28 +4,29 @@
   --colw: clamp(112px, 9vw, 140px);
   --gap:  clamp(18px, 2.2vw, 24px);
 
-  /* box geometry */
-  --slotH: 32px;
+  /* box sizes */
+  --slotH: 38px;                 /* was 32px, slightly taller slots */
   --pairGapInside: 10px;
   --pairPad: 4px;
+
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  /* vertical rhythms (these values kept from your original so lines line up) */
-  --r1Space: 12px;
+  /* vertical rhythms */
+  --r1Space: 24px;               /* was 12px, more space between the 4 R1 matchups */
+  /* R2 no longer uses the "center between feeders" spacing.
+     We'll override R2 below to use the same rhythm as R1. */
   --r2Space: calc(var(--pairH) + 20px);
   --r3Space: calc(var(--pairH) + var(--r2Space));
   --r4Space: calc(var(--pairH) + var(--r3Space));
 
-  /* line + joins */
-  --line: #293247;
+  --line: #2a2f36;
   --joinW: 2px;
   --stub: 10px;
   --arm:  calc(var(--gap) - var(--stub));
 
-  /* DARK THEME: only these colors changed */
-  --slotBg: #020617;
-  --slotBorder: #374151;
-  --textDark: #e5e7eb;
+  --slotBg: #f5f7fb;
+  --slotBorder: #cfd7ea;
+  --textDark: #0f1320;
 
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
   --stageH: clamp(470px, 56vh, 640px);
@@ -41,14 +42,12 @@
   place-items:center;
   overflow:visible;
 }
-
 .lbStage{
   width:var(--stageW);
   height:var(--stageH);
   transform:scale(var(--scale));
   transform-origin:top center;
 }
-
 .lbGrid{
   width:100%;
   height:100%;
@@ -66,16 +65,16 @@
 }
 .stack{ position:relative; display:grid; }
 
-/* spacing per round – SAME as your original so connectors line up */
+/* spacing per round */
 .r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
 
-/* R2 compact, same rhythm as R1 */
+/* R2 COMPACT: make it same rhythm as R1 so the column isn't long */
 .r2  .pair{ margin: calc(var(--r1Space)/2) 0; }
 
 /* keep others a bit roomier */
 .r3a .pair{ margin: 18px 0; }
 .r3b .pair{ margin: 18px 0; }
-.r4  .pair{ margin: 22px 0; }
+.r4  .pair{  margin: 22px 0; }
 .rFinal .pair{ margin: 26px 0; }
 
 /* pair / slots */
@@ -90,18 +89,16 @@
   width: var(--stub); height: var(--joinW);
   background: var(--line);
 }
-
 .slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
-  border-radius: 6px;
-  background: radial-gradient(circle at top left,#1f2937,#020617);
+  border-radius: 0;    /* SQUARE */
+  background: var(--slotBg);
   display:flex; align-items:center;
   padding: 0 10px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.65);
+  box-shadow: none;
 }
 .slot + .slot{ margin-top: var(--pairGapInside); }
-
 .label{
   color: var(--textDark);
   font-weight: 700; font-size: 13px;
@@ -134,10 +131,8 @@
 }
 .lbWinnerPill{
   min-width: var(--colw);
-  background: radial-gradient(circle at top left,#1f2937,#020617);
-  border:2px solid #4b5563; color:#ffffff;
-  border-radius:999px; padding:10px 16px;
+  background:#1c2952; border:2px solid #122040; color:#ffffff;
+  border-radius:8px; padding:10px 16px;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 12px 30px rgba(15,23,42,0.9);
 }
-.lbWinnerText{ font-weight:800; font-size:14px; letter-spacing:0.04em; }
+.lbWinnerText{ font-weight:800; }
