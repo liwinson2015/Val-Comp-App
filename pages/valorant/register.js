@@ -168,7 +168,11 @@ export default function ValorantRegisterPage(props) {
       return;
     }
 
-    const ign = `${nameTrimmed}#${tagTrimmed}`; // e.g. "5TQ#NA1"
+    // 🔹 What you want:
+    // ign  = name only (e.g. "5TQ")
+    // fullIgn = "name#tag" (e.g. "5TQ#NA1")
+    const ign = nameTrimmed; // name only, this is what your backend already uses
+    const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // full Riot ID for future use
     const rank = `${peakRankTier} ${peakRankDivision}`; // e.g. "Gold 2"
 
     setSubmitting(true);
@@ -181,7 +185,8 @@ export default function ValorantRegisterPage(props) {
         body: JSON.stringify({
           playerId,
           tournamentId: TOURNAMENT_ID,
-          ign,
+          ign,      // name only, unchanged behavior for backend
+          fullIgn,  // extra data – backend can choose to save this
           rank,
         }),
       });

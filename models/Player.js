@@ -18,22 +18,29 @@ const PlayerSchema = new mongoose.Schema(
       type: String,
     },
 
-    // 🔥 NEW FIELD (admin control)
+    // 🔥 Existing admin flag
     isAdmin: {
       type: Boolean,
       default: false,
     },
 
-    // 🔥 NEW FIELD — notes added by admins
+    // 🔥 Admin notes
     adminNotes: {
       type: String,
       default: "",
     },
 
+    // 🔥 Tournament history
     registeredFor: [
       {
         tournamentId: String,
+
+        // ign = name only (what your backend already uses!)
         ign: String,
+
+        // NEW FIELD — full Riot ID ("name#tagline")
+        fullIgn: String,
+
         rank: String,
         createdAt: { type: Date, default: Date.now },
       },

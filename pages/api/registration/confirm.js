@@ -9,11 +9,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { playerId, tournamentId, ign, rank } = req.body;
+    // 🔹 NEW: accept fullIgn (optional extra field)
+    const { playerId, tournamentId, ign, fullIgn, rank } = req.body;
 
     const cleanIgn = typeof ign === "string" ? ign.trim() : "";
+    const cleanFullIgn =
+      typeof fullIgn === "string" ? fullIgn.trim() : "";
     const cleanRank = typeof rank === "string" ? rank.trim() : "";
 
+    // We still only *require* ign + rank (same behavior as before)
     if (!playerId || !tournamentId || !cleanIgn || !cleanRank) {
       return res.status(400).send("Missing required fields");
     }
@@ -54,13 +58,21 @@ export default async function handler(req, res) {
     });
 
     // Also store on the Player document for history / admin view
+    // 🔹 ign = name only (what your backend already uses)
+    // 🔹 fullIgn = optional full Riot ID (name#tagline)
+    const registeredEntry = {
+      tournamentId,
+      ign: cleanIgn,          // e.g. "5TQ"  (name only)
+      rank: cleanRank,        // e.g. "Gold 2" (peak rank)
+    };
+
+    if (cleanFullIgn) {
+      registeredEntry.fullIgn = cleanFullIgn; // e.g. "5TQ#NA1"
+    }
+
     await Player.findByIdAndUpdate(playerId, {
       $push: {
-        registeredFor: {
-          tournamentId,
-          ign: cleanIgn,      // e.g. "5TQ#NA1"
-          rank: cleanRank,    // e.g. "Gold 2" (peak rank)
-        },
+        registeredFor: registeredEntry,
       },
     });
 
