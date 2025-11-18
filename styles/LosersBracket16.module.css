@@ -156,8 +156,8 @@
 }
 
 /* LB Final:
-   Move this column so that the TOP PLAYER is visually aligned with
-   the CENTER of Round 4. We nudge it down a bit from before.
+   Top player of LB Final is aligned with the CENTER of Round 4.
+   (We keep this as is; we only move the LB Winner pill now.)
 */
 .rFinal .pair{
   margin: 0;
@@ -165,7 +165,7 @@
 
 .rFinal .stack{
   margin-top: calc(
-    4.5 * var(--slotH) +    /* was 4 * slotH → push LB Final down */
+    4.5 * var(--slotH) +
     3 * var(--pairGapInside) +
     4 * var(--pairPad) +
     2 * var(--r1Space)
@@ -283,6 +283,16 @@
   display:flex;
   align-items:center;
   justify-content:center;
+
+  /* move ONLY the pill down so its center is between
+     the two LB Final players, while "LB WINNER" text
+     stays at the very top */
+  margin-top: calc(
+    5 * var(--slotH) +
+    3.5 * var(--pairGapInside) +
+    5 * var(--pairPad) +
+    2 * var(--r1Space)
+  );
 }
 
 .lbWinnerText{
