@@ -5,14 +5,14 @@
   --gap:  clamp(18px, 2.2vw, 24px);
 
   /* box sizes */
-  --slotH: 38px;                 /* was 32px, slightly taller slots */
+  --slotH: 44px;                 /* was 38px, slightly bigger again */
   --pairGapInside: 10px;
   --pairPad: 4px;
 
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
   /* vertical rhythms */
-  --r1Space: 24px;               /* was 12px, more space between the 4 R1 matchups */
+  --r1Space: 24px;               /* more space between the 4 R1 matchups */
   /* R2 no longer uses the "center between feeders" spacing.
      We'll override R2 below to use the same rhythm as R1. */
   --r2Space: calc(var(--pairH) + 20px);
@@ -94,9 +94,12 @@
   border: 2px solid var(--slotBorder);
   border-radius: 0;    /* SQUARE */
   background: var(--slotBg);
-  display:flex; align-items:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;  /* horizontally center the names */
   padding: 0 10px;
   box-shadow: none;
+  text-align: center;      /* center text inside */
 }
 .slot + .slot{ margin-top: var(--pairGapInside); }
 .label{
