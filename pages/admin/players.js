@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import { getCurrentPlayerFromReq } from "../../lib/getCurrentPlayer";
 import Player from "../../models/Player";
+import { tournamentsById as catalog } from "../../lib/tournaments";
 import styles from "../../styles/Valorant.module.css";
 
 // ---------- SERVER SIDE ----------
@@ -34,18 +35,25 @@ export async function getServerSideProps({ req }) {
 
   const rawPlayers = await Player.find({}).lean();
 
+  // Build simple tournament list from catalog
+  const tournaments = Object.entries(catalog).map(([id, t]) => ({
+    id,
+    name: t.name || t.title || t.displayName || id,
+    game: t.game || "",
+    mode: t.mode || "",
+  }));
+
   const players = rawPlayers.map((p) => {
     // ---------- build avatar URL (Discord CDN) ----------
-    const avatarHash =
-      p.avatar ||
-      p.discordAvatar ||
-      p.avatarUrl ||
-      null;
+    const avatarHash = p.avatar || p.discordAvatar || p.avatarUrl || null;
 
     let avatarUrl = null;
     if (avatarHash && p.discordId) {
       avatarUrl = `https://cdn.discordapp.com/avatars/${p.discordId}/${avatarHash}.png?size=128`;
-    } else if (typeof p.avatarUrl === "string" && p.avatarUrl.startsWith("http")) {
+    } else if (
+      typeof p.avatarUrl === "string" &&
+      p.avatarUrl.startsWith("http")
+    ) {
       avatarUrl = p.avatarUrl;
     }
 
@@ -88,11 +96,7 @@ export async function getServerSideProps({ req }) {
     });
 
     const discordName =
-      p.discordTag ||
-      p.username ||
-      p.displayName ||
-      p.globalName ||
-      "";
+      p.discordTag || p.username || p.displayName || p.globalName || "";
 
     return {
       id: String(p._id),
@@ -105,6 +109,7 @@ export async function getServerSideProps({ req }) {
       createdAt: p.createdAt ? String(p.createdAt) : "",
       mmr: p.mmr || null,
       rank: p.rank || "",
+      adminNotes: p.adminNotes || "",
       registeredFor,
     };
   });
@@ -112,20 +117,48 @@ export async function getServerSideProps({ req }) {
   return {
     props: {
       players,
+      tournaments,
     },
   };
 }
 
 // ---------- CLIENT SIDE ----------
-export default function AdminPlayersPage({ players }) {
+export default function AdminPlayersPage({ players, tournaments }) {
+  const [playersState, setPlayersState] = useState(players || []);
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState(players[0]?.id || null);
+  const [tournamentFilter, setTournamentFilter] = useState("all");
+  const [onlyNeverRegistered, setOnlyNeverRegistered] = useState(false);
 
+  const [selectedId, setSelectedId] = useState(
+    () => (players && players[0]?.id) || null
+  );
+
+  const [notesDraft, setNotesDraft] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesMessage, setNotesMessage] = useState("");
+
+  // Compute filtered players based on filters + search
   const filteredPlayers = useMemo(() => {
     const q = query.toLowerCase().trim();
-    if (!q) return players;
 
-    return players.filter((p) => {
+    return playersState.filter((p) => {
+      // Filter: never registered
+      if (onlyNeverRegistered && (p.registeredFor || []).length > 0) {
+        return false;
+      }
+
+      // Filter: registered for tournament X
+      if (tournamentFilter !== "all") {
+        const hasTournament = (p.registeredFor || []).some(
+          (r) =>
+            r.tournamentId === tournamentFilter || r.id === tournamentFilter
+        );
+        if (!hasTournament) return false;
+      }
+
+      // Text search
+      if (!q) return true;
+
       const haystack = [
         p.discordName,
         p.riotId,
@@ -139,10 +172,12 @@ export default function AdminPlayersPage({ players }) {
 
       return haystack.includes(q);
     });
-  }, [players, query]);
+  }, [playersState, query, tournamentFilter, onlyNeverRegistered]);
 
   const selectedPlayer =
-    filteredPlayers.find((p) => p.id === selectedId) || filteredPlayers[0] || null;
+    filteredPlayers.find((p) => p.id === selectedId) ||
+    filteredPlayers[0] ||
+    null;
 
   // If filter removed the previously selected player, update selection
   useEffect(() => {
@@ -151,14 +186,64 @@ export default function AdminPlayersPage({ players }) {
     }
   }, [selectedPlayer, filteredPlayers]);
 
+  // Sync notesDraft when selected player changes
+  useEffect(() => {
+    if (selectedPlayer) {
+      setNotesDraft(selectedPlayer.adminNotes || "");
+      setNotesMessage("");
+    }
+  }, [selectedPlayer]);
+
+  async function handleSaveNotes() {
+    if (!selectedPlayer) return;
+    setSavingNotes(true);
+    setNotesMessage("");
+
+    try {
+      const res = await fetch("/api/admin/update-player-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId: selectedPlayer.id,
+          notes: notesDraft,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Failed to save notes:", text);
+        setNotesMessage("Error saving notes.");
+      } else {
+        // Update local state
+        setPlayersState((prev) =>
+          prev.map((p) =>
+            p.id === selectedPlayer.id ? { ...p, adminNotes: notesDraft } : p
+          )
+        );
+        setNotesMessage("Saved.");
+      }
+    } catch (err) {
+      console.error("Error saving notes:", err);
+      setNotesMessage("Error saving notes.");
+    } finally {
+      setSavingNotes(false);
+      setTimeout(() => setNotesMessage(""), 2000);
+    }
+  }
+
   return (
-    <div className={styles.container} style={{ padding: "2rem 1rem", color: "#e5e7eb" }}>
+    <div
+      className={styles.container}
+      style={{ padding: "2rem 1rem", color: "#e5e7eb" }}
+    >
       <h1 className={styles.pageTitle}>Admin · Players</h1>
 
+      {/* Search + filters row */}
       <div
         style={{
           margin: "1rem 0 1.5rem",
           display: "flex",
+          flexWrap: "wrap",
           gap: "0.75rem",
           alignItems: "center",
         }}
@@ -169,7 +254,8 @@ export default function AdminPlayersPage({ players }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{
-            flex: 1,
+            flex: "1 1 220px",
+            minWidth: "220px",
             padding: "0.55rem 0.8rem",
             borderRadius: "6px",
             border: "1px solid #4b5563",
@@ -178,7 +264,49 @@ export default function AdminPlayersPage({ players }) {
             fontSize: "0.9rem",
           }}
         />
-        <span style={{ fontSize: "0.85rem", opacity: 0.8 }}>
+
+        {/* Tournament filter */}
+        <select
+          value={tournamentFilter}
+          onChange={(e) => setTournamentFilter(e.target.value)}
+          style={{
+            flex: "0 0 220px",
+            padding: "0.55rem 0.7rem",
+            borderRadius: "6px",
+            border: "1px solid #4b5563",
+            background: "#020617",
+            color: "#f9fafb",
+            fontSize: "0.85rem",
+          }}
+        >
+          <option value="all">All tournaments</option>
+          {tournaments.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name} ({t.id})
+            </option>
+          ))}
+        </select>
+
+        {/* Never-registered filter */}
+        <label
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            fontSize: "0.8rem",
+            color: "#d1d5db",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={onlyNeverRegistered}
+            onChange={(e) => setOnlyNeverRegistered(e.target.checked)}
+            style={{ accentColor: "#f97316" }}
+          />
+          <span>Only players who never registered</span>
+        </label>
+
+        <span style={{ fontSize: "0.85rem", opacity: 0.8, marginLeft: "auto" }}>
           {filteredPlayers.length} players
         </span>
       </div>
@@ -314,7 +442,12 @@ export default function AdminPlayersPage({ players }) {
                         marginTop: "0.1rem",
                       }}
                     >
-                      {/* intentionally empty: different games have different fields */}
+                      {p.riotId && <span>Riot: {p.riotId}</span>}
+                      {p.ign && <span>IGN: {p.ign}</span>}
+                      {p.rank && <span>Rank: {p.rank}</span>}
+                      {!p.riotId && !p.ign && !p.rank && (
+                        <span style={{ opacity: 0.7 }}>(no extra info)</span>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -416,9 +549,15 @@ export default function AdminPlayersPage({ players }) {
                         color: "#9ca3af",
                       }}
                     >
-                      <div>Discord ID: {selectedPlayer.discordId || "—"}</div>
-                      {selectedPlayer.rank && <div>Rank: {selectedPlayer.rank}</div>}
-                      {selectedPlayer.mmr != null && <div>MMR: {selectedPlayer.mmr}</div>}
+                      <div>
+                        Discord ID: {selectedPlayer.discordId || "—"}
+                      </div>
+                      {selectedPlayer.rank && (
+                        <div>Rank: {selectedPlayer.rank}</div>
+                      )}
+                      {selectedPlayer.mmr != null && (
+                        <div>MMR: {selectedPlayer.mmr}</div>
+                      )}
                     </div>
                   </div>
 
@@ -431,11 +570,91 @@ export default function AdminPlayersPage({ players }) {
                       }}
                     >
                       Joined:{" "}
-                      {new Date(selectedPlayer.createdAt).toLocaleString("en-US", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
+                      {new Date(selectedPlayer.createdAt).toLocaleString(
+                        "en-US",
+                        {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }
+                      )}
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Admin notes */}
+              <div
+                style={{
+                  marginTop: "0.5rem",
+                  borderTop: "1px solid #1f2937",
+                  paddingTop: "0.7rem",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "#9ca3af",
+                    marginBottom: "0.35rem",
+                  }}
+                >
+                  Admin Notes
+                </div>
+                <textarea
+                  value={notesDraft}
+                  onChange={(e) => setNotesDraft(e.target.value)}
+                  rows={3}
+                  placeholder="Internal notes for this player (no-shows, behavior, etc.)"
+                  style={{
+                    width: "100%",
+                    resize: "vertical",
+                    minHeight: "70px",
+                    background: "#020617",
+                    borderRadius: "6px",
+                    border: "1px solid #4b5563",
+                    padding: "0.5rem 0.6rem",
+                    color: "#e5e7eb",
+                    fontSize: "0.85rem",
+                    fontFamily: "inherit",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: "0.4rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleSaveNotes}
+                    disabled={savingNotes}
+                    style={{
+                      padding: "0.35rem 0.7rem",
+                      fontSize: "0.8rem",
+                      borderRadius: "6px",
+                      border: "none",
+                      backgroundColor: savingNotes ? "#4b5563" : "#f97316",
+                      color: "#111827",
+                      fontWeight: 600,
+                      cursor: savingNotes ? "wait" : "pointer",
+                    }}
+                  >
+                    {savingNotes ? "Saving…" : "Save notes"}
+                  </button>
+                  {notesMessage && (
+                    <span
+                      style={{
+                        fontSize: "0.8rem",
+                        color:
+                          notesMessage === "Saved." ? "#22c55e" : "#f97316",
+                      }}
+                    >
+                      {notesMessage}
+                    </span>
                   )}
                 </div>
               </div>
@@ -519,7 +738,8 @@ export default function AdminPlayersPage({ players }) {
                               display: "flex",
                               justifyContent: "space-between",
                               gap: "0.75rem",
-                              marginBottom: extraEntries.length > 0 ? "0.35rem" : 0,
+                              marginBottom:
+                                extraEntries.length > 0 ? "0.35rem" : 0,
                               flexWrap: "wrap",
                             }}
                           >
@@ -535,7 +755,9 @@ export default function AdminPlayersPage({ players }) {
                               {reg.game || "—"}
                               {reg.mode ? ` · ${reg.mode}` : ""}
                             </div>
-                            <div style={{ color: "#9ca3af" }}>{formattedDate}</div>
+                            <div style={{ color: "#9ca3af" }}>
+                              {formattedDate}
+                            </div>
                             <div style={{ color: "#fbbf24" }}>
                               {resultPieces.length > 0
                                 ? resultPieces.join(" · ")
@@ -568,7 +790,8 @@ export default function AdminPlayersPage({ players }) {
                                 style={{
                                   margin: 0,
                                   display: "grid",
-                                  gridTemplateColumns: "110px minmax(0, 1fr)",
+                                  gridTemplateColumns:
+                                    "110px minmax(0, 1fr)",
                                   rowGap: "0.12rem",
                                   columnGap: "0.5rem",
                                   fontSize: "0.8rem",

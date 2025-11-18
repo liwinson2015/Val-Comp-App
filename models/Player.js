@@ -24,6 +24,12 @@ const PlayerSchema = new mongoose.Schema(
       default: false,
     },
 
+    // 🔥 NEW FIELD — notes added by admins
+    adminNotes: {
+      type: String,
+      default: "",
+    },
+
     registeredFor: [
       {
         tournamentId: String,
