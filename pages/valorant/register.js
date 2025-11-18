@@ -6,6 +6,20 @@ import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
+const VALORANT_RANK_TIERS = [
+  "Iron",
+  "Bronze",
+  "Silver",
+  "Gold",
+  "Platinum",
+  "Diamond",
+  "Ascendant",
+  "Immortal",
+  "Radiant",
+];
+
+const VALORANT_DIVISIONS = ["1", "2", "3"];
+
 // 🚫 SERVER SIDE: this event is closed/full → always redirect
 export async function getServerSideProps() {
   return {
@@ -29,8 +43,11 @@ export default function ValorantRegisterPage(props) {
     errorMessage,
   } = props || {};
 
-  const [ign, setIgn] = useState("");
-  const [rank, setRank] = useState("");
+  const [riotName, setRiotName] = useState("");
+  const [riotTag, setRiotTag] = useState("");
+  const [peakRankTier, setPeakRankTier] = useState("");
+  const [peakRankDivision, setPeakRankDivision] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -64,7 +81,18 @@ export default function ValorantRegisterPage(props) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!ign || !rank) return;
+    if (alreadyRegistered) return;
+
+    const nameTrimmed = riotName.trim();
+    const tagTrimmed = riotTag.trim();
+
+    if (!nameTrimmed || !tagTrimmed || !peakRankTier || !peakRankDivision) {
+      setMessage("Please fill in your Riot ID and peak rank.");
+      return;
+    }
+
+    const ign = `${nameTrimmed}#${tagTrimmed}`; // e.g. "5TQ#NA1"
+    const rank = `${peakRankTier} ${peakRankDivision}`; // e.g. "Gold 2"
 
     setSubmitting(true);
     setMessage("");
@@ -77,7 +105,7 @@ export default function ValorantRegisterPage(props) {
           playerId,
           tournamentId: TOURNAMENT_ID,
           ign,
-          rank,
+          rank, // now "Peak Rank" combined
         }),
       });
 
@@ -240,6 +268,7 @@ export default function ValorantRegisterPage(props) {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {/* Riot ID (IGN) split into name + tag */}
           <div style={{ marginBottom: "1rem" }}>
             <label
               style={{
@@ -250,27 +279,59 @@ export default function ValorantRegisterPage(props) {
                 marginBottom: "0.4rem",
               }}
             >
-              In-game name (IGN) *
+              Riot ID (IGN) *
+              <span style={{ marginLeft: 4, color: "#9ca3af", fontSize: "0.75rem" }}>
+                (Name and Tagline)
+              </span>
             </label>
-            <input
-              required
-              value={ign}
-              onChange={(e) => setIgn(e.target.value)}
-              placeholder="example: 5TQ#NA1"
-              disabled={alreadyRegistered}
-              style={{
-                width: "100%",
-                backgroundColor: "#0f0f10",
-                border: "1px solid #4b5563",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.75rem",
-                color: alreadyRegistered ? "#6b7280" : "white",
-                fontSize: "0.9rem",
-                outline: "none",
-              }}
-            />
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <input
+                required
+                value={riotName}
+                onChange={(e) => setRiotName(e.target.value)}
+                placeholder="Name (e.g. 5TQ)"
+                disabled={alreadyRegistered}
+                style={{
+                  flex: 2,
+                  backgroundColor: "#0f0f10",
+                  border: "1px solid #4b5563",
+                  borderRadius: "0.5rem",
+                  padding: "0.6rem 0.75rem",
+                  color: alreadyRegistered ? "#6b7280" : "white",
+                  fontSize: "0.9rem",
+                  outline: "none",
+                }}
+              />
+              <div
+                style={{
+                  color: "#9ca3af",
+                  fontSize: "0.9rem",
+                  paddingBottom: "0.1rem",
+                }}
+              >
+                #
+              </div>
+              <input
+                required
+                value={riotTag}
+                onChange={(e) => setRiotTag(e.target.value)}
+                placeholder="Tag (e.g. NA1)"
+                disabled={alreadyRegistered}
+                style={{
+                  flex: 1,
+                  backgroundColor: "#0f0f10",
+                  border: "1px solid #4b5563",
+                  borderRadius: "0.5rem",
+                  padding: "0.6rem 0.75rem",
+                  color: alreadyRegistered ? "#6b7280" : "white",
+                  fontSize: "0.9rem",
+                  outline: "none",
+                }}
+              />
+            </div>
           </div>
 
+          {/* Peak Rank: tier + division */}
           <div style={{ marginBottom: "1rem" }}>
             <label
               style={{
@@ -281,25 +342,58 @@ export default function ValorantRegisterPage(props) {
                 marginBottom: "0.4rem",
               }}
             >
-              Current rank *
+              Peak rank (Valorant) *
             </label>
-            <input
-              required
-              value={rank}
-              onChange={(e) => setRank(e.target.value)}
-              placeholder="Ascendant / Immortal / Radiant / etc"
-              disabled={alreadyRegistered}
-              style={{
-                width: "100%",
-                backgroundColor: "#0f0f10",
-                border: "1px solid #4b5563",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.75rem",
-                color: alreadyRegistered ? "#6b7280" : "white",
-                fontSize: "0.9rem",
-                outline: "none",
-              }}
-            />
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <select
+                required
+                value={peakRankTier}
+                onChange={(e) => setPeakRankTier(e.target.value)}
+                disabled={alreadyRegistered}
+                style={{
+                  flex: 2,
+                  backgroundColor: "#0f0f10",
+                  border: "1px solid #4b5563",
+                  borderRadius: "0.5rem",
+                  padding: "0.6rem 0.75rem",
+                  color: alreadyRegistered ? "#6b7280" : "white",
+                  fontSize: "0.9rem",
+                  outline: "none",
+                }}
+              >
+                <option value="">Select rank</option>
+                {VALORANT_RANK_TIERS.map((tier) => (
+                  <option key={tier} value={tier}>
+                    {tier}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                required
+                value={peakRankDivision}
+                onChange={(e) => setPeakRankDivision(e.target.value)}
+                disabled={alreadyRegistered || !peakRankTier}
+                style={{
+                  flex: 1,
+                  backgroundColor: "#0f0f10",
+                  border: "1px solid #4b5563",
+                  borderRadius: "0.5rem",
+                  padding: "0.6rem 0.75rem",
+                  color:
+                    alreadyRegistered || !peakRankTier ? "#6b7280" : "white",
+                  fontSize: "0.9rem",
+                  outline: "none",
+                }}
+              >
+                <option value="">Div</option>
+                {VALORANT_DIVISIONS.map((div) => (
+                  <option key={div} value={div}>
+                    {div}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button

@@ -11,7 +11,10 @@ export default async function handler(req, res) {
   try {
     const { playerId, tournamentId, ign, rank } = req.body;
 
-    if (!playerId || !tournamentId || !ign || !rank) {
+    const cleanIgn = typeof ign === "string" ? ign.trim() : "";
+    const cleanRank = typeof rank === "string" ? rank.trim() : "";
+
+    if (!playerId || !tournamentId || !cleanIgn || !cleanRank) {
       return res.status(400).send("Missing required fields");
     }
 
@@ -22,11 +25,13 @@ export default async function handler(req, res) {
       return res.status(404).send("Player not found");
     }
 
+    // Check if already registered (via Registration collection)
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: tournamentId,
     }).lean();
 
+    // Check if already registered (via Player.registeredFor array)
     const alreadyInPlayerArray = player.registeredFor?.some(
       (entry) => entry.tournamentId === tournamentId
     );
@@ -38,21 +43,23 @@ export default async function handler(req, res) {
       });
     }
 
+    // Create registration doc (rank is now the "peak rank" string, e.g. "Gold 2")
     const regDoc = await Registration.create({
       playerName: player.username,
       discordTag: player.discordId,
-      rank,
+      rank: cleanRank,
       email: "",
       tournament: tournamentId,
       timestamp: new Date(),
     });
 
+    // Also store on the Player document for history / admin view
     await Player.findByIdAndUpdate(playerId, {
       $push: {
         registeredFor: {
           tournamentId,
-          ign,
-          rank,
+          ign: cleanIgn,      // e.g. "5TQ#NA1"
+          rank: cleanRank,    // e.g. "Gold 2" (peak rank)
         },
       },
     });
