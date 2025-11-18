@@ -77,6 +77,21 @@ export default function AdminDashboard({ player }) {
             🧩 Manage Brackets
           </a>
 
+          <a
+            href="/admin/players"
+            style={{
+              padding: "10px 16px",
+              borderRadius: "8px",
+              background: "#1f2933",
+              border: "1px solid #374151",
+              color: "white",
+              textDecoration: "none",
+              fontSize: "0.95rem",
+            }}
+          >
+            👤 Manage Players
+          </a>
+
           {/* placeholders for future tools */}
           <a
             href="/admin"
