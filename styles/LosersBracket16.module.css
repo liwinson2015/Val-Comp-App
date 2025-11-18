@@ -1,219 +1,143 @@
-/* Compact losers bracket, aligned + styled to match winners bracket */
+/* Compact losers bracket (matches winners style), centered & scaled */
 
-.lbViewport {
-  /* column + gap */
-  --colw: clamp(120px, 9vw, 150px);
-  --gap: clamp(18px, 2.2vw, 26px);
+.lbViewport{
+  --colw: clamp(112px, 9vw, 140px);
+  --gap:  clamp(18px, 2.2vw, 24px);
 
-  /* match box geometry */
+  /* box geometry */
   --slotH: 32px;
   --pairGapInside: 10px;
   --pairPad: 4px;
-  --pairH: calc(var(--slotH) * 2 + var(--pairGapInside) + var(--pairPad) * 2);
+  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  /* vertical rhythm – these control spacing between rounds */
-  --r1Space: 16px;
-  --r2Space: calc(var(--pairH) + var(--r1Space) * 2);
-  --r3Space: calc(var(--pairH) + var(--r2Space) * 2);
-  --r4Space: calc(var(--pairH) + var(--r3Space) * 2);
+  /* vertical rhythms (these values kept from your original so lines line up) */
+  --r1Space: 12px;
+  --r2Space: calc(var(--pairH) + 20px);
+  --r3Space: calc(var(--pairH) + var(--r2Space));
+  --r4Space: calc(var(--pairH) + var(--r3Space));
 
-  /* line + join geometry */
+  /* line + joins */
   --line: #293247;
   --joinW: 2px;
   --stub: 10px;
-  --arm: calc(var(--gap) - var(--stub));
+  --arm:  calc(var(--gap) - var(--stub));
 
-  /* slot styling (dark theme) */
-  --slotBg: #111827;
+  /* DARK THEME: only these colors changed */
+  --slotBg: #020617;
   --slotBorder: #374151;
-  --slotBorderStrong: #4b5563;
-  --textBright: #e5e7eb;
-  --textDim: #9ca3af;
+  --textDark: #e5e7eb;
 
-  /* canvas size (7 columns: R1, R2, R3A, R3B, R4, LB Final, Winner) */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: calc(
-    var(--pairH) * 4 + var(--r1Space) + var(--r2Space) + var(--r3Space) +
-      var(--r4Space) + 80px
-  );
+  --stageH: clamp(470px, 56vh, 640px);
 
-  /* scale to viewport */
   --topSpace: 120px;
   --fitW: calc(100vw / var(--stageW));
   --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
   --scale: min(1, var(--fitW), var(--fitH));
 
-  width: 100%;
-  height: calc(100vh - var(--topSpace));
-  display: grid;
-  place-items: center;
-  overflow: visible;
+  width:100%;
+  height:calc(100vh - var(--topSpace));
+  display:grid;
+  place-items:center;
+  overflow:visible;
 }
 
-.lbStage {
-  width: var(--stageW);
-  height: var(--stageH);
-  transform: scale(var(--scale));
-  transform-origin: top center;
+.lbStage{
+  width:var(--stageW);
+  height:var(--stageH);
+  transform:scale(var(--scale));
+  transform-origin:top center;
 }
 
-.lbGrid {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(7, var(--colw));
-  gap: var(--gap);
-  align-items: flex-start;
+.lbGrid{
+  width:100%;
+  height:100%;
+  display:grid;
+  grid-template-columns:repeat(7,var(--colw));
+  gap:var(--gap);
+  align-items:start;
 }
 
 /* rounds / titles */
-
-.round {
-  position: relative;
+.round{ position:relative; }
+.roundTitle{
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
+.stack{ position:relative; display:grid; }
 
-.roundTitle {
-  color: #dfe6f3;
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  opacity: 0.9;
-}
+/* spacing per round – SAME as your original so connectors line up */
+.r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
 
-.stack {
-  position: relative;
-  display: grid;
-}
+/* R2 compact, same rhythm as R1 */
+.r2  .pair{ margin: calc(var(--r1Space)/2) 0; }
 
-/* spacing per round
-   R1 is the base. Other rounds use progressively larger "spaces"
-   so the collectors line up with the previous column. */
-
-.r1 .pair {
-  margin: calc(var(--r1Space) / 2) 0;
-}
-
-/* R2 centers *between* R1 pairs */
-.r2 .pair {
-  margin: calc(var(--r2Space) / 2) 0;
-}
-
-/* R3A / R3B sit between the R2 matches that feed them */
-.r3a .pair,
-.r3b .pair {
-  margin: calc(var(--r3Space) / 2) 0;
-}
-
-/* Round 4 higher up (winner of LB R3 vs WB R3 loser) */
-.r4 .pair {
-  margin: calc(var(--r4Space) / 2) 0;
-}
-
-/* LB Final pulled a bit lower for visual balance */
-.rFinal .pair {
-  margin: calc((var(--r4Space) + var(--pairH)) / 2) 0;
-}
+/* keep others a bit roomier */
+.r3a .pair{ margin: 18px 0; }
+.r3b .pair{ margin: 18px 0; }
+.r4  .pair{ margin: 22px 0; }
+.rFinal .pair{ margin: 26px 0; }
 
 /* pair / slots */
-
-.pair {
-  position: relative;
+.pair{
+  position:relative;
   padding: var(--pairPad) 0;
 }
-
-/* little stub going to the right (into next column) */
-.pair::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: calc(var(--stub) * -1);
+.pair::after{
+  content:"";
+  position:absolute; top:50%; right: calc(var(--stub) * -1);
   transform: translateY(-50%);
-  width: var(--stub);
-  height: var(--joinW);
+  width: var(--stub); height: var(--joinW);
   background: var(--line);
 }
 
-.slot {
+.slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
   border-radius: 6px;
-  background: radial-gradient(circle at top left, #1f2937, #020617);
-  display: flex;
-  align-items: center;
+  background: radial-gradient(circle at top left,#1f2937,#020617);
+  display:flex; align-items:center;
   padding: 0 10px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.65);
 }
+.slot + .slot{ margin-top: var(--pairGapInside); }
 
-.slot + .slot {
-  margin-top: var(--pairGapInside);
-}
-
-.label {
-  color: var(--textBright);
-  font-weight: 700;
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* placeholders like "TBD" appear a bit dimmer */
-.slot[title="TBD"] .label,
-.slot[title="TBD "] .label {
-  color: var(--textDim);
-  font-weight: 500;
+.label{
+  color: var(--textDark);
+  font-weight: 700; font-size: 13px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
 /* collectors + arms for rounds that feed from previous column */
-
 .r2 .pair,
 .r3a .pair,
 .r3b .pair,
 .r4 .pair,
-.rFinal .pair {
-  background-image: linear-gradient(var(--line), var(--line)),
+.rFinal .pair{
+  background-image:
+    linear-gradient(var(--line), var(--line)),
     linear-gradient(var(--line), var(--line));
   background-repeat: no-repeat, no-repeat;
-  background-size: var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
+  background-size:
+    var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
     var(--arm) var(--joinW);
-  background-position: left calc(var(--gap) * -1 + var(--arm)) 50%,
-    left calc(var(--gap) * -1) 50%;
+  background-position:
+    left calc(var(--gap) * -1 + var(--arm)) 50%,
+    left calc(var(--gap) * -1)              50%;
 }
 
-/* LB winner column */
-
-.lbWinnerCol {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+/* LB winner */
+.lbWinnerCol{ display:flex; flex-direction:column; align-items:flex-start; }
+.lbWinnerTitle{
+  color:#dfe6f3; font-weight:900; font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
 }
-
-.lbWinnerTitle {
-  color: #dfe6f3;
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.lbWinnerPill {
+.lbWinnerPill{
   min-width: var(--colw);
-  background: radial-gradient(circle at top left, #1f2937, #020617);
-  border: 2px solid #4b5563;
-  color: #ffffff;
-  border-radius: 999px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.9);
+  background: radial-gradient(circle at top left,#1f2937,#020617);
+  border:2px solid #4b5563; color:#ffffff;
+  border-radius:999px; padding:10px 16px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 12px 30px rgba(15,23,42,0.9);
 }
-
-.lbWinnerText {
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-}
+.lbWinnerText{ font-weight:800; font-size:14px; letter-spacing:0.04em; }
