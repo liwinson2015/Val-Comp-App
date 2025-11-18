@@ -1,7 +1,6 @@
 /* Losers bracket: structured so that:
    - R1 match 1 & R2 match 1 share the same center
-   - R3A match 1 is centered between R2 match 1 & 2
-   - R3A match 2 is centered between R2 match 3 & 4
+   - R3A has 4 single boxes, each centered on one R2 matchup
 */
 
 .lbViewport{
@@ -85,15 +84,13 @@
 
 /* ---------- vertical spacing logic ---------- */
 
-/* R1: base rhythm. each .pair = one matchup
-   .r1 .pair[0] == plusle vs Booey
-*/
+/* R1: base rhythm. each .pair = one matchup */
 .r1 .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
 /* R2: same rhythm and no offset.
-   ⇒ .r2 .pair[0] (Booey vs 蓝蝴蝶ya) center == R1 match 1 center.
+   ⇒ R2 match 1 center == R1 match 1 center.
 */
 .r2 .pair{
   margin: calc(var(--r1Space)/2) 0;
@@ -102,47 +99,29 @@
   margin-top: 0;
 }
 
-/* R3A:
-   We want:
-   - R3A match 1 centered between R2 match 1 & 2
-   - R3A match 2 centered between R2 match 3 & 4
-
-   Let:
-   step = distance between centers of R2 matches = pairH + r1Space.
-
-   Then we need:
-   center(R3A_1) = center(R2_1) + 0.5*step
-   center(R3A_2) = center(R2_1) + 2.5*step
-
-   That implies:
-   - distance between R3A_1 and R3A_2 centers = 2*step
-   - stack offset from top = 0.5*step
-
-   center distance for R3A = pairH + 2*M3 (M3 = margin on .pair)
-
-   So:
-   pairH + 2*M3 = 2*(pairH + r1Space)
-   => M3 = (pairH/2) + r1Space
-
-   And stack offset = 0.5*step = (pairH + r1Space)/2
+/* R3A (special):
+   We render FOUR .single blocks.
+   Each .single has height == pairH and the same margins as R2 pairs.
+   Because:
+     - stack top is the same
+     - block height is pairH
+     - margin is calc(r1Space/2)
+   each 3A single's CENTER Y lines up exactly with the
+   center of the matching R2 pair.
 */
-
-/* margin between the two R3A matches (very large on purpose) */
-.r3a .pair{
-  margin: calc( (var(--pairH) / 2) + var(--r1Space) ) 0;
+.r3a .single{
+  margin: calc(var(--r1Space)/2) 0;
 }
-
-/* shift the entire R3A column down by half a step of R2 spacing */
 .r3a .stack{
-  margin-top: calc( (var(--pairH) + var(--r1Space)) / 2 );
+  margin-top: 0;
 }
 
-/* R3B: keep simple for now (we can tune later the same way if needed) */
+/* R3B: simple rhythm for now */
 .r3b .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R4 + LB Final: same base rhythm for now */
+/* R4 + LB Final: simple rhythm for now */
 .r4 .pair,
 .rFinal .pair{
   margin: calc(var(--r1Space)/2) 0;
@@ -167,6 +146,17 @@
   background: var(--line);
 }
 
+/* Single (for R3A) – a match-height container with one centered slot */
+.single{
+  position: relative;
+  height: var(--pairH);   /* same height as a full match */
+  display: flex;
+  align-items: center;    /* center the slot vertically */
+}
+
+/* no stub on singles (we’re just showing drop-in players) */
+
+/* Slot styling (used by both Pair and Single) */
 .slot{
   height: var(--slotH);
   border: 2px solid var(--slotBorder);
@@ -193,10 +183,9 @@
   text-overflow:ellipsis;
 }
 
-/* vertical collectors + arms from previous column */
-
+/* vertical collectors + arms from previous column
+   (R3A singles don't need collectors) */
 .r2 .pair,
-.r3a .pair,
 .r3b .pair,
 .r4 .pair,
 .rFinal .pair{
