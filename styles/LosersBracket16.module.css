@@ -3,7 +3,7 @@
    - R3A has 4 single boxes, each centered on one R2 matchup
    - R3B matches are aligned between the 3A singles
    - R4 top and bottom players are aligned to 3B matches
-   - LB Final centered relative to Round 4 (visually)
+   - LB Final top player centered between the two R4 players (exact math)
 */
 
 .lbViewport{
@@ -15,7 +15,7 @@
   --pairGapInside: 10px;   /* default gap between two players in a match */
   --pairPad: 4px;
 
-  /* total height of one match block (two slots, using default gap) */
+  /* total height of one match block (two slots, default gap) */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
   /* base spacing: vertical distance between matches in ROUND 1 */
@@ -156,9 +156,12 @@
 }
 
 /* LB Final:
-   Use a carefully tuned offset so the whole LB Final match
-   is visually centered relative to the Round 4 pair.
-   (If this feels slightly off, tweak the 4.25 number.)
+   Exact math so the TOP player of LB Final is centered
+   between the TOP and BOTTOM players of LB Round 4.
+
+   Derived:
+   margin-top(LB Final stack) =
+     3.5*slotH + 2*gap + 3*pad + 2*r1Space
 */
 .rFinal .pair{
   margin: 0;
@@ -166,9 +169,9 @@
 
 .rFinal .stack{
   margin-top: calc(
-    4.25 * var(--slotH) +
-    3 * var(--pairGapInside) +
-    4 * var(--pairPad) +
+    3.5 * var(--slotH) +
+    2 * var(--pairGapInside) +
+    3 * var(--pairPad) +
     2 * var(--r1Space)
   );
 }
@@ -257,7 +260,7 @@
   display:flex;
   flex-direction:column;
   align-items:center;   /* center title + pill horizontally */
-  margin-top: 0;        /* keep LB Winner at the top row */
+  margin-top: 0;        /* keep LB Winner title in the header row */
 }
 
 .lbWinnerTitle{
@@ -285,20 +288,15 @@
   align-items:center;
   justify-content:center;
 
-  /* move ONLY the pill down so its center is between
-     the two LB Final players, while "LB WINNER" text
-     stays at the very top */
+  /* Center of pill is exactly between the two LB Final players.
+     Derived:
+     margin-top(pill) = 4*slotH + 2.5*gap + 4*pad + 2*r1Space
+  */
   margin-top: calc(
-    /* same base as LB Final stack... */
-    4.25 * var(--slotH) +
-    3 * var(--pairGapInside) +
+    4 * var(--slotH) +
+    2.5 * var(--pairGapInside) +
     4 * var(--pairPad) +
     2 * var(--r1Space)
-    /* ...plus offset from LB Final top to its center,
-       minus half the pill height (slotH/2) */
-    + var(--pairPad)
-    + 0.5 * var(--slotH)
-    + 0.5 * var(--pairGapInside)
   );
 }
 
