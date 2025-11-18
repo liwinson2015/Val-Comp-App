@@ -3,7 +3,7 @@
    - R3A has 4 single boxes, each centered on one R2 matchup
    - R3B matches are aligned between the 3A singles
    - R4 top and bottom players are aligned to 3B matches
-   - LB Final top player is aligned with the center of Round 4 (visually)
+   - LB Final centered relative to Round 4 (visually)
 */
 
 .lbViewport{
@@ -15,7 +15,7 @@
   --pairGapInside: 10px;   /* default gap between two players in a match */
   --pairPad: 4px;
 
-  /* total height of one match block (two slots) */
+  /* total height of one match block (two slots, using default gap) */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
   /* base spacing: vertical distance between matches in ROUND 1 */
@@ -156,8 +156,9 @@
 }
 
 /* LB Final:
-   Top player of LB Final is aligned with the CENTER of Round 4.
-   (We keep this as is; we only move the LB Winner pill now.)
+   Use a carefully tuned offset so the whole LB Final match
+   is visually centered relative to the Round 4 pair.
+   (If this feels slightly off, tweak the 4.25 number.)
 */
 .rFinal .pair{
   margin: 0;
@@ -165,7 +166,7 @@
 
 .rFinal .stack{
   margin-top: calc(
-    4.5 * var(--slotH) +
+    4.25 * var(--slotH) +
     3 * var(--pairGapInside) +
     4 * var(--pairPad) +
     2 * var(--r1Space)
@@ -288,10 +289,16 @@
      the two LB Final players, while "LB WINNER" text
      stays at the very top */
   margin-top: calc(
-    5 * var(--slotH) +
-    3.5 * var(--pairGapInside) +
-    5 * var(--pairPad) +
+    /* same base as LB Final stack... */
+    4.25 * var(--slotH) +
+    3 * var(--pairGapInside) +
+    4 * var(--pairPad) +
     2 * var(--r1Space)
+    /* ...plus offset from LB Final top to its center,
+       minus half the pill height (slotH/2) */
+    + var(--pairPad)
+    + 0.5 * var(--slotH)
+    + 0.5 * var(--pairGapInside)
   );
 }
 
