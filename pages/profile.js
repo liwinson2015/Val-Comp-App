@@ -222,10 +222,7 @@ export default function Profile({ username, discordId, avatar, stats, history })
                 Join your first bracket to build your competitive profile.
               </div>
               <div className={styles.emptyActions}>
-                <a
-                  href="/tournaments-hub/valorant-types"
-                  className={styles.primaryBtn}
-                >
+                <a href="/tournaments-hub" className={styles.primaryBtn}>
                   Browse Tournaments
                 </a>
               </div>
