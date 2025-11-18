@@ -135,7 +135,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
   const [tournamentFilter, setTournamentFilter] = useState("all");
   const [onlyNeverRegistered, setOnlyNeverRegistered] = useState(false);
 
-  // single source of truth for which player is selected
+  // which player row is selected
   const [selectedId, setSelectedId] = useState(
     () => (players && players[0]?.id) || null
   );
@@ -143,6 +143,16 @@ export default function AdminPlayersPage({ players, tournaments }) {
   const [notesDraft, setNotesDraft] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesMessage, setNotesMessage] = useState("");
+
+  // per-registration button state: { "<playerId>:<tId or idx>": { status: "idle" | "dirty" | "saving" | "saved" | "error" } }
+  const [regStates, setRegStates] = useState({});
+
+  function setRegStatus(regKey, status) {
+    setRegStates((prev) => ({
+      ...prev,
+      [regKey]: { ...(prev[regKey] || {}), status },
+    }));
+  }
 
   // Compute filtered players for LEFT LIST
   const filteredPlayers = useMemo(() => {
@@ -237,14 +247,16 @@ export default function AdminPlayersPage({ players, tournaments }) {
     }
   }
 
-  // save ign / fullIgn / rank for a single registration
-  async function handleSaveRegistration(e, playerId, reg) {
+  // save ign / fullIgn / rank for a single registration (no page reload)
+  async function handleSaveRegistration(e, playerId, reg, regKey) {
     e.preventDefault();
 
     const formData = new FormData(e.target);
     const ign = formData.get("ign") || "";
     const fullIgn = formData.get("fullIgn") || "";
     const rank = formData.get("rank") || "";
+
+    setRegStatus(regKey, "saving");
 
     try {
       const res = await fetch("/api/admin/update-registration", {
@@ -262,14 +274,31 @@ export default function AdminPlayersPage({ players, tournaments }) {
       if (!res.ok) {
         const text = await res.text();
         console.error("Failed to save registration:", text);
+        setRegStatus(regKey, "error");
         alert("Error saving registration: " + text);
         return;
       }
 
-      // simplest: reload so data stays in sync
-      window.location.reload();
+      // Update local state — keep current player selected
+      setPlayersState((prev) =>
+        prev.map((p) => {
+          if (p.id !== playerId) return p;
+          return {
+            ...p,
+            registeredFor: (p.registeredFor || []).map((r) => {
+              if (r.tournamentId === reg.tournamentId) {
+                return { ...r, ign, fullIgn, rank };
+              }
+              return r;
+            }),
+          };
+        })
+      );
+
+      setRegStatus(regKey, "saved");
     } catch (err) {
       console.error("Error saving registration:", err);
+      setRegStatus(regKey, "error");
       alert("Network error saving registration.");
     }
   }
@@ -499,7 +528,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
 
         {/* RIGHT: PLAYER DETAIL */}
         <div
-          key={selectedPlayer ? selectedPlayer.id : "no-player"} // 🔑 force remount on player change
+          key={selectedPlayer ? selectedPlayer.id : "no-player"}
           style={{
             border: "1px solid #1f2937",
             borderRadius: "10px",
@@ -761,11 +790,26 @@ export default function AdminPlayersPage({ players, tournaments }) {
 
                       const extraEntries = Object.entries(reg.extras || {});
 
+                      const regKey = `${selectedPlayer.id}-${
+                        reg.tournamentId || reg.id || idx
+                      }`;
+                      const status = regStates[regKey]?.status || "idle";
+
+                      let buttonBg = "#f97316"; // default orange
+                      if (status === "dirty") buttonBg = "#dc2626"; // red
+                      if (status === "saving") buttonBg = "#4b5563"; // gray
+                      if (status === "saved") buttonBg = "#22c55e"; // green
+
+                      const buttonLabel =
+                        status === "saving"
+                          ? "Saving..."
+                          : status === "saved"
+                          ? "Saved"
+                          : "Save registration";
+
                       return (
                         <div
-                          key={`${selectedPlayer.id}-${
-                            reg.tournamentId || reg.id || idx
-                          }`} // 🔑 unique per player+tournament
+                          key={regKey}
                           style={{
                             padding: "0.7rem 0.8rem",
                             borderBottom:
@@ -834,7 +878,8 @@ export default function AdminPlayersPage({ players, tournaments }) {
                                 handleSaveRegistration(
                                   e,
                                   selectedPlayer.id,
-                                  reg
+                                  reg,
+                                  regKey
                                 )
                               }
                               style={{
@@ -861,6 +906,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
                                 <input
                                   name="ign"
                                   defaultValue={reg.ign || ""}
+                                  onChange={() => setRegStatus(regKey, "dirty")}
                                   style={{
                                     backgroundColor: "#020617",
                                     borderRadius: "0.35rem",
@@ -885,6 +931,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
                                 <input
                                   name="fullIgn"
                                   defaultValue={reg.fullIgn || ""}
+                                  onChange={() => setRegStatus(regKey, "dirty")}
                                   style={{
                                     backgroundColor: "#020617",
                                     borderRadius: "0.35rem",
@@ -909,6 +956,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
                                 <input
                                   name="rank"
                                   defaultValue={reg.rank || ""}
+                                  onChange={() => setRegStatus(regKey, "dirty")}
                                   style={{
                                     backgroundColor: "#020617",
                                     borderRadius: "0.35rem",
@@ -930,18 +978,22 @@ export default function AdminPlayersPage({ players, tournaments }) {
                               >
                                 <button
                                   type="submit"
+                                  disabled={status === "saving"}
                                   style={{
                                     fontSize: "0.75rem",
                                     padding: "0.25rem 0.7rem",
                                     borderRadius: "0.4rem",
                                     border: "none",
-                                    backgroundColor: "#f97316",
+                                    backgroundColor: buttonBg,
                                     color: "#111827",
                                     fontWeight: 600,
-                                    cursor: "pointer",
+                                    cursor:
+                                      status === "saving"
+                                        ? "wait"
+                                        : "pointer",
                                   }}
                                 >
-                                  Save registration
+                                  {buttonLabel}
                                 </button>
                               </div>
                             </form>
