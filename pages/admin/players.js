@@ -73,6 +73,10 @@ export async function getServerSideProps({ req }) {
         "_id",
         "createdAt",
         "__v",
+        // treat these as first-class, not extras
+        "ign",
+        "fullIgn",
+        "rank",
       ];
 
       const extras = {};
@@ -91,6 +95,9 @@ export async function getServerSideProps({ req }) {
         date: r.date ? String(r.date) : "",
         placement: r.placement ?? null,
         result: r.result || r.status || "",
+        ign: r.ign || "",
+        fullIgn: r.fullIgn || "",
+        rank: r.rank || "",
         extras,
       };
     });
@@ -228,6 +235,43 @@ export default function AdminPlayersPage({ players, tournaments }) {
     } finally {
       setSavingNotes(false);
       setTimeout(() => setNotesMessage(""), 2000);
+    }
+  }
+
+  // 🔸 NEW: save ign / fullIgn / rank for a single registration
+  async function handleSaveRegistration(e, playerId, reg) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const ign = formData.get("ign") || "";
+    const fullIgn = formData.get("fullIgn") || "";
+    const rank = formData.get("rank") || "";
+
+    try {
+      const res = await fetch("/api/admin/update-registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          tournamentId: reg.tournamentId,
+          ign,
+          fullIgn,
+          rank,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Failed to save registration:", text);
+        alert("Error saving registration: " + text);
+        return;
+      }
+
+      // simplest: reload so data & extras stay in sync
+      window.location.reload();
+    } catch (err) {
+      console.error("Error saving registration:", err);
+      alert("Network error saving registration.");
     }
   }
 
@@ -735,8 +779,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
                               display: "flex",
                               justifyContent: "space-between",
                               gap: "0.75rem",
-                              marginBottom:
-                                extraEntries.length > 0 ? "0.35rem" : 0,
+                              marginBottom: "0.4rem",
                               flexWrap: "wrap",
                             }}
                           >
@@ -762,27 +805,150 @@ export default function AdminPlayersPage({ players, tournaments }) {
                             </div>
                           </div>
 
-                          {/* Extra responses */}
-                          {extraEntries.length > 0 && (
+                          {/* Editable Registration Responses: ign → fullIgn → rank */}
+                          <div
+                            style={{
+                              marginTop: "0.15rem",
+                              padding: "0.45rem 0.5rem",
+                              borderRadius: "6px",
+                              background: "#111827",
+                            }}
+                          >
                             <div
                               style={{
-                                marginTop: "0.15rem",
-                                padding: "0.45rem 0.5rem",
-                                borderRadius: "6px",
-                                background: "#111827",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.08em",
+                                fontSize: "0.75rem",
+                                color: "#9ca3af",
+                                marginBottom: "0.25rem",
                               }}
                             >
+                              Registration Responses
+                            </div>
+
+                            <form
+                              onSubmit={(e) =>
+                                handleSaveRegistration(
+                                  e,
+                                  selectedPlayer.id,
+                                  reg
+                                )
+                              }
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "110px minmax(0, 1fr)",
+                                rowGap: "0.2rem",
+                                columnGap: "0.5rem",
+                                fontSize: "0.8rem",
+                                marginBottom:
+                                  extraEntries.length > 0 ? "0.4rem" : 0,
+                              }}
+                            >
+                              {/* ign */}
                               <div
                                 style={{
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.08em",
-                                  fontSize: "0.75rem",
-                                  color: "#9ca3af",
-                                  marginBottom: "0.25rem",
+                                  display: "contents",
                                 }}
                               >
-                                Registration Responses
+                                <div
+                                  style={{
+                                    fontWeight: 500,
+                                    color: "#d1d5db",
+                                  }}
+                                >
+                                  ign:
+                                </div>
+                                <input
+                                  name="ign"
+                                  defaultValue={reg.ign || ""}
+                                  style={{
+                                    backgroundColor: "#020617",
+                                    borderRadius: "0.35rem",
+                                    border: "1px solid #374151",
+                                    color: "white",
+                                    fontSize: "0.8rem",
+                                    padding: "0.2rem 0.4rem",
+                                  }}
+                                />
                               </div>
+
+                              {/* fullIgn */}
+                              <div style={{ display: "contents" }}>
+                                <div
+                                  style={{
+                                    fontWeight: 500,
+                                    color: "#d1d5db",
+                                  }}
+                                >
+                                  fullIgn:
+                                </div>
+                                <input
+                                  name="fullIgn"
+                                  defaultValue={reg.fullIgn || ""}
+                                  style={{
+                                    backgroundColor: "#020617",
+                                    borderRadius: "0.35rem",
+                                    border: "1px solid #374151",
+                                    color: "white",
+                                    fontSize: "0.8rem",
+                                    padding: "0.2rem 0.4rem",
+                                  }}
+                                />
+                              </div>
+
+                              {/* rank */}
+                              <div style={{ display: "contents" }}>
+                                <div
+                                  style={{
+                                    fontWeight: 500,
+                                    color: "#d1d5db",
+                                  }}
+                                >
+                                  rank:
+                                </div>
+                                <input
+                                  name="rank"
+                                  defaultValue={reg.rank || ""}
+                                  style={{
+                                    backgroundColor: "#020617",
+                                    borderRadius: "0.35rem",
+                                    border: "1px solid #374151",
+                                    color: "white",
+                                    fontSize: "0.8rem",
+                                    padding: "0.2rem 0.4rem",
+                                  }}
+                                />
+                              </div>
+
+                              <div
+                                style={{
+                                  gridColumn: "1 / span 2",
+                                  display: "flex",
+                                  justifyContent: "flex-end",
+                                  marginTop: "0.25rem",
+                                }}
+                              >
+                                <button
+                                  type="submit"
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    padding: "0.25rem 0.7rem",
+                                    borderRadius: "0.4rem",
+                                    border: "none",
+                                    backgroundColor: "#f97316",
+                                    color: "#111827",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Save registration
+                                </button>
+                              </div>
+                            </form>
+
+                            {/* any extra fields beyond ign/fullIgn/rank */}
+                            {extraEntries.length > 0 && (
                               <dl
                                 style={{
                                   margin: 0,
@@ -817,8 +983,8 @@ export default function AdminPlayersPage({ players, tournaments }) {
                                   </React.Fragment>
                                 ))}
                               </dl>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       );
                     })}
