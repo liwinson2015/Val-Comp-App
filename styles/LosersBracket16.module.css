@@ -1,6 +1,5 @@
-/* Losers bracket: each matchup is a .pair (2 players).
-   R1 match 1 (plusle vs Booey) and R2 match 1 (Booey vs 蓝蝴蝶ya)
-   are forced to share the SAME vertical center (same y). */
+/* Losers bracket: each matchup is one .pair (2 players)
+   R1 match 1 and R2 match 1 now share the SAME vertical center. */
 
 .lbViewport{
   --colw: clamp(120px, 9vw, 160px);
@@ -8,14 +7,14 @@
 
   /* slot + match geometry */
   --slotH: 40px;           /* medium height */
-  --pairGapInside: 10px;   /* gap between top/bottom slots of one match */
+  --pairGapInside: 10px;   /* gap between two players in a match */
   --pairPad: 4px;
 
-  /* total height of a match block (two slots) */
+  /* total height of one match block (two slots) */
   --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
 
-  /* base spacing: distance between matches in the FIRST round */
-  --r1Space: 24px;         /* vertical gap between R1 matches */
+  /* base spacing: vertical distance between matches in ROUND 1 */
+  --r1Space: 24px;
 
   --line: #2a2f36;
   --joinW: 2px;
@@ -57,10 +56,16 @@
   align-items:start;
 }
 
-/* rounds / titles */
+/* ---------- rounds / titles ---------- */
 
 .round{ position:relative; }
 
+/* IMPORTANT:
+   We force ALL titles to have the SAME height so that
+   the top of every .stack (R1, R2, R3, ...) starts at
+   the same Y position.
+   Then if R1 and R2 use the same margins, their match 1 centers are equal.
+*/
 .roundTitle{
   color:#dfe6f3;
   font-weight:900;
@@ -68,8 +73,13 @@
   letter-spacing:.08em;
   text-transform:uppercase;
   margin-bottom:8px;
+
+  height: 24px;         /* fixed height for every title */
+  line-height: 24px;    /* vertically center the text in that height */
+  white-space: nowrap;  /* prevent R2 title from wrapping to 2 lines */
 }
 
+/* container for matches in each column */
 .stack{
   position:relative;
   display:grid;
@@ -77,38 +87,35 @@
 
 /* ---------- vertical spacing logic ---------- */
 
-/* R1: base rhythm. Each .pair (match) is one matchup:
-   .pair[0] == plusle vs Booey
-   .pair[1] == Cactus vs (next), etc.
+/* R1: base rhythm. each .pair = one matchup
+   .pair[0] == plusle vs Booey (LB Round 1, match 1)
 */
 .r1 .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R2: we KEEP THE SAME RHYTHM as R1 and DO NOT offset the stack.
-   This means:
-   - R2 .pair[0] (Booey vs 蓝蝴蝶ya) is at the EXACT same vertical position
-     as R1 .pair[0] (plusle vs Booey).
-   ⇒ Their centers share the same Y-axis (what you asked for).
+/* R2:
+   we give it the EXACT SAME margins and NO extra offset.
+   Because .roundTitle heights are forced equal above,
+   the top of R1 .stack and R2 .stack is the same.
+
+   ⇒ R2 .pair[0] (Booey vs 蓝蝴蝶ya) has the same center Y
+      as R1 .pair[0] (plusle vs Booey).
 */
 .r2 .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
-
-/* We do NOT shift .r2 .stack anymore:
-   .r2 .stack { margin-top: 0; }  (implicit, but shown here on purpose)
-*/
 .r2 .stack{
-  margin-top: 0;  /* ensure alignment with R1 */
+  margin-top: 0;  /* explicitly say no vertical shift */
 }
 
-/* R3A & R3B: for now we keep a simple rhythm; we can tune later */
+/* R3A & R3B: keep simple rhythm for now (we can tune later) */
 .r3a .pair,
 .r3b .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R4 + LB Final: same idea; can be adjusted separately later */
+/* R4 + LB Final: same base rhythm; can tweak separately later */
 .r4 .pair,
 .rFinal .pair{
   margin: calc(var(--r1Space)/2) 0;
