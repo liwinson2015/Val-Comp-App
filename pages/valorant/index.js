@@ -1,59 +1,20 @@
 // /pages/valorant/index.js
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/Valorant.module.css";
-import { connectToDatabase } from "../../lib/mongodb";
-import Tournament from "../../models/Tournament";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // keep this in sync with your catalog/key
 
-// ---------- SERVER SIDE: block page if tournament is full ----------
+// ---------- SERVER SIDE: always redirect away (tournament closed/full) ----------
 export async function getServerSideProps() {
-  await connectToDatabase();
-
-  const t = await Tournament.findOne({ tournamentId: TOURNAMENT_ID }).lean();
-
-  if (!t) {
-    // If somehow the tournament doesn't exist, just 404
-    return { notFound: true };
-  }
-
-  // Try to detect "full" in a robust way based on plausible fields
-  const maxPlayers =
-    typeof t.maxPlayers === "number"
-      ? t.maxPlayers
-      : t.slots ||
-        t.capacity ||
-        0; // fallback if you named it differently
-
-  let currentCount = 0;
-
-  if (Array.isArray(t.registeredPlayers)) {
-    currentCount = t.registeredPlayers.length;
-  } else if (Array.isArray(t.players)) {
-    currentCount = t.players.length;
-  } else if (typeof t.currentPlayers === "number") {
-    currentCount = t.currentPlayers;
-  }
-
-  const isFull =
-    t.isFull === true || // if you manually set this flag in the DB
-    (maxPlayers > 0 && currentCount >= maxPlayers);
-
-  if (isFull) {
-    // 🚫 HARD BLOCK: can't land on this page at all
-    return {
-      redirect: {
-        destination: "/tournaments-hub/valorant-types?full=1",
-        permanent: false,
-      },
-    };
-  }
-
-  // If not full, page loads normally
-  return { props: {} };
+  return {
+    redirect: {
+      destination: "/tournaments-hub/valorant-types?full=1",
+      permanent: false,
+    },
+  };
 }
 
-// ---------- CLIENT SIDE PAGE ----------
+// ---------- CLIENT SIDE PAGE (will not be seen because of redirect) ----------
 export default function ValorantEventPage() {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -84,18 +45,16 @@ export default function ValorantEventPage() {
     };
   }, []);
 
-  // Decide what the red button should do
+  // Decide what the red button would do (but this component won't actually render for users)
   let registerHref = "/valorant/register";
   let registerLabel = "Register";
   let disabled = false;
 
   if (!loggedIn) {
-    // Route through Discord, then back to the intended register page
     registerHref = `/api/auth/discord?next=${encodeURIComponent(
       "/valorant/register"
     )}`;
   } else if (isRegistered) {
-    // Already registered: do NOT let them reach /valorant/register
     registerHref = "/account/registrations";
     registerLabel = "View my registration";
   }
@@ -221,7 +180,7 @@ export default function ValorantEventPage() {
             </li>
             <li>
               <strong>No time cap.</strong> Play continues until win-by-two is
-              achieved.
+                achieved.
             </li>
             <li>
               <strong>Map:</strong> Randomized each match between{" "}
