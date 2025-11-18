@@ -163,17 +163,28 @@ export default function ValorantRegisterPage(props) {
     const nameTrimmed = riotName.trim();
     const tagTrimmed = riotTag.trim();
 
-    if (!nameTrimmed || !tagTrimmed || !peakRankTier || !peakRankDivision) {
+    const needsDivision = peakRankTier && peakRankTier !== "Radiant";
+
+    if (
+      !nameTrimmed ||
+      !tagTrimmed ||
+      !peakRankTier ||
+      (needsDivision && !peakRankDivision)
+    ) {
       setMessage("Please fill in your Riot ID and peak rank.");
       return;
     }
 
-    // 🔹 What you want:
-    // ign  = name only (e.g. "5TQ")
-    // fullIgn = "name#tag" (e.g. "5TQ#NA1")
-    const ign = nameTrimmed; // name only, this is what your backend already uses
-    const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // full Riot ID for future use
-    const rank = `${peakRankTier} ${peakRankDivision}`; // e.g. "Gold 2"
+    // ign = name only (what your backend already uses)
+    const ign = nameTrimmed;
+    // fullIgn = "name#tag"
+    const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
+
+    // Radiant has no division → store just "Radiant"
+    const rank =
+      peakRankTier === "Radiant"
+        ? "Radiant"
+        : `${peakRankTier} ${peakRankDivision}`; // e.g. "Gold 2"
 
     setSubmitting(true);
     setMessage("");
@@ -186,7 +197,7 @@ export default function ValorantRegisterPage(props) {
           playerId,
           tournamentId: TOURNAMENT_ID,
           ign,      // name only, unchanged behavior for backend
-          fullIgn,  // extra data – backend can choose to save this
+          fullIgn,  // full Riot ID
           rank,
         }),
       });
@@ -209,6 +220,8 @@ export default function ValorantRegisterPage(props) {
     avatar && discordId
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
+
+  const isRadiant = peakRankTier === "Radiant";
 
   return (
     <div
@@ -362,11 +375,23 @@ export default function ValorantRegisterPage(props) {
               }}
             >
               Riot ID (IGN) *
-              <span style={{ marginLeft: 4, color: "#9ca3af", fontSize: "0.75rem" }}>
+              <span
+                style={{
+                  marginLeft: 4,
+                  color: "#9ca3af",
+                  fontSize: "0.75rem",
+                }}
+              >
                 (Name and Tagline)
               </span>
             </label>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                alignItems: "center",
+              }}
+            >
               <input
                 required
                 value={riotName}
@@ -430,7 +455,13 @@ export default function ValorantRegisterPage(props) {
               <select
                 required
                 value={peakRankTier}
-                onChange={(e) => setPeakRankTier(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPeakRankTier(v);
+                  if (v === "Radiant") {
+                    setPeakRankDivision("");
+                  }
+                }}
                 disabled={alreadyRegistered}
                 style={{
                   flex: 2,
@@ -452,10 +483,9 @@ export default function ValorantRegisterPage(props) {
               </select>
 
               <select
-                required
                 value={peakRankDivision}
                 onChange={(e) => setPeakRankDivision(e.target.value)}
-                disabled={alreadyRegistered || !peakRankTier}
+                disabled={alreadyRegistered || !peakRankTier || isRadiant}
                 style={{
                   flex: 1,
                   backgroundColor: "#0f0f10",
@@ -463,19 +493,34 @@ export default function ValorantRegisterPage(props) {
                   borderRadius: "0.5rem",
                   padding: "0.6rem 0.75rem",
                   color:
-                    alreadyRegistered || !peakRankTier ? "#6b7280" : "white",
+                    alreadyRegistered || !peakRankTier || isRadiant
+                      ? "#6b7280"
+                      : "white",
                   fontSize: "0.9rem",
                   outline: "none",
                 }}
               >
-                <option value="">Div</option>
-                {VALORANT_DIVISIONS.map((div) => (
-                  <option key={div} value={div}>
-                    {div}
-                  </option>
-                ))}
+                <option value="">{isRadiant ? "N/A" : "Div"}</option>
+                {!isRadiant &&
+                  VALORANT_DIVISIONS.map((div) => (
+                    <option key={div} value={div}>
+                      {div}
+                    </option>
+                  ))}
               </select>
             </div>
+            {isRadiant && (
+              <div
+                style={{
+                  marginTop: "0.3rem",
+                  fontSize: "0.75rem",
+                  color: "#9ca3af",
+                }}
+              >
+                Radiant has no divisions. We’ll store your rank as{" "}
+                <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
+              </div>
+            )}
           </div>
 
           <button
