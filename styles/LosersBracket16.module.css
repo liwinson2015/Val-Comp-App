@@ -1,7 +1,9 @@
 /* Losers bracket: structured so that:
    - R1 match 1 & R2 match 1 share the same center
    - R3A has 4 single boxes, each centered on one R2 matchup
-   - R3B matches are aligned between the 3A singles as requested
+   - R3B matches are aligned between the 3A singles
+   - R4 top player aligns with center of 3B match 1,
+     and bottom player aligns with center of 3B match 2
 */
 
 .lbViewport{
@@ -10,7 +12,7 @@
 
   /* slot + match geometry */
   --slotH: 40px;           /* medium height */
-  --pairGapInside: 10px;   /* gap between two players in a match */
+  --pairGapInside: 10px;   /* gap between two players in a match (default) */
   --pairPad: 4px;
 
   /* total height of one match block (two slots) */
@@ -119,7 +121,7 @@
    - top player of match 1 centered between 3A players 1 & 2
    - top player of match 2 centered between 3A players 3 & 4
 
-   This is achieved when:
+   Achieved when:
    - margin on .r3b .pair is (pairH/2 + r1Space)
    - stack offset on .r3b .stack is (slotH + pairGapInside)/2
 */
@@ -130,8 +132,52 @@
   margin-top: calc((var(--slotH) + var(--pairGapInside)) / 2);
 }
 
-/* R4 + LB Final: simple rhythm for now */
-.r4 .pair,
+/* R4:
+   We want:
+   - TOP SLOT center aligned with center of 3B match 1
+   - BOTTOM SLOT center aligned with center of 3B match 2
+
+   Let:
+   step3b = distance between centers of 3B matches
+          = pairH + 2 * margin(3b)
+          = 2*pairH + 2*r1Space   (since margin(3b) = pairH/2 + r1Space)
+
+   The distance between centers of the two R4 players in one .pair is:
+      slotH + customGap
+   So we set customGap so:
+      slotH + customGap = step3b
+
+   Also we offset R4 stack/margin so the TOP SLOT center
+   lines up with 3B match 1 center.
+
+   The math gives:
+     - .r4 .stack same offset as .r3b .stack
+     - .r4 .pair margin-top = pairH + r1Space - pairPad - slotH/2
+     - .r4 .pair second-slot margin-top =
+         3*slotH + 2*pairGapInside + 4*pairPad + 2*r1Space
+*/
+
+.r4 .pair{
+  margin: calc(
+    var(--pairH) + var(--r1Space) - var(--pairPad) - (var(--slotH) / 2)
+  ) 0;
+}
+
+.r4 .stack{
+  margin-top: calc((var(--slotH) + var(--pairGapInside)) / 2);
+}
+
+/* override spacing between the two players in R4 */
+.r4 .pair .slot + .slot{
+  margin-top: calc(
+    3 * var(--slotH) +
+    2 * var(--pairGapInside) +
+    4 * var(--pairPad) +
+    2 * var(--r1Space)
+  );
+}
+
+/* LB Final: simple rhythm (can be tuned later) */
 .rFinal .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
@@ -182,6 +228,8 @@
   box-sizing: border-box;
 }
 
+/* default gap between two slots in a pair;
+   R4 overrides this with a larger value above. */
 .slot + .slot{
   margin-top: var(--pairGapInside);
 }
