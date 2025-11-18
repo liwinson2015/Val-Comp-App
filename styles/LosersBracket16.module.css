@@ -1,6 +1,7 @@
 /* Losers bracket: structured so that:
    - R1 match 1 & R2 match 1 share the same center
    - R3A has 4 single boxes, each centered on one R2 matchup
+   - R3B matches are aligned between the 3A singles as requested
 */
 
 .lbViewport{
@@ -62,7 +63,7 @@
 
 .round{
   position:relative;
-  width: 100%;           /* ✅ make round fill its grid column */
+  width: 100%;           /* fill grid column */
 }
 
 /* Force all titles to same height so columns start at same Y */
@@ -83,7 +84,7 @@
 .stack{
   position:relative;
   display:grid;
-  width: 100%;           /* ✅ matches area fills column width */
+  width: 100%;
 }
 
 /* ---------- vertical spacing logic ---------- */
@@ -104,14 +105,7 @@
 }
 
 /* R3A (special):
-   We render FOUR .single blocks.
-   Each .single has height == pairH and the same margins as R2 pairs.
-   Because:
-     - stack top is the same
-     - block height is pairH
-     - margin is calc(r1Space/2)
-   each 3A single's CENTER Y lines up exactly with the
-   center of the matching R2 pair.
+   Four .single blocks, one centered on each R2 matchup.
 */
 .r3a .single{
   margin: calc(var(--r1Space)/2) 0;
@@ -120,9 +114,20 @@
   margin-top: 0;
 }
 
-/* R3B: simple rhythm for now */
+/* R3B:
+   We want:
+   - top player of match 1 centered between 3A players 1 & 2
+   - top player of match 2 centered between 3A players 3 & 4
+
+   This is achieved when:
+   - margin on .r3b .pair is (pairH/2 + r1Space)
+   - stack offset on .r3b .stack is (slotH + pairGapInside)/2
+*/
 .r3b .pair{
-  margin: calc(var(--r1Space)/2) 0;
+  margin: calc(var(--pairH) / 2 + var(--r1Space)) 0;
+}
+.r3b .stack{
+  margin-top: calc((var(--slotH) + var(--pairGapInside)) / 2);
 }
 
 /* R4 + LB Final: simple rhythm for now */
@@ -136,7 +141,7 @@
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
-  width: 100%;           /* ✅ match block fills column */
+  width: 100%;           /* match block fills column */
 }
 
 /* small horizontal stub on the right connecting to the next column */
@@ -157,7 +162,7 @@
   height: var(--pairH);   /* same height as a full match */
   display: flex;
   align-items: center;    /* center the slot vertically */
-  width: 100%;           /* ✅ single also fills column */
+  width: 100%;
 }
 
 /* Slot styling (used by both Pair and Single) */
@@ -173,8 +178,8 @@
   box-shadow: none;
   text-align: center;
 
-  width: 100%;            /* ✅ each box is full width of its column */
-  box-sizing: border-box; /* ✅ include border in width calc */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .slot + .slot{
