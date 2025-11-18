@@ -27,7 +27,7 @@ export default function LosersBracket16(props) {
           </Round>
 
           {/* R2 — 4 matches (interleaved R2A and R2B drop-ins) */}
-          <Round title="LB Round 2 (WB R2 drop-ins)" cls="r2">
+          <Round title="LB Round 2" cls="r2">
             {norm.R2.map((m, i) => (
               <Pair key={`r2-${i}`} top={m[0]} bot={m[1]} />
             ))}
@@ -41,7 +41,7 @@ export default function LosersBracket16(props) {
           </Round>
 
           {/* R3B — 2 matches (WB SF drop-ins) */}
-          <Round title="LB Round 3B (WB SF drop-ins)" cls="r3b">
+          <Round title="LB Round 3B" cls="r3b">
             {norm.R3B.map((m, i) => (
               <Pair key={`r3b-${i}`} top={m[0]} bot={m[1]} />
             ))}
