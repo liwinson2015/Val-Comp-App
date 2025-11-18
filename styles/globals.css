@@ -194,3 +194,217 @@ body {
     font-size: 0.9rem;
   }
 }
+
+/* =========================
+   ADMIN – BRACKETS
+   ========================= */
+
+.admin-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 3.5rem;
+}
+
+.admin-header {
+  margin-bottom: 2rem;
+}
+
+.admin-breadcrumb {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+}
+
+.admin-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.admin-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.admin-section {
+  margin-top: 1.5rem;
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.admin-section-title {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.admin-section-meta {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* Empty state */
+
+.admin-empty {
+  border-radius: var(--radius-card);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  padding: 1.25rem 1.1rem;
+  background: radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.08), #050505);
+}
+
+.admin-empty p {
+  margin: 0;
+}
+
+.admin-empty-sub {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* Tournament list */
+
+.admin-tournament-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.admin-tournament-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(255, 70, 85, 0.04),
+      transparent 55%
+    ),
+    #09090b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.admin-tournament-card:hover {
+  border-color: rgba(248, 250, 252, 0.4);
+  transform: translateY(-1px);
+  transition: border-color 0.14s ease, transform 0.14s ease,
+    box-shadow 0.14s ease;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.admin-tournament-main {
+  min-width: 0;
+}
+
+.admin-tournament-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background-color: rgba(148, 163, 184, 0.16);
+  color: var(--text-dim);
+  margin-bottom: 0.3rem;
+}
+
+.admin-tournament-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-tournament-id {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* right side */
+
+.admin-tournament-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.admin-tournament-stat {
+  text-align: right;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  margin-bottom: 0.1rem;
+}
+
+.stat-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.stat-unit {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.admin-tournament-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 999px;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  background: var(--accent-red);
+  color: #000;
+  border: 1px solid rgba(248, 250, 252, 0.6);
+}
+
+.admin-tournament-btn:hover {
+  filter: brightness(1.05);
+}
+
+/* responsive */
+
+@media (max-width: 720px) {
+  .admin-shell {
+    padding-inline: 1rem;
+  }
+
+  .admin-tournament-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .admin-tournament-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-tournament-stat {
+    text-align: left;
+  }
+}

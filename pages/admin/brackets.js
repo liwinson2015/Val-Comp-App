@@ -54,8 +54,9 @@ export async function getServerSideProps({ req }) {
     }
   }
 
-  const tournaments = Object.values(tournamentsMap).sort((a, b) =>
-    a.tournamentId.localeCompare(b.tournamentId)
+  // Convert to array + sort: most players first
+  const tournaments = Object.values(tournamentsMap).sort(
+    (a, b) => b.count - a.count
   );
 
   return {
@@ -67,104 +68,75 @@ export async function getServerSideProps({ req }) {
 
 export default function AdminBracketsPage({ tournaments }) {
   return (
-    <div style={{ padding: "40px 20px", maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "1.8rem", marginBottom: 8 }}>Admin – Brackets</h1>
-      <p style={{ marginBottom: 24, color: "#ccc" }}>
-        Click a tournament to view all players registered for it. Next, we&apos;ll
-        add tools to place them into brackets.
-      </p>
+    <main className="admin-shell">
+      <section className="admin-header">
+        <div className="admin-breadcrumb">Admin / Brackets</div>
+        <h1 className="admin-title">Manage Brackets</h1>
+        <p className="admin-subtitle">
+          Choose a tournament to see everyone registered and build or edit the
+          bracket.
+        </p>
+      </section>
 
-      {tournaments.length === 0 ? (
-        <p>No registrations found yet.</p>
-      ) : (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: 16,
-          }}
-        >
-          <thead>
-            <tr>
-              <th
-                style={{
-                  textAlign: "left",
-                  padding: "8px 6px",
-                  borderBottom: "1px solid #333",
-                }}
-              >
-                Tournament ID
-              </th>
-              <th
-                style={{
-                  textAlign: "right",
-                  padding: "8px 6px",
-                  borderBottom: "1px solid #333",
-                }}
-              >
-                # of Players
-              </th>
-              <th
-                style={{
-                  textAlign: "right",
-                  padding: "8px 6px",
-                  borderBottom: "1px solid #333",
-                }}
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+      <section className="admin-section">
+        <div className="admin-section-header">
+          <h2 className="admin-section-title">Tournaments</h2>
+          <span className="admin-section-meta">
+            {tournaments.length} event
+            {tournaments.length === 1 ? "" : "s"} with registrations
+          </span>
+        </div>
+
+        {tournaments.length === 0 ? (
+          <div className="admin-empty">
+            <p>No registrations found yet.</p>
+            <p className="admin-empty-sub">
+              Once players register for a tournament, it will appear here for
+              bracket management.
+            </p>
+          </div>
+        ) : (
+          <div className="admin-tournament-list">
             {tournaments.map((t) => {
               const encodedId = encodeURIComponent(t.tournamentId);
               return (
-                <tr key={t.tournamentId}>
-                  <td
-                    style={{
-                      padding: "8px 6px",
-                      borderBottom: "1px solid #222",
-                    }}
-                  >
-                    {t.tournamentId}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 6px",
-                      textAlign: "right",
-                      borderBottom: "1px solid #222",
-                    }}
-                  >
-                    {t.count}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 6px",
-                      textAlign: "right",
-                      borderBottom: "1px solid #222",
-                    }}
-                  >
+                <article
+                  key={t.tournamentId}
+                  className="admin-tournament-card"
+                >
+                  <div className="admin-tournament-main">
+                    <div className="admin-tournament-chip">Tournament</div>
+                    <h3 className="admin-tournament-name">
+                      {t.tournamentId}
+                    </h3>
+                    {/* If you later add a nicer display name, you can put it here */}
+                    {/* <p className="admin-tournament-id">{t.displayName}</p> */}
+                  </div>
+
+                  <div className="admin-tournament-meta">
+                    <div className="admin-tournament-stat">
+                      <span className="stat-label">Registered</span>
+                      <span className="stat-value">
+                        {t.count}
+                        <span className="stat-unit">
+                          {" "}
+                          player{t.count === 1 ? "" : "s"}
+                        </span>
+                      </span>
+                    </div>
                     <a
                       href={`/admin/brackets/${encodedId}`}
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: 6,
-                        background: "#1f2933",
-                        border: "1px solid #374151",
-                        color: "white",
-                        textDecoration: "none",
-                        fontSize: "0.85rem",
-                      }}
+                      className="admin-tournament-btn"
                     >
-                      View players
+                      View players &amp; bracket
                     </a>
-                  </td>
-                </tr>
+                  </div>
+                </article>
               );
             })}
-          </tbody>
-        </table>
-      )}
-    </div>
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
