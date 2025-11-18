@@ -135,19 +135,16 @@ export default function AdminPlayersPage({ players, tournaments }) {
   const [tournamentFilter, setTournamentFilter] = useState("all");
   const [onlyNeverRegistered, setOnlyNeverRegistered] = useState(false);
 
-  // track both selected id *and* selected player object
+  // single source of truth for which player is selected
   const [selectedId, setSelectedId] = useState(
     () => (players && players[0]?.id) || null
-  );
-  const [selectedPlayer, setSelectedPlayer] = useState(
-    () => (players && players[0]) || null
   );
 
   const [notesDraft, setNotesDraft] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesMessage, setNotesMessage] = useState("");
 
-  // Compute filtered players based on filters + search
+  // Compute filtered players for LEFT LIST
   const filteredPlayers = useMemo(() => {
     const q = query.toLowerCase().trim();
 
@@ -184,25 +181,18 @@ export default function AdminPlayersPage({ players, tournaments }) {
     });
   }, [playersState, query, tournamentFilter, onlyNeverRegistered]);
 
-  // keep selectedPlayer in sync with filters
+  // derive the selected player directly from playersState
+  const selectedPlayer =
+    playersState.find((p) => p.id === selectedId) || null;
+
+  // if nothing selected and we have players, pick the first
   useEffect(() => {
-    if (!filteredPlayers.length) {
-      setSelectedId(null);
-      setSelectedPlayer(null);
-      return;
+    if (!selectedId && playersState.length > 0) {
+      setSelectedId(playersState[0].id);
     }
+  }, [selectedId, playersState]);
 
-    if (
-      !selectedPlayer ||
-      !filteredPlayers.some((p) => p.id === selectedPlayer.id)
-    ) {
-      // current selected player not visible -> fall back to first visible
-      setSelectedId(filteredPlayers[0].id);
-      setSelectedPlayer(filteredPlayers[0]);
-    }
-  }, [filteredPlayers, selectedPlayer]);
-
-  // Sync notesDraft when selected player changes
+  // when selected player changes, sync notesDraft
   useEffect(() => {
     if (selectedPlayer) {
       setNotesDraft(selectedPlayer.adminNotes || "");
@@ -235,9 +225,6 @@ export default function AdminPlayersPage({ players, tournaments }) {
           prev.map((p) =>
             p.id === selectedPlayer.id ? { ...p, adminNotes: notesDraft } : p
           )
-        );
-        setSelectedPlayer((prev) =>
-          prev ? { ...prev, adminNotes: notesDraft } : prev
         );
         setNotesMessage("Saved.");
       }
@@ -279,7 +266,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
         return;
       }
 
-      // simplest: reload so everything is fresh
+      // simplest: reload so data stays in sync
       window.location.reload();
     } catch (err) {
       console.error("Error saving registration:", err);
@@ -403,14 +390,12 @@ export default function AdminPlayersPage({ players, tournaments }) {
             )}
 
             {filteredPlayers.map((p) => {
-              const isActive = selectedPlayer && p.id === selectedPlayer.id;
+              const isActive = selectedId === p.id;
               return (
                 <button
                   key={p.id}
-                  onClick={() => {
-                    setSelectedId(p.id);
-                    setSelectedPlayer(p);
-                  }}
+                  type="button"
+                  onClick={() => setSelectedId(p.id)}
                   style={{
                     width: "100%",
                     textAlign: "left",
@@ -527,7 +512,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
             <div>No player selected.</div>
           ) : (
             <>
-              {/* Profile header (name + big avatar) */}
+              {/* Profile header */}
               <div
                 style={{
                   marginBottom: "0.9rem",
