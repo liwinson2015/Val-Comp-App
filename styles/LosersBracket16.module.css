@@ -60,7 +60,10 @@
 
 /* ---------- rounds / titles ---------- */
 
-.round{ position:relative; }
+.round{
+  position:relative;
+  width: 100%;           /* ✅ make round fill its grid column */
+}
 
 /* Force all titles to same height so columns start at same Y */
 .roundTitle{
@@ -80,6 +83,7 @@
 .stack{
   position:relative;
   display:grid;
+  width: 100%;           /* ✅ matches area fills column width */
 }
 
 /* ---------- vertical spacing logic ---------- */
@@ -132,6 +136,7 @@
 .pair{
   position:relative;
   padding: var(--pairPad) 0;
+  width: 100%;           /* ✅ match block fills column */
 }
 
 /* small horizontal stub on the right connecting to the next column */
@@ -152,9 +157,8 @@
   height: var(--pairH);   /* same height as a full match */
   display: flex;
   align-items: center;    /* center the slot vertically */
+  width: 100%;           /* ✅ single also fills column */
 }
-
-/* no stub on singles (we’re just showing drop-in players) */
 
 /* Slot styling (used by both Pair and Single) */
 .slot{
@@ -168,6 +172,9 @@
   padding: 0 10px;
   box-shadow: none;
   text-align: center;
+
+  width: 100%;            /* ✅ each box is full width of its column */
+  box-sizing: border-box; /* ✅ include border in width calc */
 }
 
 .slot + .slot{
