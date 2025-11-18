@@ -499,6 +499,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
 
         {/* RIGHT: PLAYER DETAIL */}
         <div
+          key={selectedPlayer ? selectedPlayer.id : "no-player"} // 🔑 force remount on player change
           style={{
             border: "1px solid #1f2937",
             borderRadius: "10px",
@@ -762,7 +763,9 @@ export default function AdminPlayersPage({ players, tournaments }) {
 
                       return (
                         <div
-                          key={reg.id || reg.tournamentId || idx}
+                          key={`${selectedPlayer.id}-${
+                            reg.tournamentId || reg.id || idx
+                          }`} // 🔑 unique per player+tournament
                           style={{
                             padding: "0.7rem 0.8rem",
                             borderBottom:
