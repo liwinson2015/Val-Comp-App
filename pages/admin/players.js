@@ -314,12 +314,7 @@ export default function AdminPlayersPage({ players }) {
                         marginTop: "0.1rem",
                       }}
                     >
-                      {p.riotId && <span>Riot: {p.riotId}</span>}
-                      {p.ign && <span>IGN: {p.ign}</span>}
-                      {p.rank && <span>Rank: {p.rank}</span>}
-                      {!p.riotId && !p.ign && !p.rank && (
-                        <span style={{ opacity: 0.7 }}>(no extra info)</span>
-                      )}
+                      {/* intentionally empty: different games have different fields */}
                     </div>
                   </div>
                 </button>
