@@ -1,11 +1,12 @@
 // /pages/valorant/index.js
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
-const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // keep this in sync with your catalog/key
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const FALLBACK_CAPACITY = 16;
 
 // ---------- SERVER SIDE: block page if tournament is FULL ----------
@@ -58,7 +59,6 @@ export default function ValorantEventPage({
   const [loggedIn, setLoggedIn] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
-  // Slots (start from server values, optional)
   const [slotsUsed, setSlotsUsed] = useState(initialRegistered);
   const [slotsCapacity] = useState(capacity ?? FALLBACK_CAPACITY);
 
@@ -78,7 +78,7 @@ export default function ValorantEventPage({
           setIsRegistered(!!data.isRegistered);
         }
 
-        // Optional: refresh slots from same API used on 1v1 page
+        // Optional: refresh slots from same API used on 1v1 list
         try {
           const regInfoRes = await fetch(
             `/api/tournaments/${TOURNAMENT_ID}/registrations`,
@@ -106,129 +106,291 @@ export default function ValorantEventPage({
 
   // Decide what the red button should do
   let registerHref = "/valorant/register";
-  let registerLabel = "Register";
+  let registerLabel = "Register now";
   let disabled = false;
 
   if (!loggedIn) {
-    // Route through Discord, then back to the intended register page
     registerHref = `/api/auth/discord?next=${encodeURIComponent(
       "/valorant/register"
     )}`;
+    registerLabel = "Log in with Discord";
   } else if (isRegistered) {
-    // Already registered: send them to their registrations instead
     registerHref = "/account/registrations";
     registerLabel = "View my registration";
+    disabled = false;
   }
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Hero */}
-        <section className={styles.hero}>
-          <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>VALORANT TOURNAMENT</div>
-            <h1 className={styles.heroTitle}>VALORANT — Solo Skirmish #1</h1>
-            <p className={styles.heroSubtitle}>
-              1v1 skirmish duels. Bragging rights. Skin prize for the winner.
-            </p>
+        {/* HERO + NEW MAIN CARD */}
+        <section
+          style={{
+            marginTop: "2.5rem",
+            marginBottom: "1.75rem",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              display: "inline-flex",
+              padding: "0.2rem 0.9rem",
+              borderRadius: "999px",
+              border: "1px solid rgba(248,113,113,0.4)",
+              fontSize: "0.7rem",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "#f87171",
+              marginBottom: "0.6rem",
+            }}
+          >
+            Valorant 1v1
+          </div>
+          <h1
+            style={{
+              fontSize: "1.9rem",
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              margin: 0,
+            }}
+          >
+            Valorant Skirmish Tournament #1
+          </h1>
+          <p
+            style={{
+              marginTop: "0.5rem",
+              fontSize: "0.9rem",
+              color: "#9ca3af",
+            }}
+          >
+            Solo 1v1 skirmish hosted by 5TQ. Claim your slot, climb the bracket,
+            and show off your aim.
+          </p>
+        </section>
 
-            {/* Buttons */}
+        <section
+          style={{
+            background:
+              "radial-gradient(circle at 10% 0%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 55%)",
+            borderRadius: "1.1rem",
+            border: "1px solid #2d2d2d",
+            boxShadow:
+              "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
+            padding: "1.75rem 1.75rem 1.5rem",
+            marginBottom: "2rem",
+          }}
+        >
+          {/* Top row: status + meta */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: "1.25rem",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "#22c55e",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                OPEN
+              </div>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  marginTop: "0.15rem",
+                  color: "#e5e7eb",
+                }}
+              >
+                Tournament ID:{" "}
+                <span style={{ fontWeight: 700, color: "#f9fafb" }}>
+                  {TOURNAMENT_ID}
+                </span>
+              </div>
+            </div>
+
             <div
               style={{
-                marginTop: 16,
-                display: "flex",
-                gap: 10,
-                justifyContent: "center",
-                flexWrap: "wrap",
+                textAlign: "right",
+                fontSize: "0.8rem",
+                color: "#9ca3af",
               }}
             >
-              <a
-                href={registerHref}
-                style={{
-                  display: "inline-block",
-                  background: "#ff0046",
-                  color: "white",
-                  fontWeight: 700,
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  boxShadow: "0 10px 30px rgba(255,0,70,0.35)",
-                  opacity: loading ? 0.7 : 1,
-                  pointerEvents: loading ? "none" : "auto",
-                }}
-                aria-disabled={disabled || loading}
-                onClick={(e) => {
-                  if (disabled || loading) e.preventDefault();
-                }}
-              >
-                {loading ? "Checking status…" : registerLabel}
-              </a>
+              <div>Hosted by 5TQ</div>
+              <div>Starts November 2nd, 2025</div>
+            </div>
+          </div>
 
-              <a
-                href="https://discord.gg/qUzCCK8nuc"
-                target="_blank"
-                rel="noopener noreferrer"
+          {/* Middle: info grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1.1fr)",
+              gap: "1.5rem",
+              alignItems: "flex-start",
+            }}
+          >
+            {/* Left: condensed quick facts */}
+            <div>
+              {[
+                ["Mode", "1v1 Skirmish"],
+                [
+                  "Format",
+                  "Best-of-1 • First to 20 kills • Win by 2",
+                ],
+                ["Map", "Randomized: Skirmish A / B / C"],
+                ["Server", "NA (custom lobby)"],
+                ["Check-in", "15 minutes before start (Discord)"],
+                ["Entry", "Free"],
+                ["Prize", "Skin (TBD) + bragging rights"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "0.25rem 0",
+                    fontSize: "0.86rem",
+                  }}
+                >
+                  <span style={{ color: "#9ca3af" }}>{label}</span>
+                  <span style={{ color: "#e5e7eb", marginLeft: "1rem" }}>
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Right: slots + CTA & Discord */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: "0.9rem",
+              }}
+            >
+              <div
                 style={{
-                  display: "inline-block",
-                  background: "#2a2f3a",
-                  color: "white",
-                  fontWeight: 700,
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  border: "1px solid #3a4150",
+                  backgroundColor: "#111827",
+                  borderRadius: "0.75rem",
+                  padding: "0.8rem 0.85rem",
+                  border: "1px solid #1f2937",
                 }}
               >
-                Join Discord
-              </a>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.12em",
+                    color: "#9ca3af",
+                    marginBottom: "0.25rem",
+                  }}
+                >
+                  Slots
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.1rem",
+                    fontWeight: 600,
+                    color: "#f9fafb",
+                  }}
+                >
+                  {slotsUsed == null || slotsCapacity == null
+                    ? "16 / 16"
+                    : `${slotsUsed} / ${slotsCapacity}`}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.55rem",
+                }}
+              >
+                {/* Red primary button */}
+                <a
+                  href={registerHref}
+                  onClick={(e) => {
+                    if (disabled || loading) e.preventDefault();
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "0.7rem",
+                    backgroundColor: disabled || loading ? "#4b5563" : "#ff0046",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    border: "none",
+                    textDecoration: "none",
+                    boxShadow:
+                      disabled || loading
+                        ? "none"
+                        : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                    cursor:
+                      disabled || loading ? "not-allowed" : "pointer",
+                    opacity: disabled || loading ? 0.6 : 1,
+                    transition: "background-color .15s",
+                  }}
+                  aria-disabled={disabled || loading}
+                >
+                  {loading ? "Checking status…" : registerLabel}
+                </a>
+
+                {/* Gray Discord button */}
+                <a
+                  href="https://discord.gg/qUzCCK8nuc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "0.7rem 1rem",
+                    borderRadius: "0.7rem",
+                    backgroundColor: "#1f2937",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "0.86rem",
+                    border: "1px solid #374151",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Join Discord
+                </a>
+
+                <p
+                  style={{
+                    marginTop: "0.2rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  You&apos;ll need to log in with Discord to secure your slot.
+                  No alt accounts, smurfing, or cheating allowed.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Quick facts */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>QUICK FACTS</h2>
-          </div>
-          <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>Mode</div>
-            <div className={styles.detailValue}>1v1 Skirmish</div>
-
-            <div className={styles.detailLabel}>Slots</div>
-            <div className={styles.detailValue}>
-              {slotsUsed == null || slotsCapacity == null
-                ? "16 Players"
-                : `${slotsUsed} / ${slotsCapacity} Players`}
-            </div>
-
-            <div className={styles.detailLabel}>Format</div>
-            <div className={styles.detailValue}>
-              Best-of-1 • First to <strong>20</strong> kills •{" "}
-              <strong>Win by 2</strong>
-            </div>
-
-            <div className={styles.detailLabel}>Map</div>
-            <div className={styles.detailValue}>
-              Randomized: Skirmish A, B, or C
-            </div>
-
-            <div className={styles.detailLabel}>Server</div>
-            <div className={styles.detailValue}>NA (custom lobby)</div>
-
-            <div className={styles.detailLabel}>Check-in</div>
-            <div className={styles.detailValue}>
-              15 minutes before start in Discord
-            </div>
-
-            <div className={styles.detailLabel}>Entry</div>
-            <div className={styles.detailValue}>Free</div>
-
-            <div className={styles.detailLabel}>Prize</div>
-            <div className={styles.detailValue}>
-              Skin (TBD) + bragging rights
-            </div>
-          </div>
-        </section>
+        {/* BELOW: old detailed sections, but under the new hero/card */}
 
         {/* Format & Scoring */}
         <section className={styles.card}>
