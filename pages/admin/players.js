@@ -73,7 +73,6 @@ export async function getServerSideProps({ req }) {
         "_id",
         "createdAt",
         "__v",
-        // treat these as first-class, not extras
         "ign",
         "fullIgn",
         "rank",
@@ -136,8 +135,12 @@ export default function AdminPlayersPage({ players, tournaments }) {
   const [tournamentFilter, setTournamentFilter] = useState("all");
   const [onlyNeverRegistered, setOnlyNeverRegistered] = useState(false);
 
+  // track both selected id *and* selected player object
   const [selectedId, setSelectedId] = useState(
     () => (players && players[0]?.id) || null
+  );
+  const [selectedPlayer, setSelectedPlayer] = useState(
+    () => (players && players[0]) || null
   );
 
   const [notesDraft, setNotesDraft] = useState("");
@@ -181,17 +184,23 @@ export default function AdminPlayersPage({ players, tournaments }) {
     });
   }, [playersState, query, tournamentFilter, onlyNeverRegistered]);
 
-  const selectedPlayer =
-    filteredPlayers.find((p) => p.id === selectedId) ||
-    filteredPlayers[0] ||
-    null;
-
-  // If filter removed the previously selected player, update selection
+  // keep selectedPlayer in sync with filters
   useEffect(() => {
-    if (!selectedPlayer && filteredPlayers.length > 0) {
-      setSelectedId(filteredPlayers[0].id);
+    if (!filteredPlayers.length) {
+      setSelectedId(null);
+      setSelectedPlayer(null);
+      return;
     }
-  }, [selectedPlayer, filteredPlayers]);
+
+    if (
+      !selectedPlayer ||
+      !filteredPlayers.some((p) => p.id === selectedPlayer.id)
+    ) {
+      // current selected player not visible -> fall back to first visible
+      setSelectedId(filteredPlayers[0].id);
+      setSelectedPlayer(filteredPlayers[0]);
+    }
+  }, [filteredPlayers, selectedPlayer]);
 
   // Sync notesDraft when selected player changes
   useEffect(() => {
@@ -227,6 +236,9 @@ export default function AdminPlayersPage({ players, tournaments }) {
             p.id === selectedPlayer.id ? { ...p, adminNotes: notesDraft } : p
           )
         );
+        setSelectedPlayer((prev) =>
+          prev ? { ...prev, adminNotes: notesDraft } : prev
+        );
         setNotesMessage("Saved.");
       }
     } catch (err) {
@@ -238,7 +250,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
     }
   }
 
-  // 🔸 NEW: save ign / fullIgn / rank for a single registration
+  // save ign / fullIgn / rank for a single registration
   async function handleSaveRegistration(e, playerId, reg) {
     e.preventDefault();
 
@@ -267,7 +279,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
         return;
       }
 
-      // simplest: reload so data & extras stay in sync
+      // simplest: reload so everything is fresh
       window.location.reload();
     } catch (err) {
       console.error("Error saving registration:", err);
@@ -391,11 +403,14 @@ export default function AdminPlayersPage({ players, tournaments }) {
             )}
 
             {filteredPlayers.map((p) => {
-              const isActive = p.id === selectedId;
+              const isActive = selectedPlayer && p.id === selectedPlayer.id;
               return (
                 <button
                   key={p.id}
-                  onClick={() => setSelectedId(p.id)}
+                  onClick={() => {
+                    setSelectedId(p.id);
+                    setSelectedPlayer(p);
+                  }}
                   style={{
                     width: "100%",
                     textAlign: "left",
@@ -846,11 +861,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
                               }}
                             >
                               {/* ign */}
-                              <div
-                                style={{
-                                  display: "contents",
-                                }}
-                              >
+                              <div style={{ display: "contents" }}>
                                 <div
                                   style={{
                                     fontWeight: 500,
@@ -947,7 +958,7 @@ export default function AdminPlayersPage({ players, tournaments }) {
                               </div>
                             </form>
 
-                            {/* any extra fields beyond ign/fullIgn/rank */}
+                            {/* extra fields beyond ign/fullIgn/rank */}
                             {extraEntries.length > 0 && (
                               <dl
                                 style={{
