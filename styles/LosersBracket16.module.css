@@ -1,11 +1,13 @@
-/* Losers bracket: aligned like a real tournament bracket, centered & scaled */
+/* Losers bracket: each matchup is a .pair (2 players).
+   R1 match 1 (plusle vs Booey) and R2 match 1 (Booey vs 蓝蝴蝶ya)
+   are forced to share the SAME vertical center (same y). */
 
 .lbViewport{
   --colw: clamp(120px, 9vw, 160px);
   --gap:  clamp(18px, 2.2vw, 26px);
 
   /* slot + match geometry */
-  --slotH: 40px;           /* medium height, a bit flat */
+  --slotH: 40px;           /* medium height */
   --pairGapInside: 10px;   /* gap between top/bottom slots of one match */
   --pairPad: 4px;
 
@@ -15,13 +17,11 @@
   /* base spacing: distance between matches in the FIRST round */
   --r1Space: 24px;         /* vertical gap between R1 matches */
 
-  /* for formulas later */
   --line: #2a2f36;
   --joinW: 2px;
   --stub: 10px;
   --arm:  calc(var(--gap) - var(--stub));
 
-  /* light slots for now (we can restyle later) */
   --slotBg: #f5f7fb;
   --slotBorder: #cfd7ea;
   --textDark: #0f1320;
@@ -76,46 +76,42 @@
 }
 
 /* ---------- vertical spacing logic ---------- */
-/* R1: base rhythm. Distance between match centers = pairH + r1Space */
 
+/* R1: base rhythm. Each .pair (match) is one matchup:
+   .pair[0] == plusle vs Booey
+   .pair[1] == Cactus vs (next), etc.
+*/
 .r1 .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R2: same rhythm as R1, but the entire column is shifted down by
-   half of one "center-to-center" distance so each R2 match sits
-   BETWEEN the two R1 matches that feed it. */
+/* R2: we KEEP THE SAME RHYTHM as R1 and DO NOT offset the stack.
+   This means:
+   - R2 .pair[0] (Booey vs 蓝蝴蝶ya) is at the EXACT same vertical position
+     as R1 .pair[0] (plusle vs Booey).
+   ⇒ Their centers share the same Y-axis (what you asked for).
+*/
 .r2 .pair{
-  margin: calc(var(--r1Space)/2) 0; /* same D as R1 */
-}
-/* shift R2 down by (pairH + r1Space)/2 */
-.r2 .stack{
-  margin-top: calc( (var(--pairH) + var(--r1Space)) / 2 );
+  margin: calc(var(--r1Space)/2) 0;
 }
 
-/* R3A & R3B: they are fed by R2. We use the same base rhythm, but
-   shift them further down by one full "step" so visually they sit
-   under the correct groups of R2 matches. */
+/* We do NOT shift .r2 .stack anymore:
+   .r2 .stack { margin-top: 0; }  (implicit, but shown here on purpose)
+*/
+.r2 .stack{
+  margin-top: 0;  /* ensure alignment with R1 */
+}
+
+/* R3A & R3B: for now we keep a simple rhythm; we can tune later */
 .r3a .pair,
 .r3b .pair{
   margin: calc(var(--r1Space)/2) 0;
 }
-.r3a .stack,
-.r3b .stack{
-  margin-top: calc( var(--pairH) + var(--r1Space) );
-}
 
-/* R4 + LB Final: single matches fed by previous rounds.
-   They follow the same general offset as R3 to keep everything
-   visually grouped. You can tweak these later if you want a
-   slightly higher/lower position. */
+/* R4 + LB Final: same idea; can be adjusted separately later */
 .r4 .pair,
 .rFinal .pair{
   margin: calc(var(--r1Space)/2) 0;
-}
-.r4 .stack,
-.rFinal .stack{
-  margin-top: calc( var(--pairH) + var(--r1Space) );
 }
 
 /* ---------- match boxes + connectors ---------- */
