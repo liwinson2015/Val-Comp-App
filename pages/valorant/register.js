@@ -54,9 +54,9 @@ export async function getServerSideProps({ req }) {
       };
     }
 
-    // Count how many registrations this tournament already has
-    const currentCount = await Registration.countDocuments({
-      tournament: TOURNAMENT_ID,
+    // ✅ Use Player collection to compute slots used
+    const currentCount = await Player.countDocuments({
+      "registeredFor.tournamentId": TOURNAMENT_ID,
     });
 
     // If full, ALWAYS redirect to "full" page (prevents manual URL entry)
@@ -69,12 +69,13 @@ export async function getServerSideProps({ req }) {
       };
     }
 
-    // Check if this player is already registered
+    // Check if this player is already registered (Registration collection)
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: TOURNAMENT_ID,
     }).lean();
 
+    // And also in Player.registeredFor array
     const alreadyInPlayerArray = (player.registeredFor || []).some(
       (entry) => entry.tournamentId === TOURNAMENT_ID
     );
@@ -182,7 +183,7 @@ export default function ValorantRegisterPage(props) {
           playerId,
           tournamentId: TOURNAMENT_ID,
           ign,
-          rank, // now Peak Rank combined
+          rank,
         }),
       });
 
