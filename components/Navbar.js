@@ -209,7 +209,7 @@ export default function Navbar() {
                     style={dropdownItem}
                     onClick={() => setProfileOpen(false)}
                   >
-                    My Registrations
+                    Registrations
                   </a>
                   <a
                     href="/api/auth/logout"
