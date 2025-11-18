@@ -68,11 +68,20 @@ export default function Navbar() {
       }}
     >
       <div className="nav-inner" style={{ position: "relative" }}>
-        {/* Brand */}
-        <div className="brand">
-          <span className="brand-main">ValComp</span>
-          <span className="brand-sub">5TQ</span>
-        </div>
+        {/* Brand / Logo */}
+        <a href="/" className="brand-link">
+          <div className="brand-mark">
+            <span className="brand-logo-box">VC</span>
+            <div className="brand-text">
+              <div className="brand-line">
+                <span className="brand-main">VALCOMP</span>
+                <span className="brand-dot">•</span>
+                <span className="brand-sub">5TQ</span>
+              </div>
+              <span className="brand-tagline">Gaming Tournaments</span>
+            </div>
+          </div>
+        </a>
 
         {/* Links */}
         <nav
