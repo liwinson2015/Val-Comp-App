@@ -1,14 +1,14 @@
-// pages/valorant/index.js
+// /pages/valorant/index.js
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import styles from "../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
-const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // keep this in sync with your catalog/key
 const FALLBACK_CAPACITY = 16;
 
-// ---------- SERVER SIDE: only redirect if FULL ----------
+// ---------- SERVER SIDE: block page if tournament is FULL ----------
 export async function getServerSideProps() {
   try {
     await connectToDatabase();
@@ -39,7 +39,7 @@ export async function getServerSideProps() {
     };
   } catch (err) {
     console.error("[/valorant] getServerSideProps error:", err);
-    // Fail open if something goes wrong
+    // Fail open if something breaks – page still loads, just without live slot count
     return {
       props: {
         initialRegistered: null,
@@ -49,15 +49,16 @@ export async function getServerSideProps() {
   }
 }
 
-// ---------- CLIENT SIDE ----------
+// ---------- CLIENT SIDE COMPONENT ----------
 export default function ValorantEventPage({
   initialRegistered,
   capacity,
 }) {
-  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
+  // Slots (start from server values, optional)
   const [slotsUsed, setSlotsUsed] = useState(initialRegistered);
   const [slotsCapacity] = useState(capacity ?? FALLBACK_CAPACITY);
 
@@ -66,34 +67,35 @@ export default function ValorantEventPage({
 
     (async () => {
       try {
-        // Check login + registration status for this tournament
-        const statusUrl = `/api/registration/status?tournamentId=${encodeURIComponent(
+        // Login + registration status
+        const url = `/api/registration/status?tournamentId=${encodeURIComponent(
           TOURNAMENT_ID
         )}`;
-        const statusRes = await fetch(statusUrl, {
-          credentials: "same-origin",
-        });
-        const statusData = await statusRes.json();
-
+        const res = await fetch(url, { credentials: "same-origin" });
+        const data = await res.json();
         if (!ignore) {
-          setLoggedIn(!!statusData.loggedIn);
-          setIsRegistered(!!statusData.isRegistered);
+          setLoggedIn(!!data.loggedIn);
+          setIsRegistered(!!data.isRegistered);
         }
 
-        // Refresh slots from tournaments API (same as 1v1 page)
-        const regInfoRes = await fetch(
-          `/api/tournaments/${TOURNAMENT_ID}/registrations`,
-          { cache: "no-store" }
-        );
-        const regInfo = await regInfoRes.json();
-        if (!ignore && typeof regInfo.registered === "number") {
-          setSlotsUsed(regInfo.registered);
+        // Optional: refresh slots from same API used on 1v1 page
+        try {
+          const regInfoRes = await fetch(
+            `/api/tournaments/${TOURNAMENT_ID}/registrations`,
+            { cache: "no-store" }
+          );
+          const regInfo = await regInfoRes.json();
+          if (!ignore && typeof regInfo.registered === "number") {
+            setSlotsUsed(regInfo.registered);
+          }
+        } catch (e) {
+          console.error("[/valorant] slot refresh error:", e);
         }
 
-        if (!ignore) setLoadingStatus(false);
+        if (!ignore) setLoading(false);
       } catch (e) {
-        console.error("[/valorant] client status error:", e);
-        if (!ignore) setLoadingStatus(false);
+        console.error("[/valorant] status error:", e);
+        if (!ignore) setLoading(false);
       }
     })();
 
@@ -102,313 +104,224 @@ export default function ValorantEventPage({
     };
   }, []);
 
-  const isChecking = loadingStatus;
+  // Decide what the red button should do
+  let registerHref = "/valorant/register";
+  let registerLabel = "Register";
+  let disabled = false;
 
-  // CTA button logic
-  let ctaLabel = "Register now";
-  let ctaHref = "/valorant/register";
-  let ctaDisabled = false;
-
-  if (isChecking) {
-    ctaLabel = "Checking status…";
-    ctaHref = null;
-    ctaDisabled = true;
-  } else if (!loggedIn) {
-    ctaLabel = "Log in with Discord";
-    const next = encodeURIComponent("/valorant");
-    ctaHref = `/api/auth/discord?next=${next}`;
+  if (!loggedIn) {
+    // Route through Discord, then back to the intended register page
+    registerHref = `/api/auth/discord?next=${encodeURIComponent(
+      "/valorant/register"
+    )}`;
   } else if (isRegistered) {
-    ctaLabel = "Already registered";
-    ctaHref = null;
-    ctaDisabled = true;
+    // Already registered: send them to their registrations instead
+    registerHref = "/account/registrations";
+    registerLabel = "View my registration";
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#0f0f0f",
-        color: "white",
-        fontFamily:
-          'system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif',
-        padding: "2.5rem 1rem 3rem",
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: "960px" }}>
-        {/* Hero banner */}
-        <div
-          style={{
-            marginBottom: "1.75rem",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              display: "inline-flex",
-              padding: "0.2rem 0.9rem",
-              borderRadius: "999px",
-              border: "1px solid rgba(248,113,113,0.4)",
-              fontSize: "0.7rem",
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              color: "#f87171",
-              marginBottom: "0.6rem",
-            }}
-          >
-            Valorant 1v1
-          </div>
-          <h1
-            style={{
-              fontSize: "1.9rem",
-              fontWeight: 700,
-              letterSpacing: "0.05em",
-              margin: 0,
-            }}
-          >
-            Valorant Skirmish Tournament #1
-          </h1>
-          <p
-            style={{
-              marginTop: "0.5rem",
-              fontSize: "0.9rem",
-              color: "#9ca3af",
-            }}
-          >
-            Solo 1v1 skirmish hosted by 5TQ. Claim your slot, climb the bracket,
-            and show off your aim.
-          </p>
-        </div>
+    <div className={styles.shell}>
+      <div className={styles.contentWrap}>
+        {/* Hero */}
+        <section className={styles.hero}>
+          <div className={styles.heroInner}>
+            <div className={styles.heroBadge}>VALORANT TOURNAMENT</div>
+            <h1 className={styles.heroTitle}>VALORANT — Solo Skirmish #1</h1>
+            <p className={styles.heroSubtitle}>
+              1v1 skirmish duels. Bragging rights. Skin prize for the winner.
+            </p>
 
-        {/* Main card */}
-        <div
-          style={{
-            background:
-              "radial-gradient(circle at 10% 0%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 55%)",
-            borderRadius: "1.1rem",
-            border: "1px solid #2d2d2d",
-            boxShadow:
-              "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
-            padding: "1.75rem 1.75rem 1.5rem",
-          }}
-        >
-          {/* Top row: status + meta */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
-              marginBottom: "1.25rem",
-              flexWrap: "wrap",
-              gap: "0.75rem",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: "#22c55e",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                OPEN
-              </div>
-              <div
-                style={{
-                  fontSize: "0.78rem",
-                  marginTop: "0.15rem",
-                  color: "#e5e7eb",
-                }}
-              >
-                Tournament ID:{" "}
-                <span style={{ fontWeight: 700, color: "#f9fafb" }}>
-                  {TOURNAMENT_ID}
-                </span>
-              </div>
-            </div>
-
+            {/* Buttons */}
             <div
               style={{
-                textAlign: "right",
-                fontSize: "0.8rem",
-                color: "#9ca3af",
-              }}
-            >
-              <div>Hosted by 5TQ</div>
-              <div>Starts November 2nd, 2025</div>
-            </div>
-          </div>
-
-          {/* Middle: info grid */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1.1fr)",
-              gap: "1.5rem",
-              alignItems: "flex-start",
-            }}
-          >
-            {/* Left: facts */}
-            <div>
-              {[
-                ["Format", "1v1 • Single Elimination"],
-                ["Check-in", "15 min before start (Discord)"],
-                ["Prize", "Skin (TBD) + bragging rights"],
-                ["Server", "NA (custom lobby)"],
-                ["Maps", "Skirmish A / B / C (random)"],
-                ["Rules", "No smurfing • No cheats"],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "0.25rem 0",
-                    fontSize: "0.86rem",
-                  }}
-                >
-                  <span style={{ color: "#9ca3af" }}>{label}</span>
-                  <span style={{ color: "#e5e7eb", marginLeft: "1rem" }}>
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Right: slots + CTA */}
-            <div
-              style={{
+                marginTop: 16,
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "stretch",
-                gap: "0.9rem",
+                gap: 10,
+                justifyContent: "center",
+                flexWrap: "wrap",
               }}
             >
-              <div
+              <a
+                href={registerHref}
                 style={{
-                  backgroundColor: "#111827",
-                  borderRadius: "0.75rem",
-                  padding: "0.8rem 0.85rem",
-                  border: "1px solid #1f2937",
+                  display: "inline-block",
+                  background: "#ff0046",
+                  color: "white",
+                  fontWeight: 700,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  boxShadow: "0 10px 30px rgba(255,0,70,0.35)",
+                  opacity: loading ? 0.7 : 1,
+                  pointerEvents: loading ? "none" : "auto",
+                }}
+                aria-disabled={disabled || loading}
+                onClick={(e) => {
+                  if (disabled || loading) e.preventDefault();
                 }}
               >
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.12em",
-                    color: "#9ca3af",
-                    marginBottom: "0.25rem",
-                  }}
-                >
-                  Slots
-                </div>
-                <div
-                  style={{
-                    fontSize: "1.1rem",
-                    fontWeight: 600,
-                    color: "#f9fafb",
-                  }}
-                >
-                  {slotsUsed == null || slotsCapacity == null
-                    ? "—"
-                    : `${slotsUsed} / ${slotsCapacity}`}
-                </div>
-              </div>
+                {loading ? "Checking status…" : registerLabel}
+              </a>
 
-              <div>
-                {ctaHref ? (
-                  <Link
-                    href={ctaHref}
-                    className="valorant-primary-btn"
-                    style={{
-                      display: "inline-flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      width: "100%",
-                      padding: "0.75rem 1rem",
-                      borderRadius: "0.7rem",
-                      backgroundColor: ctaDisabled ? "#4b5563" : "#ff0046",
-                      color: "white",
-                      fontWeight: 600,
-                      fontSize: "0.9rem",
-                      border: "none",
-                      textDecoration: "none",
-                      boxShadow: ctaDisabled
-                        ? "none"
-                        : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
-                      cursor: ctaDisabled ? "not-allowed" : "pointer",
-                      opacity: ctaDisabled ? 0.6 : 1,
-                      transition: "background-color .15s",
-                    }}
-                    aria-disabled={ctaDisabled ? "true" : "false"}
-                  >
-                    {ctaLabel}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={ctaDisabled}
-                    style={{
-                      display: "inline-flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      width: "100%",
-                      padding: "0.75rem 1rem",
-                      borderRadius: "0.7rem",
-                      backgroundColor: ctaDisabled ? "#4b5563" : "#ff0046",
-                      color: "white",
-                      fontWeight: 600,
-                      fontSize: "0.9rem",
-                      border: "none",
-                      boxShadow: ctaDisabled
-                        ? "none"
-                        : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
-                      cursor: ctaDisabled ? "not-allowed" : "pointer",
-                      opacity: ctaDisabled ? 0.6 : 1,
-                      transition: "background-color .15s",
-                    }}
-                  >
-                    {ctaLabel}
-                  </button>
-                )}
-
-                <p
-                  style={{
-                    marginTop: "0.6rem",
-                    fontSize: "0.75rem",
-                    color: "#9ca3af",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  You&apos;ll need to log in with Discord to secure your slot.
-                  No alt accounts, smurfing, or cheating allowed.
-                </p>
-              </div>
+              <a
+                href="https://discord.gg/qUzCCK8nuc"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  background: "#2a2f3a",
+                  color: "white",
+                  fontWeight: 700,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  border: "1px solid #3a4150",
+                }}
+              >
+                Join Discord
+              </a>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Back link */}
-        <div
-          style={{
-            marginTop: "1.5rem",
-            fontSize: "0.8rem",
-          }}
-        >
-          <Link
-            href="/tournaments-hub/valorant-types/1v1"
-            style={{
-              color: "#9ca3af",
-              textDecoration: "none",
-            }}
-          >
-            ← Back to 1v1 list
-          </Link>
-        </div>
+        {/* Quick facts */}
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>QUICK FACTS</h2>
+          </div>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailLabel}>Mode</div>
+            <div className={styles.detailValue}>1v1 Skirmish</div>
+
+            <div className={styles.detailLabel}>Slots</div>
+            <div className={styles.detailValue}>
+              {slotsUsed == null || slotsCapacity == null
+                ? "16 Players"
+                : `${slotsUsed} / ${slotsCapacity} Players`}
+            </div>
+
+            <div className={styles.detailLabel}>Format</div>
+            <div className={styles.detailValue}>
+              Best-of-1 • First to <strong>20</strong> kills •{" "}
+              <strong>Win by 2</strong>
+            </div>
+
+            <div className={styles.detailLabel}>Map</div>
+            <div className={styles.detailValue}>
+              Randomized: Skirmish A, B, or C
+            </div>
+
+            <div className={styles.detailLabel}>Server</div>
+            <div className={styles.detailValue}>NA (custom lobby)</div>
+
+            <div className={styles.detailLabel}>Check-in</div>
+            <div className={styles.detailValue}>
+              15 minutes before start in Discord
+            </div>
+
+            <div className={styles.detailLabel}>Entry</div>
+            <div className={styles.detailValue}>Free</div>
+
+            <div className={styles.detailLabel}>Prize</div>
+            <div className={styles.detailValue}>
+              Skin (TBD) + bragging rights
+            </div>
+          </div>
+        </section>
+
+        {/* Format & Scoring */}
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>FORMAT &amp; SCORING</h2>
+          </div>
+          <ul className={styles.rulesList}>
+            <li>
+              <strong>Match:</strong> <strong>Best-of-1</strong>.
+            </li>
+            <li>
+              <strong>Game Win Condition:</strong> First to{" "}
+              <strong>20</strong> kills and must lead by{" "}
+              <strong>2</strong> (win-by-two).
+            </li>
+            <li>
+              <strong>No time cap.</strong> Play continues until win-by-two is
+              achieved.
+            </li>
+            <li>
+              <strong>Map:</strong> Randomized each match between{" "}
+              <em>Skirmish A / B / C</em>.
+            </li>
+            <li>
+              <strong>Lobby:</strong> Admin/stream host invites both players. Be
+              online and ready at your match time.
+            </li>
+          </ul>
+        </section>
+
+        {/* Rules & Conduct */}
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>RULES &amp; CONDUCT</h2>
+          </div>
+          <ul className={styles.rulesList}>
+            <li>No smurfing. No cheats, scripts, or third-party aim tools.</li>
+            <li>No-shows: 5-minute grace, then you may be replaced by a sub.</li>
+            <li>
+              Disconnects before 3 kills → remake; after 3 kills → continue
+              from score unless admin rules otherwise.
+            </li>
+            <li>
+              Report scores in Discord with a screenshot; both players must
+              confirm.
+            </li>
+            <li>Admins have final say on disputes.</li>
+          </ul>
+        </section>
+
+        {/* Schedule & Reporting */}
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>SCHEDULE &amp; REPORTING</h2>
+          </div>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailLabel}>Check-in</div>
+            <div className={styles.detailValue}>
+              15 minutes before bracket start in <strong>#check-in</strong>
+            </div>
+
+            <div className={styles.detailLabel}>Round Pace</div>
+            <div className={styles.detailValue}>
+              Please be ready; matches fire back-to-back
+            </div>
+
+            <div className={styles.detailLabel}>Report</div>
+            <div className={styles.detailValue}>
+              Post final score + screenshot in{" "}
+              <strong>#match-report</strong>
+            </div>
+
+            <div className={styles.detailLabel}>Stream</div>
+            <div className={styles.detailValue}>
+              Select matches may be streamed or clipped
+            </div>
+          </div>
+        </section>
+
+        {/* Eligibility / Registration policy */}
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>ELIGIBILITY &amp; REGISTRATION</h2>
+          </div>
+          <ul className={styles.rulesList}>
+            <li>Must join Discord and respond to check-in pings.</li>
+            <li>One entry per player. Duplicate entries will be removed.</li>
+            <li>
+              If you’ve already registered, the Register page will show you as
+              locked-in automatically.
+            </li>
+          </ul>
+        </section>
       </div>
     </div>
   );
