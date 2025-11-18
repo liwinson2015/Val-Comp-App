@@ -137,7 +137,7 @@ export default function HomePage({ featured }) {
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>TEAMFIGHT TACTICS</div>
                 <div className={styles.eventMain}>TFT event (Coming soon)</div>
-                <div className={styles.eventMeta}>Free for all</div>
+                <div className={styles.eventMeta}>FFA and DBU</div>
               </li>
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>FUTURE TITLES</div>
