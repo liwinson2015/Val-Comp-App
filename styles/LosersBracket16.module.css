@@ -4,7 +4,6 @@
    - R3B matches are aligned between the 3A singles
    - R4 top and bottom players are aligned to 3B matches
    - LB Final top player is aligned with the center of Round 4
-   - LB Winner pill is centered on the LB Final match
 */
 
 .lbViewport{
@@ -81,6 +80,9 @@
   height: 24px;
   line-height: 24px;
   white-space: nowrap;
+
+  text-align:center;     /* ✨ center "LB ROUND 1", etc. */
+  width:100%;
 }
 
 /* container for matches in each column */
@@ -254,15 +256,8 @@
 .lbWinnerCol{
   display:flex;
   flex-direction:column;
-  align-items:flex-start;
-  /* move the whole column down so the pill center matches LB Final center
-     marginTop = 4.5*slotH + 3*gap + 4*pad + 2*r1Space - 8px  */
-  margin-top: calc(
-    4.5 * var(--slotH) +
-    3 * var(--pairGapInside) +
-    4 * var(--pairPad) +
-    2 * var(--r1Space) - 8px
-  );
+  align-items:center;   /* ✨ center title + pill horizontally */
+  margin-top: 0;        /* ✨ put LB Winner up at the top row */
 }
 
 .lbWinnerTitle{
@@ -274,6 +269,8 @@
   margin-bottom:8px;
   height: 24px;
   line-height: 24px;
+  text-align:center;     /* keep consistent with other titles */
+  width:100%;
 }
 
 .lbWinnerPill{
