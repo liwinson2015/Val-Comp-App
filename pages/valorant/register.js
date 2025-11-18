@@ -6,6 +6,7 @@ import Registration from "../../models/Registration";
 import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
+const MAX_SLOTS = 16;
 
 const VALORANT_RANK_TIERS = [
   "Iron",
@@ -53,7 +54,7 @@ export async function getServerSideProps({ req }) {
       };
     }
 
-    // TEMP: no "full" redirect so you can test
+    // Check if THIS player is already registered
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: TOURNAMENT_ID,
@@ -64,6 +65,21 @@ export async function getServerSideProps({ req }) {
     );
 
     const alreadyRegistered = !!(alreadyInRegistration || alreadyInPlayerArray);
+
+    // Use Player collection as source of truth for slots
+    const currentSlotsUsed = await Player.countDocuments({
+      "registeredFor.tournamentId": TOURNAMENT_ID,
+    });
+
+    // If full AND user is not already registered → block access to register
+    if (currentSlotsUsed >= MAX_SLOTS && !alreadyRegistered) {
+      return {
+        redirect: {
+          destination: "/tournaments-hub/valorant-types?full=1",
+          permanent: false,
+        },
+      };
+    }
 
     return {
       props: {

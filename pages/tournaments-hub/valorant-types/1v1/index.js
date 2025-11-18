@@ -16,7 +16,9 @@ export default function Valorant1v1ListPage() {
     let ignore = false;
     (async () => {
       try {
-        const res = await fetch(`/api/tournaments/${TID}/registrations`, { cache: "no-store" });
+        const res = await fetch(`/api/tournaments/${TID}/registrations`, {
+          cache: "no-store",
+        });
         const data = await res.json();
         if (!ignore) setInfo(data);
       } catch (e) {
@@ -25,7 +27,9 @@ export default function Valorant1v1ListPage() {
         if (!ignore) setLoading(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const capacity = info?.capacity ?? 16;
@@ -45,7 +49,9 @@ export default function Valorant1v1ListPage() {
       server: "NA (custom lobby)",
       maps: "Skirmish A / B / C (random)",
       rules: "No smurfing • No cheats",
-      detailsUrl: "/valorant",
+      // 🔴 OLD: detailsUrl: "/valorant",
+      // 🔵 NEW: go straight to registration page
+      detailsUrl: "/valorant/register",
     },
   ];
 
@@ -58,7 +64,8 @@ export default function Valorant1v1ListPage() {
             <div className={styles.heroBadge}>VALORANT 1v1</div>
             <h1 className={styles.heroTitle}>Upcoming 1v1 Tournaments</h1>
             <p className={styles.heroSubtitle}>
-              Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.
+              Solo skirmish duels hosted by 5TQ. Claim your slot and climb the
+              bracket.
             </p>
           </div>
         </section>
@@ -74,9 +81,20 @@ export default function Valorant1v1ListPage() {
                   <span className={styles.tag}>{statusLabel}</span>
                   <h3 className={styles.tTitle}>{t.title}</h3>
 
-                  {/* 🔵 NEW: show unique tournament ID here */}
-                  <p style={{ color: "#9fb0c5", fontSize: "13px", margin: "4px 0" }}>
-                    Tournament ID: <span style={{ fontWeight: 700, color: "#c9d4e6" }}>{t.id}</span>
+                  {/* Tournament ID */}
+                  <p
+                    style={{
+                      color: "#9fb0c5",
+                      fontSize: "13px",
+                      margin: "4px 0",
+                    }}
+                  >
+                    Tournament ID:{" "}
+                    <span
+                      style={{ fontWeight: 700, color: "#c9d4e6" }}
+                    >
+                      {t.id}
+                    </span>
                   </p>
 
                   <p className={styles.tMeta}>
@@ -98,11 +116,14 @@ export default function Valorant1v1ListPage() {
                     <div className={styles.factLabel}>Prize</div>
                     <div className={styles.factValue}>{t.prize}</div>
                   </div>
-                  {/* Optional slots */}
                   <div className={styles.factRow}>
                     <div className={styles.factLabel}>Slots</div>
                     <div className={styles.factValue}>
-                      {loading ? "…" : `${registered} / ${capacity}${isFull ? " • FULL" : ""}`}
+                      {loading
+                        ? "…"
+                        : `${registered} / ${capacity}${
+                            isFull ? " • FULL" : ""
+                          }`}
                     </div>
                   </div>
                 </div>
@@ -120,7 +141,11 @@ export default function Valorant1v1ListPage() {
                     <span
                       className={styles.primaryBtn}
                       aria-disabled="true"
-                      style={{ pointerEvents: "none", opacity: 0.6, cursor: "default" }}
+                      style={{
+                        pointerEvents: "none",
+                        opacity: 0.6,
+                        cursor: "default",
+                      }}
                     >
                       FULL
                     </span>
@@ -137,7 +162,10 @@ export default function Valorant1v1ListPage() {
 
         {/* Back */}
         <div className={styles.backBar}>
-          <button className={styles.ghostBtn} onClick={() => router.back()}>
+          <button
+            className={styles.ghostBtn}
+            onClick={() => router.back()}
+          >
             ← Back
           </button>
         </div>
