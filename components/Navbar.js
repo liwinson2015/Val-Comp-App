@@ -6,12 +6,10 @@ export default function Navbar() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // dropdowns
+  // dropdown
   const [profileOpen, setProfileOpen] = useState(false);
-  const [tournOpen, setTournOpen] = useState(false);
 
   const profileRef = useRef(null);
-  const tournRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -19,7 +17,6 @@ export default function Navbar() {
 
     (async () => {
       try {
-        // ⬇️ changed to /api/me
         const res = await fetch("/api/me", { credentials: "same-origin" });
         const data = await res.json();
         if (!ignore) {
@@ -36,15 +33,11 @@ export default function Navbar() {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
       }
-      if (tournRef.current && !tournRef.current.contains(e.target)) {
-        setTournOpen(false);
-      }
     }
 
     function handleEsc(e) {
       if (e.key === "Escape") {
         setProfileOpen(false);
-        setTournOpen(false);
       }
     }
 
@@ -62,7 +55,6 @@ export default function Navbar() {
       ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64`
       : null;
 
-  // ✅ admin flag from user
   const isAdmin = !!user?.isAdmin;
 
   return (
@@ -91,78 +83,12 @@ export default function Navbar() {
             Home
           </a>
 
-          {/* Tournaments dropdown (click-only) */}
-          <div
-            ref={tournRef}
-            style={{ position: "relative", display: "inline-block" }}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setTournOpen((v) => !v);
-                setProfileOpen(false);
-              }}
-              aria-haspopup="menu"
-              aria-expanded={tournOpen}
-              className="nav-link"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "none",
-                border: "none",
-                color: "white",
-                cursor: "pointer",
-                fontSize: "0.9rem",
-              }}
-            >
-              Tournaments
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
-              </svg>
-            </button>
+          {/* Simple Tournaments link (no dropdown) */}
+          <a href="/tournaments-hub" className="nav-link">
+            Tournaments
+          </a>
 
-            {tournOpen && (
-              <div
-                role="menu"
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  left: 0,
-                  backgroundColor: "#1a1a1a",
-                  border: "1px solid #333",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  minWidth: 180,
-                  whiteSpace: "nowrap",
-                  zIndex: 3000,
-                  boxShadow: "0 10px 30px rgba(0,0,0,.45)",
-                  pointerEvents: "auto",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <a
-                  href="/tournaments-hub/valorant-types"
-                  className="nav-link"
-                  style={dropdownItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTournOpen(false);
-                  }}
-                >
-                  Valorant
-                </a>
-              </div>
-            )}
-          </div>
-
-          {/* ⭐ Admin link: only visible if logged in AND admin */}
+          {/* Admin link: only visible if logged in AND admin */}
           {!loading && loggedIn && isAdmin && (
             <a href="/admin" className="nav-link">
               Admin
@@ -196,7 +122,6 @@ export default function Navbar() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setProfileOpen((v) => !v);
-                  setTournOpen(false);
                 }}
                 aria-haspopup="menu"
                 aria-expanded={profileOpen}
