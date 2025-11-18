@@ -5,7 +5,7 @@
   --gap:  clamp(18px, 2.2vw, 24px);
 
   /* box sizes */
-  --slotH: 40px;                 /* was 44px, slightly flatter now */
+  --slotH: 40px;                 /* slightly flatter slots */
   --pairGapInside: 10px;
   --pairPad: 4px;
 
@@ -13,7 +13,7 @@
 
   /* vertical rhythms */
   --r1Space: 24px;               /* space between the 4 R1 matchups */
-  --r2Space: calc(var(--pairH) + 20px);
+  --r2Space: calc(var(--pairH) + 20px); /* kept for future use if needed */
   --r3Space: calc(var(--pairH) + var(--r2Space));
   --r4Space: calc(var(--pairH) + var(--r3Space));
 
@@ -66,13 +66,15 @@
 /* spacing per round */
 .r1  .pair{ margin: calc(var(--r1Space)/2) 0; }
 
-/* R2: use its own vertical rhythm so it lines up with R1 feeders */
-.r2  .pair{ margin: calc(var(--r2Space)/2) 0; }
+/* R2: same rhythm as R1, but the whole column is shifted down by half a matchup
+   so each R2 pair lines up between its two R1 feeders. */
+.r2  .pair{ margin: calc(var(--r1Space)/2) 0; }
+.r2  .stack{ margin-top: calc(var(--pairH) / 2); }
 
 /* keep others a bit roomier */
 .r3a .pair{ margin: 18px 0; }
 .r3b .pair{ margin: 18px 0; }
-.r4  .pair{  margin: 22px 0; }
+.r4  .pair{ margin: 22px 0; }
 .rFinal .pair{ margin: 26px 0; }
 
 /* pair / slots */
