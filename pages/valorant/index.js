@@ -5,13 +5,17 @@ import styles from "../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import { tournamentsById as catalog } from "../../lib/tournaments";
+import { getCurrentPlayerFromReq } from "../../lib/getCurrentPlayer";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const FALLBACK_CAPACITY = 16;
 
-// ---------- SERVER SIDE: block page if tournament is FULL ----------
-export async function getServerSideProps() {
+// ---------- SERVER SIDE: block page if FULL *and* user not registered ----------
+export async function getServerSideProps({ req }) {
   try {
+    // Who is this user (if anyone)?
+    const player = await getCurrentPlayerFromReq(req);
+
     await connectToDatabase();
 
     const t = catalog[TOURNAMENT_ID];
@@ -23,7 +27,16 @@ export async function getServerSideProps() {
 
     const isFull = registeredCount >= capacity;
 
-    if (isFull) {
+    // Is this logged-in player registered for this tournament?
+    const userIsRegistered =
+      !!player &&
+      Array.isArray(player.registeredFor) &&
+      player.registeredFor.some(
+        (entry) => entry.tournamentId === TOURNAMENT_ID
+      );
+
+    // If full AND user is not registered → redirect away
+    if (isFull && !userIsRegistered) {
       return {
         redirect: {
           destination: "/tournaments-hub/valorant-types?full=1",
@@ -32,6 +45,7 @@ export async function getServerSideProps() {
       };
     }
 
+    // Otherwise (not full OR user is registered) → allow page
     return {
       props: {
         initialRegistered: registeredCount,
@@ -330,7 +344,8 @@ export default function ValorantEventPage({
                     width: "100%",
                     padding: "0.75rem 1rem",
                     borderRadius: "0.7rem",
-                    backgroundColor: disabled || loading ? "#4b5563" : "#ff0046",
+                    backgroundColor:
+                      disabled || loading ? "#4b5563" : "#ff0046",
                     color: "white",
                     fontWeight: 600,
                     fontSize: "0.9rem",
@@ -390,9 +405,9 @@ export default function ValorantEventPage({
           </div>
         </section>
 
-        {/* BELOW: old detailed sections, but under the new hero/card */}
+        {/* BELOW: detailed sections */}
 
-        {/* Format & Scoring */}
+        {/* FORMAT & SCORING */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>FORMAT &amp; SCORING</h2>
@@ -421,7 +436,7 @@ export default function ValorantEventPage({
           </ul>
         </section>
 
-        {/* Rules & Conduct */}
+        {/* RULES & CONDUCT */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>RULES &amp; CONDUCT</h2>
@@ -441,7 +456,7 @@ export default function ValorantEventPage({
           </ul>
         </section>
 
-        {/* Schedule & Reporting */}
+        {/* SCHEDULE & REPORTING */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>SCHEDULE &amp; REPORTING</h2>
@@ -470,7 +485,7 @@ export default function ValorantEventPage({
           </div>
         </section>
 
-        {/* Eligibility / Registration policy */}
+        {/* ELIGIBILITY */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>ELIGIBILITY &amp; REGISTRATION</h2>
