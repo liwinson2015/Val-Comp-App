@@ -6,65 +6,19 @@ import { useState } from "react";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 
-export async function getServerSideProps({ req }) {
-  try {
-    // Safely read cookies
-    const cookies = cookie?.parse ? cookie.parse(req.headers.cookie || "") : {};
-    const playerId = cookies.playerId || null;
-
-    // Not logged in → send through Discord and come back here
-    if (!playerId) {
-      return {
-        redirect: {
-          destination: `/api/auth/discord?next=${encodeURIComponent(
-            "/valorant/register"
-          )}`,
-          permanent: false,
-        },
-      };
-    }
-
-    await connectToDatabase();
-
-    const player = await Player.findById(playerId).lean();
-    if (!player) {
-      // Stale cookie → force new login
-      return {
-        redirect: {
-          destination: `/api/auth/discord?next=${encodeURIComponent(
-            "/valorant/register"
-          )}`,
-          permanent: false,
-        },
-      };
-    }
-
-    // Check if they’re already registered for this tournament
-    const alreadyRegistered = Array.isArray(player.registeredFor)
-      ? player.registeredFor.some((r) => r?.tournamentId === TOURNAMENT_ID)
-      : false;
-
-    return {
-      props: {
-        username: player.username || "",
-        discordId: player.discordId || "",
-        avatar: player.avatar || "",
-        playerId: player._id.toString(),
-        alreadyRegistered,
-      },
-    };
-  } catch (err) {
-    console.error("[register/gssp] ERROR:", err?.stack || err);
-    return {
-      props: {
-        gsspError: true,
-        errorMessage: err?.message || "Unknown server error",
-      },
-    };
-  }
+// 🚫 SERVER SIDE: this event is closed/full → always redirect
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: "/tournaments-hub/valorant-types?full=1",
+      permanent: false,
+    },
+  };
 }
 
 export default function ValorantRegisterPage(props) {
+  // This component won't actually render for users anymore because of the redirect,
+  // but we keep it here in case you want to re-open or reuse this page later.
   const {
     username,
     discordId,
