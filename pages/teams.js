@@ -97,6 +97,7 @@ export default function TeamsPage({
   const router = useRouter();
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
+  const [roleFilter, setRoleFilter] = useState("ALL"); // ALL | CAPTAIN | MEMBER
 
   // modal + form state
   const [showModal, setShowModal] = useState(false);
@@ -134,6 +135,10 @@ export default function TeamsPage({
     } else {
       setGame(newGame);
     }
+  }
+
+  function handleRoleFilterChange(newRole) {
+    setRoleFilter(newRole);
   }
 
   function openModal() {
@@ -196,8 +201,8 @@ export default function TeamsPage({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: nameTrimmed, // already uppercased
-          tag: tagTrimmed,   // already cleaned
+          name: nameTrimmed,
+          tag: tagTrimmed,
           game,
         }),
       });
@@ -225,14 +230,21 @@ export default function TeamsPage({
     }
   }
 
-  const filteredTeams =
+  // Apply game filter first
+  const byGame =
     selectedGame === "ALL"
       ? teams
       : teams.filter((t) => t.game === selectedGame);
 
-  const captainTeams = filteredTeams.filter((t) => t.isCaptain);
-  const memberTeams = filteredTeams.filter((t) => !t.isCaptain);
-  const hasAnyTeams = filteredTeams.length > 0;
+  // Then apply role filter
+  const visibleTeams =
+    roleFilter === "ALL"
+      ? byGame
+      : roleFilter === "CAPTAIN"
+      ? byGame.filter((t) => t.isCaptain)
+      : byGame.filter((t) => !t.isCaptain);
+
+  const hasAnyVisibleTeams = visibleTeams.length > 0;
 
   const selectedGameLabel =
     selectedGame === "ALL"
@@ -278,7 +290,7 @@ export default function TeamsPage({
             display: "flex",
             flexWrap: "wrap",
             gap: "0.5rem",
-            marginBottom: "1rem",
+            marginBottom: "0.75rem",
           }}
         >
           <FilterPill
@@ -294,6 +306,32 @@ export default function TeamsPage({
               onClick={() => handleFilterChange(g.code)}
             />
           ))}
+        </div>
+
+        {/* Role filter pills */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.5rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <FilterPill
+            label="All roles"
+            active={roleFilter === "ALL"}
+            onClick={() => handleRoleFilterChange("ALL")}
+          />
+          <FilterPill
+            label="Captain teams"
+            active={roleFilter === "CAPTAIN"}
+            onClick={() => handleRoleFilterChange("CAPTAIN")}
+          />
+          <FilterPill
+            label="Joined teams"
+            active={roleFilter === "MEMBER"}
+            onClick={() => handleRoleFilterChange("MEMBER")}
+          />
         </div>
 
         {/* Top bar with create button */}
@@ -313,12 +351,8 @@ export default function TeamsPage({
               color: "#9ca3af",
             }}
           >
-            You have{" "}
-            <strong>
-              {captainTeams.length + memberTeams.length} team
-              {captainTeams.length + memberTeams.length === 1 ? "" : "s"}
-            </strong>{" "}
-            in {selectedGameLabel}.
+            You have <strong>{visibleTeams.length}</strong> team
+            {visibleTeams.length === 1 ? "" : "s"} in this view.
           </p>
           <button
             type="button"
@@ -340,9 +374,9 @@ export default function TeamsPage({
           </button>
         </div>
 
-        {/* Teams sections */}
+        {/* Teams list */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {!hasAnyTeams && (
+          {!hasAnyVisibleTeams && (
             <div style={cardStyle}>
               <h2
                 style={{
@@ -351,7 +385,7 @@ export default function TeamsPage({
                   fontSize: "1.05rem",
                 }}
               >
-                No teams yet
+                No teams match this filter
               </h2>
               <p
                 style={{
@@ -360,16 +394,14 @@ export default function TeamsPage({
                   color: "#9ca3af",
                 }}
               >
-                You don&apos;t have any teams for {selectedGameLabel} yet. Use
-                the <strong>Create team</strong> button above to make one as
-                captain.
+                Try switching the game or role filters above, or create a new
+                team using the <strong>Create team</strong> button.
               </p>
             </div>
           )}
 
-          {captainTeams.length > 0 && (
+          {hasAnyVisibleTeams && (
             <section>
-              <h2 style={sectionTitleStyle}>Teams you captain</h2>
               <div
                 style={{
                   display: "grid",
@@ -377,25 +409,8 @@ export default function TeamsPage({
                   gap: "0.75rem",
                 }}
               >
-                {captainTeams.map((team) => (
-                  <TeamCard key={team.id} team={team} isCaptain />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {memberTeams.length > 0 && (
-            <section>
-              <h2 style={sectionTitleStyle}>Teams you&apos;re in</h2>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: "0.75rem",
-                }}
-              >
-                {memberTeams.map((team) => (
-                  <TeamCard key={team.id} team={team} />
+                {visibleTeams.map((team) => (
+                  <TeamCard key={team.id} team={team} isCaptain={team.isCaptain} />
                 ))}
               </div>
             </section>
@@ -474,7 +489,7 @@ export default function TeamsPage({
             >
               Choose a game, give your team a name and a short tag (up to 4
               letters). The tag is what will show up in brackets in the bracket
-              view, like [5TQ].
+              view, like [EDG].
             </p>
 
             <form onSubmit={handleCreate}>
@@ -519,7 +534,7 @@ export default function TeamsPage({
                   type="text"
                   value={name}
                   onChange={handleNameChange}
-                  placeholder="e.g. 5TQ DEMONS"
+                  placeholder="e.g. EDWARD GAMING"
                   style={inputStyle}
                 />
               </div>
