@@ -540,7 +540,7 @@ export default function TeamsPage({
                   type="text"
                   value={tag}
                   onChange={handleTagChange}
-                  placeholder="e.g. 5TQ"
+                  placeholder="e.g. EDG"
                   maxLength={4}
                   style={inputStyle}
                 />
@@ -624,7 +624,7 @@ function TeamCard({ team, isCaptain }) {
       <div
         style={{
           display: "flex",
-          justifyContent: "spaceBetween",
+          justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "0.35rem",
           gap: "0.5rem",
@@ -717,5 +717,5 @@ const gameBadgeStyle = {
 
 function getGameLabel(code, supportedGames) {
   const found = supportedGames.find((g) => g.code === code);
-  return found ? g.label : code;
+  return found ? found.label : code;
 }
