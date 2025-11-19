@@ -4,7 +4,7 @@ import Team from "../../../models/Team";
 import Player from "../../../models/Player";
 
 // Supported game codes
-const SUPPORTED_GAMES = ["VALORANT", "HOK"]; // you can add more later
+const SUPPORTED_GAMES = ["VALORANT", "HOK"]; // add more later if needed
 
 // basic cookie parser
 function parseCookies(header = "") {
@@ -40,9 +40,34 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "Team name is required." });
     }
 
+    if (!tag || typeof tag !== "string" || !tag.trim()) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "Team tag is required." });
+    }
+
+    // Sanitize: letters only, uppercase, max 4
+    const rawTag = tag.trim();
+    const lettersOnly = rawTag.replace(/[^a-zA-Z]/g, "");
+    const tagUpper = lettersOnly.toUpperCase().slice(0, 4);
+
+    if (!tagUpper) {
+      return res.status(400).json({
+        ok: false,
+        error: "Team tag must contain at least one English letter (A–Z).",
+      });
+    }
+
+    if (tagUpper.length > 4) {
+      // slice already prevents this, but just in case
+      return res.status(400).json({
+        ok: false,
+        error: "Team tag must be 4 characters or fewer.",
+      });
+    }
+
     let gameCode = typeof game === "string" ? game.toUpperCase().trim() : "";
 
-    // Default to VALORANT if missing/invalid, but only allow known games
     if (!SUPPORTED_GAMES.includes(gameCode)) {
       return res.status(400).json({
         ok: false,
@@ -60,11 +85,11 @@ export default async function handler(req, res) {
     }
 
     const team = await Team.create({
-      name: name.trim(),
-      tag: (tag || "").trim(),
+      name: name.trim().toUpperCase(), // store uppercase name
+      tag: tagUpper,                   // clean, uppercase tag
       game: gameCode,
       captain: captain._id,
-      members: [captain._id], // captain starts as the only member
+      members: [captain._id],
     });
 
     return res.status(201).json({

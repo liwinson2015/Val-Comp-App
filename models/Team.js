@@ -14,11 +14,17 @@ const TeamSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      uppercase: true, // always store team name in uppercase
     },
+    // Tag is REQUIRED and 1–4 characters, A–Z only, uppercase.
     tag: {
       type: String,
+      required: true,
       trim: true,
-      maxlength: 8,
+      minlength: 1,
+      maxlength: 4,
+      uppercase: true,
+      match: /^[A-Z]+$/, // only English letters
     },
     game: {
       type: String,

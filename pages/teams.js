@@ -149,14 +149,40 @@ export default function TeamsPage({
     setTag("");
   }
 
+  // Auto-uppercase team name on input
+  function handleNameChange(e) {
+    const raw = e.target.value || "";
+    setName(raw.toUpperCase());
+  }
+
+  // Auto-uppercase, A–Z only, max 4 chars for tag
+  function handleTagChange(e) {
+    const raw = e.target.value || "";
+    const lettersOnly = raw.replace(/[^a-zA-Z]/g, "");
+    const upper = lettersOnly.toUpperCase().slice(0, 4);
+    setTag(upper);
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
     setError("");
 
-    if (!name.trim()) {
+    const nameTrimmed = (name || "").trim();
+    if (!nameTrimmed) {
       setError("Team name is required.");
       return;
     }
+
+    const tagTrimmed = (tag || "").trim();
+    if (!tagTrimmed) {
+      setError("Team tag is required.");
+      return;
+    }
+    if (tagTrimmed.length > 4) {
+      setError("Team tag must be 4 characters or fewer.");
+      return;
+    }
+
     if (!game) {
       setError("Please select a game.");
       return;
@@ -169,7 +195,11 @@ export default function TeamsPage({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, tag, game }),
+        body: JSON.stringify({
+          name: nameTrimmed, // already uppercased
+          tag: tagTrimmed,   // already cleaned
+          game,
+        }),
       });
 
       const data = await res.json();
@@ -442,8 +472,9 @@ export default function TeamsPage({
                 color: "#9ca3af",
               }}
             >
-              Choose a game, give your team a name, and you&apos;ll be set as
-              the captain. You can use this team when signing up for tournaments.
+              Choose a game, give your team a name and a short tag (up to 4
+              letters). The tag is what will show up in brackets in the bracket
+              view, like [5TQ].
             </p>
 
             <form onSubmit={handleCreate}>
@@ -487,8 +518,8 @@ export default function TeamsPage({
                   id="team-name"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. 5TQ Demons"
+                  onChange={handleNameChange}
+                  placeholder="e.g. 5TQ DEMONS"
                   style={inputStyle}
                 />
               </div>
@@ -502,14 +533,15 @@ export default function TeamsPage({
                     fontSize: "0.85rem",
                   }}
                 >
-                  Tag (optional)
+                  Tag * (1–4 letters)
                 </label>
                 <input
                   id="team-tag"
                   type="text"
                   value={tag}
-                  onChange={(e) => setTag(e.target.value)}
+                  onChange={handleTagChange}
                   placeholder="e.g. 5TQ"
+                  maxLength={4}
                   style={inputStyle}
                 />
                 <p
@@ -519,7 +551,8 @@ export default function TeamsPage({
                     color: "#6b7280",
                   }}
                 >
-                  Short label that can show before your team name.
+                  Only A–Z letters are allowed. This tag shows in brackets in
+                  the bracket view.
                 </p>
               </div>
 
@@ -591,7 +624,7 @@ function TeamCard({ team, isCaptain }) {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "spaceBetween",
           alignItems: "center",
           marginBottom: "0.35rem",
           gap: "0.5rem",
@@ -684,5 +717,5 @@ const gameBadgeStyle = {
 
 function getGameLabel(code, supportedGames) {
   const found = supportedGames.find((g) => g.code === code);
-  return found ? found.label : code;
+  return found ? g.label : code;
 }
