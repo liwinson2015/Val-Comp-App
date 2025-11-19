@@ -17,6 +17,70 @@ import styles from "../styles/Profile.module.css";
  * }
  */
 
+// ---------- Game config (UI only) ----------
+const GAME_DEFS = [
+  {
+    code: "VALORANT",
+    label: "VALORANT",
+    description: "Used for Valorant teams and tournaments.",
+    kind: "TAGGED_ID", // name + tag
+    rankTiers: [
+      "Iron",
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond",
+      "Ascendant",
+      "Immortal",
+      "Radiant",
+    ],
+    rankDivisions: ["1", "2", "3"],
+    defaultRegion: "NA",
+  },
+  {
+    code: "TFT",
+    label: "Teamfight Tactics",
+    description: "Used for TFT tournaments and events.",
+    kind: "TAGGED_ID", // name + tag
+    rankTiers: [
+      "Iron",
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Emerald",
+      "Diamond",
+      "Master",
+      "Grandmaster",
+      "Challenger",
+    ],
+    rankDivisions: ["1", "2", "3", "4"],
+    defaultRegion: "NA",
+  },
+  {
+    code: "HOK",
+    label: "Honor of Kings",
+    description: "Used for Honor of Kings teams and tournaments.",
+    kind: "SINGLE_NAME", // one IGN field
+    rankTiers: [
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond",
+      "Master",
+      "King",
+      "Glorious King",
+    ],
+    rankDivisions: [], // not used
+    defaultRegion: "NA",
+  },
+];
+
+const GAME_CODES = GAME_DEFS.map((g) => g.code);
+
+// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req }) {
   // Parse cookie -> playerId
   const cookieHeader = req.headers.cookie || "";
@@ -71,11 +135,11 @@ export async function getServerSideProps({ req }) {
       return Math.min(best, p);
     }, Infinity) || null;
 
-  // Normalize gameProfiles into a simple shape for the client
+  // Normalize gameProfiles into a simple shape for the client (keyed by game code)
   const rawProfiles = player.gameProfiles || {};
 
-  function normalizeProfile(key) {
-    const p = rawProfiles[key] || {};
+  function normalizeProfile(code) {
+    const p = rawProfiles[code] || {};
     return {
       ign: p.ign || "",
       rankTier: p.rankTier || "",
@@ -84,11 +148,18 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  const gameProfiles = {
-    valorant: normalizeProfile("VALORANT"),
-    hok: normalizeProfile("HOK"),
-    tft: normalizeProfile("TFT"),
-  };
+  const gameProfiles = {};
+  GAME_CODES.forEach((code) => {
+    gameProfiles[code] = normalizeProfile(code);
+  });
+
+  // featuredGames: keep only known games, max 3
+  const rawFeatured = Array.isArray(player.featuredGames)
+    ? player.featuredGames
+    : [];
+  const featuredGames = rawFeatured
+    .filter((code) => GAME_CODES.includes(code))
+    .slice(0, 3);
 
   return {
     props: {
@@ -122,10 +193,12 @@ export async function getServerSideProps({ req }) {
           return db - da;
         }),
       gameProfiles,
+      initialFeaturedGames: featuredGames,
     },
   };
 }
 
+// ---------- MAIN COMPONENT ----------
 export default function Profile({
   username,
   discordId,
@@ -133,11 +206,87 @@ export default function Profile({
   stats,
   history,
   gameProfiles,
+  initialFeaturedGames,
 }) {
   const avatarUrl =
     avatar && discordId
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=256`
       : null;
+
+  const [profiles, setProfiles] = useState(gameProfiles || {});
+  const [featuredGames, setFeaturedGames] = useState(
+    initialFeaturedGames || []
+  );
+
+  // currently selected game for editor
+  const [selectedGame, setSelectedGame] = useState(
+    featuredGames[0] || "VALORANT"
+  );
+
+  function getGameDef(code) {
+    return GAME_DEFS.find((g) => g.code === code) || GAME_DEFS[0];
+  }
+
+  function handleSelectGame(e) {
+    setSelectedGame(e.target.value);
+  }
+
+  function handleProfileSaved(gameCode, profile) {
+    setProfiles((prev) => ({
+      ...prev,
+      [gameCode]: {
+        ...(prev[gameCode] || {}),
+        ...profile,
+      },
+    }));
+  }
+
+  async function handleToggleFeatured(gameCode) {
+    const already = featuredGames.includes(gameCode);
+    let next;
+
+    if (already) {
+      next = featuredGames.filter((c) => c !== gameCode);
+    } else {
+      if (featuredGames.length >= 3) {
+        alert("You can only feature up to 3 games.");
+        return;
+      }
+      next = [...featuredGames, gameCode];
+    }
+
+    try {
+      const res = await fetch("/api/profile/featured-games", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ featuredGames: next }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to update featured games.");
+        return;
+      }
+      setFeaturedGames(next);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong updating featured games.");
+    }
+  }
+
+  function handleFeaturedCardClick(code) {
+    setSelectedGame(code);
+  }
+
+  const selectedDef = getGameDef(selectedGame);
+  const selectedProfile = profiles[selectedGame] || {
+    ign: "",
+    rankTier: "",
+    rankDivision: "",
+    region: "",
+  };
+  const isSelectedFeatured = featuredGames.includes(selectedGame);
 
   return (
     <div className={styles.shell}>
@@ -201,30 +350,138 @@ export default function Profile({
             Make sure it matches what you actually use in-game.
           </p>
 
+          {/* Featured games row (player cards) */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "0.9rem",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.6rem",
+              marginBottom: "0.9rem",
             }}
           >
-            <GameProfileCard
-              title="VALORANT"
-              description="Used for Valorant teams and tournaments."
-              gameKey="VALORANT"
-              initialProfile={gameProfiles.valorant}
-            />
-            <GameProfileCard
-              title="Honor of Kings"
-              description="Used for Honor of Kings (HoK) teams and tournaments."
-              gameKey="HOK"
-              initialProfile={gameProfiles.hok}
-            />
-            <GameProfileCard
-              title="Teamfight Tactics"
-              description="Used for TFT tournaments and events."
-              gameKey="TFT"
-              initialProfile={gameProfiles.tft}
+            {featuredGames.map((code) => (
+              <FeaturedGameCard
+                key={code}
+                code={code}
+                profile={profiles[code] || {}}
+                onClick={() => handleFeaturedCardClick(code)}
+              />
+            ))}
+
+            {/* Empty slots up to 3 */}
+            {featuredGames.length < 3 &&
+              Array.from({ length: 3 - featuredGames.length }).map((_, idx) => (
+                <div
+                  key={`empty-${idx}`}
+                  style={{
+                    minWidth: "190px",
+                    flex: "0 0 auto",
+                    borderRadius: "12px",
+                    border: "1px dashed rgba(148,163,184,0.5)",
+                    padding: "0.55rem 0.7rem",
+                    backgroundColor: "rgba(15,23,42,0.5)",
+                    fontSize: "0.8rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.2rem",
+                    }}
+                  >
+                    Empty slot
+                  </div>
+                  <div>
+                    Choose a game in the editor below and mark it as featured to
+                    show it here.
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          {/* Editor: select game + profile form */}
+          <div
+            style={{
+              borderRadius: "10px",
+              border: "1px solid rgba(148,163,184,0.35)",
+              padding: "0.75rem 0.9rem 0.9rem",
+              backgroundColor: "#020617",
+            }}
+          >
+            {/* Top row: game select + featured toggle */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.6rem",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "0.7rem",
+              }}
+            >
+              <div style={{ minWidth: "220px" }}>
+                <label
+                  htmlFor="game-select"
+                  style={{
+                    display: "block",
+                    marginBottom: "0.15rem",
+                    fontSize: "0.8rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  Select game to edit
+                </label>
+                <select
+                  id="game-select"
+                  value={selectedGame}
+                  onChange={handleSelectGame}
+                  style={{
+                    width: "100%",
+                    padding: "0.35rem 0.6rem",
+                    borderRadius: "8px",
+                    border: "1px solid #4b5563",
+                    backgroundColor: "#020617",
+                    color: "#f9fafb",
+                    fontSize: "0.85rem",
+                    outline: "none",
+                  }}
+                >
+                  {GAME_DEFS.map((g) => (
+                    <option key={g.code} value={g.code}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleToggleFeatured(selectedGame)}
+                style={{
+                  padding: "0.35rem 0.8rem",
+                  borderRadius: "999px",
+                  border: "1px solid #facc15",
+                  backgroundColor: isSelectedFeatured
+                    ? "#facc15"
+                    : "transparent",
+                  color: isSelectedFeatured ? "#111827" : "#facc15",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isSelectedFeatured ? "Unfeature game" : "Feature this game"}
+              </button>
+            </div>
+
+            <GameProfileEditor
+              key={selectedGame}
+              gameDef={selectedDef}
+              profile={selectedProfile}
+              onProfileSaved={handleProfileSaved}
             />
           </div>
         </section>
@@ -316,7 +573,7 @@ export default function Profile({
                 <div className={styles.linkedLabel}>Discord</div>
                 <div className={styles.linkedValue}>
                   Connected as{" "}
-                    <span className={styles.mono}>{username || "Unknown"}</span>
+                  <span className={styles.mono}>{username || "Unknown"}</span>
                 </div>
               </div>
             </div>
@@ -342,26 +599,140 @@ export default function Profile({
   );
 }
 
-// ---------- Subcomponent: Game Profile Card ----------
-function GameProfileCard({ title, description, gameKey, initialProfile }) {
-  const [form, setForm] = useState(initialProfile || {});
+// ---------- Featured game card ----------
+function FeaturedGameCard({ code, profile, onClick }) {
+  const def = GAME_DEFS.find((g) => g.code === code);
+  if (!def) return null;
+
+  const ign = profile.ign || "IGN not set";
+  const rank =
+    profile.rankTier && profile.rankDivision
+      ? `${profile.rankTier} ${profile.rankDivision}`
+      : profile.rankTier || "Rank not set";
+  const region = profile.region || "Region not set";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        minWidth: "190px",
+        flex: "0 0 auto",
+        borderRadius: "12px",
+        border: "1px solid rgba(148,163,184,0.6)",
+        padding: "0.55rem 0.7rem",
+        background:
+          "radial-gradient(circle at top left, #1f2937 0, #020617 55%, #020617 100%)",
+        textAlign: "left",
+        cursor: "pointer",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "0.8rem",
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          marginBottom: "0.15rem",
+        }}
+      >
+        {def.label.toUpperCase()}
+      </div>
+      <div
+        style={{
+          fontSize: "0.8rem",
+          color: "#e5e7eb",
+          marginBottom: "0.12rem",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {ign}
+      </div>
+      <div
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.05rem",
+        }}
+      >
+        {rank}
+      </div>
+      <div
+        style={{
+          fontSize: "0.7rem",
+          color: "#6b7280",
+        }}
+      >
+        {region}
+      </div>
+    </button>
+  );
+}
+
+// ---------- Editor for a single game profile ----------
+function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  const isEmpty =
-    !form.ign && !form.rankTier && !form.rankDivision && !form.region;
+  // derive initial fields based on kind
+  let initialName = "";
+  let initialTag = "";
 
-  function handleChange(field, value) {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  if (gameDef.kind === "TAGGED_ID") {
+    if (profile.ign && profile.ign.includes("#")) {
+      const idx = profile.ign.indexOf("#");
+      initialName = profile.ign.slice(0, idx);
+      initialTag = profile.ign.slice(idx + 1);
+    } else if (profile.ign) {
+      initialName = profile.ign;
+      initialTag = "";
+    }
   }
+
+  const [namePart, setNamePart] = useState(initialName);
+  const [tagPart, setTagPart] = useState(initialTag);
+  const [singleIgn, setSingleIgn] = useState(
+    gameDef.kind === "SINGLE_NAME" ? profile.ign || "" : ""
+  );
+  const [rankTier, setRankTier] = useState(profile.rankTier || "");
+  const [rankDivision, setRankDivision] = useState(profile.rankDivision || "");
+  const [region, setRegion] = useState(
+    profile.region || gameDef.defaultRegion || ""
+  );
+
+  const isEmpty =
+    !(profile.ign && profile.ign.trim()) &&
+    !(profile.rankTier && profile.rankTier.trim()) &&
+    !(profile.rankDivision && profile.rankDivision.trim()) &&
+    !(profile.region && profile.region.trim());
 
   async function handleSave(e) {
     e.preventDefault();
     setMessage("");
     setSaving(true);
+
+    let finalIgn = "";
+    if (gameDef.kind === "TAGGED_ID") {
+      const n = (namePart || "").trim();
+      const t = (tagPart || "").trim();
+      if (n && t) {
+        finalIgn = `${n}#${t}`;
+      } else if (n) {
+        finalIgn = n;
+      } else {
+        finalIgn = "";
+      }
+    } else {
+      finalIgn = (singleIgn || "").trim();
+    }
+
+    const payload = {
+      ign: finalIgn,
+      rankTier: (rankTier || "").trim(),
+      rankDivision: (rankDivision || "").trim(),
+      region: (region || "").trim(),
+    };
 
     try {
       const res = await fetch("/api/profile/game-profiles", {
@@ -370,8 +741,8 @@ function GameProfileCard({ title, description, gameKey, initialProfile }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          game: gameKey,
-          profile: form,
+          game: gameDef.code,
+          profile: payload,
         }),
       });
 
@@ -380,6 +751,9 @@ function GameProfileCard({ title, description, gameKey, initialProfile }) {
         setMessage(data.error || "Failed to save profile.");
       } else {
         setMessage("Profile saved.");
+        if (onProfileSaved) {
+          onProfileSaved(gameDef.code, data.profile || payload);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -393,95 +767,119 @@ function GameProfileCard({ title, description, gameKey, initialProfile }) {
     <form
       onSubmit={handleSave}
       style={{
-        borderRadius: "12px",
-        border: "1px solid rgba(148,163,184,0.35)",
-        padding: "0.75rem 0.9rem 0.8rem",
-        backgroundColor: "#020617",
         display: "flex",
         flexDirection: "column",
         gap: "0.45rem",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: "0.5rem",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-            }}
-          >
-            {title.toUpperCase()}
-          </div>
-          <div
-            style={{
-              fontSize: "0.8rem",
-              color: "#9ca3af",
-              marginTop: "0.2rem",
-            }}
-          >
-            {description}
-          </div>
+      <div>
+        <div
+          style={{
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {gameDef.label.toUpperCase()}
+        </div>
+        <div
+          style={{
+            fontSize: "0.8rem",
+            color: "#9ca3af",
+            marginTop: "0.2rem",
+          }}
+        >
+          {gameDef.description}
         </div>
       </div>
 
+      {/* IGN fields */}
+      {gameDef.kind === "TAGGED_ID" ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr",
+            gap: "0.5rem",
+            marginTop: "0.2rem",
+          }}
+        >
+          <Field
+            label="Name"
+            placeholder="EDG WINSON"
+            value={namePart}
+            onChange={setNamePart}
+          />
+          <Field
+            label="Tag"
+            placeholder="NA1"
+            value={tagPart}
+            onChange={setTagPart}
+          />
+        </div>
+      ) : (
+        <div style={{ marginTop: "0.2rem" }}>
+          <Field
+            label="In-game name"
+            placeholder="Your HoK name"
+            value={singleIgn}
+            onChange={setSingleIgn}
+          />
+        </div>
+      )}
+
+      {/* Rank + region row */}
       <div
         style={{
-          marginTop: "0.3rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.4rem",
+          display: "grid",
+          gridTemplateColumns:
+            gameDef.rankDivisions && gameDef.rankDivisions.length > 0
+              ? "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.3fr)"
+              : "minmax(0, 2fr) minmax(0, 1.3fr)",
+          gap: "0.5rem",
+          marginTop: "0.1rem",
         }}
       >
-        <Field
-          label="In-game name / Riot ID"
-          placeholder="e.g. EDG WINSON#NA1"
-          value={form.ign || ""}
-          onChange={(v) => handleChange("ign", v)}
-        />
-        <Field
+        <SelectField
           label="Rank tier"
-          placeholder="e.g. Gold, Ascendant, Master"
-          value={form.rankTier || ""}
-          onChange={(v) => handleChange("rankTier", v)}
+          value={rankTier}
+          onChange={setRankTier}
+          options={gameDef.rankTiers}
+          placeholder="Select rank"
         />
-        <Field
-          label="Rank division"
-          placeholder='e.g. "1", "2", "3" or leave blank'
-          value={form.rankDivision || ""}
-          onChange={(v) => handleChange("rankDivision", v)}
-        />
+        {gameDef.rankDivisions && gameDef.rankDivisions.length > 0 && (
+          <SelectField
+            label="Division"
+            value={rankDivision}
+            onChange={setRankDivision}
+            options={gameDef.rankDivisions}
+            placeholder="—"
+            allowEmpty
+          />
+        )}
         <Field
           label="Region"
           placeholder="e.g. NA, EUW, SEA"
-          value={form.region || ""}
-          onChange={(v) => handleChange("region", v)}
+          value={region}
+          onChange={setRegion}
         />
       </div>
 
       <div
         style={{
-          marginTop: "0.3rem",
+          marginTop: "0.25rem",
           fontSize: "0.75rem",
           color: isEmpty ? "#fbbf24" : "#9ca3af",
         }}
       >
         {isEmpty ? (
           <>
-            You haven&apos;t set your {title} profile yet. Enter your info and
-            we&apos;ll save it to your account and use it for teams and
+            You haven&apos;t set your {gameDef.label} profile yet. Enter your
+            info and we&apos;ll save it to your account and use it for teams and
             tournaments.
           </>
         ) : (
           <>
-            This info comes from your {title} profile. Make sure it&apos;s
+            This info comes from your {gameDef.label} profile. Make sure it&apos;s
             correct – if it&apos;s wrong, you might not be able to play. Any
             changes here will also update your profile.
           </>
@@ -512,7 +910,7 @@ function GameProfileCard({ title, description, gameKey, initialProfile }) {
             opacity: saving ? 0.75 : 1,
           }}
         >
-          {saving ? "Saving..." : "Save"}
+          {saving ? "Saving..." : "Save profile"}
         </button>
         {message && (
           <span
@@ -529,7 +927,7 @@ function GameProfileCard({ title, description, gameKey, initialProfile }) {
   );
 }
 
-// Small field helper
+// ---------- Small helpers ----------
 function Field({ label, value, onChange, placeholder }) {
   return (
     <label
@@ -556,6 +954,54 @@ function Field({ label, value, onChange, placeholder }) {
           outline: "none",
         }}
       />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  allowEmpty,
+}) {
+  return (
+    <label
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.15rem",
+        fontSize: "0.8rem",
+      }}
+    >
+      <span style={{ color: "#e5e7eb" }}>{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "0.35rem 0.55rem",
+          borderRadius: "8px",
+          border: "1px solid #4b5563",
+          backgroundColor: "#020617",
+          color: "#f9fafb",
+          fontSize: "0.8rem",
+          outline: "none",
+        }}
+      >
+        {allowEmpty && (
+          <option value="">{placeholder || "—"}</option>
+        )}
+        {!allowEmpty && (
+          <option value="">{placeholder || "Select"}</option>
+        )}
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

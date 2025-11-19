@@ -84,7 +84,7 @@ const PlayerSchema = new mongoose.Schema(
       },
     ],
 
-    // ⭐ New: per-game profiles (used for teams + future registrations)
+    // ⭐ Per-game profiles (used for teams + future registrations)
     gameProfiles: {
       VALORANT: {
         type: GameProfileSchema,
@@ -100,6 +100,13 @@ const PlayerSchema = new mongoose.Schema(
       },
       // you can add more games later, e.g.
       // LOL: { type: GameProfileSchema, default: {} },
+    },
+
+    // ⭐ Featured games to display on the profile (up to 3, enforced in UI)
+    // example value: ["VALORANT", "TFT", "HOK"]
+    featuredGames: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }
