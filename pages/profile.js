@@ -698,10 +698,14 @@ function FeaturedGameCard({ code, profile, onClick }) {
   );
 }
 
-// ---------- Editor for a single game profile ----------
 function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  // For VAL & TFT we want region up next to Name#Tag
+  const showRegionTop =
+    gameDef.kind === "TAGGED_ID" &&
+    (gameDef.code === "VALORANT" || gameDef.code === "TFT");
 
   // derive initial fields based on kind
   let initialName = "";
@@ -825,8 +829,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         finalHokStars = starsNum;
       }
 
-      const peakNum =
-        hokPeakScore === "" ? null : Number(hokPeakScore);
+      const peakNum = hokPeakScore === "" ? null : Number(hokPeakScore);
       if (
         !Number.isNaN(peakNum) &&
         peakNum >= 1200 &&
@@ -843,12 +846,8 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       finalTftDoubleTier = (tftDoubleTier || "").trim();
       finalTftDoubleDivision = (tftDoubleDivision || "").trim();
 
-      // same logic: high tiers no division
-      if (
-        ["Master", "Grandmaster", "Challenger"].includes(
-          finalTftDoubleTier
-        )
-      ) {
+      const highTiers = ["Master", "Grandmaster", "Challenger"];
+      if (highTiers.includes(finalTftDoubleTier)) {
         finalTftDoubleDivision = "";
       }
     }
@@ -925,12 +924,14 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       </div>
 
-      {/* IGN fields */}
+      {/* IGN + Region row */}
       {gameDef.kind === "TAGGED_ID" ? (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "2fr auto 1fr",
+            gridTemplateColumns: showRegionTop
+              ? "2fr auto 1fr 1.3fr"
+              : "2fr auto 1fr",
             gap: "0.4rem",
             alignItems: "flex-end",
             marginTop: "0.2rem",
@@ -958,6 +959,25 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             value={tagPart}
             onChange={setTagPart}
           />
+
+          {showRegionTop && (
+            gameDef.regions && gameDef.regions.length > 0 ? (
+              <SelectField
+                label="Region"
+                value={region}
+                onChange={setRegion}
+                options={gameDef.regions}
+                placeholder="Select"
+              />
+            ) : (
+              <Field
+                label="Region"
+                placeholder="e.g. NA, EUW, SEA"
+                value={region}
+                onChange={setRegion}
+              />
+            )
+          )}
         </div>
       ) : (
         <div style={{ marginTop: "0.2rem" }}>
@@ -975,8 +995,8 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         style={{
           display: "grid",
           gridTemplateColumns: showDivision
-            ? "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.3fr)"
-            : "minmax(0, 2fr) minmax(0, 1.3fr)",
+            ? "minmax(0, 2fr) minmax(0, 1fr)" + (!showRegionTop ? " minmax(0, 1.3fr)" : "")
+            : "minmax(0, 2fr)" + (!showRegionTop ? " minmax(0, 1.3fr)" : ""),
           gap: "0.5rem",
           marginTop: "0.1rem",
         }}
@@ -994,9 +1014,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         />
         {showDivision && (
           <SelectField
-            label={
-              gameDef.code === "HOK" ? "Sub-tier / Division" : "Division"
-            }
+            label={gameDef.code === "HOK" ? "Sub-tier / Division" : "Division"}
             value={rankDivision}
             onChange={setRankDivision}
             options={divisionOptions}
@@ -1005,22 +1023,24 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           />
         )}
 
-        {gameDef.regions && gameDef.regions.length > 0 ? (
-          <SelectField
-            label={gameDef.code === "HOK" ? "Server" : "Region"}
-            value={region}
-            onChange={setRegion}
-            options={gameDef.regions}
-            placeholder="Select"
-          />
-        ) : (
-          <Field
-            label="Region"
-            placeholder="e.g. NA, EUW, SEA"
-            value={region}
-            onChange={setRegion}
-          />
-        )}
+        {/* Region/server stays down here ONLY when not already shown near Name#Tag */}
+        {!showRegionTop &&
+          (gameDef.regions && gameDef.regions.length > 0 ? (
+            <SelectField
+              label={gameDef.code === "HOK" ? "Server" : "Region"}
+              value={region}
+              onChange={setRegion}
+              options={gameDef.regions}
+              placeholder="Select"
+            />
+          ) : (
+            <Field
+              label="Region"
+              placeholder="e.g. NA, EUW, SEA"
+              value={region}
+              onChange={setRegion}
+            />
+          ))}
       </div>
 
       {/* HOK-specific extras */}
@@ -1143,6 +1163,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     </form>
   );
 }
+
 
 // ---------- Small helpers ----------
 function Field({ label, value, onChange, placeholder }) {
