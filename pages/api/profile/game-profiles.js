@@ -2,168 +2,135 @@
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 
-const ALLOWED_GAMES = ["VALORANT", "HOK", "TFT"];
-
 function parseCookies(header = "") {
   return Object.fromEntries(
     (header || "")
       .split(";")
-      .map((v) => v.trim())
+      .map((c) => c.trim())
       .filter(Boolean)
-      .map((kv) => {
-        const i = kv.indexOf("=");
-        const k = i >= 0 ? kv.slice(0, i) : kv;
-        const v = i >= 0 ? kv.slice(i + 1) : "";
-        try {
-          return [k, decodeURIComponent(v)];
-        } catch {
-          return [k, v];
-        }
+      .map((c) => {
+        const [k, ...rest] = c.split("=");
+        return [k, decodeURIComponent(rest.join("=") || "")];
       })
   );
 }
 
+// Only allow the games we actually support on the profile page
+const ALLOWED_GAMES = ["VALORANT", "HOK", "TFT"];
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
+    res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
+  const { game, profile } = req.body || {};
+
+  if (!game || !ALLOWED_GAMES.includes(game)) {
+    return res
+      .status(400)
+      .json({ ok: false, error: "Invalid or missing game code." });
+  }
+
+  // Get current player from cookie (same pattern as /profile)
   const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
   if (!playerId) {
     return res
       .status(401)
-      .json({ ok: false, error: "Not logged in (no playerId cookie)" });
-  }
-
-  const { game, profile } = req.body || {};
-
-  if (!game || typeof game !== "string") {
-    return res.status(400).json({ ok: false, error: "Missing game code" });
-  }
-
-  const gameKey = game.toUpperCase();
-  if (!ALLOWED_GAMES.includes(gameKey)) {
-    return res
-      .status(400)
-      .json({ ok: false, error: "Unsupported game for profiles" });
+      .json({ ok: false, error: "Not logged in. Please re-login." });
   }
 
   await connectToDatabase();
-
   const player = await Player.findById(playerId);
+
   if (!player) {
     return res
       .status(401)
-      .json({ ok: false, error: "Player not found or not logged in" });
+      .json({ ok: false, error: "Player not found. Please re-login." });
   }
 
+  // Make sure gameProfiles exists
   if (!player.gameProfiles) {
     player.gameProfiles = {};
   }
 
-  const incoming = profile || {};
+  const existing = player.gameProfiles[game] || {};
+  const safe = profile || {};
 
-  // Basic string trimming
-  const cleanString = (v) =>
-    typeof v === "string" ? v.trim() : v === null ? "" : "";
-
-  const cleanProfile = {
-    ign: cleanString(incoming.ign),
-    rankTier: cleanString(incoming.rankTier),
-    rankDivision: cleanString(incoming.rankDivision),
-    region: cleanString(incoming.region),
-
-    // HoK extras
-    hokStars:
-      incoming.hokStars === null || incoming.hokStars === ""
-        ? undefined
-        : Number.isFinite(Number(incoming.hokStars)) &&
-          Number(incoming.hokStars) >= 0
-        ? Number(incoming.hokStars)
-        : undefined,
-
-    hokPeakScore:
-      incoming.hokPeakScore === null || incoming.hokPeakScore === ""
-        ? undefined
-        : Number.isFinite(Number(incoming.hokPeakScore)) &&
-          Number(incoming.hokPeakScore) >= 1200 &&
-          Number(incoming.hokPeakScore) <= 3000
-        ? Number(incoming.hokPeakScore)
-        : undefined,
-
-    // TFT Double Up extras
-    tftDoubleTier: cleanString(incoming.tftDoubleTier),
-    tftDoubleDivision: cleanString(incoming.tftDoubleDivision),
-
-    lastUpdated: new Date(),
+  // Base fields: used by all games
+  const updated = {
+    ign: (safe.ign || "").trim(),
+    rankTier: (safe.rankTier || "").trim(),
+    rankDivision: (safe.rankDivision || "").trim(),
+    region: (safe.region || "").trim(),
+    // we'll add game-specific stuff below
   };
 
-  // Merge with any existing profile for that game so we don't blow away fields
-  const existing =
-    (player.gameProfiles[gameKey] &&
-      player.gameProfiles[gameKey].toObject &&
-      player.gameProfiles[gameKey].toObject()) ||
-    player.gameProfiles[gameKey] ||
-    {};
+  // ---- Honor of Kings extras ----
+  if (game === "HOK") {
+    let stars = safe.hokStars;
+    let peak = safe.hokPeakScore;
 
-  const updatedProfile = {
-    ...existing,
-    ...cleanProfile,
-  };
-
-  // For certain tiers, we don't keep division (handled already in UI, but just in case)
-  if (gameKey === "VALORANT") {
-    if (
-      updatedProfile.rankTier === "Immortal" ||
-      updatedProfile.rankTier === "Radiant"
-    ) {
-      updatedProfile.rankDivision = "";
+    // normalise stars (can be null/empty)
+    if (stars === "" || stars === null || typeof stars === "undefined") {
+      stars = null;
+    } else {
+      const n = Number(stars);
+      stars = Number.isNaN(n) ? null : n;
     }
+
+    // normalise peak (1200–3000 or null)
+    if (peak === "" || peak === null || typeof peak === "undefined") {
+      peak = null;
+    } else {
+      const n = Number(peak);
+      peak = Number.isNaN(n) ? null : Math.max(1200, Math.min(3000, n));
+    }
+
+    updated.hokStars = stars;
+    updated.hokPeakScore = peak;
+  } else {
+    // keep old values for other games so we don't accidentally wipe them
+    updated.hokStars =
+      typeof existing.hokStars === "number" ? existing.hokStars : null;
+    updated.hokPeakScore =
+      typeof existing.hokPeakScore === "number" ? existing.hokPeakScore : null;
   }
 
-  if (gameKey === "TFT") {
+  // ---- TFT Double Up extras ----
+  if (game === "TFT") {
+    const doubleTier = (safe.tftDoubleTier || "").trim();
+    let doubleDiv = (safe.tftDoubleDivision || "").trim();
+
     const highTiers = ["Master", "Grandmaster", "Challenger"];
-    if (highTiers.includes(updatedProfile.rankTier)) {
-      updatedProfile.rankDivision = "";
+    if (highTiers.includes(doubleTier)) {
+      // high tiers don't have divisions
+      doubleDiv = "";
     }
-    if (highTiers.includes(updatedProfile.tftDoubleTier)) {
-      updatedProfile.tftDoubleDivision = "";
-    }
+
+    updated.tftDoubleTier = doubleTier;
+    updated.tftDoubleDivision = doubleDiv;
+  } else {
+    // preserve any existing TFT fields on non-TFT profiles
+    updated.tftDoubleTier = existing.tftDoubleTier || "";
+    updated.tftDoubleDivision = existing.tftDoubleDivision || "";
   }
 
-  if (gameKey === "HOK") {
-    // Grandmaster uses stars instead of division
-    if (updatedProfile.rankTier === "Grandmaster") {
-      updatedProfile.rankDivision = "";
-    }
-  }
+  // lastUpdated timestamp for this game profile
+  updated.lastUpdated = new Date();
 
-  player.gameProfiles.set
-    ? player.gameProfiles.set(gameKey, updatedProfile)
-    : (player.gameProfiles[gameKey] = updatedProfile);
+  // Merge with whatever was already there so we don’t drop unknown / future fields
+  player.gameProfiles[game] = {
+    ...existing.toObject?.() /* if it's a Mongoose subdoc */ || existing,
+    ...updated,
+  };
 
   await player.save();
 
   return res.status(200).json({
     ok: true,
-    profile: {
-      ign: updatedProfile.ign || "",
-      rankTier: updatedProfile.rankTier || "",
-      rankDivision: updatedProfile.rankDivision || "",
-      region: updatedProfile.region || "",
-      hokStars:
-        typeof updatedProfile.hokStars === "number"
-          ? updatedProfile.hokStars
-          : null,
-      hokPeakScore:
-        typeof updatedProfile.hokPeakScore === "number"
-          ? updatedProfile.hokPeakScore
-          : null,
-      tftDoubleTier: updatedProfile.tftDoubleTier || "",
-      tftDoubleDivision: updatedProfile.tftDoubleDivision || "",
-    },
+    profile: player.gameProfiles[game],
   });
 }
