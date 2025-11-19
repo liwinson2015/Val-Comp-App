@@ -1,5 +1,37 @@
 import mongoose from "mongoose";
 
+// Reusable sub-schema for per-game profiles (Valorant, HoK, TFT, etc.)
+const GameProfileSchema = new mongoose.Schema(
+  {
+    // In-game name / Riot ID / account name for that game
+    ign: {
+      type: String,
+      default: "",
+    },
+
+    // Rank info (flexible strings so you can change later)
+    rankTier: {
+      type: String,
+      default: "",
+    }, // e.g. "Iron", "Gold", "Master"
+
+    rankDivision: {
+      type: String,
+      default: "",
+    }, // e.g. "1", "2", "3" or ""
+
+    region: {
+      type: String,
+      default: "",
+    }, // optional: "NA", "EUW", etc.
+
+    lastUpdated: {
+      type: Date,
+    },
+  },
+  { _id: false }
+);
+
 const PlayerSchema = new mongoose.Schema(
   {
     discordId: {
@@ -36,7 +68,7 @@ const PlayerSchema = new mongoose.Schema(
       default: "",
     },
 
-    // 🔥 Tournament history
+    // 🔥 Tournament history (legacy per-tournament IGN snapshot)
     registeredFor: [
       {
         tournamentId: String,
@@ -51,6 +83,24 @@ const PlayerSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+
+    // ⭐ New: per-game profiles (used for teams + future registrations)
+    gameProfiles: {
+      VALORANT: {
+        type: GameProfileSchema,
+        default: {},
+      },
+      HOK: {
+        type: GameProfileSchema,
+        default: {},
+      },
+      TFT: {
+        type: GameProfileSchema,
+        default: {},
+      },
+      // you can add more games later, e.g.
+      // LOL: { type: GameProfileSchema, default: {} },
+    },
   },
   { timestamps: true }
 );
