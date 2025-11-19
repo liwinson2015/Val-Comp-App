@@ -962,7 +962,7 @@ export default function TeamsPage({
                 marginRight: "0.5rem",
               }}
             >
-              Join a team
+              Find a Team
             </button>
 
             {/* Create team */}

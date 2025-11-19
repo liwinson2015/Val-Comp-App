@@ -250,7 +250,7 @@ export default function JoinTeamsPage({
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: "1.7rem" }}>Join a Team</h1>
+            <h1 style={{ margin: 0, fontSize: "1.7rem" }}>Find a Team</h1>
             <p style={{ margin: "0.35rem 0", color: "#9ca3af" }}>
               Logged in as <strong>{player.username}</strong>
             </p>
