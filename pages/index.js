@@ -2,7 +2,7 @@
 import React from "react";
 import styles from "../styles/Valorant.module.css";
 import { connectToDatabase } from "../lib/mongodb";
-import Registration from "../models/Registration";
+import Player from "../models/Player";
 
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const MAX_SLOTS = 16;
@@ -11,8 +11,9 @@ const MAX_SLOTS = 16;
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  const currentCount = await Registration.countDocuments({
-    tournamentId: TOURNAMENT_ID,
+  // Count players who are registered for this tournament
+  const currentCount = await Player.countDocuments({
+    "registeredFor.tournamentId": TOURNAMENT_ID,
   });
 
   return {
