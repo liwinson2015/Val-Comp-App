@@ -1,10 +1,10 @@
 // pages/teams/join.js
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { connectToDatabase } from "../../lib/mongodb";
-import Player from "../../models/Player";
-import Team from "../../models/Team";
-import TeamJoinRequest from "../../models/TeamJoinRequest";
+import { connectToDatabase } from "../../../lib/mongodb";
+import Player from "../../../models/Player";
+import Team from "../../../models/Team";
+import TeamJoinRequest from "../../../models/TeamJoinRequest";
 
 // Supported games for UI and filtering
 const SUPPORTED_GAMES = [
