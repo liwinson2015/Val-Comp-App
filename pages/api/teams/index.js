@@ -3,6 +3,9 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Team from "../../../models/Team";
 import Player from "../../../models/Player";
 
+// Supported game codes
+const SUPPORTED_GAMES = ["VALORANT", "HOK"]; // you can add more later
+
 // basic cookie parser
 function parseCookies(header = "") {
   return Object.fromEntries(
@@ -29,12 +32,22 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: "Not logged in" });
     }
 
-    const { name, tag } = req.body || {};
+    const { name, tag, game } = req.body || {};
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return res
         .status(400)
         .json({ ok: false, error: "Team name is required." });
+    }
+
+    let gameCode = typeof game === "string" ? game.toUpperCase().trim() : "";
+
+    // Default to VALORANT if missing/invalid, but only allow known games
+    if (!SUPPORTED_GAMES.includes(gameCode)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid or missing game. Please select a valid game.",
+      });
     }
 
     await connectToDatabase();
@@ -49,7 +62,7 @@ export default async function handler(req, res) {
     const team = await Team.create({
       name: name.trim(),
       tag: (tag || "").trim(),
-      game: "VALORANT",
+      game: gameCode,
       captain: captain._id,
       members: [captain._id], // captain starts as the only member
     });

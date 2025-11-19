@@ -3,6 +3,11 @@ import mongoose from "mongoose";
 
 const { Schema, models, model } = mongoose;
 
+/**
+ * game:
+ *  - stored as a code like "VALORANT", "HOK"
+ *  - UI will map code -> nice label (e.g. "Honor of Kings")
+ */
 const TeamSchema = new Schema(
   {
     name: {

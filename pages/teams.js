@@ -1,8 +1,15 @@
 // pages/teams.js
 import { useState } from "react";
+import { useRouter } from "next/router";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import Team from "../models/Team";
+
+// Supported games for UI and filtering
+const SUPPORTED_GAMES = [
+  { code: "VALORANT", label: "VALORANT" },
+  { code: "HOK", label: "Honor of Kings" },
+];
 
 // cookie parser reused on server
 function parseCookies(cookieHeader = "") {
@@ -18,7 +25,7 @@ function parseCookies(cookieHeader = "") {
 }
 
 // ---------- SERVER SIDE ----------
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps({ req, query }) {
   const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
@@ -45,31 +52,28 @@ export async function getServerSideProps({ req }) {
     };
   }
 
+  const requestedGame = typeof query.game === "string" ? query.game : "";
+  const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
+  const initialSelectedGame = allowedGameCodes.includes(requestedGame)
+    ? requestedGame
+    : "ALL";
+
+  // Get all teams across all supported games that user is in or captains
   const teams = await Team.find({
-    game: "VALORANT",
+    game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
   })
     .sort({ createdAt: 1 })
     .lean();
 
-  const captainTeams = [];
-  const memberTeams = [];
-
-  teams.forEach((t) => {
-    const base = {
-      id: t._id.toString(),
-      name: t.name,
-      tag: t.tag || "",
-      game: t.game,
-      memberCount: (t.members || []).length,
-    };
-
-    if (String(t.captain) === String(playerDoc._id)) {
-      captainTeams.push({ ...base, isCaptain: true });
-    } else {
-      memberTeams.push({ ...base, isCaptain: false });
-    }
-  });
+  const formattedTeams = teams.map((t) => ({
+    id: t._id.toString(),
+    name: t.name,
+    tag: t.tag || "",
+    game: t.game,
+    memberCount: (t.members || []).length,
+    isCaptain: String(t.captain) === String(playerDoc._id),
+  }));
 
   return {
     props: {
@@ -77,8 +81,9 @@ export async function getServerSideProps({ req }) {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
       },
-      initialCaptainTeams: captainTeams,
-      initialMemberTeams: memberTeams,
+      initialTeams: formattedTeams,
+      initialSelectedGame,
+      supportedGames: SUPPORTED_GAMES,
     },
   };
 }
@@ -86,15 +91,49 @@ export async function getServerSideProps({ req }) {
 // ---------- CLIENT COMPONENT ----------
 export default function TeamsPage({
   player,
-  initialCaptainTeams,
-  initialMemberTeams,
+  initialTeams,
+  initialSelectedGame,
+  supportedGames,
 }) {
-  const [captainTeams, setCaptainTeams] = useState(initialCaptainTeams || []);
-  const [memberTeams] = useState(initialMemberTeams || []);
+  const router = useRouter();
+  const [teams, setTeams] = useState(initialTeams || []);
+  const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
+
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
+  const [game, setGame] = useState(
+    initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  function handleFilterChange(newGame) {
+    setSelectedGame(newGame);
+
+    // Update query param (shallow so it doesn't reload from server)
+    const query =
+      newGame === "ALL"
+        ? {}
+        : {
+            game: newGame,
+          };
+
+    router.push(
+      {
+        pathname: "/teams",
+        query,
+      },
+      undefined,
+      { shallow: true }
+    );
+
+    // If they switch filter, default the create form's game to that
+    if (newGame === "ALL") {
+      setGame(supportedGames[0]?.code || "VALORANT");
+    } else {
+      setGame(newGame);
+    }
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -105,6 +144,11 @@ export default function TeamsPage({
       return;
     }
 
+    if (!game) {
+      setError("Please select a game.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/teams", {
@@ -112,25 +156,23 @@ export default function TeamsPage({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, tag }),
+        body: JSON.stringify({ name, tag, game }),
       });
 
       const data = await res.json();
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
-        // new team is always one you captain
-        setCaptainTeams((prev) => [
-          ...prev,
-          {
-            id: data.team.id,
-            name: data.team.name,
-            tag: data.team.tag || "",
-            game: data.team.game,
-            memberCount: data.team.memberCount || 1,
-            isCaptain: true,
-          },
-        ]);
+        const newTeam = {
+          id: data.team.id,
+          name: data.team.name,
+          tag: data.team.tag || "",
+          game: data.team.game,
+          memberCount: data.team.memberCount || 1,
+          isCaptain: true, // you just created it, so you're captain
+        };
+
+        setTeams((prev) => [...prev, newTeam]);
         setName("");
         setTag("");
       }
@@ -142,9 +184,16 @@ export default function TeamsPage({
     }
   }
 
-  const hasAnyTeams =
-    (captainTeams && captainTeams.length > 0) ||
-    (memberTeams && memberTeams.length > 0);
+  // Filtered view by selectedGame
+  const filteredTeams =
+    selectedGame === "ALL"
+      ? teams
+      : teams.filter((t) => t.game === selectedGame);
+
+  const captainTeams = filteredTeams.filter((t) => t.isCaptain);
+  const memberTeams = filteredTeams.filter((t) => !t.isCaptain);
+
+  const hasAnyTeams = filteredTeams.length > 0;
 
   return (
     <div className="shell">
@@ -160,7 +209,7 @@ export default function TeamsPage({
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: "1.7rem" }}>Teams</h1>
+            <h1 style={{ margin: 0, fontSize: "1.7rem" }}>My Teams</h1>
             <p style={{ margin: "0.35rem 0", color: "#9ca3af" }}>
               Logged in as <strong>{player.username}</strong>
             </p>
@@ -169,17 +218,41 @@ export default function TeamsPage({
                 margin: 0,
                 color: "#6b7280",
                 fontSize: "0.9rem",
-                maxWidth: "28rem",
+                maxWidth: "30rem",
               }}
             >
-              Create VALORANT teams once and reuse them for different
-              tournaments. Only teams you captain will show up when you register
-              for squad events.
+              Teams are tied to a game (like VALORANT or Honor of Kings). When
+              you register for a tournament, only teams from that game where
+              you&apos;re captain will show up.
             </p>
           </div>
         </div>
 
-        {/* Main layout: form on left, teams on right */}
+        {/* Game filter pills */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.5rem",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <FilterPill
+            label="All games"
+            active={selectedGame === "ALL"}
+            onClick={() => handleFilterChange("ALL")}
+          />
+          {supportedGames.map((g) => (
+            <FilterPill
+              key={g.code}
+              label={g.label}
+              active={selectedGame === g.code}
+              onClick={() => handleFilterChange(g.code)}
+            />
+          ))}
+        </div>
+
+        {/* Main layout: create form + list */}
         <div
           style={{
             display: "grid",
@@ -196,7 +269,7 @@ export default function TeamsPage({
                 fontSize: "1.1rem",
               }}
             >
-              Create a new team
+              Create a team
             </h2>
             <p
               style={{
@@ -206,11 +279,37 @@ export default function TeamsPage({
                 color: "#9ca3af",
               }}
             >
-              Game: <strong>VALORANT</strong>. Team size will be checked when
-              you register for a specific tournament (3v3, 5v5, etc).
+              Pick the game you want this team for. Team size rules (3v3, 5v5,
+              etc.) will be enforced when you register for a specific
+              tournament.
             </p>
 
             <form onSubmit={handleCreate}>
+              <div style={{ marginBottom: "0.75rem" }}>
+                <label
+                  htmlFor="team-game"
+                  style={{
+                    display: "block",
+                    marginBottom: "0.25rem",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  Game *
+                </label>
+                <select
+                  id="team-game"
+                  value={game}
+                  onChange={(e) => setGame(e.target.value)}
+                  style={inputStyle}
+                >
+                  {supportedGames.map((g) => (
+                    <option key={g.code} value={g.code}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div style={{ marginBottom: "0.75rem" }}>
                 <label
                   htmlFor="team-name"
@@ -298,7 +397,7 @@ export default function TeamsPage({
             </form>
           </div>
 
-          {/* Teams column */}
+          {/* Teams list */}
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {!hasAnyTeams && (
               <div style={cardStyle}>
@@ -318,14 +417,16 @@ export default function TeamsPage({
                     color: "#9ca3af",
                   }}
                 >
-                  You&apos;re not in any VALORANT teams right now. Use the form
-                  on the left to create your first team. After that, you can use
-                  it to register for tournaments as captain.
+                  You don&apos;t have any teams for{" "}
+                  {selectedGame === "ALL"
+                    ? "these games"
+                    : getGameLabel(selectedGame, supportedGames)}{" "}
+                  yet. Use the form on the left to create one as captain.
                 </p>
               </div>
             )}
 
-            {captainTeams && captainTeams.length > 0 && (
+            {captainTeams.length > 0 && (
               <section>
                 <h2 style={sectionTitleStyle}>Teams you captain</h2>
                 <div
@@ -337,54 +438,13 @@ export default function TeamsPage({
                   }}
                 >
                   {captainTeams.map((team) => (
-                    <div key={team.id} style={teamCardStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "0.35rem",
-                        }}
-                      >
-                        <h3
-                          style={{
-                            margin: 0,
-                            fontSize: "1rem",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {team.tag ? `[${team.tag}] ` : ""}
-                          {team.name}
-                        </h3>
-                        <span style={captainBadgeStyle}>Captain</span>
-                      </div>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "0.8rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        Game: <strong>{team.game}</strong>
-                      </p>
-                      <p
-                        style={{
-                          margin: "0.25rem 0 0",
-                          fontSize: "0.8rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        Members: <strong>{team.memberCount}</strong>
-                      </p>
-                    </div>
+                    <TeamCard key={team.id} team={team} isCaptain />
                   ))}
                 </div>
               </section>
             )}
 
-            {memberTeams && memberTeams.length > 0 && (
+            {memberTeams.length > 0 && (
               <section>
                 <h2 style={sectionTitleStyle}>Teams you&apos;re in</h2>
                 <div
@@ -396,39 +456,7 @@ export default function TeamsPage({
                   }}
                 >
                   {memberTeams.map((team) => (
-                    <div key={team.id} style={teamCardStyle}>
-                      <h3
-                        style={{
-                          margin: 0,
-                          marginBottom: "0.35rem",
-                          fontSize: "1rem",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {team.tag ? `[${team.tag}] ` : ""}
-                        {team.name}
-                      </h3>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "0.8rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        Game: <strong>{team.game}</strong>
-                      </p>
-                      <p
-                        style={{
-                          margin: "0.25rem 0 0",
-                          fontSize: "0.8rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        Members: <strong>{team.memberCount}</strong>
-                      </p>
-                    </div>
+                    <TeamCard key={team.id} team={team} />
                   ))}
                 </div>
               </section>
@@ -440,7 +468,73 @@ export default function TeamsPage({
   );
 }
 
-// ----- styles -----
+// ---------- subcomponents ----------
+function FilterPill({ label, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "0.3rem 0.75rem",
+        borderRadius: "999px",
+        border: active ? "1px solid #f97316" : "1px solid #4b5563",
+        backgroundColor: active ? "#111827" : "#020617",
+        color: active ? "#f9fafb" : "#d1d5db",
+        fontSize: "0.8rem",
+        cursor: "pointer",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TeamCard({ team, isCaptain }) {
+  return (
+    <div style={teamCardStyle}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "0.35rem",
+          gap: "0.5rem",
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "1rem",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {team.tag ? `[${team.tag}] ` : ""}
+          {team.name}
+        </h3>
+        <span style={gameBadgeStyle}>{team.game}</span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: "0.2rem",
+          fontSize: "0.8rem",
+          color: "#9ca3af",
+        }}
+      >
+        <span>
+          Members: <strong>{team.memberCount}</strong>
+        </span>
+        {isCaptain && <span style={captainBadgeStyle}>Captain</span>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- styles ----------
 const cardStyle = {
   padding: "1rem",
   borderRadius: "12px",
@@ -482,3 +576,17 @@ const captainBadgeStyle = {
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 };
+
+const gameBadgeStyle = {
+  fontSize: "0.7rem",
+  padding: "2px 6px",
+  borderRadius: "999px",
+  border: "1px solid #4b5563",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+function getGameLabel(code, supportedGames) {
+  const found = supportedGames.find((g) => g.code === code);
+  return found ? found.label : code;
+}
