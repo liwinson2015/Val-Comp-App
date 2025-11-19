@@ -9,22 +9,46 @@ const GameProfileSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Rank info (flexible strings so you can change later)
+    // Main ranked ladder
     rankTier: {
       type: String,
       default: "",
     }, // e.g. "Iron", "Gold", "Master"
-
     rankDivision: {
       type: String,
       default: "",
-    }, // e.g. "1", "2", "3" or ""
+    }, // e.g. "1", "2", "3" or "", "IV", "III", ...
 
+    // Region/server (NA, EUW, SEA, etc.)
     region: {
       type: String,
       default: "",
-    }, // optional: "NA", "EUW", etc.
+    },
 
+    // ---------- Honor of Kings extras ----------
+    // Grandmaster star count (0–100+)
+    hokStars: {
+      type: Number,
+      min: 0,
+    },
+
+    // Peak Tournament score (1200–3000 range you care about)
+    hokPeakScore: {
+      type: Number,
+      min: 0,
+    },
+
+    // ---------- TFT Double Up extras ----------
+    tftDoubleTier: {
+      type: String,
+      default: "",
+    }, // same tiers as normal TFT
+    tftDoubleDivision: {
+      type: String,
+      default: "",
+    }, // "1"–"4" or ""
+
+    // When this profile was last updated
     lastUpdated: {
       type: Date,
     },
@@ -50,33 +74,33 @@ const PlayerSchema = new mongoose.Schema(
       type: String,
     },
 
-    // ✅ New: email from Discord OAuth ("identify email" scope)
+    // email from Discord OAuth (if you ever request that scope)
     email: {
       type: String,
       default: null,
     },
 
-    // 🔥 Existing admin flag
+    // Admin flag
     isAdmin: {
       type: Boolean,
       default: false,
     },
 
-    // 🔥 Admin notes
+    // Admin-only notes
     adminNotes: {
       type: String,
       default: "",
     },
 
-    // 🔥 Tournament history (legacy per-tournament IGN snapshot)
+    // Tournament history (legacy per-tournament IGN snapshot)
     registeredFor: [
       {
         tournamentId: String,
 
-        // ign = name only (what your backend already uses!)
+        // ign = name only (what your backend already uses)
         ign: String,
 
-        // full Riot ID ("name#tagline")
+        // full Riot ID ("name#tagline") if you decide to store it
         fullIgn: String,
 
         rank: String,
@@ -84,7 +108,7 @@ const PlayerSchema = new mongoose.Schema(
       },
     ],
 
-    // ⭐ Per-game profiles (used for teams + future registrations)
+    // Per-game profiles (used for teams + future registrations)
     gameProfiles: {
       VALORANT: {
         type: GameProfileSchema,
@@ -98,14 +122,13 @@ const PlayerSchema = new mongoose.Schema(
         type: GameProfileSchema,
         default: {},
       },
-      // you can add more games later, e.g.
+      // add more games later, e.g.
       // LOL: { type: GameProfileSchema, default: {} },
     },
 
-    // ⭐ Featured games to display on the profile (up to 3, enforced in UI)
-    // example value: ["VALORANT", "TFT", "HOK"]
+    // Which games the player wants to show as "featured" on their profile
     featuredGames: {
-      type: [String],
+      type: [String], // e.g. ["VALORANT", "HOK"]
       default: [],
     },
   },

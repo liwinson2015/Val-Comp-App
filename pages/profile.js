@@ -22,7 +22,7 @@ const GAME_DEFS = [
   {
     code: "VALORANT",
     label: "VALORANT",
-    description: "Used for Valorant teams and tournaments.",
+    description: "Used for VALORANT teams and tournaments.",
     kind: "TAGGED_ID", // name + tag
     rankTiers: [
       "Iron",
@@ -74,14 +74,23 @@ const GAME_DEFS = [
       "Master",
       "Grandmaster",
     ],
-    // For now: 5 generic divisions per rank (you can refine later)
-    rankDivisions: ["V", "IV", "III", "II", "I"],
     defaultRegion: "NA",
     regions: ["NA", "EU", "SEA", "MENA", "Other"],
   },
 ];
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
+
+// HOK: per-tier division options
+const HOK_DIVISIONS_BY_TIER = {
+  Bronze: ["III", "II", "I"], // 3 sub-tiers
+  Silver: ["III", "II", "I"], // assume 3 as well
+  Gold: ["III", "II", "I"], // 3 sub-tiers
+  Platinum: ["IV", "III", "II", "I"], // 4
+  Diamond: ["V", "IV", "III", "II", "I"], // 5
+  Master: ["V", "IV", "III", "II", "I"], // 5
+  Grandmaster: [], // handled by stars instead
+};
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req }) {
@@ -148,6 +157,16 @@ export async function getServerSideProps({ req }) {
       rankTier: p.rankTier || "",
       rankDivision: p.rankDivision || "",
       region: p.region || "",
+      // HOK extras
+      hokStars:
+        typeof p.hokStars === "number" ? p.hokStars : p.hokStars || "",
+      hokPeakScore:
+        typeof p.hokPeakScore === "number"
+          ? p.hokPeakScore
+          : p.hokPeakScore || "",
+      // TFT Double Up
+      tftDoubleTier: p.tftDoubleTier || "",
+      tftDoubleDivision: p.tftDoubleDivision || "",
     };
   }
 
@@ -288,6 +307,10 @@ export default function Profile({
     rankTier: "",
     rankDivision: "",
     region: "",
+    hokStars: "",
+    hokPeakScore: "",
+    tftDoubleTier: "",
+    tftDoubleDivision: "",
   };
   const isSelectedFeatured = featuredGames.includes(selectedGame);
 
@@ -608,10 +631,12 @@ function FeaturedGameCard({ code, profile, onClick }) {
   if (!def) return null;
 
   const ign = profile.ign || "IGN not set";
+
   const rank =
     profile.rankTier && profile.rankDivision
       ? `${profile.rankTier} ${profile.rankDivision}`
       : profile.rankTier || "Rank not set";
+
   const region = profile.region || "Region not set";
 
   return (
@@ -638,7 +663,7 @@ function FeaturedGameCard({ code, profile, onClick }) {
           marginBottom: "0.15rem",
         }}
       >
-        {def.label.toUpperCase()}
+        {def.label}
       </div>
       <div
         style={{
@@ -704,25 +729,57 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     profile.region || gameDef.defaultRegion || ""
   );
 
+  // HOK extras
+  const [hokStars, setHokStars] = useState(
+    profile.hokStars !== "" && profile.hokStars !== null
+      ? String(profile.hokStars)
+      : ""
+  );
+  const [hokPeakScore, setHokPeakScore] = useState(
+    profile.hokPeakScore !== "" && profile.hokPeakScore !== null
+      ? String(profile.hokPeakScore)
+      : ""
+  );
+
+  // TFT Double Up
+  const [tftDoubleTier, setTftDoubleTier] = useState(
+    profile.tftDoubleTier || ""
+  );
+  const [tftDoubleDivision, setTftDoubleDivision] = useState(
+    profile.tftDoubleDivision || ""
+  );
+
   const isEmpty =
     !(profile.ign && profile.ign.trim()) &&
-    !(profile.rankTier && profile.rankTier.trim()) &&
-    !(profile.rankDivision && profile.rankDivision.trim()) &&
-    !(profile.region && profile.region.trim());
+    !(profile.rankTier && profile.rankTier.trim());
 
   // whether division dropdown should be shown for current game/tier
-  const showDivision =
-    gameDef.rankDivisions &&
-    gameDef.rankDivisions.length > 0 &&
-    !(
-      (gameDef.code === "VALORANT" &&
-        (rankTier === "Immortal" || rankTier === "Radiant")) ||
-      (gameDef.code === "TFT" &&
-        (rankTier === "Master" ||
-          rankTier === "Grandmaster" ||
-          rankTier === "Challenger")) ||
-      (gameDef.code === "HOK" && rankTier === "Grandmaster")
-    );
+  let showDivision = false;
+  let divisionOptions = [];
+
+  if (gameDef.code === "VALORANT") {
+    showDivision =
+      rankTier &&
+      !["Immortal", "Radiant"].includes(rankTier) &&
+      gameDef.rankDivisions.length > 0;
+    divisionOptions = gameDef.rankDivisions;
+  } else if (gameDef.code === "TFT") {
+    showDivision =
+      rankTier &&
+      !["Master", "Grandmaster", "Challenger"].includes(rankTier) &&
+      gameDef.rankDivisions.length > 0;
+    divisionOptions = gameDef.rankDivisions;
+  } else if (gameDef.code === "HOK") {
+    if (rankTier === "Grandmaster") {
+      showDivision = false;
+    } else if (rankTier && HOK_DIVISIONS_BY_TIER[rankTier]) {
+      showDivision = true;
+      divisionOptions = HOK_DIVISIONS_BY_TIER[rankTier];
+    }
+  } else if (gameDef.rankDivisions && gameDef.rankDivisions.length > 0) {
+    showDivision = true;
+    divisionOptions = gameDef.rankDivisions;
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -758,11 +815,55 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       finalDivision = "";
     }
 
+    // HOK peak tournament + stars
+    let finalHokStars = null;
+    let finalHokPeakScore = null;
+
+    if (gameDef.code === "HOK") {
+      const starsNum = hokStars === "" ? null : Number(hokStars);
+      if (!Number.isNaN(starsNum) && starsNum >= 0) {
+        finalHokStars = starsNum;
+      }
+
+      const peakNum =
+        hokPeakScore === "" ? null : Number(hokPeakScore);
+      if (
+        !Number.isNaN(peakNum) &&
+        peakNum >= 1200 &&
+        peakNum <= 3000
+      ) {
+        finalHokPeakScore = peakNum;
+      }
+    }
+
+    // TFT Double Up
+    let finalTftDoubleTier = "";
+    let finalTftDoubleDivision = "";
+    if (gameDef.code === "TFT") {
+      finalTftDoubleTier = (tftDoubleTier || "").trim();
+      finalTftDoubleDivision = (tftDoubleDivision || "").trim();
+
+      // same logic: high tiers no division
+      if (
+        ["Master", "Grandmaster", "Challenger"].includes(
+          finalTftDoubleTier
+        )
+      ) {
+        finalTftDoubleDivision = "";
+      }
+    }
+
     const payload = {
       ign: finalIgn,
       rankTier: (rankTier || "").trim(),
       rankDivision: finalDivision,
       region: (region || "").trim(),
+      // HOK extras
+      hokStars: finalHokStars,
+      hokPeakScore: finalHokPeakScore,
+      // TFT Double Up extras
+      tftDoubleTier: finalTftDoubleTier,
+      tftDoubleDivision: finalTftDoubleDivision,
     };
 
     try {
@@ -811,7 +912,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             letterSpacing: "0.04em",
           }}
         >
-          {gameDef.label.toUpperCase()}
+          {gameDef.label}
         </div>
         <div
           style={{
@@ -869,7 +970,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       )}
 
-      {/* Rank + region row */}
+      {/* Rank + region/server row */}
       <div
         style={{
           display: "grid",
@@ -883,16 +984,22 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         <SelectField
           label="Rank tier"
           value={rankTier}
-          onChange={setRankTier}
+          onChange={(value) => {
+            setRankTier(value);
+            // reset division when tier changes
+            setRankDivision("");
+          }}
           options={gameDef.rankTiers}
           placeholder="Select rank"
         />
         {showDivision && (
           <SelectField
-            label="Division"
+            label={
+              gameDef.code === "HOK" ? "Sub-tier / Division" : "Division"
+            }
             value={rankDivision}
             onChange={setRankDivision}
-            options={gameDef.rankDivisions}
+            options={divisionOptions}
             placeholder="—"
             allowEmpty
           />
@@ -915,6 +1022,64 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           />
         )}
       </div>
+
+      {/* HOK-specific extras */}
+      {gameDef.code === "HOK" && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1.2fr)",
+            gap: "0.5rem",
+            marginTop: "0.4rem",
+          }}
+        >
+          <Field
+            label="Grandmaster stars (0 - 100+)"
+            placeholder="0"
+            value={hokStars}
+            onChange={setHokStars}
+          />
+          <Field
+            label="Peak Tournament score (1200 - 3000)"
+            placeholder="1200"
+            value={hokPeakScore}
+            onChange={setHokPeakScore}
+          />
+        </div>
+      )}
+
+      {/* TFT Double Up extras */}
+      {gameDef.code === "TFT" && (
+        <div
+          style={{
+            marginTop: "0.5rem",
+            paddingTop: "0.5rem",
+            borderTop: "1px solid rgba(55,65,81,0.7)",
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+            gap: "0.5rem",
+          }}
+        >
+          <SelectField
+            label="Double Up rank tier"
+            value={tftDoubleTier}
+            onChange={(value) => {
+              setTftDoubleTier(value);
+              setTftDoubleDivision("");
+            }}
+            options={gameDef.rankTiers}
+            placeholder="Select rank"
+          />
+          <SelectField
+            label="Double Up division"
+            value={tftDoubleDivision}
+            onChange={setTftDoubleDivision}
+            options={gameDef.rankDivisions}
+            placeholder="—"
+            allowEmpty
+          />
+        </div>
+      )}
 
       <div
         style={{
