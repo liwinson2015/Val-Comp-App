@@ -801,8 +801,8 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     e.preventDefault();
     setMessage("");
     setSaving(true);
-    setHokStarNote("");
 
+    // ----- Build IGN -----
     let finalIgn = "";
     if (gameDef.kind === "TAGGED_ID") {
       const n = (namePart || "").trim();
@@ -818,23 +818,25 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       finalIgn = (singleIgn || "").trim();
     }
 
-    // base rank tier
-    let finalRankTier = (rankTier || "").trim();
-
-    // Clear division for tiers that don't use it
+    // ----- Division rules -----
     let finalDivision = (rankDivision || "").trim();
     if (
       (gameDef.code === "VALORANT" &&
-        (finalRankTier === "Immortal" || finalRankTier === "Radiant")) ||
+        (rankTier === "Immortal" || rankTier === "Radiant")) ||
       (gameDef.code === "TFT" &&
-        (finalRankTier === "Master" ||
-          finalRankTier === "Grandmaster" ||
-          finalRankTier === "Challenger"))
+        (rankTier === "Master" ||
+          rankTier === "Grandmaster" ||
+          rankTier === "Challenger")) ||
+      (gameDef.code === "HOK" &&
+        (rankTier === "Grandmaster" ||
+          rankTier === "Grandmaster Mythic" ||
+          rankTier === "Grandmaster Epic" ||
+          rankTier === "Grandmaster Legend"))
     ) {
       finalDivision = "";
     }
 
-    // HOK peak tournament + stars
+    // ----- HoK extras -----
     let finalHokStars = null;
     let finalHokPeakScore = null;
 
@@ -845,47 +847,12 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       }
 
       const peakNum = hokPeakScore === "" ? null : Number(hokPeakScore);
-      if (!Number.isNaN(peakNum) && peakNum >= 1200 && peakNum <= 3000) {
+      if (!Number.isNaN(peakNum)) {
         finalHokPeakScore = peakNum;
-      }
-
-      // Derive correct GM tier from stars if they entered something
-      if (finalHokStars !== null) {
-        let tierFromStars = null;
-        const s = finalHokStars;
-
-        if (s >= 100) {
-          tierFromStars = "Grandmaster Legend";
-        } else if (s >= 50) {
-          tierFromStars = "Grandmaster Epic";
-        } else if (s >= 25) {
-          tierFromStars = "Grandmaster Mythic";
-        } else {
-          // 0–24
-          tierFromStars = "Grandmaster";
-        }
-
-        if (tierFromStars && finalRankTier !== tierFromStars) {
-          finalRankTier = tierFromStars;
-          setHokStarNote(
-            `Stars don't match that rank; your rank has been set to ${tierFromStars}.`
-          );
-        } else {
-          // stars match chosen rank => no note
-          setHokStarNote("");
-        }
-      } else {
-        // no stars entered => no auto adjust
-        setHokStarNote("");
-      }
-
-      // GM tiers do not use division dropdown
-      if (HOK_GM_TIERS.includes(finalRankTier)) {
-        finalDivision = "";
       }
     }
 
-    // TFT Double Up
+    // ----- TFT Double Up -----
     let finalTftDoubleTier = "";
     let finalTftDoubleDivision = "";
     if (gameDef.code === "TFT") {
@@ -900,13 +867,11 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
 
     const payload = {
       ign: finalIgn,
-      rankTier: finalRankTier,
+      rankTier: (rankTier || "").trim(),
       rankDivision: finalDivision,
       region: (region || "").trim(),
-      // HOK extras
       hokStars: finalHokStars,
       hokPeakScore: finalHokPeakScore,
-      // TFT Double Up extras
       tftDoubleTier: finalTftDoubleTier,
       tftDoubleDivision: finalTftDoubleDivision,
     };
@@ -927,9 +892,49 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       if (!data.ok) {
         setMessage(data.error || "Failed to save profile.");
       } else {
+        // Whatever the backend actually saved (may have auto-fixed rank/stars)
+        const saved = data.profile || payload;
+
+        // ---- Sync local state so UI updates immediately ----
+        if (gameDef.kind === "TAGGED_ID") {
+          const ignVal = saved.ign || "";
+          if (ignVal.includes("#")) {
+            const idx = ignVal.indexOf("#");
+            setNamePart(ignVal.slice(0, idx));
+            setTagPart(ignVal.slice(idx + 1));
+          } else {
+            setNamePart(ignVal);
+            setTagPart("");
+          }
+        } else {
+          setSingleIgn(saved.ign || "");
+        }
+
+        setRankTier(saved.rankTier || "");
+        setRankDivision(saved.rankDivision || "");
+        setRegion(saved.region || gameDef.defaultRegion || "");
+
+        if (gameDef.code === "HOK") {
+          setHokStars(
+            saved.hokStars === null || saved.hokStars === undefined
+              ? ""
+              : String(saved.hokStars)
+          );
+          setHokPeakScore(
+            saved.hokPeakScore === null || saved.hokPeakScore === undefined
+              ? ""
+              : String(saved.hokPeakScore)
+          );
+        }
+
+        if (gameDef.code === "TFT") {
+          setTftDoubleTier(saved.tftDoubleTier || "");
+          setTftDoubleDivision(saved.tftDoubleDivision || "");
+        }
+
         setMessage("Profile saved.");
         if (onProfileSaved) {
-          onProfileSaved(gameDef.code, data.profile || payload);
+          onProfileSaved(gameDef.code, saved);
         }
       }
     } catch (err) {
@@ -939,6 +944,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       setSaving(false);
     }
   }
+
 
   const isHok = gameDef.code === "HOK";
 
