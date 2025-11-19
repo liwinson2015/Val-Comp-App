@@ -41,7 +41,7 @@ const GAME_DEFS = [
   },
   {
     code: "TFT",
-    label: "Teamfight Tactics",
+    label: "TEAMFIGHT TACTICS",
     description: "Used for TFT tournaments and events.",
     kind: "TAGGED_ID", // name + tag
     rankTiers: [
@@ -62,7 +62,7 @@ const GAME_DEFS = [
   },
   {
     code: "HOK",
-    label: "Honor of Kings",
+    label: "HONOR OF KINGS",
     description: "Used for Honor of Kings teams and tournaments.",
     kind: "SINGLE_NAME", // one IGN field
     rankTiers: [
