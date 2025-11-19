@@ -58,7 +58,6 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
-  // Get all teams across all supported games that user is in or captains
   const teams = await Team.find({
     game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
@@ -99,10 +98,14 @@ export default function TeamsPage({
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
 
+  // modal + form state
+  const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
   const [game, setGame] = useState(
-    initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code
+    initialSelectedGame !== "ALL"
+      ? initialSelectedGame
+      : supportedGames[0]?.code || "VALORANT"
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -110,7 +113,6 @@ export default function TeamsPage({
   function handleFilterChange(newGame) {
     setSelectedGame(newGame);
 
-    // Update query param (shallow so it doesn't reload from server)
     const query =
       newGame === "ALL"
         ? {}
@@ -127,12 +129,24 @@ export default function TeamsPage({
       { shallow: true }
     );
 
-    // If they switch filter, default the create form's game to that
     if (newGame === "ALL") {
       setGame(supportedGames[0]?.code || "VALORANT");
     } else {
       setGame(newGame);
     }
+  }
+
+  function openModal() {
+    setError("");
+    setShowModal(true);
+  }
+
+  function closeModal() {
+    if (submitting) return;
+    setShowModal(false);
+    setError("");
+    setName("");
+    setTag("");
   }
 
   async function handleCreate(e) {
@@ -143,7 +157,6 @@ export default function TeamsPage({
       setError("Team name is required.");
       return;
     }
-
     if (!game) {
       setError("Please select a game.");
       return;
@@ -169,12 +182,10 @@ export default function TeamsPage({
           tag: data.team.tag || "",
           game: data.team.game,
           memberCount: data.team.memberCount || 1,
-          isCaptain: true, // you just created it, so you're captain
+          isCaptain: true,
         };
-
         setTeams((prev) => [...prev, newTeam]);
-        setName("");
-        setTag("");
+        closeModal();
       }
     } catch (err) {
       console.error(err);
@@ -184,7 +195,6 @@ export default function TeamsPage({
     }
   }
 
-  // Filtered view by selectedGame
   const filteredTeams =
     selectedGame === "ALL"
       ? teams
@@ -192,8 +202,12 @@ export default function TeamsPage({
 
   const captainTeams = filteredTeams.filter((t) => t.isCaptain);
   const memberTeams = filteredTeams.filter((t) => !t.isCaptain);
-
   const hasAnyTeams = filteredTeams.length > 0;
+
+  const selectedGameLabel =
+    selectedGame === "ALL"
+      ? "these games"
+      : getGameLabel(selectedGame, supportedGames);
 
   return (
     <div className="shell">
@@ -234,7 +248,7 @@ export default function TeamsPage({
             display: "flex",
             flexWrap: "wrap",
             gap: "0.5rem",
-            marginBottom: "1.25rem",
+            marginBottom: "1rem",
           }}
         >
           <FilterPill
@@ -252,36 +266,184 @@ export default function TeamsPage({
           ))}
         </div>
 
-        {/* Main layout: create form + list */}
+        {/* Top bar with create button */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 320px) minmax(0, 1fr)",
-            gap: "1.5rem",
+            marginBottom: "1.25rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
           }}
         >
-          {/* Create team card */}
-          <div style={cardStyle}>
-            <h2
+          <p
+            style={{
+              margin: 0,
+              fontSize: "0.9rem",
+              color: "#9ca3af",
+            }}
+          >
+            You have{" "}
+            <strong>
+              {captainTeams.length + memberTeams.length} team
+              {captainTeams.length + memberTeams.length === 1 ? "" : "s"}
+            </strong>{" "}
+            in {selectedGameLabel}.
+          </p>
+          <button
+            type="button"
+            onClick={openModal}
+            style={{
+              padding: "0.45rem 0.9rem",
+              borderRadius: "999px",
+              border: "1px solid #22c55e",
+              background:
+                "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
+              color: "white",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            + Create team
+          </button>
+        </div>
+
+        {/* Teams sections */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {!hasAnyTeams && (
+            <div style={cardStyle}>
+              <h2
+                style={{
+                  marginTop: 0,
+                  marginBottom: "0.4rem",
+                  fontSize: "1.05rem",
+                }}
+              >
+                No teams yet
+              </h2>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.9rem",
+                  color: "#9ca3af",
+                }}
+              >
+                You don&apos;t have any teams for {selectedGameLabel} yet. Use
+                the <strong>Create team</strong> button above to make one as
+                captain.
+              </p>
+            </div>
+          )}
+
+          {captainTeams.length > 0 && (
+            <section>
+              <h2 style={sectionTitleStyle}>Teams you captain</h2>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "0.75rem",
+                }}
+              >
+                {captainTeams.map((team) => (
+                  <TeamCard key={team.id} team={team} isCaptain />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {memberTeams.length > 0 && (
+            <section>
+              <h2 style={sectionTitleStyle}>Teams you&apos;re in</h2>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "0.75rem",
+                }}
+              >
+                {memberTeams.map((team) => (
+                  <TeamCard key={team.id} team={team} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+
+      {/* Create team modal */}
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 4000,
+          }}
+          onClick={closeModal}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              margin: "0 1rem",
+              borderRadius: "16px",
+              border: "1px solid rgba(148,163,184,0.5)",
+              background:
+                "radial-gradient(circle at top left, #111827 0, #020617 60%)",
+              padding: "1.2rem 1.3rem 1.1rem",
+              boxShadow: "0 20px 45px rgba(0,0,0,0.6)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
               style={{
-                marginTop: 0,
-                marginBottom: "0.5rem",
-                fontSize: "1.1rem",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "0.75rem",
               }}
             >
-              Create a team
-            </h2>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "1.15rem",
+                }}
+              >
+                Create a team
+              </h2>
+              <button
+                type="button"
+                onClick={closeModal}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#9ca3af",
+                  cursor: submitting ? "default" : "pointer",
+                  fontSize: "1.1rem",
+                  padding: "0 0 0 0.25rem",
+                }}
+                aria-label="Close"
+                disabled={submitting}
+              >
+                ✕
+              </button>
+            </div>
+
             <p
               style={{
-                marginTop: 0,
-                marginBottom: "0.9rem",
+                margin: "0 0 0.9rem",
                 fontSize: "0.85rem",
                 color: "#9ca3af",
               }}
             >
-              Pick the game you want this team for. Team size rules (3v3, 5v5,
-              etc.) will be enforced when you register for a specific
-              tournament.
+              Choose a game, give your team a name, and you&apos;ll be set as
+              the captain. You can use this team when signing up for tournaments.
             </p>
 
             <form onSubmit={handleCreate}>
@@ -396,74 +558,8 @@ export default function TeamsPage({
               </button>
             </form>
           </div>
-
-          {/* Teams list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {!hasAnyTeams && (
-              <div style={cardStyle}>
-                <h2
-                  style={{
-                    marginTop: 0,
-                    marginBottom: "0.4rem",
-                    fontSize: "1.05rem",
-                  }}
-                >
-                  No teams yet
-                </h2>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "0.9rem",
-                    color: "#9ca3af",
-                  }}
-                >
-                  You don&apos;t have any teams for{" "}
-                  {selectedGame === "ALL"
-                    ? "these games"
-                    : getGameLabel(selectedGame, supportedGames)}{" "}
-                  yet. Use the form on the left to create one as captain.
-                </p>
-              </div>
-            )}
-
-            {captainTeams.length > 0 && (
-              <section>
-                <h2 style={sectionTitleStyle}>Teams you captain</h2>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(230px, 1fr))",
-                    gap: "0.75rem",
-                  }}
-                >
-                  {captainTeams.map((team) => (
-                    <TeamCard key={team.id} team={team} isCaptain />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {memberTeams.length > 0 && (
-              <section>
-                <h2 style={sectionTitleStyle}>Teams you&apos;re in</h2>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(230px, 1fr))",
-                    gap: "0.75rem",
-                  }}
-                >
-                  {memberTeams.map((team) => (
-                    <TeamCard key={team.id} team={team} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -543,17 +639,17 @@ const cardStyle = {
 };
 
 const teamCardStyle = {
-  padding: "0.8rem",
-  borderRadius: "10px",
+  padding: "0.9rem",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.3)",
   background:
-    "radial-gradient(circle at top left, #111827 0, #020617 55%, #020617 100%)",
+    "radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%)",
 };
 
 const inputStyle = {
   width: "100%",
   padding: "0.4rem 0.6rem",
-  borderRadius: "6px",
+  borderRadius: "8px",
   border: "1px solid #4b5563",
   backgroundColor: "#020617",
   color: "white",
