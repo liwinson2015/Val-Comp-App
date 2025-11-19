@@ -7,6 +7,7 @@ import Registration from "../models/Registration";
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const MAX_SLOTS = 16;
 
+// Load current registration count for the featured bracket
 export async function getServerSideProps() {
   await connectToDatabase();
 
@@ -18,15 +19,17 @@ export async function getServerSideProps() {
     props: {
       featured: {
         tournamentId: TOURNAMENT_ID,
-        maxSlots: MAX_SLOTS,
         currentCount: Number(currentCount) || 0,
+        maxSlots: MAX_SLOTS,
       },
     },
   };
 }
 
 export default function HomePage({ featured }) {
-  const { currentCount, maxSlots } = featured;
+  const currentCount = featured?.currentCount ?? 0;
+  const maxSlots = featured?.maxSlots ?? MAX_SLOTS;
+
   const isFull = currentCount >= maxSlots;
   const statusText = isFull ? "Full" : "Open for registration";
   const slotsText = `${currentCount}/${maxSlots} filled`;
@@ -34,7 +37,7 @@ export default function HomePage({ featured }) {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* HERO */}
+        {/* HERO (top box) */}
         <section className={styles.hero}>
           <div className={styles.heroInner}>
             <div className={styles.heroBadge}>COMMUNITY GAMING TOURNAMENTS</div>
@@ -46,14 +49,11 @@ export default function HomePage({ featured }) {
               skins, gift cards, and more.
             </p>
 
-            {/* buttons removed, everything centered */}
-
+            {/* Centered stats, no buttons here */}
             <div className={styles.heroStats}>
               <div>
                 <span className={styles.heroStatLabel}>PLAYERS</span>
-                <span className={styles.heroStatValue}>
-                  100+ registered
-                </span>
+                <span className={styles.heroStatValue}>100+ registered</span>
               </div>
               <div>
                 <span className={styles.heroStatLabel}>GAMES</span>
@@ -71,9 +71,9 @@ export default function HomePage({ featured }) {
           </div>
         </section>
 
-        {/* FEATURED + UPCOMING */}
+        {/* FEATURED + UPCOMING ROW */}
         <section className={`${styles.card} ${styles.cardGrid}`}>
-          {/* Featured bracket (Valorant) */}
+          {/* Featured bracket box */}
           <div className={styles.featuredColumn}>
             <div className={styles.cardHeaderRow}>
               <h2 className={styles.cardTitle}>FEATURED BRACKET</h2>
@@ -117,13 +117,6 @@ export default function HomePage({ featured }) {
                   Claim your spot
                 </a>
               )}
-
-              <a
-                href="/tournaments-hub/valorant-types/1v1"
-                className={styles.textLink}
-              >
-                View Valorant brackets →
-              </a>
             </div>
           </div>
 
@@ -137,7 +130,7 @@ export default function HomePage({ featured }) {
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>TEAMFIGHT TACTICS</div>
                 <div className={styles.eventMain}>TFT event (Coming soon)</div>
-                <div className={styles.eventMeta}>FFA and DBU</div>
+                <div className={styles.eventMeta}>Free for all</div>
               </li>
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>FUTURE TITLES</div>
@@ -149,8 +142,6 @@ export default function HomePage({ featured }) {
                 </div>
               </li>
             </ul>
-
-            {/* removed "See all planned brackets →" */}
           </div>
         </section>
 
@@ -180,7 +171,7 @@ export default function HomePage({ featured }) {
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>TEAMFIGHT TACTICS</div>
-                <div className={styles.gameDesc}>FFA and DBU</div>
+                <div className={styles.gameDesc}>Free for all</div>
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>FUTURE TITLES</div>
