@@ -33,6 +33,7 @@ export default function HomePage({ featured }) {
   const isFull = currentCount >= maxSlots;
   const statusText = isFull ? "Full" : "Open for registration";
   const slotsText = `${currentCount}/${maxSlots} filled`;
+  const playersText = `${currentCount} registered`;
 
   return (
     <div className={styles.shell}>
@@ -53,7 +54,7 @@ export default function HomePage({ featured }) {
             <div className={styles.heroStats}>
               <div>
                 <span className={styles.heroStatLabel}>PLAYERS</span>
-                <span className={styles.heroStatValue}>100+ registered</span>
+                <span className={styles.heroStatValue}>{playersText}</span>
               </div>
               <div>
                 <span className={styles.heroStatLabel}>GAMES</span>
