@@ -1,6 +1,5 @@
 // pages/api/teams/join.js
 import { connectToDatabase } from "../../../lib/mongodb";
-import Player from "../../../models/Player";
 import Team from "../../../models/Team";
 import TeamJoinRequest from "../../../models/TeamJoinRequest";
 
@@ -16,6 +15,7 @@ function parseCookies(header = "") {
   );
 }
 
+// Instant join via invite code OR request to join a public team.
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res
@@ -35,38 +35,34 @@ export default async function handler(req, res) {
   if (!joinCode && !teamId) {
     return res.status(400).json({
       ok: false,
-      error: "Provide either joinCode or teamId.",
+      error: "Missing joinCode or teamId.",
     });
   }
 
   await connectToDatabase();
 
-  const player = await Player.findById(playerId);
-  if (!player) {
-    return res.status(404).json({ ok: false, error: "Player not found." });
-  }
-
-  // ---------- 1) JOIN BY INVITE CODE (works for public + private) ----------
+  // ---------- PATH 1: JOIN BY INVITE CODE (INSTANT) ----------
   if (joinCode) {
     const code = String(joinCode).trim().toUpperCase();
     if (!code || code.length !== 6) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "Invite code must be 6 characters." });
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid invite code format.",
+      });
     }
 
     const team = await Team.findOne({ joinCode: code });
     if (!team) {
-      return res
-        .status(404)
-        .json({ ok: false, error: "No team found with that invite code." });
+      return res.status(404).json({
+        ok: false,
+        error: "No team found with that invite code.",
+      });
     }
 
-    const playerIdStr = String(player._id);
-    const captainIdStr = String(team.captain);
-    const isCaptain = captainIdStr === playerIdStr;
+    // check if already captain or member
+    const isCaptain = String(team.captain) === String(playerId);
     const isMember = (team.members || []).some(
-      (m) => String(m) === playerIdStr
+      (m) => String(m) === String(playerId)
     );
 
     if (isCaptain || isMember) {
@@ -76,94 +72,102 @@ export default async function handler(req, res) {
       });
     }
 
-    const memberCount = (team.members || []).length + 1; // + captain
-    const maxSize = team.maxSize || 7;
-    if (memberCount >= maxSize) {
+    // capacity check
+    const memberCount = (team.members || []).length;
+    if (memberCount >= (team.maxSize || 7)) {
       return res.status(400).json({
         ok: false,
         error: "This team is full.",
       });
     }
 
+    // add player to members
     team.members = team.members || [];
-    team.members.push(player._id);
+    team.members.push(playerId);
     await team.save();
 
     return res.status(200).json({
       ok: true,
       joined: true,
-      via: "code",
       team: {
         id: team._id.toString(),
         name: team.name,
         tag: team.tag || "",
         game: team.game,
-        memberCount: memberCount,
-        isPublic: !!team.isPublic,
-        maxSize,
-        joinCode: team.joinCode || null,
+        memberCount: team.members.length,
+        isCaptain: false, // you just joined, not captain
+        // members list will be re-fetched on page load; for now keep it minimal
       },
     });
   }
 
-  // ---------- 2) REQUEST TO JOIN BY TEAM ID (public listing) ----------
-  const team = await Team.findById(teamId);
-  if (!team) {
-    return res.status(404).json({ ok: false, error: "Team not found." });
-  }
+  // ---------- PATH 2: REQUEST TO JOIN PUBLIC TEAM ----------
+  if (teamId) {
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({
+        ok: false,
+        error: "Team not found.",
+      });
+    }
 
-  if (!team.isPublic) {
-    return res
-      .status(400)
-      .json({ ok: false, error: "This team is not accepting public requests." });
-  }
+    if (!team.isPublic) {
+      return res.status(400).json({
+        ok: false,
+        error: "This team is not accepting public join requests.",
+      });
+    }
 
-  const playerIdStr = String(player._id);
-  const captainIdStr = String(team.captain);
-  const isCaptain = captainIdStr === playerIdStr;
-  const isMember = (team.members || []).some(
-    (m) => String(m) === playerIdStr
-  );
+    // already on team?
+    const isCaptain = String(team.captain) === String(playerId);
+    const isMember = (team.members || []).some(
+      (m) => String(m) === String(playerId)
+    );
+    if (isCaptain || isMember) {
+      return res.status(400).json({
+        ok: false,
+        error: "You are already on this team.",
+      });
+    }
 
-  if (isCaptain || isMember) {
-    return res.status(400).json({
-      ok: false,
-      error: "You are already on this team.",
+    // full?
+    const memberCount = (team.members || []).length;
+    if (memberCount >= (team.maxSize || 7)) {
+      return res.status(400).json({
+        ok: false,
+        error: "This team is full.",
+      });
+    }
+
+    // check for existing pending request
+    const existing = await TeamJoinRequest.findOne({
+      teamId: team._id,
+      playerId,
+      status: "pending",
+    }).lean();
+
+    if (existing) {
+      return res.status(200).json({
+        ok: true,
+        requested: true,
+        alreadyPending: true,
+      });
+    }
+
+    const request = await TeamJoinRequest.create({
+      teamId: team._id,
+      playerId,
+      status: "pending",
+    });
+
+    return res.status(200).json({
+      ok: true,
+      requested: true,
+      requestId: request._id.toString(),
+      teamId: team._id.toString(),
     });
   }
 
-  const memberCount = (team.members || []).length + 1; // + captain
-  const maxSize = team.maxSize || 7;
-  if (memberCount > maxSize) {
-    return res.status(400).json({
-      ok: false,
-      error: "This team is full.",
-    });
-  }
-
-  const existingPending = await TeamJoinRequest.findOne({
-    teamId: team._id,
-    playerId: player._id,
-    status: "pending",
-  });
-
-  if (existingPending) {
-    return res.status(400).json({
-      ok: false,
-      error: "You already have a pending request for this team.",
-    });
-  }
-
-  const reqDoc = await TeamJoinRequest.create({
-    teamId: team._id,
-    playerId: player._id,
-    status: "pending",
-  });
-
-  return res.status(200).json({
-    ok: true,
-    requested: true,
-    via: "public-list",
-    requestId: reqDoc._id.toString(),
-  });
+  // Should not reach here
+  return res.status(400).json({ ok: false, error: "Invalid join request." });
 }
