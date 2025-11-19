@@ -332,64 +332,78 @@ export default function TeamsPage({
   }
 
   // ----- join by invite code (works for public and private) -----
-  async function handleJoinByCode(e) {
-    e.preventDefault();
-    setJoinCodeError("");
+async function handleJoinByCode(e) {
+  e.preventDefault();
+  setJoinCodeError("");
 
-    const code = (joinCodeInput || "").trim().toUpperCase();
-    if (!code || code.length !== 6) {
-      setJoinCodeError("Invite code must be 6 characters.");
+  const code = (joinCodeInput || "").trim().toUpperCase();
+  if (!code || code.length !== 6) {
+    setJoinCodeError("Invite code must be 6 characters.");
+    return;
+  }
+
+  setJoiningByCode(true);
+  try {
+    const res = await fetch("/api/teams/join", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ joinCode: code }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      setJoinCodeError(data.error || "Failed to join with this code.");
       return;
     }
 
-    setJoiningByCode(true);
-    try {
-      const res = await fetch("/api/teams/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ joinCode: code }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setJoinCodeError(data.error || "Failed to join with this code.");
-        return;
-      }
+    if (data.joined && data.team) {
+      const existing = teams.find((t) => t.id === data.team.id);
+      if (!existing) {
+        const members = [];
 
-      if (data.joined && data.team) {
-        const existing = teams.find((t) => t.id === data.team.id);
-        if (!existing) {
-          const newTeam = {
-            id: data.team.id,
-            name: data.team.name,
-            tag: data.team.tag || "",
-            game: data.team.game,
-            memberCount: data.team.memberCount || 1,
-            isCaptain: false,
-            isPublic: !!data.team.isPublic,
-            maxSize: data.team.maxSize || 7,
-            joinCode: data.team.joinCode || null,
-            members: [
-              {
-                id: player.id,
-                name: player.username,
-                isCaptain: false,
-              },
-            ],
-            joinRequests: [],
-          };
-          setTeams((prev) => [...prev, newTeam]);
+        // add captain first if it's not me
+        if (data.team.captainId && data.team.captainId !== player.id) {
+          members.push({
+            id: data.team.captainId,
+            name: data.team.captainName || "Captain",
+            isCaptain: true,
+          });
         }
-        setJoinCodeInput("");
+
+        // add me
+        members.push({
+          id: player.id,
+          name: player.username,
+          isCaptain: data.team.captainId === player.id, // should be false normally
+        });
+
+        const newTeam = {
+          id: data.team.id,
+          name: data.team.name,
+          tag: data.team.tag || "",
+          game: data.team.game,
+          memberCount: data.team.memberCount || members.length,
+          isCaptain: data.team.captainId === player.id,
+          isPublic: !!data.team.isPublic,
+          maxSize: data.team.maxSize || 7,
+          joinCode: data.team.joinCode || null,
+          members,
+          joinRequests: [],
+        };
+
+        setTeams((prev) => [...prev, newTeam]);
       }
-    } catch (err) {
-      console.error(err);
-      setJoinCodeError("Something went wrong.");
-    } finally {
-      setJoiningByCode(false);
+      setJoinCodeInput("");
     }
+  } catch (err) {
+    console.error(err);
+    setJoinCodeError("Something went wrong.");
+  } finally {
+    setJoiningByCode(false);
   }
+}
+
 
   // ---- delete / leave / promote / kick handlers ----
   async function handleDeleteTeam(team) {
