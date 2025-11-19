@@ -9,6 +9,7 @@ import Team from "../models/Team";
 const SUPPORTED_GAMES = [
   { code: "VALORANT", label: "VALORANT" },
   { code: "HOK", label: "Honor of Kings" },
+  // add more later, the UI will scale
 ];
 
 // cookie parser reused on server
@@ -111,7 +112,9 @@ export default function TeamsPage({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  function handleFilterChange(newGame) {
+  // ----- filters -----
+  function handleGameSelect(e) {
+    const newGame = e.target.value;
     setSelectedGame(newGame);
 
     const query =
@@ -137,10 +140,11 @@ export default function TeamsPage({
     }
   }
 
-  function handleRoleFilterChange(newRole) {
-    setRoleFilter(newRole);
+  function handleRoleSelect(e) {
+    setRoleFilter(e.target.value);
   }
 
+  // ----- modal helpers -----
   function openModal() {
     setError("");
     setShowModal(true);
@@ -230,13 +234,12 @@ export default function TeamsPage({
     }
   }
 
-  // Apply game filter first
+  // --------- apply filters ----------
   const byGame =
     selectedGame === "ALL"
       ? teams
       : teams.filter((t) => t.game === selectedGame);
 
-  // Then apply role filter
   const visibleTeams =
     roleFilter === "ALL"
       ? byGame
@@ -284,76 +287,72 @@ export default function TeamsPage({
           </div>
         </div>
 
-        {/* Game filter pills */}
+        {/* Filter bar */}
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "0.5rem",
-            marginBottom: "0.75rem",
-          }}
-        >
-          <FilterPill
-            label="All games"
-            active={selectedGame === "ALL"}
-            onClick={() => handleFilterChange("ALL")}
-          />
-          {supportedGames.map((g) => (
-            <FilterPill
-              key={g.code}
-              label={g.label}
-              active={selectedGame === g.code}
-              onClick={() => handleFilterChange(g.code)}
-            />
-          ))}
-        </div>
-
-        {/* Role filter pills */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            marginBottom: "1rem",
-          }}
-        >
-          <FilterPill
-            label="All roles"
-            active={roleFilter === "ALL"}
-            onClick={() => handleRoleFilterChange("ALL")}
-          />
-          <FilterPill
-            label="Captain teams"
-            active={roleFilter === "CAPTAIN"}
-            onClick={() => handleRoleFilterChange("CAPTAIN")}
-          />
-          <FilterPill
-            label="Joined teams"
-            active={roleFilter === "MEMBER"}
-            onClick={() => handleRoleFilterChange("MEMBER")}
-          />
-        </div>
-
-        {/* Top bar with create button */}
-        <div
-          style={{
-            marginBottom: "1.25rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
             gap: "1rem",
+            alignItems: "flex-end",
+            marginBottom: "1.2rem",
           }}
         >
-          <p
-            style={{
-              margin: 0,
-              fontSize: "0.9rem",
-              color: "#9ca3af",
-            }}
-          >
-            You have <strong>{visibleTeams.length}</strong> team
-            {visibleTeams.length === 1 ? "" : "s"} in this view.
-          </p>
+          {/* Game filter */}
+          <div style={{ minWidth: "200px" }}>
+            <label
+              htmlFor="game-filter"
+              style={{
+                display: "block",
+                marginBottom: "0.25rem",
+                fontSize: "0.8rem",
+                color: "#9ca3af",
+              }}
+            >
+              Game
+            </label>
+            <select
+              id="game-filter"
+              value={selectedGame}
+              onChange={handleGameSelect}
+              style={filterSelectStyle}
+            >
+              <option value="ALL">All games</option>
+              {supportedGames.map((g) => (
+                <option key={g.code} value={g.code}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Role filter */}
+          <div style={{ minWidth: "200px" }}>
+            <label
+              htmlFor="role-filter"
+              style={{
+                display: "block",
+                marginBottom: "0.25rem",
+                fontSize: "0.8rem",
+                color: "#9ca3af",
+              }}
+            >
+              Role
+            </label>
+            <select
+              id="role-filter"
+              value={roleFilter}
+              onChange={handleRoleSelect}
+              style={filterSelectStyle}
+            >
+              <option value="ALL">All roles</option>
+              <option value="CAPTAIN">Captain teams</option>
+              <option value="MEMBER">Joined teams</option>
+            </select>
+          </div>
+
+          {/* Spacer + create button */}
+          <div style={{ flex: 1 }} />
+
           <button
             type="button"
             onClick={openModal}
@@ -368,11 +367,24 @@ export default function TeamsPage({
               fontSize: "0.9rem",
               cursor: "pointer",
               whiteSpace: "nowrap",
+              alignSelf: "flex-end",
             }}
           >
             + Create team
           </button>
         </div>
+
+        {/* Count */}
+        <p
+          style={{
+            margin: "0 0 0.75rem",
+            fontSize: "0.9rem",
+            color: "#9ca3af",
+          }}
+        >
+          You have <strong>{visibleTeams.length}</strong> team
+          {visibleTeams.length === 1 ? "" : "s"} in this view.
+        </p>
 
         {/* Teams list */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -613,26 +625,6 @@ export default function TeamsPage({
 }
 
 // ---------- subcomponents ----------
-function FilterPill({ label, active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "0.3rem 0.75rem",
-        borderRadius: "999px",
-        border: active ? "1px solid #f97316" : "1px solid #4b5563",
-        backgroundColor: active ? "#111827" : "#020617",
-        color: active ? "#f9fafb" : "#d1d5db",
-        fontSize: "0.8rem",
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
 function TeamCard({ team, isCaptain }) {
   return (
     <div style={teamCardStyle}>
@@ -705,11 +697,10 @@ const inputStyle = {
   outline: "none",
 };
 
-const sectionTitleStyle = {
-  margin: "0 0 0.4rem",
-  fontSize: "0.95rem",
-  fontWeight: 600,
-  color: "#e5e7eb",
+const filterSelectStyle = {
+  ...inputStyle,
+  height: "2.1rem",
+  paddingRight: "2rem",
 };
 
 const captainBadgeStyle = {
