@@ -9,7 +9,7 @@ import Team from "../models/Team";
 const SUPPORTED_GAMES = [
   { code: "VALORANT", label: "VALORANT" },
   { code: "HOK", label: "Honor of Kings" },
-  // add more later, the UI will scale
+  // add more later, UI will scale
 ];
 
 // cookie parser reused on server
@@ -59,6 +59,7 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
+  // Get all teams where user is captain or member
   const teams = await Team.find({
     game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
@@ -66,14 +67,54 @@ export async function getServerSideProps({ req, query }) {
     .sort({ createdAt: 1 })
     .lean();
 
-  const formattedTeams = teams.map((t) => ({
-    id: t._id.toString(),
-    name: t.name,
-    tag: t.tag || "",
-    game: t.game,
-    memberCount: (t.members || []).length,
-    isCaptain: String(t.captain) === String(playerDoc._id),
-  }));
+  // Collect all member ids (including captains) to fetch names
+  const memberIdSet = new Set();
+  teams.forEach((t) => {
+    if (t.captain) memberIdSet.add(String(t.captain));
+    (t.members || []).forEach((m) => memberIdSet.add(String(m)));
+  });
+
+  const allMemberIds = Array.from(memberIdSet);
+  const memberDocs = allMemberIds.length
+    ? await Player.find({ _id: { $in: allMemberIds } }).lean()
+    : [];
+
+  const nameMap = {};
+  memberDocs.forEach((p) => {
+    const key = String(p._id);
+    nameMap[key] = p.username || p.discordUsername || "Player";
+  });
+
+  const formattedTeams = teams.map((t) => {
+    const id = t._id.toString();
+    const captainId = String(t.captain);
+    let memberIds = (t.members || []).map((m) => String(m));
+
+    // ensure captain is in the member list for display
+    if (!memberIds.includes(captainId)) {
+      memberIds.unshift(captainId);
+    }
+
+    const members = memberIds.map((mid) => ({
+      id: mid,
+      name: nameMap[mid] || "Unknown",
+      isCaptain: mid === captainId,
+    }));
+
+    const isCaptain =
+      captainId === playerId ||
+      captainId === String(playerDoc._id); // just in case
+
+    return {
+      id,
+      name: t.name,
+      tag: t.tag || "",
+      game: t.game,
+      memberCount: members.length,
+      isCaptain,
+      members,
+    };
+  });
 
   return {
     props: {
@@ -222,6 +263,13 @@ export default function TeamsPage({
           game: data.team.game,
           memberCount: data.team.memberCount || 1,
           isCaptain: true,
+          members: [
+            {
+              id: player.id,
+              name: player.username,
+              isCaptain: true,
+            },
+          ],
         };
         setTeams((prev) => [...prev, newTeam]);
         closeModal();
@@ -231,6 +279,70 @@ export default function TeamsPage({
       setError("Something went wrong.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // ---- delete / leave handlers ----
+  async function handleDeleteTeam(team) {
+    if (
+      !window.confirm(
+        `Delete team ${team.tag ? `[${team.tag}] ` : ""}${team.name}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to delete team.");
+        return;
+      }
+      setTeams((prev) => prev.filter((t) => t.id !== team.id));
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  async function handleLeaveTeam(team) {
+    if (team.isCaptain) {
+      const hasOtherMembers = (team.members || []).some((m) => !m.isCaptain);
+      if (!hasOtherMembers) {
+        alert(
+          "You are the only member on this team. Delete the team instead if you want to remove it."
+        );
+        return;
+      }
+    }
+
+    const msg = team.isCaptain
+      ? "You are the captain. If you leave, another member will be promoted to captain automatically. Continue?"
+      : `Leave team ${team.tag ? `[${team.tag}] ` : ""}${team.name}?`;
+
+    if (!window.confirm(msg)) return;
+
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "leave" }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to leave team.");
+        return;
+      }
+      // Once you leave, you no longer see that team in "My Teams"
+      setTeams((prev) => prev.filter((t) => t.id !== team.id));
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
     }
   }
 
@@ -248,11 +360,6 @@ export default function TeamsPage({
       : byGame.filter((t) => !t.isCaptain);
 
   const hasAnyVisibleTeams = visibleTeams.length > 0;
-
-  const selectedGameLabel =
-    selectedGame === "ALL"
-      ? "these games"
-      : getGameLabel(selectedGame, supportedGames);
 
   return (
     <div className="shell">
@@ -350,7 +457,6 @@ export default function TeamsPage({
             </select>
           </div>
 
-          {/* Spacer + create button */}
           <div style={{ flex: 1 }} />
 
           <button
@@ -422,7 +528,12 @@ export default function TeamsPage({
                 }}
               >
                 {visibleTeams.map((team) => (
-                  <TeamCard key={team.id} team={team} isCaptain={team.isCaptain} />
+                  <TeamCard
+                    key={team.id}
+                    team={team}
+                    onDelete={handleDeleteTeam}
+                    onLeave={handleLeaveTeam}
+                  />
                 ))}
               </div>
             </section>
@@ -625,9 +736,12 @@ export default function TeamsPage({
 }
 
 // ---------- subcomponents ----------
-function TeamCard({ team, isCaptain }) {
+function TeamCard({ team, onDelete, onLeave }) {
+  const slots = buildMemberSlots(team.members || []);
+
   return (
     <div style={teamCardStyle}>
+      {/* Header row */}
       <div
         style={{
           display: "flex",
@@ -651,12 +765,56 @@ function TeamCard({ team, isCaptain }) {
         </h3>
         <span style={gameBadgeStyle}>{team.game}</span>
       </div>
+
+      {/* Member slots */}
       <div
         style={{
+          marginTop: "0.35rem",
+          display: "flex",
+          gap: "0.35rem",
+          justifyContent: "space-between",
+        }}
+      >
+        {slots.map((slot, idx) => (
+          <div
+            key={idx}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "0.3rem 0.35rem",
+              borderRadius: "999px",
+              border: `1px solid ${
+                slot?.isCaptain ? "#f97316" : "rgba(148,163,184,0.35)"
+              }`,
+              backgroundColor: slot
+                ? "#020617"
+                : "rgba(15,23,42,0.8)",
+              fontSize: "0.7rem",
+              textAlign: "center",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {slot ? (
+              <>
+                {slot.name}
+                {slot.isCaptain ? " (C)" : ""}
+              </>
+            ) : (
+              <span style={{ color: "#6b7280" }}>Open slot</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Members + actions row */}
+      <div
+        style={{
+          marginTop: "0.6rem",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginTop: "0.2rem",
           fontSize: "0.8rem",
           color: "#9ca3af",
         }}
@@ -664,10 +822,58 @@ function TeamCard({ team, isCaptain }) {
         <span>
           Members: <strong>{team.memberCount}</strong>
         </span>
-        {isCaptain && <span style={captainBadgeStyle}>Captain</span>}
+
+        <div style={{ display: "flex", gap: "0.35rem" }}>
+          {team.isCaptain && (
+            <button
+              type="button"
+              onClick={() => onDelete(team)}
+              style={dangerButtonStyle}
+            >
+              Delete
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onLeave(team)}
+            style={secondaryButtonStyle}
+          >
+            Leave
+          </button>
+        </div>
       </div>
     </div>
   );
+}
+
+// Build 5 slots with captain forced to center (index 2)
+function buildMemberSlots(members = []) {
+  const MAX = 5;
+  const slots = new Array(MAX).fill(null);
+  if (!members.length) return slots;
+
+  const captain =
+    members.find((m) => m.isCaptain) || members[0] || null;
+  const others = members.filter((m) => m !== captain);
+
+  // position order: middle, left, right, far-left, far-right
+  const positions = [2, 1, 3, 0, 4];
+
+  if (captain) {
+    slots[2] = captain;
+  }
+
+  let posIdx = 0;
+  for (const m of others) {
+    while (posIdx < positions.length && slots[positions[posIdx]] !== null) {
+      posIdx++;
+    }
+    if (posIdx >= positions.length) break;
+    slots[positions[posIdx]] = m;
+    posIdx++;
+  }
+
+  return slots;
 }
 
 // ---------- styles ----------
@@ -701,6 +907,26 @@ const filterSelectStyle = {
   ...inputStyle,
   height: "2.1rem",
   paddingRight: "2rem",
+};
+
+const dangerButtonStyle = {
+  padding: "0.25rem 0.6rem",
+  borderRadius: "999px",
+  border: "1px solid #f97373",
+  backgroundColor: "transparent",
+  color: "#fca5a5",
+  fontSize: "0.75rem",
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle = {
+  padding: "0.25rem 0.6rem",
+  borderRadius: "999px",
+  border: "1px solid #4b5563",
+  backgroundColor: "transparent",
+  color: "#e5e7eb",
+  fontSize: "0.75rem",
+  cursor: "pointer",
 };
 
 const captainBadgeStyle = {
