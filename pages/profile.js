@@ -84,16 +84,26 @@ const GAME_DEFS = [
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
 
-// HOK: per-tier division options (non-grandmaster tiers)
+// HOK: per-tier division options (only up to Master; GM ranks use stars instead)
 const HOK_DIVISIONS_BY_TIER = {
   Bronze: ["III", "II", "I"], // 3 sub-tiers
-  Silver: ["III", "II", "I"], // 3
-  Gold: ["III", "II", "I"], // 3
+  Silver: ["III", "II", "I"], // 3 sub-tiers
+  Gold: ["III", "II", "I"], // 3 sub-tiers
   Platinum: ["IV", "III", "II", "I"], // 4
   Diamond: ["V", "IV", "III", "II", "I"], // 5
   Master: ["V", "IV", "III", "II", "I"], // 5
-  // All grandmaster variants use stars instead of divisions
+  Grandmaster: [], // all GM tiers use stars
+  "Grandmaster Mythic": [],
+  "Grandmaster Epic": [],
+  "Grandmaster Legend": [],
 };
+
+const HOK_GM_TIERS = [
+  "Grandmaster",
+  "Grandmaster Mythic",
+  "Grandmaster Epic",
+  "Grandmaster Legend",
+];
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req }) {
@@ -701,17 +711,16 @@ function FeaturedGameCard({ code, profile, onClick }) {
   );
 }
 
+// ---------- Game profile editor ----------
 function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [hokStarNote, setHokStarNote] = useState("");
 
-  // For VAL & TFT we want region up next to Name#Tag.
-  const showRegionTopTag =
+  // For VAL & TFT we want region up next to Name#Tag
+  const showRegionTopForTagged =
     gameDef.kind === "TAGGED_ID" &&
     (gameDef.code === "VALORANT" || gameDef.code === "TFT");
-
-  // For HoK we also want Server next to name.
-  const regionInTopRow = showRegionTopTag || gameDef.code === "HOK";
 
   // derive initial fields based on kind
   let initialName = "";
@@ -750,7 +759,6 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       ? String(profile.hokPeakScore)
       : ""
   );
-  const [hokStarsWarning, setHokStarsWarning] = useState("");
 
   // TFT Double Up
   const [tftDoubleTier, setTftDoubleTier] = useState(
@@ -764,19 +772,11 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     !(profile.ign && profile.ign.trim()) &&
     !(profile.rankTier && profile.rankTier.trim());
 
-  // whether division dropdown should be shown for current game/tier
+  // whether division dropdown should be shown for current game/tier (non-HOK)
   let showDivision = false;
   let divisionOptions = [];
 
-  if (gameDef.code === "HOK") {
-    // Always show sub-tier / division select so layout is stable.
-    showDivision = true;
-    if (rankTier && HOK_DIVISIONS_BY_TIER[rankTier]) {
-      divisionOptions = HOK_DIVISIONS_BY_TIER[rankTier];
-    } else {
-      divisionOptions = [];
-    }
-  } else if (gameDef.code === "VALORANT") {
+  if (gameDef.code === "VALORANT") {
     showDivision =
       rankTier &&
       !["Immortal", "Radiant"].includes(rankTier) &&
@@ -788,7 +788,11 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       !["Master", "Grandmaster", "Challenger"].includes(rankTier) &&
       gameDef.rankDivisions.length > 0;
     divisionOptions = gameDef.rankDivisions;
-  } else if (gameDef.rankDivisions && gameDef.rankDivisions.length > 0) {
+  } else if (
+    gameDef.rankDivisions &&
+    gameDef.rankDivisions.length > 0 &&
+    gameDef.code !== "HOK"
+  ) {
     showDivision = true;
     divisionOptions = gameDef.rankDivisions;
   }
@@ -797,7 +801,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     e.preventDefault();
     setMessage("");
     setSaving(true);
-    setHokStarsWarning("");
+    setHokStarNote("");
 
     let finalIgn = "";
     if (gameDef.kind === "TAGGED_ID") {
@@ -814,83 +818,70 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       finalIgn = (singleIgn || "").trim();
     }
 
+    // base rank tier
     let finalRankTier = (rankTier || "").trim();
-    let finalDivision = (rankDivision || "").trim();
 
     // Clear division for tiers that don't use it
+    let finalDivision = (rankDivision || "").trim();
     if (
       (gameDef.code === "VALORANT" &&
         (finalRankTier === "Immortal" || finalRankTier === "Radiant")) ||
       (gameDef.code === "TFT" &&
         (finalRankTier === "Master" ||
           finalRankTier === "Grandmaster" ||
-          finalRankTier === "Challenger")) ||
-      (gameDef.code === "HOK" &&
-        finalRankTier.startsWith("Grandmaster"))
+          finalRankTier === "Challenger"))
     ) {
       finalDivision = "";
     }
 
-    // HOK peak tournament + stars logic
+    // HOK peak tournament + stars
     let finalHokStars = null;
     let finalHokPeakScore = null;
-    let starsWarning = "";
 
     if (gameDef.code === "HOK") {
-      // Stars
-      const starsNum =
-        hokStars === "" || hokStars === null
-          ? null
-          : Number(hokStars);
-
-      if (
-        starsNum !== null &&
-        !Number.isNaN(starsNum) &&
-        starsNum >= 0
-      ) {
+      const starsNum = hokStars === "" ? null : Number(hokStars);
+      if (!Number.isNaN(starsNum) && starsNum >= 0) {
         finalHokStars = starsNum;
-
-        // Only infer grandmaster tier from stars if we're in the GM family
-        const gmTiers = [
-          "Grandmaster",
-          "Grandmaster Mythic",
-          "Grandmaster Epic",
-          "Grandmaster Legend",
-        ];
-
-        if (!finalRankTier || gmTiers.includes(finalRankTier)) {
-          let inferredTier = "Grandmaster";
-          if (starsNum >= 100) {
-            inferredTier = "Grandmaster Legend";
-          } else if (starsNum >= 50) {
-            inferredTier = "Grandmaster Epic";
-          } else if (starsNum >= 25) {
-            inferredTier = "Grandmaster Mythic";
-          } else {
-            inferredTier = "Grandmaster";
-          }
-
-          if (finalRankTier !== inferredTier) {
-            starsWarning = `These stars correspond to ${inferredTier}. Your rank tier has been updated.`;
-            finalRankTier = inferredTier;
-            setRankTier(inferredTier);
-          }
-        }
       }
 
-      // Peak Tournament score 1200–3000
-      const peakNum =
-        hokPeakScore === "" || hokPeakScore === null
-          ? null
-          : Number(hokPeakScore);
-
-      if (
-        peakNum !== null &&
-        !Number.isNaN(peakNum) &&
-        peakNum >= 1200 &&
-        peakNum <= 3000
-      ) {
+      const peakNum = hokPeakScore === "" ? null : Number(hokPeakScore);
+      if (!Number.isNaN(peakNum) && peakNum >= 1200 && peakNum <= 3000) {
         finalHokPeakScore = peakNum;
+      }
+
+      // Derive correct GM tier from stars if they entered something
+      if (finalHokStars !== null) {
+        let tierFromStars = null;
+        const s = finalHokStars;
+
+        if (s >= 100) {
+          tierFromStars = "Grandmaster Legend";
+        } else if (s >= 50) {
+          tierFromStars = "Grandmaster Epic";
+        } else if (s >= 25) {
+          tierFromStars = "Grandmaster Mythic";
+        } else {
+          // 0–24
+          tierFromStars = "Grandmaster";
+        }
+
+        if (tierFromStars && finalRankTier !== tierFromStars) {
+          finalRankTier = tierFromStars;
+          setHokStarNote(
+            `Stars don't match that rank; your rank has been set to ${tierFromStars}.`
+          );
+        } else {
+          // stars match chosen rank => no note
+          setHokStarNote("");
+        }
+      } else {
+        // no stars entered => no auto adjust
+        setHokStarNote("");
+      }
+
+      // GM tiers do not use division dropdown
+      if (HOK_GM_TIERS.includes(finalRankTier)) {
+        finalDivision = "";
       }
     }
 
@@ -940,11 +931,6 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         if (onProfileSaved) {
           onProfileSaved(gameDef.code, data.profile || payload);
         }
-        if (gameDef.code === "HOK" && starsWarning) {
-          setHokStarsWarning(starsWarning);
-        } else {
-          setHokStarsWarning("");
-        }
       }
     } catch (err) {
       console.error(err);
@@ -954,23 +940,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     }
   }
 
-  const regionShownBelow = !regionInTopRow;
   const isHok = gameDef.code === "HOK";
-
-  let rankRowCols;
-  if (isHok) {
-    // Rank tier + division + peak
-    rankRowCols =
-      "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.5fr)";
-  } else if (showDivision) {
-    rankRowCols =
-      "minmax(0, 2fr) minmax(0, 1fr)" +
-      (regionShownBelow ? " minmax(0, 1.3fr)" : "");
-  } else {
-    rankRowCols =
-      "minmax(0, 2fr)" +
-      (regionShownBelow ? " minmax(0, 1.3fr)" : "");
-  }
 
   return (
     <form
@@ -1002,220 +972,248 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       </div>
 
-      {/* IGN + Region/Server row */}
-      {gameDef.kind === "TAGGED_ID" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: regionInTopRow
-              ? "2fr auto 1fr 1.3fr"
-              : "2fr auto 1fr",
-            gap: "0.4rem",
-            alignItems: "flex-end",
-            marginTop: "0.2rem",
-          }}
-        >
-          <Field
-            label="Name"
-            placeholder="EDG WINSON"
-            value={namePart}
-            onChange={setNamePart}
-          />
+      {/* HOK-specific layout */}
+      {isHok ? (
+        <>
+          {/* IGN + Server */}
           <div
             style={{
-              textAlign: "center",
-              paddingBottom: "0.4rem",
-              fontSize: "1rem",
-              color: "#9ca3af",
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.2fr)",
+              gap: "0.5rem",
+              marginTop: "0.3rem",
             }}
           >
-            #
-          </div>
-          <Field
-            label="Tag"
-            placeholder="NA1"
-            value={tagPart}
-            onChange={setTagPart}
-          />
-
-          {regionInTopRow &&
-            (gameDef.regions && gameDef.regions.length > 0 ? (
-              <SelectField
-                label="Region"
-                value={region}
-                onChange={setRegion}
-                options={gameDef.regions}
-                placeholder="Select"
-              />
-            ) : (
-              <Field
-                label="Region"
-                placeholder="e.g. NA, EUW, SEA"
-                value={region}
-                onChange={setRegion}
-              />
-            ))}
-        </div>
-      ) : (
-        // SINGLE_NAME (HoK)
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: regionInTopRow
-              ? "minmax(0, 2fr) minmax(0, 1.3fr)"
-              : "minmax(0, 2fr)",
-            gap: "0.5rem",
-            marginTop: "0.2rem",
-          }}
-        >
-          <Field
-            label="In-game name"
-            placeholder="Your HoK name"
-            value={singleIgn}
-            onChange={setSingleIgn}
-          />
-          {regionInTopRow &&
-            (gameDef.regions && gameDef.regions.length > 0 ? (
-              <SelectField
-                label="Server"
-                value={region}
-                onChange={setRegion}
-                options={gameDef.regions}
-                placeholder="Select"
-              />
-            ) : (
-              <Field
-                label="Server"
-                placeholder="e.g. NA, EU, SEA"
-                value={region}
-                onChange={setRegion}
-              />
-            ))}
-        </div>
-      )}
-
-      {/* Rank + region/server / peak row */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: rankRowCols,
-          gap: "0.5rem",
-          marginTop: "0.1rem",
-        }}
-      >
-        <SelectField
-          label="Rank tier"
-          value={rankTier}
-          onChange={(value) => {
-            setRankTier(value);
-            // reset division when tier changes
-            setRankDivision("");
-          }}
-          options={gameDef.rankTiers}
-          placeholder="Select rank"
-        />
-        {showDivision && (
-          <SelectField
-            label={
-              gameDef.code === "HOK" ? "Sub-tier / Division" : "Division"
-            }
-            value={rankDivision}
-            onChange={setRankDivision}
-            options={divisionOptions}
-            placeholder="—"
-            allowEmpty
-          />
-        )}
-
-        {/* For HOK, third column is Peak Tournament score */}
-        {isHok ? (
-          <Field
-            label="Peak Tournament score (1200 - 3000)"
-            placeholder="1200"
-            value={hokPeakScore}
-            onChange={setHokPeakScore}
-          />
-        ) : (
-          regionShownBelow &&
-          (gameDef.regions && gameDef.regions.length > 0 ? (
+            <Field
+              label="In-game name"
+              placeholder="Your HoK name"
+              value={singleIgn}
+              onChange={setSingleIgn}
+            />
             <SelectField
-              label={gameDef.code === "HOK" ? "Server" : "Region"}
+              label="Server"
               value={region}
               onChange={setRegion}
               options={gameDef.regions}
               placeholder="Select"
             />
-          ) : (
-            <Field
-              label="Region"
-              placeholder="e.g. NA, EUW, SEA"
-              value={region}
-              onChange={setRegion}
-            />
-          ))
-        )}
-      </div>
+          </div>
 
-      {/* HOK-specific stars */}
-      {gameDef.code === "HOK" && (
-        <div
-          style={{
-            marginTop: "0.4rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.25rem",
-          }}
-        >
-          <Field
-            label="Grandmaster stars (0 - 100+)"
-            placeholder="0"
-            value={hokStars}
-            onChange={setHokStars}
-          />
-          {hokStarsWarning && (
+          {/* Rank tier + stars/division + peak score */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.6fr)",
+              gap: "0.5rem",
+              marginTop: "0.35rem",
+            }}
+          >
+            <SelectField
+              label="Rank tier"
+              value={rankTier}
+              onChange={(value) => {
+                setRankTier(value);
+                setRankDivision("");
+              }}
+              options={gameDef.rankTiers}
+              placeholder="Select rank"
+            />
+
+            {HOK_GM_TIERS.includes(rankTier) ? (
+              <Field
+                label="Grandmaster stars (0 - 100+)"
+                placeholder="0"
+                value={hokStars}
+                onChange={setHokStars}
+              />
+            ) : (
+              <SelectField
+                label="Sub-tier / Division"
+                value={rankDivision}
+                onChange={setRankDivision}
+                options={HOK_DIVISIONS_BY_TIER[rankTier] || []}
+                placeholder="—"
+                allowEmpty
+              />
+            )}
+
+            <Field
+              label="Peak Tournament score (1200 - 3000)"
+              placeholder="1200"
+              value={hokPeakScore}
+              onChange={setHokPeakScore}
+            />
+          </div>
+
+          {hokStarNote && (
             <div
               style={{
+                marginTop: "0.2rem",
                 fontSize: "0.75rem",
-                color: "#fde68a",
+                color: "#facc15",
               }}
             >
-              {hokStarsWarning}
+              {hokStarNote}
             </div>
           )}
-        </div>
-      )}
+        </>
+      ) : (
+        <>
+          {/* IGN + Region row for non-HOK */}
+          {gameDef.kind === "TAGGED_ID" ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: showRegionTopForTagged
+                  ? "2fr auto 1fr 1.3fr"
+                  : "2fr auto 1fr",
+                gap: "0.4rem",
+                alignItems: "flex-end",
+                marginTop: "0.2rem",
+              }}
+            >
+              <Field
+                label="Name"
+                placeholder="EDG WINSON"
+                value={namePart}
+                onChange={setNamePart}
+              />
+              <div
+                style={{
+                  textAlign: "center",
+                  paddingBottom: "0.4rem",
+                  fontSize: "1rem",
+                  color: "#9ca3af",
+                }}
+              >
+                #
+              </div>
+              <Field
+                label="Tag"
+                placeholder="NA1"
+                value={tagPart}
+                onChange={setTagPart}
+              />
 
-      {/* TFT Double Up extras */}
-      {gameDef.code === "TFT" && (
-        <div
-          style={{
-            marginTop: "0.5rem",
-            paddingTop: "0.5rem",
-            borderTop: "1px solid rgba(55,65,81,0.7)",
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
-            gap: "0.5rem",
-          }}
-        >
-          <SelectField
-            label="Double Up rank tier"
-            value={tftDoubleTier}
-            onChange={(value) => {
-              setTftDoubleTier(value);
-              setTftDoubleDivision("");
+              {showRegionTopForTagged &&
+                (gameDef.regions && gameDef.regions.length > 0 ? (
+                  <SelectField
+                    label="Region"
+                    value={region}
+                    onChange={setRegion}
+                    options={gameDef.regions}
+                    placeholder="Select"
+                  />
+                ) : (
+                  <Field
+                    label="Region"
+                    placeholder="e.g. NA, EUW, SEA"
+                    value={region}
+                    onChange={setRegion}
+                  />
+                ))}
+            </div>
+          ) : (
+            <div style={{ marginTop: "0.2rem" }}>
+              <Field
+                label="In-game name"
+                placeholder="Your in-game name"
+                value={singleIgn}
+                onChange={setSingleIgn}
+              />
+            </div>
+          )}
+
+          {/* Rank + region row for non-HOK */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: showDivision
+                ? "minmax(0, 2fr) minmax(0, 1fr)" +
+                  (!showRegionTopForTagged ? " minmax(0, 1.3fr)" : "")
+                : "minmax(0, 2fr)" +
+                  (!showRegionTopForTagged ? " minmax(0, 1.3fr)" : ""),
+              gap: "0.5rem",
+              marginTop: "0.1rem",
             }}
-            options={gameDef.rankTiers}
-            placeholder="Select rank"
-          />
-          <SelectField
-            label="Double Up division"
-            value={tftDoubleDivision}
-            onChange={setTftDoubleDivision}
-            options={gameDef.rankDivisions}
-            placeholder="—"
-            allowEmpty
-          />
-        </div>
+          >
+            <SelectField
+              label="Rank tier"
+              value={rankTier}
+              onChange={(value) => {
+                setRankTier(value);
+                setRankDivision("");
+              }}
+              options={gameDef.rankTiers}
+              placeholder="Select rank"
+            />
+            {showDivision && (
+              <SelectField
+                label="Division"
+                value={rankDivision}
+                onChange={setRankDivision}
+                options={divisionOptions}
+                placeholder="—"
+                allowEmpty
+              />
+            )}
+
+            {/* Region when not already shown near Name#Tag */}
+            {!showRegionTopForTagged &&
+              (gameDef.regions && gameDef.regions.length > 0 ? (
+                <SelectField
+                  label="Region"
+                  value={region}
+                  onChange={setRegion}
+                  options={gameDef.regions}
+                  placeholder="Select"
+                />
+              ) : (
+                !showRegionTopForTagged && (
+                  <Field
+                    label="Region"
+                    placeholder="e.g. NA, EUW, SEA"
+                    value={region}
+                    onChange={setRegion}
+                  />
+                )
+              ))}
+          </div>
+
+          {/* TFT Double Up extras */}
+          {gameDef.code === "TFT" && (
+            <div
+              style={{
+                marginTop: "0.5rem",
+                paddingTop: "0.5rem",
+                borderTop: "1px solid rgba(55,65,81,0.7)",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+                gap: "0.5rem",
+              }}
+            >
+              <SelectField
+                label="Double Up rank tier"
+                value={tftDoubleTier}
+                onChange={(value) => {
+                  setTftDoubleTier(value);
+                  setTftDoubleDivision("");
+                }}
+                options={gameDef.rankTiers}
+                placeholder="Select rank"
+              />
+              <SelectField
+                label="Double Up division"
+                value={tftDoubleDivision}
+                onChange={setTftDoubleDivision}
+                options={gameDef.rankDivisions}
+                placeholder="—"
+                allowEmpty
+              />
+            </div>
+          )}
+        </>
       )}
 
       <div
