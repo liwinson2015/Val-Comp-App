@@ -943,7 +943,7 @@ export default function TeamsPage({
 
             <div style={{ flex: 1 }} />
 
-            {/* Search for team (browse) */}
+            {/* Find a team (browse) */}
             <button
               type="button"
               onClick={() => router.push("/teams/join")}
