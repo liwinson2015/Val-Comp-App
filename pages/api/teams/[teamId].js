@@ -51,10 +51,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, deleted: true });
   }
 
-  // POST = actions (leave team for now)
+  // POST = actions: leave, promote, kick
   if (req.method === "POST") {
-    const { action } = req.body || {};
+    const { action, targetPlayerId } = req.body || {};
 
+    // ----- LEAVE -----
     if (action === "leave") {
       if (!isCaptain && !isMember) {
         return res
@@ -62,36 +63,29 @@ export default async function handler(req, res) {
           .json({ ok: false, error: "You are not on this team." });
       }
 
-      // Captain leaving: must promote someone else if possible
       if (isCaptain) {
         const otherMembers = (team.members || []).filter(
           (m) => String(m) !== String(playerId)
         );
 
-        if (otherMembers.length === 0) {
+        if (otherMembers.length > 0) {
+          // captain must promote manually before leaving
+          return res.status(400).json({
+            ok: false,
+            error:
+              "You must promote another member to captain before leaving this team.",
+          });
+        } else {
+          // solo captain: must delete
           return res.status(400).json({
             ok: false,
             error:
               "You are the only member on this team. Delete the team instead.",
           });
         }
-
-        const newCaptainId = otherMembers[0]; // auto-promote first other member
-
-        team.captain = newCaptainId;
-        team.members = (team.members || []).filter(
-          (m) => String(m) !== String(playerId)
-        );
-        await team.save();
-
-        return res.status(200).json({
-          ok: true,
-          left: true,
-          newCaptainId: String(newCaptainId),
-        });
       }
 
-      // Normal member leaving
+      // normal member leaving
       if (!isMember) {
         return res
           .status(400)
@@ -104,6 +98,96 @@ export default async function handler(req, res) {
       await team.save();
 
       return res.status(200).json({ ok: true, left: true });
+    }
+
+    // ----- PROMOTE -----
+    if (action === "promote") {
+      if (!isCaptain) {
+        return res
+          .status(403)
+          .json({ ok: false, error: "Only the captain can promote members." });
+      }
+
+      if (!targetPlayerId) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "Missing target player id." });
+      }
+
+      if (String(targetPlayerId) === String(team.captain)) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "That player is already captain." });
+      }
+
+      const isTargetMember = (team.members || []).some(
+        (m) => String(m) === String(targetPlayerId)
+      );
+      if (!isTargetMember) {
+        return res.status(400).json({
+          ok: false,
+          error: "You can only promote a current team member.",
+        });
+      }
+
+      team.captain = targetPlayerId;
+      // ensure new captain is in members list
+      if (
+        !(team.members || []).some(
+          (m) => String(m) === String(targetPlayerId)
+        )
+      ) {
+        team.members.push(targetPlayerId);
+      }
+
+      await team.save();
+
+      return res.status(200).json({
+        ok: true,
+        newCaptainId: String(targetPlayerId),
+      });
+    }
+
+    // ----- KICK -----
+    if (action === "kick") {
+      if (!isCaptain) {
+        return res
+          .status(403)
+          .json({ ok: false, error: "Only the captain can kick members." });
+      }
+
+      if (!targetPlayerId) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "Missing target player id." });
+      }
+
+      if (String(targetPlayerId) === String(team.captain)) {
+        return res.status(400).json({
+          ok: false,
+          error: "You cannot kick yourself. Use leave or delete the team.",
+        });
+      }
+
+      const isTargetMember = (team.members || []).some(
+        (m) => String(m) === String(targetPlayerId)
+      );
+      if (!isTargetMember) {
+        return res.status(400).json({
+          ok: false,
+          error: "That player is not a member of this team.",
+        });
+      }
+
+      team.members = (team.members || []).filter(
+        (m) => String(m) !== String(targetPlayerId)
+      );
+      await team.save();
+
+      return res.status(200).json({
+        ok: true,
+        kickedPlayerId: String(targetPlayerId),
+      });
     }
 
     return res.status(400).json({ ok: false, error: "Unknown action." });

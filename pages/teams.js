@@ -101,9 +101,7 @@ export async function getServerSideProps({ req, query }) {
       isCaptain: mid === captainId,
     }));
 
-    const isCaptain =
-      captainId === playerId ||
-      captainId === String(playerDoc._id); // just in case
+    const iAmCaptain = captainId === String(playerDoc._id);
 
     return {
       id,
@@ -111,7 +109,7 @@ export async function getServerSideProps({ req, query }) {
       tag: t.tag || "",
       game: t.game,
       memberCount: members.length,
-      isCaptain,
+      isCaptain: iAmCaptain,
       members,
     };
   });
@@ -282,7 +280,7 @@ export default function TeamsPage({
     }
   }
 
-  // ---- delete / leave handlers ----
+  // ---- delete / leave / promote / kick handlers ----
   async function handleDeleteTeam(team) {
     if (
       !window.confirm(
@@ -309,9 +307,15 @@ export default function TeamsPage({
   }
 
   async function handleLeaveTeam(team) {
+    const otherMembers = (team.members || []).filter((m) => !m.isCaptain);
+
     if (team.isCaptain) {
-      const hasOtherMembers = (team.members || []).some((m) => !m.isCaptain);
-      if (!hasOtherMembers) {
+      if (otherMembers.length > 0) {
+        alert(
+          "You are the captain. Promote another member to captain before leaving this team."
+        );
+        return;
+      } else {
         alert(
           "You are the only member on this team. Delete the team instead if you want to remove it."
         );
@@ -319,11 +323,14 @@ export default function TeamsPage({
       }
     }
 
-    const msg = team.isCaptain
-      ? "You are the captain. If you leave, another member will be promoted to captain automatically. Continue?"
-      : `Leave team ${team.tag ? `[${team.tag}] ` : ""}${team.name}?`;
-
-    if (!window.confirm(msg)) return;
+    // normal member can leave
+    if (
+      !window.confirm(
+        `Leave team ${team.tag ? `[${team.tag}] ` : ""}${team.name}?`
+      )
+    ) {
+      return;
+    }
 
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
@@ -338,8 +345,106 @@ export default function TeamsPage({
         alert(data.error || "Failed to leave team.");
         return;
       }
-      // Once you leave, you no longer see that team in "My Teams"
+
+      // once you leave, this team no longer shows under "My Teams"
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  async function handlePromote(team, member) {
+    if (
+      !window.confirm(
+        `Promote ${member.name} to captain of ${team.tag ? `[${team.tag}] ` : ""}${
+          team.name
+        }?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "promote",
+          targetPlayerId: member.id,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to promote member.");
+        return;
+      }
+
+      const newCaptainId = data.newCaptainId;
+
+      setTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== team.id) return t;
+          const newMembers = (t.members || []).map((m) => ({
+            ...m,
+            isCaptain: m.id === newCaptainId,
+          }));
+          return {
+            ...t,
+            members: newMembers,
+            isCaptain: newCaptainId === player.id, // am I still captain?
+          };
+        })
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  async function handleKick(team, member) {
+    if (
+      !window.confirm(
+        `Kick ${member.name} from ${team.tag ? `[${team.tag}] ` : ""}${
+          team.name
+        }?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "kick",
+          targetPlayerId: member.id,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to kick member.");
+        return;
+      }
+
+      setTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== team.id) return t;
+          const newMembers = (t.members || []).filter(
+            (m) => m.id !== member.id
+          );
+          return {
+            ...t,
+            members: newMembers,
+            memberCount: newMembers.length,
+          };
+        })
+      );
     } catch (err) {
       console.error(err);
       alert("Something went wrong.");
@@ -533,6 +638,8 @@ export default function TeamsPage({
                     team={team}
                     onDelete={handleDeleteTeam}
                     onLeave={handleLeaveTeam}
+                    onPromote={handlePromote}
+                    onKick={handleKick}
                   />
                 ))}
               </div>
@@ -736,8 +843,9 @@ export default function TeamsPage({
 }
 
 // ---------- subcomponents ----------
-function TeamCard({ team, onDelete, onLeave }) {
+function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
   const slots = buildMemberSlots(team.members || []);
+  const otherMembers = (team.members || []).filter((m) => !m.isCaptain);
 
   return (
     <div style={teamCardStyle}>
@@ -766,7 +874,7 @@ function TeamCard({ team, onDelete, onLeave }) {
         <span style={gameBadgeStyle}>{team.game}</span>
       </div>
 
-      {/* Member slots */}
+      {/* Member slots (5, captain in the middle) */}
       <div
         style={{
           marginTop: "0.35rem",
@@ -786,9 +894,7 @@ function TeamCard({ team, onDelete, onLeave }) {
               border: `1px solid ${
                 slot?.isCaptain ? "#f97316" : "rgba(148,163,184,0.35)"
               }`,
-              backgroundColor: slot
-                ? "#020617"
-                : "rgba(15,23,42,0.8)",
+              backgroundColor: slot ? "#020617" : "rgba(15,23,42,0.8)",
               fontSize: "0.7rem",
               textAlign: "center",
               whiteSpace: "nowrap",
@@ -807,6 +913,75 @@ function TeamCard({ team, onDelete, onLeave }) {
           </div>
         ))}
       </div>
+
+      {/* Manage members (captain only) */}
+      {team.isCaptain && otherMembers.length > 0 && (
+        <div
+          style={{
+            marginTop: "0.6rem",
+            padding: "0.4rem 0.45rem",
+            borderRadius: "8px",
+            border: "1px dashed rgba(148,163,184,0.4)",
+            backgroundColor: "rgba(15,23,42,0.8)",
+            fontSize: "0.75rem",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "0.25rem",
+              color: "#9ca3af",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
+            <span>Manage members</span>
+            <span style={{ fontSize: "0.7rem", color: "#6b7280" }}>
+              Promote a new captain or kick players
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+            {otherMembers.map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <span
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {m.name}
+                </span>
+                <div style={{ display: "flex", gap: "0.3rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => onPromote(team, m)}
+                    style={smallPrimaryButtonStyle}
+                  >
+                    Promote
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onKick(team, m)}
+                    style={smallDangerButtonStyle}
+                  >
+                    Kick
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Members + actions row */}
       <div
@@ -852,8 +1027,7 @@ function buildMemberSlots(members = []) {
   const slots = new Array(MAX).fill(null);
   if (!members.length) return slots;
 
-  const captain =
-    members.find((m) => m.isCaptain) || members[0] || null;
+  const captain = members.find((m) => m.isCaptain) || members[0] || null;
   const others = members.filter((m) => m !== captain);
 
   // position order: middle, left, right, far-left, far-right
@@ -929,13 +1103,24 @@ const secondaryButtonStyle = {
   cursor: "pointer",
 };
 
-const captainBadgeStyle = {
-  fontSize: "0.7rem",
-  padding: "2px 6px",
+const smallPrimaryButtonStyle = {
+  padding: "0.15rem 0.5rem",
   borderRadius: "999px",
-  border: "1px solid #f97316",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
+  border: "1px solid #22c55e",
+  backgroundColor: "transparent",
+  color: "#bbf7d0",
+  fontSize: "0.7rem",
+  cursor: "pointer",
+};
+
+const smallDangerButtonStyle = {
+  padding: "0.15rem 0.5rem",
+  borderRadius: "999px",
+  border: "1px solid #f97373",
+  backgroundColor: "transparent",
+  color: "#fecaca",
+  fontSize: "0.7rem",
+  cursor: "pointer",
 };
 
 const gameBadgeStyle = {
