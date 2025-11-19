@@ -35,7 +35,8 @@ const GameProfileSchema = new mongoose.Schema(
     // Peak Tournament score (1200–3000 range you care about)
     hokPeakScore: {
       type: Number,
-      min: 0,
+      min: 1200,
+      max: 3000,
     },
 
     // ---------- TFT Double Up extras ----------
