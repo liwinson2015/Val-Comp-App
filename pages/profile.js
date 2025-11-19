@@ -37,6 +37,7 @@ const GAME_DEFS = [
     ],
     rankDivisions: ["1", "2", "3"],
     defaultRegion: "NA",
+    regions: ["NA", "EU", "APAC", "KR", "LATAM", "BR", "Other"],
   },
   {
     code: "TFT",
@@ -57,6 +58,7 @@ const GAME_DEFS = [
     ],
     rankDivisions: ["1", "2", "3", "4"],
     defaultRegion: "NA",
+    regions: ["NA", "EUW", "EUNE", "OCE", "KR", "BR", "Other"],
   },
   {
     code: "HOK",
@@ -70,11 +72,12 @@ const GAME_DEFS = [
       "Platinum",
       "Diamond",
       "Master",
-      "King",
-      "Glorious King",
+      "Grandmaster",
     ],
-    rankDivisions: [], // not used
+    // For now: 5 generic divisions per rank (you can refine later)
+    rankDivisions: ["V", "IV", "III", "II", "I"],
     defaultRegion: "NA",
+    regions: ["NA", "EU", "SEA", "MENA", "Other"],
   },
 ];
 
@@ -707,6 +710,20 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     !(profile.rankDivision && profile.rankDivision.trim()) &&
     !(profile.region && profile.region.trim());
 
+  // whether division dropdown should be shown for current game/tier
+  const showDivision =
+    gameDef.rankDivisions &&
+    gameDef.rankDivisions.length > 0 &&
+    !(
+      (gameDef.code === "VALORANT" &&
+        (rankTier === "Immortal" || rankTier === "Radiant")) ||
+      (gameDef.code === "TFT" &&
+        (rankTier === "Master" ||
+          rankTier === "Grandmaster" ||
+          rankTier === "Challenger")) ||
+      (gameDef.code === "HOK" && rankTier === "Grandmaster")
+    );
+
   async function handleSave(e) {
     e.preventDefault();
     setMessage("");
@@ -727,10 +744,24 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       finalIgn = (singleIgn || "").trim();
     }
 
+    // Clear division for tiers that don't use it
+    let finalDivision = (rankDivision || "").trim();
+    if (
+      (gameDef.code === "VALORANT" &&
+        (rankTier === "Immortal" || rankTier === "Radiant")) ||
+      (gameDef.code === "TFT" &&
+        (rankTier === "Master" ||
+          rankTier === "Grandmaster" ||
+          rankTier === "Challenger")) ||
+      (gameDef.code === "HOK" && rankTier === "Grandmaster")
+    ) {
+      finalDivision = "";
+    }
+
     const payload = {
       ign: finalIgn,
       rankTier: (rankTier || "").trim(),
-      rankDivision: (rankDivision || "").trim(),
+      rankDivision: finalDivision,
       region: (region || "").trim(),
     };
 
@@ -798,8 +829,9 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "2fr 1fr",
-            gap: "0.5rem",
+            gridTemplateColumns: "2fr auto 1fr",
+            gap: "0.4rem",
+            alignItems: "flex-end",
             marginTop: "0.2rem",
           }}
         >
@@ -809,6 +841,16 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             value={namePart}
             onChange={setNamePart}
           />
+          <div
+            style={{
+              textAlign: "center",
+              paddingBottom: "0.4rem",
+              fontSize: "1rem",
+              color: "#9ca3af",
+            }}
+          >
+            #
+          </div>
           <Field
             label="Tag"
             placeholder="NA1"
@@ -831,10 +873,9 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            gameDef.rankDivisions && gameDef.rankDivisions.length > 0
-              ? "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.3fr)"
-              : "minmax(0, 2fr) minmax(0, 1.3fr)",
+          gridTemplateColumns: showDivision
+            ? "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.3fr)"
+            : "minmax(0, 2fr) minmax(0, 1.3fr)",
           gap: "0.5rem",
           marginTop: "0.1rem",
         }}
@@ -846,7 +887,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           options={gameDef.rankTiers}
           placeholder="Select rank"
         />
-        {gameDef.rankDivisions && gameDef.rankDivisions.length > 0 && (
+        {showDivision && (
           <SelectField
             label="Division"
             value={rankDivision}
@@ -856,12 +897,23 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             allowEmpty
           />
         )}
-        <Field
-          label="Region"
-          placeholder="e.g. NA, EUW, SEA"
-          value={region}
-          onChange={setRegion}
-        />
+
+        {gameDef.regions && gameDef.regions.length > 0 ? (
+          <SelectField
+            label={gameDef.code === "HOK" ? "Server" : "Region"}
+            value={region}
+            onChange={setRegion}
+            options={gameDef.regions}
+            placeholder="Select"
+          />
+        ) : (
+          <Field
+            label="Region"
+            placeholder="e.g. NA, EUW, SEA"
+            value={region}
+            onChange={setRegion}
+          />
+        )}
       </div>
 
       <div
@@ -990,10 +1042,9 @@ function SelectField({
           outline: "none",
         }}
       >
-        {allowEmpty && (
+        {allowEmpty ? (
           <option value="">{placeholder || "—"}</option>
-        )}
-        {!allowEmpty && (
+        ) : (
           <option value="">{placeholder || "Select"}</option>
         )}
         {options.map((opt) => (
