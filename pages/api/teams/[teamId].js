@@ -1,6 +1,7 @@
 // pages/api/teams/[teamId].js
 import { connectToDatabase } from "../../../lib/mongodb";
 import Team from "../../../models/Team";
+import TeamJoinRequest from "../../../models/TeamJoinRequest";
 
 function parseCookies(header = "") {
   return Object.fromEntries(
@@ -12,6 +13,21 @@ function parseCookies(header = "") {
         return [k, decodeURIComponent(rest.join("=") || "")];
       })
   );
+}
+
+// Generate a unique 6-char join code (A-Z, 0-9)
+async function generateUniqueJoinCode() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  while (true) {
+    let code = "";
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    const existing = await Team.findOne({ joinCode: code }).lean();
+    if (!existing) return code;
+  }
 }
 
 export default async function handler(req, res) {
@@ -39,7 +55,7 @@ export default async function handler(req, res) {
     (m) => String(m) === String(playerId)
   );
 
-  // DELETE = delete team (captain only)
+  // ---------- DELETE: delete team (captain only) ----------
   if (req.method === "DELETE") {
     if (!isCaptain) {
       return res
@@ -48,12 +64,15 @@ export default async function handler(req, res) {
     }
 
     await Team.deleteOne({ _id: teamId });
+    // Optional: clean up pending join requests for this team
+    await TeamJoinRequest.deleteMany({ teamId: team._id });
+
     return res.status(200).json({ ok: true, deleted: true });
   }
 
-  // POST = actions: leave, promote, kick
+  // ---------- POST: actions ----------
   if (req.method === "POST") {
-    const { action, targetPlayerId } = req.body || {};
+    const { action, targetPlayerId, isPublic } = req.body || {};
 
     // ----- LEAVE -----
     if (action === "leave") {
@@ -131,6 +150,7 @@ export default async function handler(req, res) {
       }
 
       team.captain = targetPlayerId;
+
       // ensure new captain is in members list
       if (
         !(team.members || []).some(
@@ -187,6 +207,52 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         kickedPlayerId: String(targetPlayerId),
+      });
+    }
+
+    // ----- SET VISIBILITY (public/private) -----
+    if (action === "setVisibility") {
+      if (!isCaptain) {
+        return res.status(403).json({
+          ok: false,
+          error: "Only the captain can change team visibility.",
+        });
+      }
+
+      const nextPublic = !!isPublic;
+      team.isPublic = nextPublic;
+      await team.save();
+
+      // Optional: if making private, clear pending public join requests
+      if (!nextPublic) {
+        await TeamJoinRequest.updateMany(
+          { teamId: team._id, status: "pending" },
+          { $set: { status: "rejected" } }
+        );
+      }
+
+      return res.status(200).json({
+        ok: true,
+        isPublic: team.isPublic,
+      });
+    }
+
+    // ----- REGENERATE JOIN CODE -----
+    if (action === "regenJoinCode") {
+      if (!isCaptain) {
+        return res.status(403).json({
+          ok: false,
+          error: "Only the captain can regenerate the invite code.",
+        });
+      }
+
+      const newCode = await generateUniqueJoinCode();
+      team.joinCode = newCode;
+      await team.save();
+
+      return res.status(200).json({
+        ok: true,
+        joinCode: newCode,
       });
     }
 

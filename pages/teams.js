@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import Team from "../models/Team";
+import TeamJoinRequest from "../models/TeamJoinRequest";
 
 // Supported games for UI and filtering
 const SUPPORTED_GAMES = [
@@ -59,20 +60,61 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
-  // Get all teams where user is captain or member
-  const teams = await Team.find({
+  // ---- My teams: where I am captain or member ----
+  const myTeamsRaw = await Team.find({
     game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
   })
     .sort({ createdAt: 1 })
     .lean();
 
-  // Collect all member ids (including captains) to fetch names
+  // ---- Public teams: for "Look for a team" ----
+  const publicTeamsRaw = await Team.find({
+    game: { $in: allowedGameCodes },
+    isPublic: true,
+  })
+    .sort({ createdAt: 1 })
+    .lean();
+
+  // ---- Pending join requests for teams where I'm captain ----
+  const captainTeamIds = myTeamsRaw
+    .filter((t) => String(t.captain) === String(playerDoc._id))
+    .map((t) => t._id);
+
+  let pendingForCaptainRaw = [];
+  if (captainTeamIds.length) {
+    pendingForCaptainRaw = await TeamJoinRequest.find({
+      teamId: { $in: captainTeamIds },
+      status: "pending",
+    }).lean();
+  }
+
+  // ---- Pending join requests made by me ----
+  const pendingByUserRaw = await TeamJoinRequest.find({
+    playerId: playerDoc._id,
+    status: "pending",
+  }).lean();
+
+  // ---- Collect all player ids we need names for ----
   const memberIdSet = new Set();
-  teams.forEach((t) => {
-    if (t.captain) memberIdSet.add(String(t.captain));
-    (t.members || []).forEach((m) => memberIdSet.add(String(m)));
+
+  function addId(id) {
+    if (!id) return;
+    memberIdSet.add(String(id));
+  }
+
+  myTeamsRaw.forEach((t) => {
+    addId(t.captain);
+    (t.members || []).forEach(addId);
   });
+
+  publicTeamsRaw.forEach((t) => {
+    addId(t.captain);
+    (t.members || []).forEach(addId);
+  });
+
+  pendingForCaptainRaw.forEach((r) => addId(r.playerId));
+  pendingByUserRaw.forEach((r) => addId(r.playerId));
 
   const allMemberIds = Array.from(memberIdSet);
   const memberDocs = allMemberIds.length
@@ -85,32 +127,93 @@ export async function getServerSideProps({ req, query }) {
     nameMap[key] = p.username || p.discordUsername || "Player";
   });
 
-  const formattedTeams = teams.map((t) => {
-    const id = t._id.toString();
+  // ---- Group pending requests (for teams where I'm captain) by team ----
+  const pendingForCaptainByTeam = {};
+  pendingForCaptainRaw.forEach((r) => {
+    const teamKey = String(r.teamId);
+    if (!pendingForCaptainByTeam[teamKey]) {
+      pendingForCaptainByTeam[teamKey] = [];
+    }
+    pendingForCaptainByTeam[teamKey].push({
+      id: String(r._id),
+      playerId: String(r.playerId),
+      playerName: nameMap[String(r.playerId)] || "Player",
+    });
+  });
+
+  // ---- Set of team ids where I have a pending request ----
+  const pendingByUserSet = new Set(
+    pendingByUserRaw.map((r) => String(r.teamId))
+  );
+
+  // ---- Format my teams for client ----
+  const formattedMyTeams = myTeamsRaw.map((t) => {
+    const teamIdStr = String(t._id);
     const captainId = String(t.captain);
     let memberIds = (t.members || []).map((m) => String(m));
 
-    // ensure captain is in the member list for display
     if (!memberIds.includes(captainId)) {
       memberIds.unshift(captainId);
     }
 
     const members = memberIds.map((mid) => ({
       id: mid,
-      name: nameMap[mid] || "Unknown",
+      name: nameMap[mid] || "Player",
       isCaptain: mid === captainId,
     }));
 
     const iAmCaptain = captainId === String(playerDoc._id);
 
     return {
-      id,
+      id: teamIdStr,
       name: t.name,
       tag: t.tag || "",
       game: t.game,
       memberCount: members.length,
       isCaptain: iAmCaptain,
+      isPublic: !!t.isPublic,
+      maxSize: t.maxSize || 7,
+      joinCode: t.joinCode || null,
       members,
+      joinRequests: pendingForCaptainByTeam[teamIdStr] || [],
+    };
+  });
+
+  // ---- Format public teams for "Look for a team" ----
+  const formattedPublicTeams = publicTeamsRaw.map((t) => {
+    const teamIdStr = String(t._id);
+    const captainId = String(t.captain);
+    let memberIds = (t.members || []).map((m) => String(m));
+
+    if (!memberIds.includes(captainId)) {
+      memberIds.unshift(captainId);
+    }
+
+    const members = memberIds.map((mid) => ({
+      id: mid,
+      name: nameMap[mid] || "Player",
+      isCaptain: mid === captainId,
+    }));
+
+    const memberCount = members.length;
+    const iAmCaptain = captainId === String(playerDoc._id);
+    const iAmMember =
+      iAmCaptain || memberIds.includes(String(playerDoc._id));
+    const hasPendingRequestByMe = pendingByUserSet.has(teamIdStr);
+
+    return {
+      id: teamIdStr,
+      name: t.name,
+      tag: t.tag || "",
+      game: t.game,
+      memberCount,
+      members,
+      isPublic: !!t.isPublic,
+      maxSize: t.maxSize || 7,
+      iAmCaptain,
+      iAmMember,
+      hasPendingRequestByMe,
+      isFull: memberCount >= (t.maxSize || 7),
     };
   });
 
@@ -120,7 +223,8 @@ export async function getServerSideProps({ req, query }) {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
       },
-      initialTeams: formattedTeams,
+      initialTeams: formattedMyTeams,
+      initialPublicTeams: formattedPublicTeams,
       initialSelectedGame,
       supportedGames: SUPPORTED_GAMES,
     },
@@ -131,15 +235,24 @@ export async function getServerSideProps({ req, query }) {
 export default function TeamsPage({
   player,
   initialTeams,
+  initialPublicTeams,
   initialSelectedGame,
   supportedGames,
 }) {
   const router = useRouter();
   const [teams, setTeams] = useState(initialTeams || []);
-  const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
+  const [publicTeams, setPublicTeams] = useState(initialPublicTeams || []);
+  const [selectedGame, setSelectedGame] = useState(
+    initialSelectedGame || "ALL"
+  );
   const [roleFilter, setRoleFilter] = useState("ALL"); // ALL | CAPTAIN | MEMBER
 
-  // modal + form state
+  // join-by-code box
+  const [joinCodeInput, setJoinCodeInput] = useState("");
+  const [joinCodeError, setJoinCodeError] = useState("");
+  const [joiningByCode, setJoiningByCode] = useState(false);
+
+  // create-team modal + form
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
@@ -261,6 +374,9 @@ export default function TeamsPage({
           game: data.team.game,
           memberCount: data.team.memberCount || 1,
           isCaptain: true,
+          isPublic: false,
+          maxSize: data.team.maxSize || 7,
+          joinCode: data.team.joinCode || null,
           members: [
             {
               id: player.id,
@@ -268,6 +384,7 @@ export default function TeamsPage({
               isCaptain: true,
             },
           ],
+          joinRequests: [],
         };
         setTeams((prev) => [...prev, newTeam]);
         closeModal();
@@ -277,6 +394,66 @@ export default function TeamsPage({
       setError("Something went wrong.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // ----- join by invite code (works for public and private) -----
+  async function handleJoinByCode(e) {
+    e.preventDefault();
+    setJoinCodeError("");
+
+    const code = (joinCodeInput || "").trim().toUpperCase();
+    if (!code || code.length !== 6) {
+      setJoinCodeError("Invite code must be 6 characters.");
+      return;
+    }
+
+    setJoiningByCode(true);
+    try {
+      const res = await fetch("/api/teams/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ joinCode: code }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setJoinCodeError(data.error || "Failed to join with this code.");
+        return;
+      }
+
+      if (data.joined && data.team) {
+        const existing = teams.find((t) => t.id === data.team.id);
+        if (!existing) {
+          const newTeam = {
+            id: data.team.id,
+            name: data.team.name,
+            tag: data.team.tag || "",
+            game: data.team.game,
+            memberCount: data.team.memberCount || 1,
+            isCaptain: false,
+            isPublic: !!data.team.isPublic,
+            maxSize: data.team.maxSize || 7,
+            joinCode: data.team.joinCode || null,
+            members: [
+              {
+                id: player.id,
+                name: player.username,
+                isCaptain: false,
+              },
+            ],
+            joinRequests: [],
+          };
+          setTeams((prev) => [...prev, newTeam]);
+        }
+        setJoinCodeInput("");
+      }
+    } catch (err) {
+      console.error(err);
+      setJoinCodeError("Something went wrong.");
+    } finally {
+      setJoiningByCode(false);
     }
   }
 
@@ -300,6 +477,7 @@ export default function TeamsPage({
         return;
       }
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
+      setPublicTeams((prev) => prev.filter((t) => t.id !== team.id));
     } catch (err) {
       console.error(err);
       alert("Something went wrong.");
@@ -394,7 +572,7 @@ export default function TeamsPage({
           return {
             ...t,
             members: newMembers,
-            isCaptain: newCaptainId === player.id, // am I still captain?
+            isCaptain: newCaptainId === player.id,
           };
         })
       );
@@ -445,13 +623,307 @@ export default function TeamsPage({
           };
         })
       );
+
+      setPublicTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== team.id) return t;
+          const newMembers = (t.members || []).filter(
+            (m) => m.id !== member.id
+          );
+          const memberCount = newMembers.length;
+          return {
+            ...t,
+            members: newMembers,
+            memberCount,
+            isFull: memberCount >= (t.maxSize || 7),
+          };
+        })
+      );
     } catch (err) {
       console.error(err);
       alert("Something went wrong.");
     }
   }
 
-  // --------- apply filters ----------
+  // ----- visibility toggle (private/public) -----
+  async function handleToggleVisibility(team, nextIsPublic) {
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "setVisibility",
+          isPublic: nextIsPublic,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to update visibility.");
+        return;
+      }
+
+      const isPublic = !!data.isPublic;
+
+      // update my teams
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === team.id
+            ? {
+                ...t,
+                isPublic,
+              }
+            : t
+        )
+      );
+
+      // update publicTeams
+      setPublicTeams((prev) => {
+        const existing = prev.find((t) => t.id === team.id);
+        if (isPublic) {
+          const memberCount = team.memberCount || (team.members || []).length;
+          const maxSize = team.maxSize || 7;
+          const baseTeam = {
+            id: team.id,
+            name: team.name,
+            tag: team.tag,
+            game: team.game,
+            memberCount,
+            members: team.members || [],
+            isPublic: true,
+            maxSize,
+            iAmCaptain: team.isCaptain,
+            iAmMember: true,
+            hasPendingRequestByMe: false,
+            isFull: memberCount >= maxSize,
+          };
+          if (existing) {
+            return prev.map((t) => (t.id === team.id ? baseTeam : t));
+          }
+          return [...prev, baseTeam];
+        } else {
+          // making private -> remove from public list
+          return prev.filter((t) => t.id !== team.id);
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  // ----- regenerate invite code -----
+  async function handleRegenJoinCode(team) {
+    if (
+      !window.confirm(
+        `Regenerate invite code for ${team.tag ? `[${team.tag}] ` : ""}${
+          team.name
+        }? Old codes will stop working.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "regenJoinCode",
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to regenerate invite code.");
+        return;
+      }
+
+      const newCode = data.joinCode || null;
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === team.id
+            ? {
+                ...t,
+                joinCode: newCode,
+              }
+            : t
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  // ----- captain approve / reject join requests -----
+  async function handleApproveRequest(team, req) {
+    if (
+      !window.confirm(
+        `Approve join request from ${req.playerName} for ${
+          team.tag ? `[${team.tag}] ` : ""
+        }${team.name}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/requests/${req.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to approve request.");
+        return;
+      }
+
+      // Update my teams
+      setTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== team.id) return t;
+          const newMembers = [
+            ...(t.members || []),
+            {
+              id: req.playerId,
+              name: req.playerName,
+              isCaptain: false,
+            },
+          ];
+          const remainingRequests = (t.joinRequests || []).filter(
+            (r) => r.id !== req.id
+          );
+          return {
+            ...t,
+            members: newMembers,
+            memberCount: newMembers.length,
+            joinRequests: remainingRequests,
+          };
+        })
+      );
+
+      // Update public teams
+      setPublicTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== team.id) return t;
+          const newMembers = [
+            ...(t.members || []),
+            {
+              id: req.playerId,
+              name: req.playerName,
+              isCaptain: false,
+            },
+          ];
+          const memberCount = newMembers.length;
+          return {
+            ...t,
+            members: newMembers,
+            memberCount,
+            isFull: memberCount >= (t.maxSize || 7),
+          };
+        })
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  async function handleRejectRequest(team, req) {
+    if (
+      !window.confirm(
+        `Reject join request from ${req.playerName} for ${
+          team.tag ? `[${team.tag}] ` : ""
+        }${team.name}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/requests/${req.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "reject" }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to reject request.");
+        return;
+      }
+
+      setTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== team.id) return t;
+          const remaining = (t.joinRequests || []).filter(
+            (r) => r.id !== req.id
+          );
+          return {
+            ...t,
+            joinRequests: remaining,
+          };
+        })
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  // ----- request to join public team -----
+  async function handleRequestJoinPublic(publicTeam) {
+    if (publicTeam.iAmMember || publicTeam.iAmCaptain) {
+      return;
+    }
+
+    if (publicTeam.isFull) {
+      alert("This team is full.");
+      return;
+    }
+
+    if (!window.confirm(`Request to join ${publicTeam.name}?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/teams/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ teamId: publicTeam.id }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to request to join.");
+        return;
+      }
+
+      setPublicTeams((prev) =>
+        prev.map((t) =>
+          t.id === publicTeam.id
+            ? {
+                ...t,
+                hasPendingRequestByMe: true,
+              }
+            : t
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    }
+  }
+
+  // --------- apply filters (my teams) ----------
   const byGame =
     selectedGame === "ALL"
       ? teams
@@ -465,6 +937,12 @@ export default function TeamsPage({
       : byGame.filter((t) => !t.isCaptain);
 
   const hasAnyVisibleTeams = visibleTeams.length > 0;
+
+  // public teams view filtered by game
+  const visiblePublicTeams =
+    selectedGame === "ALL"
+      ? publicTeams
+      : publicTeams.filter((t) => t.game === selectedGame);
 
   return (
     <div className="shell">
@@ -492,97 +970,185 @@ export default function TeamsPage({
                 maxWidth: "30rem",
               }}
             >
-              Teams are tied to a game (like VALORANT or Honor of Kings). When
-              you register for a tournament, only teams from that game where
-              you&apos;re captain will show up.
+              Teams are tied to a game (like VALORANT or Honor of Kings). Public
+              teams show up in &quot;Look for a team&quot;. Invite codes work
+              for both public and private teams.
             </p>
           </div>
         </div>
 
-        {/* Filter bar */}
+        {/* Join-by-code + filters row */}
         <div
           style={{
             display: "flex",
-            flexWrap: "wrap",
+            flexDirection: "column",
             gap: "1rem",
-            alignItems: "flex-end",
             marginBottom: "1.2rem",
           }}
         >
-          {/* Game filter */}
-          <div style={{ minWidth: "200px" }}>
-            <label
-              htmlFor="game-filter"
-              style={{
-                display: "block",
-                marginBottom: "0.25rem",
-                fontSize: "0.8rem",
-                color: "#9ca3af",
-              }}
-            >
-              Game
-            </label>
-            <select
-              id="game-filter"
-              value={selectedGame}
-              onChange={handleGameSelect}
-              style={filterSelectStyle}
-            >
-              <option value="ALL">All games</option>
-              {supportedGames.map((g) => (
-                <option key={g.code} value={g.code}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Role filter */}
-          <div style={{ minWidth: "200px" }}>
-            <label
-              htmlFor="role-filter"
-              style={{
-                display: "block",
-                marginBottom: "0.25rem",
-                fontSize: "0.8rem",
-                color: "#9ca3af",
-              }}
-            >
-              Role
-            </label>
-            <select
-              id="role-filter"
-              value={roleFilter}
-              onChange={handleRoleSelect}
-              style={filterSelectStyle}
-            >
-              <option value="ALL">All roles</option>
-              <option value="CAPTAIN">Captain teams</option>
-              <option value="MEMBER">Joined teams</option>
-            </select>
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          <button
-            type="button"
-            onClick={openModal}
+          {/* Join a private/public team by code */}
+          <form
+            onSubmit={handleJoinByCode}
             style={{
-              padding: "0.45rem 0.9rem",
-              borderRadius: "999px",
-              border: "1px solid #22c55e",
-              background:
-                "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
-              color: "white",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              alignSelf: "flex-end",
+              padding: "0.8rem 1rem",
+              borderRadius: "12px",
+              border: "1px solid rgba(148,163,184,0.4)",
+              backgroundColor: "#020617",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              flexWrap: "wrap",
             }}
           >
-            + Create team
-          </button>
+            <div style={{ minWidth: "180px" }}>
+              <div
+                style={{
+                  fontSize: "0.85rem",
+                  fontWeight: 500,
+                  marginBottom: "0.2rem",
+                }}
+              >
+                Join a team by code
+              </div>
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#9ca3af",
+                }}
+              >
+                Enter a 6-character invite code from the team captain.
+              </div>
+            </div>
+            <input
+              value={joinCodeInput}
+              onChange={(e) =>
+                setJoinCodeInput((e.target.value || "").toUpperCase())
+              }
+              placeholder="ABC123"
+              maxLength={6}
+              style={{
+                ...inputStyle,
+                maxWidth: "140px",
+                textAlign: "center",
+                letterSpacing: "0.2em",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={joiningByCode}
+              style={{
+                padding: "0.4rem 0.9rem",
+                borderRadius: "999px",
+                border: "1px solid #22c55e",
+                background:
+                  "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
+                color: "white",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                cursor: joiningByCode ? "default" : "pointer",
+                opacity: joiningByCode ? 0.7 : 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {joiningByCode ? "Joining..." : "Join"}
+            </button>
+            {joinCodeError && (
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#fca5a5",
+                  flexBasis: "100%",
+                }}
+              >
+                {joinCodeError}
+              </div>
+            )}
+          </form>
+
+          {/* Filter bar */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "1rem",
+              alignItems: "flex-end",
+            }}
+          >
+            {/* Game filter */}
+            <div style={{ minWidth: "200px" }}>
+              <label
+                htmlFor="game-filter"
+                style={{
+                  display: "block",
+                  marginBottom: "0.25rem",
+                  fontSize: "0.8rem",
+                  color: "#9ca3af",
+                }}
+              >
+                Game
+              </label>
+              <select
+                id="game-filter"
+                value={selectedGame}
+                onChange={handleGameSelect}
+                style={filterSelectStyle}
+              >
+                <option value="ALL">All games</option>
+                {supportedGames.map((g) => (
+                  <option key={g.code} value={g.code}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Role filter */}
+            <div style={{ minWidth: "200px" }}>
+              <label
+                htmlFor="role-filter"
+                style={{
+                  display: "block",
+                  marginBottom: "0.25rem",
+                  fontSize: "0.8rem",
+                  color: "#9ca3af",
+                }}
+              >
+                Role
+              </label>
+              <select
+                id="role-filter"
+                value={roleFilter}
+                onChange={handleRoleSelect}
+                style={filterSelectStyle}
+              >
+                <option value="ALL">All roles</option>
+                <option value="CAPTAIN">Captain teams</option>
+                <option value="MEMBER">Joined teams</option>
+              </select>
+            </div>
+
+            <div style={{ flex: 1 }} />
+
+            <button
+              type="button"
+              onClick={openModal}
+              style={{
+                padding: "0.45rem 0.9rem",
+                borderRadius: "999px",
+                border: "1px solid #22c55e",
+                background:
+                  "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
+                color: "white",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                alignSelf: "flex-end",
+              }}
+            >
+              + Create team
+            </button>
+          </div>
         </div>
 
         {/* Count */}
@@ -597,7 +1163,7 @@ export default function TeamsPage({
           {visibleTeams.length === 1 ? "" : "s"} in this view.
         </p>
 
-        {/* Teams list */}
+        {/* My Teams list */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {!hasAnyVisibleTeams && (
             <div style={cardStyle}>
@@ -617,8 +1183,9 @@ export default function TeamsPage({
                   color: "#9ca3af",
                 }}
               >
-                Try switching the game or role filters above, or create a new
-                team using the <strong>Create team</strong> button.
+                Try switching the game or role filters above, join a team using
+                an invite code, or create a new team with the{" "}
+                <strong>Create team</strong> button.
               </p>
             </div>
           )}
@@ -640,12 +1207,65 @@ export default function TeamsPage({
                     onLeave={handleLeaveTeam}
                     onPromote={handlePromote}
                     onKick={handleKick}
+                    onToggleVisibility={handleToggleVisibility}
+                    onRegenJoinCode={handleRegenJoinCode}
+                    onApproveRequest={handleApproveRequest}
+                    onRejectRequest={handleRejectRequest}
                   />
                 ))}
               </div>
             </section>
           )}
         </div>
+
+        {/* Look for a team */}
+        <section style={{ marginTop: "2.5rem" }}>
+          <h2 style={{ fontSize: "1.3rem", marginBottom: "0.4rem" }}>
+            Look for a team
+          </h2>
+          <p
+            style={{
+              margin: 0,
+              marginBottom: "0.8rem",
+              fontSize: "0.9rem",
+              color: "#9ca3af",
+            }}
+          >
+            Public teams are listed here. Request to join a team for the selected
+            game. Invite codes from captains always work, even for public teams.
+          </p>
+
+          {visiblePublicTeams.length === 0 ? (
+            <div style={cardStyle}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.9rem",
+                  color: "#9ca3af",
+                }}
+              >
+                No public teams found for this view. Try switching games or ask
+                a captain to make their team public.
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: "0.75rem",
+              }}
+            >
+              {visiblePublicTeams.map((team) => (
+                <PublicTeamCard
+                  key={team.id}
+                  team={team}
+                  onRequestJoin={handleRequestJoinPublic}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Create team modal */}
@@ -843,9 +1463,29 @@ export default function TeamsPage({
 }
 
 // ---------- subcomponents ----------
-function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
+function TeamCard({
+  team,
+  onDelete,
+  onLeave,
+  onPromote,
+  onKick,
+  onToggleVisibility,
+  onRegenJoinCode,
+  onApproveRequest,
+  onRejectRequest,
+}) {
   const slots = buildMemberSlots(team.members || []);
   const otherMembers = (team.members || []).filter((m) => !m.isCaptain);
+  const hasRequests = (team.joinRequests || []).length > 0;
+
+  const visibilityLabel = team.isPublic ? "Public" : "Private";
+
+  function handleCopyCode() {
+    if (!team.joinCode) return;
+    navigator.clipboard
+      .writeText(team.joinCode)
+      .catch((err) => console.error("Copy failed", err));
+  }
 
   return (
     <div style={teamCardStyle}>
@@ -874,10 +1514,79 @@ function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
         <span style={gameBadgeStyle}>{team.game}</span>
       </div>
 
+      {/* Visibility + invite code (captain only) */}
+      {team.isCaptain && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "0.5rem",
+            marginBottom: "0.5rem",
+            fontSize: "0.75rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <span style={{ color: "#9ca3af" }}>Visibility:</span>
+            <select
+              value={team.isPublic ? "public" : "private"}
+              onChange={(e) =>
+                onToggleVisibility(team, e.target.value === "public")
+              }
+              style={{
+                ...miniSelectStyle,
+                textTransform: "capitalize",
+              }}
+            >
+              <option value="private">Private</option>
+              <option value="public">Public</option>
+            </select>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ color: "#9ca3af" }}>Invite code:</span>
+            <span
+              style={{
+                padding: "0.1rem 0.5rem",
+                borderRadius: "999px",
+                border: "1px dashed rgba(148,163,184,0.6)",
+                fontFamily: "monospace",
+                letterSpacing: "0.15em",
+                fontSize: "0.75rem",
+              }}
+            >
+              {team.joinCode || "------"}
+            </span>
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              disabled={!team.joinCode}
+              style={smallSecondaryButtonStyle}
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              onClick={() => onRegenJoinCode(team)}
+              style={smallSecondaryButtonStyle}
+            >
+              Regenerate
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Member slots (5, captain in the middle) */}
       <div
         style={{
-          marginTop: "0.35rem",
+          marginTop: "0.2rem",
           display: "flex",
           gap: "0.35rem",
           justifyContent: "space-between",
@@ -941,7 +1650,9 @@ function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
               Promote a new captain or kick players
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}
+          >
             {otherMembers.map((m) => (
               <div
                 key={m.id}
@@ -983,6 +1694,83 @@ function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
         </div>
       )}
 
+      {/* Join requests (captain of public team) */}
+      {team.isCaptain && team.isPublic && hasRequests && (
+        <div
+          style={{
+            marginTop: "0.6rem",
+            padding: "0.4rem 0.45rem",
+            borderRadius: "8px",
+            border: "1px dashed rgba(59,130,246,0.6)",
+            backgroundColor: "rgba(15,23,42,0.9)",
+            fontSize: "0.75rem",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "0.25rem",
+              color: "#93c5fd",
+              fontWeight: 500,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
+            <span>Join requests</span>
+            <span
+              style={{
+                fontSize: "0.7rem",
+                color: "#60a5fa",
+              }}
+            >
+              {team.joinRequests.length} pending
+            </span>
+          </div>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}
+          >
+            {team.joinRequests.map((req) => (
+              <div
+                key={req.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <span
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {req.playerName}
+                </span>
+                <div style={{ display: "flex", gap: "0.3rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => onApproveRequest(team, req)}
+                    style={smallPrimaryButtonStyle}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRejectRequest(team, req)}
+                    style={smallSecondaryButtonStyle}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Members + actions row */}
       <div
         style={{
@@ -995,7 +1783,10 @@ function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
         }}
       >
         <span>
-          Members: <strong>{team.memberCount}</strong>
+          Members: <strong>{team.memberCount}</strong>{" "}
+          <span style={{ color: "#6b7280" }}>
+            / {team.maxSize || 7} · {visibilityLabel}
+          </span>
         </span>
 
         <div style={{ display: "flex", gap: "0.35rem" }}>
@@ -1014,6 +1805,157 @@ function TeamCard({ team, onDelete, onLeave, onPromote, onKick }) {
             style={secondaryButtonStyle}
           >
             Leave
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PublicTeamCard({ team, onRequestJoin }) {
+  const slots = buildMemberSlots(team.members || []);
+
+  let statusLabel = "";
+  let statusStyle = {};
+
+  if (team.iAmCaptain) {
+    statusLabel = "Captain";
+    statusStyle = { borderColor: "#f97316", color: "#fed7aa" };
+  } else if (team.iAmMember) {
+    statusLabel = "Joined";
+    statusStyle = { borderColor: "#22c55e", color: "#bbf7d0" };
+  } else if (team.hasPendingRequestByMe) {
+    statusLabel = "Requested";
+    statusStyle = { borderColor: "#3b82f6", color: "#bfdbfe" };
+  } else if (team.isFull) {
+    statusLabel = "Full";
+    statusStyle = { borderColor: "#6b7280", color: "#d1d5db" };
+  }
+
+  const canRequest =
+    !team.iAmCaptain &&
+    !team.iAmMember &&
+    !team.hasPendingRequestByMe &&
+    !team.isFull;
+
+  return (
+    <div style={teamCardStyle}>
+      {/* Header row */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "0.35rem",
+          gap: "0.5rem",
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "1rem",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {team.tag ? `[${team.tag}] ` : ""}
+          {team.name}
+        </h3>
+        <span style={gameBadgeStyle}>{team.game}</span>
+      </div>
+
+      {/* Member slots */}
+      <div
+        style={{
+          marginTop: "0.2rem",
+          display: "flex",
+          gap: "0.35rem",
+          justifyContent: "space-between",
+        }}
+      >
+        {slots.map((slot, idx) => (
+          <div
+            key={idx}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "0.3rem 0.35rem",
+              borderRadius: "999px",
+              border: `1px solid ${
+                slot?.isCaptain ? "#f97316" : "rgba(148,163,184,0.35)"
+              }`,
+              backgroundColor: slot ? "#020617" : "rgba(15,23,42,0.8)",
+              fontSize: "0.7rem",
+              textAlign: "center",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {slot ? (
+              <>
+                {slot.name}
+                {slot.isCaptain ? " (C)" : ""}
+              </>
+            ) : (
+              <span style={{ color: "#6b7280" }}>Open slot</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Footer row */}
+      <div
+        style={{
+          marginTop: "0.6rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "0.8rem",
+          color: "#9ca3af",
+        }}
+      >
+        <span>
+          Members: <strong>{team.memberCount}</strong>{" "}
+          <span style={{ color: "#6b7280" }}>/ {team.maxSize || 7}</span>
+        </span>
+        <div style={{ display: "flex", gap: "0.35rem", alignItems: "center" }}>
+          {statusLabel && (
+            <span
+              style={{
+                fontSize: "0.7rem",
+                padding: "2px 8px",
+                borderRadius: "999px",
+                border: "1px solid",
+                ...statusStyle,
+              }}
+            >
+              {statusLabel}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => canRequest && onRequestJoin(team)}
+            disabled={!canRequest}
+            style={{
+              padding: "0.25rem 0.7rem",
+              borderRadius: "999px",
+              border: "1px solid #3b82f6",
+              backgroundColor: canRequest ? "#1d283a" : "transparent",
+              color: "#bfdbfe",
+              fontSize: "0.75rem",
+              cursor: canRequest ? "pointer" : "default",
+              opacity: canRequest ? 1 : 0.6,
+            }}
+          >
+            {team.hasPendingRequestByMe
+              ? "Requested"
+              : team.iAmMember || team.iAmCaptain
+              ? "Joined"
+              : team.isFull
+              ? "Full"
+              : "Request to join"}
           </button>
         </div>
       </div>
@@ -1083,6 +2025,15 @@ const filterSelectStyle = {
   paddingRight: "2rem",
 };
 
+const miniSelectStyle = {
+  padding: "0.15rem 0.4rem",
+  borderRadius: "999px",
+  border: "1px solid #4b5563",
+  backgroundColor: "#020617",
+  color: "#e5e7eb",
+  fontSize: "0.7rem",
+};
+
 const dangerButtonStyle = {
   padding: "0.25rem 0.6rem",
   borderRadius: "999px",
@@ -1119,6 +2070,16 @@ const smallDangerButtonStyle = {
   border: "1px solid #f97373",
   backgroundColor: "transparent",
   color: "#fecaca",
+  fontSize: "0.7rem",
+  cursor: "pointer",
+};
+
+const smallSecondaryButtonStyle = {
+  padding: "0.15rem 0.5rem",
+  borderRadius: "999px",
+  border: "1px solid #4b5563",
+  backgroundColor: "transparent",
+  color: "#e5e7eb",
   fontSize: "0.7rem",
   cursor: "pointer",
 };

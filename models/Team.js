@@ -1,51 +1,78 @@
 // models/Team.js
 import mongoose from "mongoose";
 
-const { Schema, models, model } = mongoose;
+const { Schema } = mongoose;
 
-/**
- * game:
- *  - stored as a code like "VALORANT", "HOK"
- *  - UI will map code -> nice label (e.g. "Honor of Kings")
- */
 const TeamSchema = new Schema(
   {
+    // Display name for the team, e.g. "EDWARD GAMING"
     name: {
       type: String,
       required: true,
       trim: true,
-      uppercase: true, // always store team name in uppercase
     },
-    // Tag is REQUIRED and 1–4 characters, A–Z only, uppercase.
+
+    // Short tag that shows in brackets, e.g. "EDG"
     tag: {
       type: String,
       required: true,
       trim: true,
-      minlength: 1,
-      maxlength: 4,
       uppercase: true,
-      match: /^[A-Z]+$/, // only English letters
+      maxlength: 4,
     },
+
+    // Game code, e.g. "VALORANT", "HOK"
     game: {
       type: String,
       required: true,
-      default: "VALORANT",
+      trim: true,
+      uppercase: true,
     },
+
+    // Captain (owner) of the team
     captain: {
       type: Schema.Types.ObjectId,
       ref: "Player",
       required: true,
     },
+
+    // All members of the team (including captain)
     members: [
       {
         type: Schema.Types.ObjectId,
         ref: "Player",
       },
     ],
+
+    // 6-character invite code (A–Z, 0–9). Used for private joins.
+    joinCode: {
+      type: String,
+      unique: true, // no two teams share a code
+      sparse: true, // allows null when not yet generated
+      uppercase: true,
+      minlength: 6,
+      maxlength: 6,
+    },
+
+    // Whether this team is listed publicly in "Look for a team"
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Max number of members allowed on this team
+    maxSize: {
+      type: Number,
+      default: 7,
+      min: 1,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-export default models.Team || model("Team", TeamSchema);
+// Optional: index by game for faster public queries later
+TeamSchema.index({ game: 1, isPublic: 1 });
+
+export default mongoose.models.Team || mongoose.model("Team", TeamSchema);
