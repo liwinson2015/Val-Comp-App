@@ -97,6 +97,13 @@ export default function Navbar() {
             Tournaments
           </a>
 
+          {/* NEW: My Teams (only when logged in) */}
+          {!loading && loggedIn && (
+            <a href="/teams" className="nav-link">
+              My Teams
+            </a>
+          )}
+
           {/* Admin link: only visible if logged in AND admin */}
           {!loading && loggedIn && isAdmin && (
             <a href="/admin" className="nav-link">
