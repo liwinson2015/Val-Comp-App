@@ -180,7 +180,7 @@ export async function getServerSideProps({ req }) {
   });
 
   // featuredGames: keep only known games, max 3
-  const rawFeatured = Array.isArray(player.featureedGames)
+  const rawFeatured = Array.isArray(player.featuredGames)
     ? player.featuredGames
     : [];
   const featuredGames = rawFeatured
@@ -245,39 +245,53 @@ export default function Profile({
   );
 
   // currently selected game for editor
-  const [selectedGame, setSelectedGame] = useState("VALORANT");
+  const [selectedGame, setSelectedGame] = useState(GAME_DEFS[0].code); // default: first game (HOK)
 
-  // helper to also store in localStorage
+  // helper to also store in sessionStorage
   function selectGameAndStore(code) {
     setSelectedGame(code);
     try {
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("vc_profile_lastGame", code);
+        window.sessionStorage.setItem("vc_profile_lastGame", code);
       }
     } catch {
       // ignore storage errors
     }
   }
 
-  // on mount / when featuredGames changes, try to restore last game
+  // on mount / when featuredGames change, decide what to show
   useEffect(() => {
+    // Only restore lastGame when this is a *reload*
     try {
       if (typeof window !== "undefined") {
-        const saved = window.localStorage.getItem("vc_profile_lastGame");
-        if (saved && GAME_CODES.includes(saved)) {
-          setSelectedGame(saved);
-          return;
+        const navEntries = window.performance.getEntriesByType("navigation");
+        const navType = navEntries && navEntries[0] && navEntries[0].type;
+
+        if (navType === "reload") {
+          const saved = window.sessionStorage.getItem("vc_profile_lastGame");
+          if (saved && GAME_CODES.includes(saved)) {
+            setSelectedGame(saved);
+            return;
+          }
         }
+
+        // For normal navigation / coming back: always reset to first game
+        if (featuredGames[0]) {
+          setSelectedGame(featuredGames[0]);
+        } else {
+          setSelectedGame(GAME_DEFS[0].code);
+        }
+        return;
       }
     } catch {
-      // ignore
+      // ignore and fall through
     }
 
-    // fallback: first featured game or VALORANT
+    // SSR / fallback
     if (featuredGames[0]) {
       setSelectedGame(featuredGames[0]);
     } else {
-      setSelectedGame("VALORANT");
+      setSelectedGame(GAME_DEFS[0].code);
     }
   }, [featuredGames]);
 
