@@ -38,7 +38,7 @@ const GAME_DEFS = [
       "Grandmaster Legend",
     ],
     defaultRegion: "NA",
-    regions: ["NA", "EU", "SEA", "MENA", "Other"], // internal only
+    regions: ["NA", "EU", "SEA", "MENA", "Other"], // still stored, but we don't show "Server" in the UI now
   },
   {
     code: "TFT",
@@ -85,7 +85,7 @@ const GAME_DEFS = [
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
 
-// Adjust the paths here to match where you actually put the images
+// icons in /public/icons/*
 const GAME_ICON_PATHS = {
   HOK: "/icons/hok-icon.png",
   TFT: "/icons/tft-icon.png",
@@ -95,11 +95,11 @@ const GAME_ICON_PATHS = {
 // HOK: per-tier division options (non-Grandmaster)
 const HOK_DIVISIONS_BY_TIER = {
   Bronze: ["III", "II", "I"], // 3 sub-tiers
-  Silver: ["III", "II", "I"],
-  Gold: ["III", "II", "I"],
-  Platinum: ["IV", "III", "II", "I"],
-  Diamond: ["V", "IV", "III", "II", "I"],
-  Master: ["V", "IV", "III", "II", "I"],
+  Silver: ["III", "II", "I"], // assume 3 as well
+  Gold: ["III", "II", "I"], // 3 sub-tiers
+  Platinum: ["IV", "III", "II", "I"], // 4
+  Diamond: ["V", "IV", "III", "II", "I"], // 5
+  Master: ["V", "IV", "III", "II", "I"], // 5
   // Grandmaster family uses stars instead of divisions
 };
 
@@ -380,10 +380,12 @@ export default function Profile({
           </p>
 
           <div className={styles.gameLayout}>
-            {/* LEFT SIDEBAR */}
+            {/* LEFT – Featured sidebar */}
             <aside className={styles.featuredSidebar}>
               <div className={styles.featuredSidebarHeader}>
-                <div className={styles.featuredSidebarTitle}>FEATURED GAMES</div>
+                <div className={styles.featuredSidebarTitle}>
+                  FEATURED GAMES
+                </div>
                 <div className={styles.featuredSidebarSub}>
                   Up to 3 profiles shown on your player card.
                 </div>
@@ -395,22 +397,25 @@ export default function Profile({
                     key={code}
                     code={code}
                     profile={profiles[code] || {}}
-                    selected={selectedGame === code}
+                    isActive={selectedGame === code}
                     onClick={() => handleFeaturedCardClick(code)}
                   />
                 ))}
 
-                {/* Empty slots */}
+                {/* Empty slots up to 3 */}
                 {featuredGames.length < 3 &&
                   Array.from({ length: 3 - featuredGames.length }).map(
                     (_, idx) => (
-                      <div key={`empty-${idx}`} className={styles.featuredEmpty}>
+                      <div
+                        key={`empty-${idx}`}
+                        className={styles.featuredEmpty}
+                      >
                         <div className={styles.featuredEmptyTitle}>
                           Empty slot
                         </div>
                         <div>
-                          Choose a game in the editor on the right and mark it
-                          as featured to show it here.
+                          Choose a game in the editor and mark it as featured to
+                          show it here.
                         </div>
                       </div>
                     )
@@ -418,7 +423,7 @@ export default function Profile({
               </div>
             </aside>
 
-            {/* RIGHT EDITOR */}
+            {/* RIGHT – Editor panel */}
             <div className={styles.gameMain}>
               <div className={styles.gameEditorTopRow}>
                 <div className={styles.gameSelectWrap}>
@@ -445,9 +450,11 @@ export default function Profile({
                 <button
                   type="button"
                   onClick={() => handleToggleFeatured(selectedGame)}
-                  className={`${styles.featureToggle} ${
-                    isSelectedFeatured ? styles.featureToggleActive : ""
-                  }`}
+                  className={
+                    isSelectedFeatured
+                      ? `${styles.featureToggle} ${styles.featureToggleActive}`
+                      : styles.featureToggle
+                  }
                 >
                   {isSelectedFeatured ? "Unfeature game" : "Feature this game"}
                 </button>
@@ -577,7 +584,7 @@ export default function Profile({
 }
 
 // ---------- Featured game card ----------
-function FeaturedGameCard({ code, profile, onClick, selected }) {
+function FeaturedGameCard({ code, profile, onClick, isActive }) {
   const def = GAME_DEFS.find((g) => g.code === code);
   if (!def) return null;
 
@@ -594,19 +601,21 @@ function FeaturedGameCard({ code, profile, onClick, selected }) {
     <button
       type="button"
       onClick={onClick}
-      className={`${styles.featuredCard} ${
-        selected ? styles.featuredCardActive : ""
-      }`}
+      className={
+        isActive
+          ? `${styles.featuredCard} ${styles.featuredCardActive}`
+          : styles.featuredCard
+      }
     >
-      {iconSrc && (
-        <div className={styles.featuredIcon}>
+      <div className={styles.featuredIcon}>
+        {iconSrc && (
           <img
             src={iconSrc}
             alt={`${def.label} icon`}
             className={styles.featuredIconImg}
           />
-        </div>
-      )}
+        )}
+      </div>
       <div className={styles.featuredText}>
         <div className={styles.featuredGameLabel}>{def.label}</div>
         <div className={styles.featuredIgn}>{ign}</div>
@@ -978,6 +987,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             ))}
         </div>
       ) : (
+        // SINGLE_NAME (HoK)
         <div
           style={{
             marginTop: "0.2rem",
@@ -1129,6 +1139,15 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             allowEmpty
           />
         </div>
+      )}
+
+      {/* Spacer so non-TFT games roughly match TFT form height */}
+      {gameDef.code !== "TFT" && (
+        <div
+          style={{
+            height: "2.4rem",
+          }}
+        />
       )}
 
       {/* Bottom explanatory text – per game, talking about future tournaments */}
