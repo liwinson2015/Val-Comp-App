@@ -259,7 +259,7 @@
   height: 90px;
 }
 
-/* Base EMPTY slot */
+/* Base Empty Slot */
 .slot {
   flex: 1;
   height: 50px;
@@ -268,65 +268,46 @@
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
-
-  background: #020617; /* plain dark for empty */
+  background: #020617;
   border: 1px solid #1e293b;
   color: #64748b;
-  border-radius: 8px;
+  border-radius: 8px; /* Match image corners */
   white-space: nowrap;
   overflow: hidden;
   position: relative;
   transition: all 0.2s ease;
 }
 
-/* Shared overlay (only visible when filled) */
-.slot::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top left, rgba(15, 23, 42, 0.15), transparent 45%),
-    radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95));
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  z-index: 0;
-}
-
-/* FILLED slot (captain + members share same Valorant BG) */
+/* 1. MEMBER FILLED (Uses your image) */
 .slotFilled {
-  background-image: url("/images/team-slot-bg.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-
-  border-color: #334155;
+  background: url('/images/team-slot-bg.png') center center / cover no-repeat;
+  border: none; /* Image has its own border */
   color: #f0f9ff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Adds a slight dark overlay so text is readable over the image */
+  box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.3);
 }
 
-.slotFilled::before {
-  opacity: 1;
-}
-
-/* CAPTAIN slot – bigger + gold glow */
+/* 2. CAPTAIN FILLED (Uses your image, bigger size) */
 .slotCaptain {
   height: 80px;
   flex: 1.3;
   z-index: 2;
-
-  border: 1px solid rgba(245, 158, 11, 0.7);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.5),
-    0 0 18px rgba(245, 158, 11, 0.4);
+  background: url('/images/team-slot-bg.png') center center / cover no-repeat;
+  border: none;
   color: #fffbeb;
+  /* Slightly stronger overlay for captain, plus outer glow */
+  box-shadow:
+    inset 0 0 0 100px rgba(0, 0, 0, 0.3),
+    0 10px 25px -5px rgba(0, 0, 0, 0.5);
 }
 
-/* Highlight for "me" */
+/* 3. ME Highlight (Green Border Override) */
 .slotMe {
-  border-color: #22c55e !important;
+  /* We use box-shadow for the green highlight so it sits on top of the image border */
   box-shadow:
-    0 0 0 1px #22c55e,
-    0 0 20px rgba(34, 197, 94, 0.2) !important;
+    inset 0 0 0 100px rgba(0, 0, 0, 0.3), /* Keep the dark overlay */
+    0 0 0 2px #22c55e, /* Green border */
+    0 0 20px rgba(34, 197, 94, 0.3) !important; /* Green glow */
   z-index: 3;
 }
 
@@ -339,12 +320,15 @@
   text-overflow: ellipsis;
   max-width: 95%;
   font-size: 0.85rem;
+  /* Text shadow to help readability on complex backgrounds */
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .captainStar {
   font-size: 14px;
   color: #f59e0b;
   margin-bottom: 2px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 /* --- Roster Management (Kick/Promote List) --- */
