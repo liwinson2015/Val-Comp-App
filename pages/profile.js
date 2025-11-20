@@ -1,4 +1,4 @@
-// pages/profile.js
+// finalpages/profile.js
 import { useState } from "react";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
