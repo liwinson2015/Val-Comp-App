@@ -1237,27 +1237,47 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       )}
 
-      <div
+            <div
         style={{
           marginTop: "0.25rem",
           fontSize: "0.75rem",
           color: isEmpty ? "#fbbf24" : "#9ca3af",
         }}
       >
-        {isEmpty ? (
-          <>
-            You haven&apos;t set your {gameDef.label} profile yet. Enter your
-            info and we&apos;ll save it to your account and use it for teams and
-            tournaments.
-          </>
-        ) : (
-          <>
-            This info comes from your {gameDef.label} profile. Make sure it&apos;s
-            correct – if it&apos;s wrong, you might not be able to play. Any
-            changes here will also update your profile.
-          </>
-        )}
+        {(() => {
+          let usageLine = "";
+
+          if (gameDef.code === "VALORANT") {
+            usageLine =
+              "This information will be used when you sign up for VALORANT tournaments. Make sure it matches your in-game details.";
+          } else if (gameDef.code === "TFT") {
+            usageLine =
+              "This information will be used when you sign up for Teamfight Tactics tournaments. Make sure it matches your in-game details.";
+          } else if (gameDef.code === "HOK") {
+            usageLine =
+              "This information will be used when you sign up for Honor of Kings tournaments. Make sure it matches your in-game details.";
+          } else {
+            usageLine =
+              "This information will be used when you sign up for tournaments. Make sure it matches your in-game details.";
+          }
+
+          if (isEmpty) {
+            return (
+              <>
+                You haven&apos;t set your {gameDef.label} profile yet.{" "}
+                {usageLine}
+              </>
+            );
+          }
+
+          return (
+            <>
+              {usageLine} If it&apos;s wrong, you might not be able to play.
+            </>
+          );
+        })()}
       </div>
+
 
       <div
         style={{
