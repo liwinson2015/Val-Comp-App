@@ -61,10 +61,10 @@
   letter-spacing: 0.05em;
 }
 
-/* --- Control Bar (The long bar with join/filter) --- */
+/* --- Control Bar --- */
 .controlBar {
   display: grid;
-  grid-template-columns: 1fr auto; /* Left filters, Right actions */
+  grid-template-columns: 1fr auto;
   gap: 1rem;
   margin-bottom: 2rem;
   align-items: center;
@@ -87,7 +87,6 @@
   align-items: center;
 }
 
-/* Input Styles */
 .inputGroup {
   display: flex;
   flex-direction: column;
@@ -140,7 +139,6 @@
   margin-top: 4px;
 }
 
-/* Action Buttons (Find / Create) */
 .actionGroup {
   display: flex;
   gap: 10px;
@@ -172,7 +170,8 @@
 /* --- Team Grid --- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* UPDATED: Changed minmax to 500px to force wider cards (roughly half page on desktop) */
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 20px;
 }
 
@@ -180,7 +179,7 @@
   background: #0f1219;
   border: 1px solid #222636;
   border-radius: 16px;
-  padding: 1.25rem;
+  padding: 1.5rem; /* Increased padding */
   transition: border-color 0.2s, transform 0.2s;
   display: flex;
   flex-direction: column;
@@ -195,11 +194,11 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 
 .teamName {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   margin: 0;
   line-height: 1.2;
@@ -211,8 +210,8 @@
 }
 
 .gameBadge {
-  font-size: 0.65rem;
-  padding: 3px 8px;
+  font-size: 0.7rem;
+  padding: 4px 10px;
   border-radius: 99px;
   background: #1e293b;
   color: #94a3b8;
@@ -230,7 +229,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .codeDisplay {
@@ -252,37 +251,67 @@
 }
 .miniBtn:hover { background: #1e293b; color: #fff; }
 
-/* Slots Visualizer */
+/* --- NEW SLOTS VISUALIZER --- */
 .slotsContainer {
   display: flex;
-  gap: 6px;
-  margin-bottom: 1rem;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+  align-items: flex-end; /* Align bottoms so captain grows up */
+  height: 90px; /* Fixed height to contain the big captain */
 }
 
+/* Base Slot Style */
 .slot {
   flex: 1;
-  height: 32px;
+  height: 50px; /* Standard height */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
   background: #020617;
   border: 1px solid #1e293b;
   color: #64748b;
-  border-radius: 6px;
+  border-radius: 8px;
   white-space: nowrap;
   overflow: hidden;
+  position: relative;
+  transition: all 0.2s ease;
 }
 
+/* Filled Slot */
 .slotFilled {
   background: #1e293b;
   color: #f8fafc;
   border-color: #334155;
 }
 
+/* The Center Captain Slot (Bigger) */
 .slotCaptain {
-  border-color: #f59e0b; /* Amber border for captain */
-  color: #fbbf24;
+  height: 80px; /* Taller */
+  flex: 1.3; /* Wider */
+  border-color: #f59e0b; 
+  background: radial-gradient(circle at center, #451a03 0%, #0f172a 100%);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+  z-index: 2;
+}
+
+/* The "Me" Highlight (Highlighted Border) */
+.slotMe {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 1px #22c55e, 0 0 15px rgba(34, 197, 94, 0.2);
+  z-index: 3;
+}
+
+.slotName {
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.captainStar {
+  font-size: 14px;
+  color: #f59e0b;
+  margin-bottom: 2px;
 }
 
 /* Footer Actions */
