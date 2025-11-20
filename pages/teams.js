@@ -5,6 +5,7 @@ import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import Team from "../models/Team";
 import TeamJoinRequest from "../models/TeamJoinRequest";
+import styles from "../styles/Teams.module.css"; // IMPORT THE NEW CSS
 
 // Supported games for UI and filtering
 const SUPPORTED_GAMES = [
@@ -332,89 +333,87 @@ export default function TeamsPage({
   }
 
   // ----- join by invite code (works for public and private) -----
-async function handleJoinByCode(e) {
-  e.preventDefault();
-  setJoinCodeError("");
+  async function handleJoinByCode(e) {
+    e.preventDefault();
+    setJoinCodeError("");
 
-  const code = (joinCodeInput || "").trim().toUpperCase();
-  if (!code || code.length !== 6) {
-    setJoinCodeError("Invite code must be 6 characters.");
-    return;
-  }
-
-  setJoiningByCode(true);
-  try {
-    const res = await fetch("/api/teams/join", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ joinCode: code }),
-    });
-    const data = await res.json();
-    if (!data.ok) {
-      setJoinCodeError(data.error || "Failed to join with this code.");
+    const code = (joinCodeInput || "").trim().toUpperCase();
+    if (!code || code.length !== 6) {
+      setJoinCodeError("Invite code must be 6 characters.");
       return;
     }
 
-    if (data.joined && data.team) {
-      const existing = teams.find((t) => t.id === data.team.id);
-      if (!existing) {
-        const members = [];
-
-        // add captain first if it's not me
-        if (data.team.captainId && data.team.captainId !== player.id) {
-          members.push({
-            id: data.team.captainId,
-            name: data.team.captainName || "Captain",
-            isCaptain: true,
-          });
-        }
-
-        // add me
-        members.push({
-          id: player.id,
-          name: player.username,
-          isCaptain: data.team.captainId === player.id, // should be false normally
-        });
-
-        const newTeam = {
-          id: data.team.id,
-          name: data.team.name,
-          tag: data.team.tag || "",
-          game: data.team.game,
-          memberCount: data.team.memberCount || members.length,
-          isCaptain: data.team.captainId === player.id,
-          isPublic: !!data.team.isPublic,
-          maxSize: data.team.maxSize || 7,
-          joinCode: data.team.joinCode || null,
-          members,
-          joinRequests: [],
-        };
-
-        setTeams((prev) => [...prev, newTeam]);
+    setJoiningByCode(true);
+    try {
+      const res = await fetch("/api/teams/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ joinCode: code }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setJoinCodeError(data.error || "Failed to join with this code.");
+        return;
       }
-      setJoinCodeInput("");
-    }
-  } catch (err) {
-    console.error(err);
-    setJoinCodeError("Something went wrong.");
-  } finally {
-    setJoiningByCode(false);
-  }
-}
 
+      if (data.joined && data.team) {
+        const existing = teams.find((t) => t.id === data.team.id);
+        if (!existing) {
+          const members = [];
+          // add captain first if it's not me
+          if (data.team.captainId && data.team.captainId !== player.id) {
+            members.push({
+              id: data.team.captainId,
+              name: data.team.captainName || "Captain",
+              isCaptain: true,
+            });
+          }
+          // add me
+          members.push({
+            id: player.id,
+            name: player.username,
+            isCaptain: data.team.captainId === player.id,
+          });
+
+          const newTeam = {
+            id: data.team.id,
+            name: data.team.name,
+            tag: data.team.tag || "",
+            game: data.team.game,
+            memberCount: data.team.memberCount || members.length,
+            isCaptain: data.team.captainId === player.id,
+            isPublic: !!data.team.isPublic,
+            maxSize: data.team.maxSize || 7,
+            joinCode: data.team.joinCode || null,
+            members,
+            joinRequests: [],
+          };
+
+          setTeams((prev) => [...prev, newTeam]);
+        }
+        setJoinCodeInput("");
+      }
+    } catch (err) {
+      console.error(err);
+      setJoinCodeError("Something went wrong.");
+    } finally {
+      setJoiningByCode(false);
+    }
+  }
 
   // ---- delete / leave / promote / kick handlers ----
   async function handleDeleteTeam(team) {
     if (
       !window.confirm(
-        `Delete team ${team.tag ? `[${team.tag}] ` : ""}${team.name}? This cannot be undone.`
+        `Delete team ${team.tag ? `[${team.tag}] ` : ""}${
+          team.name
+        }? This cannot be undone.`
       )
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "DELETE",
@@ -433,7 +432,6 @@ async function handleJoinByCode(e) {
 
   async function handleLeaveTeam(team) {
     const otherMembers = (team.members || []).filter((m) => !m.isCaptain);
-
     if (team.isCaptain) {
       if (otherMembers.length > 0) {
         alert(
@@ -447,8 +445,6 @@ async function handleJoinByCode(e) {
         return;
       }
     }
-
-    // normal member can leave
     if (
       !window.confirm(
         `Leave team ${team.tag ? `[${team.tag}] ` : ""}${team.name}?`
@@ -456,7 +452,6 @@ async function handleJoinByCode(e) {
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
@@ -470,8 +465,6 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to leave team.");
         return;
       }
-
-      // once you leave, this team no longer shows under "My Teams"
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
     } catch (err) {
       console.error(err);
@@ -482,14 +475,13 @@ async function handleJoinByCode(e) {
   async function handlePromote(team, member) {
     if (
       !window.confirm(
-        `Promote ${member.name} to captain of ${team.tag ? `[${team.tag}] ` : ""}${
-          team.name
-        }?`
+        `Promote ${member.name} to captain of ${
+          team.tag ? `[${team.tag}] ` : ""
+        }${team.name}?`
       )
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
@@ -506,9 +498,7 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to promote member.");
         return;
       }
-
       const newCaptainId = data.newCaptainId;
-
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
@@ -539,7 +529,6 @@ async function handleJoinByCode(e) {
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
@@ -556,7 +545,6 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to kick member.");
         return;
       }
-
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
@@ -576,7 +564,6 @@ async function handleJoinByCode(e) {
     }
   }
 
-  // ----- visibility toggle (private/public) -----
   async function handleToggleVisibility(team, nextIsPublic) {
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
@@ -594,10 +581,7 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to update visibility.");
         return;
       }
-
       const isPublic = !!data.isPublic;
-
-      // update my teams
       setTeams((prev) =>
         prev.map((t) =>
           t.id === team.id
@@ -614,7 +598,6 @@ async function handleJoinByCode(e) {
     }
   }
 
-  // ----- regenerate invite code -----
   async function handleRegenJoinCode(team) {
     if (
       !window.confirm(
@@ -625,7 +608,6 @@ async function handleJoinByCode(e) {
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
@@ -641,7 +623,6 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to regenerate invite code.");
         return;
       }
-
       const newCode = data.joinCode || null;
       setTeams((prev) =>
         prev.map((t) =>
@@ -659,7 +640,6 @@ async function handleJoinByCode(e) {
     }
   }
 
-  // ----- captain approve / reject join requests -----
   async function handleApproveRequest(team, req) {
     if (
       !window.confirm(
@@ -670,7 +650,6 @@ async function handleJoinByCode(e) {
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/requests/${req.id}`, {
         method: "POST",
@@ -684,8 +663,6 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to approve request.");
         return;
       }
-
-      // Update my teams
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
@@ -724,7 +701,6 @@ async function handleJoinByCode(e) {
     ) {
       return;
     }
-
     try {
       const res = await fetch(`/api/teams/requests/${req.id}`, {
         method: "POST",
@@ -738,7 +714,6 @@ async function handleJoinByCode(e) {
         alert(data.error || "Failed to reject request.");
         return;
       }
-
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
@@ -773,153 +748,58 @@ async function handleJoinByCode(e) {
   const hasAnyVisibleTeams = visibleTeams.length > 0;
 
   return (
-    <div className="shell">
-      <div className="contentWrap">
+    <div className={styles.shell}>
+      <div className={styles.wrap}>
         {/* Header */}
-        <div
-          style={{
-            marginBottom: "1.5rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "1rem",
-          }}
-        >
-          <div>
-            <h1 style={{ margin: 0, fontSize: "1.7rem" }}>My Teams</h1>
-            <p style={{ margin: "0.35rem 0", color: "#9ca3af" }}>
-              Logged in as <strong>{player.username}</strong>
-            </p>
-            <p
-              style={{
-                margin: 0,
-                color: "#6b7280",
-                fontSize: "0.9rem",
-                maxWidth: "30rem",
-              }}
-            >
-              Teams are tied to a game (like VALORANT or Honor of Kings). Public
-              teams can appear in the join browser. Invite codes work for both
-              public and private teams.
-            </p>
-          </div>
+        <div className={styles.header}>
+          <span className={styles.userBadge}>Logged in as {player.username}</span>
+          <h1 className={styles.title}>My Teams</h1>
+          <p className={styles.subtitle}>
+            Manage your squads, create new teams, or join existing ones using an
+            invite code. Your teams will appear here and on your profile.
+          </p>
         </div>
 
-        {/* Join-by-code + filters row */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            marginBottom: "1.2rem",
-          }}
-        >
-          {/* Join a team by code */}
-          <form
-            onSubmit={handleJoinByCode}
-            style={{
-              padding: "0.8rem 1rem",
-              borderRadius: "12px",
-              border: "1px solid rgba(148,163,184,0.4)",
-              backgroundColor: "#020617",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ minWidth: "180px" }}>
-              <div
-                style={{
-                  fontSize: "0.85rem",
-                  fontWeight: 500,
-                  marginBottom: "0.2rem",
-                }}
-              >
-                Join a team by code
+        {/* CONTROL BAR: Join / Filter / Actions */}
+        <div className={styles.controlBar}>
+          <div className={styles.glassPanel}>
+            {/* Join a team by code */}
+            <form onSubmit={handleJoinByCode} className={styles.inputGroup}>
+              <span className={styles.label}>Join by code</span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  value={joinCodeInput}
+                  onChange={(e) =>
+                    setJoinCodeInput((e.target.value || "").toUpperCase())
+                  }
+                  placeholder="ABC123"
+                  maxLength={6}
+                  className={styles.input}
+                  style={{ width: "120px", textAlign: "center", letterSpacing: "2px" }}
+                />
+                <button
+                  type="submit"
+                  disabled={joiningByCode}
+                  className={styles.joinBtn}
+                >
+                  {joiningByCode ? "..." : "Join"}
+                </button>
               </div>
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#9ca3af",
-                }}
-              >
-                Enter a 6-character invite code from the team captain.
-              </div>
-            </div>
-            <input
-              value={joinCodeInput}
-              onChange={(e) =>
-                setJoinCodeInput((e.target.value || "").toUpperCase())
-              }
-              placeholder="ABC123"
-              maxLength={6}
-              style={{
-                ...inputStyle,
-                maxWidth: "140px",
-                textAlign: "center",
-                letterSpacing: "0.2em",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={joiningByCode}
-              style={{
-                padding: "0.4rem 0.9rem",
-                borderRadius: "999px",
-                border: "1px solid #22c55e",
-                background:
-                  "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
-                color: "white",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                cursor: joiningByCode ? "default" : "pointer",
-                opacity: joiningByCode ? 0.7 : 1,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {joiningByCode ? "Joining..." : "Join"}
-            </button>
-            {joinCodeError && (
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#fca5a5",
-                  flexBasis: "100%",
-                }}
-              >
-                {joinCodeError}
-              </div>
-            )}
-          </form>
+              {joinCodeError && (
+                <span className={styles.errorText}>{joinCodeError}</span>
+              )}
+            </form>
 
-          {/* Filter bar */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "1rem",
-              alignItems: "flex-end",
-            }}
-          >
-            {/* Game filter */}
-            <div style={{ minWidth: "200px" }}>
-              <label
-                htmlFor="game-filter"
-                style={{
-                  display: "block",
-                  marginBottom: "0.25rem",
-                  fontSize: "0.8rem",
-                  color: "#9ca3af",
-                }}
-              >
-                Game
+            {/* Game Filter */}
+            <div className={styles.inputGroup}>
+              <label htmlFor="game-filter" className={styles.label}>
+                Filter Game
               </label>
               <select
                 id="game-filter"
                 value={selectedGame}
                 onChange={handleGameSelect}
-                style={filterSelectStyle}
+                className={styles.select}
               >
                 <option value="ALL">All games</option>
                 {supportedGames.map((g) => (
@@ -930,237 +810,113 @@ async function handleJoinByCode(e) {
               </select>
             </div>
 
-            {/* Role filter */}
-            <div style={{ minWidth: "200px" }}>
-              <label
-                htmlFor="role-filter"
-                style={{
-                  display: "block",
-                  marginBottom: "0.25rem",
-                  fontSize: "0.8rem",
-                  color: "#9ca3af",
-                }}
-              >
-                Role
+            {/* Role Filter */}
+            <div className={styles.inputGroup}>
+              <label htmlFor="role-filter" className={styles.label}>
+                Filter Role
               </label>
               <select
                 id="role-filter"
                 value={roleFilter}
                 onChange={handleRoleSelect}
-                style={filterSelectStyle}
+                className={styles.select}
               >
                 <option value="ALL">All roles</option>
                 <option value="CAPTAIN">Captain teams</option>
                 <option value="MEMBER">Joined teams</option>
               </select>
             </div>
+          </div>
 
-            <div style={{ flex: 1 }} />
-
-            {/* Find a team (browse) */}
+          {/* Right side actions */}
+          <div className={styles.actionGroup}>
             <button
               type="button"
               onClick={() => router.push("/teams/join")}
-              style={{
-                padding: "0.45rem 0.9rem",
-                borderRadius: "999px",
-                border: "1px solid #3b82f6",
-                background:
-                  "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 40%, #0f172a 100%)",
-                color: "white",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                alignSelf: "flex-end",
-                marginRight: "0.5rem",
-              }}
+              className={styles.primaryBtn}
             >
               Find a Team
             </button>
-
-            {/* Create team */}
             <button
               type="button"
               onClick={openModal}
-              style={{
-                padding: "0.45rem 0.9rem",
-                borderRadius: "999px",
-                border: "1px solid #22c55e",
-                background:
-                  "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
-                color: "white",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                alignSelf: "flex-end",
-              }}
+              className={styles.createBtn}
             >
-              + Create team
+              + Create
             </button>
           </div>
         </div>
 
-        {/* Count */}
-        <p
-          style={{
-            margin: "0 0 0.75rem",
-            fontSize: "0.9rem",
-            color: "#9ca3af",
-          }}
-        >
-          You have <strong>{visibleTeams.length}</strong> team
-          {visibleTeams.length === 1 ? "" : "s"} in this view.
+        {/* Counts & Grid */}
+        <p style={{ margin: "0 0 1rem", fontSize: "0.9rem", color: "#64748b" }}>
+          Showing <strong>{visibleTeams.length}</strong> active team
+          {visibleTeams.length === 1 ? "" : "s"}
         </p>
 
-        {/* My Teams list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div className={styles.grid}>
           {!hasAnyVisibleTeams && (
-            <div style={cardStyle}>
-              <h2
-                style={{
-                  marginTop: 0,
-                  marginBottom: "0.4rem",
-                  fontSize: "1.05rem",
-                }}
-              >
-                No teams match this filter
-              </h2>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "0.9rem",
-                  color: "#9ca3af",
-                }}
-              >
-                Try switching the game or role filters above, join a team using
-                an invite code, or create a new team with the{" "}
-                <strong>Create team</strong> button.
+            <div
+              className={styles.emptyState}
+              style={{ gridColumn: "1 / -1" }}
+            >
+              <div className={styles.emptyIcon}>∅</div>
+              <h3 style={{ color: "#fff", margin: "0 0 0.5rem" }}>
+                No teams found
+              </h3>
+              <p style={{ margin: 0 }}>
+                Adjust your filters or create a new team to get started.
               </p>
             </div>
           )}
 
-          {hasAnyVisibleTeams && (
-            <section>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: "0.75rem",
-                }}
-              >
-                {visibleTeams.map((team) => (
-                  <TeamCard
-                    key={team.id}
-                    team={team}
-                    onDelete={handleDeleteTeam}
-                    onLeave={handleLeaveTeam}
-                    onPromote={handlePromote}
-                    onKick={handleKick}
-                    onToggleVisibility={handleToggleVisibility}
-                    onRegenJoinCode={handleRegenJoinCode}
-                    onApproveRequest={handleApproveRequest}
-                    onRejectRequest={handleRejectRequest}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          {hasAnyVisibleTeams &&
+            visibleTeams.map((team) => (
+              <TeamCard
+                key={team.id}
+                team={team}
+                onDelete={handleDeleteTeam}
+                onLeave={handleLeaveTeam}
+                onPromote={handlePromote}
+                onKick={handleKick}
+                onToggleVisibility={handleToggleVisibility}
+                onRegenJoinCode={handleRegenJoinCode}
+                onApproveRequest={handleApproveRequest}
+                onRejectRequest={handleRejectRequest}
+              />
+            ))}
         </div>
       </div>
 
-      {/* Create team modal */}
+      {/* Create Team Modal */}
       {showModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 4000,
-          }}
-          onClick={closeModal}
-        >
+        <div className={styles.modalOverlay} onClick={closeModal}>
           <div
-            style={{
-              width: "100%",
-              maxWidth: "420px",
-              margin: "0 1rem",
-              borderRadius: "16px",
-              border: "1px solid rgba(148,163,184,0.5)",
-              background:
-                "radial-gradient(circle at top left, #111827 0, #020617 60%)",
-              padding: "1.2rem 1.3rem 1.1rem",
-              boxShadow: "0 20px 45px rgba(0,0,0,0.6)",
-            }}
+            className={styles.modalContent}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "0.75rem",
-              }}
+            <button
+              type="button"
+              onClick={closeModal}
+              className={styles.closeModal}
             >
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.15rem",
-                }}
-              >
-                Create a team
-              </h2>
-              <button
-                type="button"
-                onClick={closeModal}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#9ca3af",
-                  cursor: submitting ? "default" : "pointer",
-                  fontSize: "1.1rem",
-                  padding: "0 0 0 0.25rem",
-                }}
-                aria-label="Close"
-                disabled={submitting}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p
-              style={{
-                margin: "0 0 0.9rem",
-                fontSize: "0.85rem",
-                color: "#9ca3af",
-              }}
-            >
-              Choose a game, give your team a name and a short tag (up to 4
-              letters). The tag is what will show up in brackets in the bracket
-              view, like [EDG].
+              &times;
+            </button>
+            <h2 className={styles.modalTitle}>Create a new Team</h2>
+            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              Assemble your squad. You will be assigned as the Captain.
             </p>
 
             <form onSubmit={handleCreate}>
-              <div style={{ marginBottom: "0.75rem" }}>
-                <label
-                  htmlFor="team-game"
-                  style={{
-                    display: "block",
-                    marginBottom: "0.25rem",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  Game *
+              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+                <label htmlFor="team-game" className={styles.label}>
+                  Game
                 </label>
                 <select
                   id="team-game"
                   value={game}
                   onChange={(e) => setGame(e.target.value)}
-                  style={inputStyle}
+                  className={styles.select}
+                  style={{ width: "100%" }}
                 >
                   {supportedGames.map((g) => (
                     <option key={g.code} value={g.code}>
@@ -1170,16 +926,9 @@ async function handleJoinByCode(e) {
                 </select>
               </div>
 
-              <div style={{ marginBottom: "0.75rem" }}>
-                <label
-                  htmlFor="team-name"
-                  style={{
-                    display: "block",
-                    marginBottom: "0.25rem",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  Team name *
+              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+                <label htmlFor="team-name" className={styles.label}>
+                  Team Name
                 </label>
                 <input
                   id="team-name"
@@ -1187,74 +936,36 @@ async function handleJoinByCode(e) {
                   value={name}
                   onChange={handleNameChange}
                   placeholder="e.g. EDWARD GAMING"
-                  style={inputStyle}
+                  className={styles.input}
+                  style={{ width: "100%" }}
                 />
               </div>
 
-              <div style={{ marginBottom: "0.75rem" }}>
-                <label
-                  htmlFor="team-tag"
-                  style={{
-                    display: "block",
-                    marginBottom: "0.25rem",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  Tag * (1–4 letters)
+              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+                <label htmlFor="team-tag" className={styles.label}>
+                  Tag (Max 4 chars)
                 </label>
                 <input
                   id="team-tag"
                   type="text"
                   value={tag}
                   onChange={handleTagChange}
-                  placeholder="e.g. EDG"
+                  placeholder="EDG"
                   maxLength={4}
-                  style={inputStyle}
+                  className={styles.input}
+                  style={{ width: "100%" }}
                 />
-                <p
-                  style={{
-                    margin: "0.25rem 0 0",
-                    fontSize: "0.75rem",
-                    color: "#6b7280",
-                  }}
-                >
-                  Only A–Z letters are allowed. This tag shows in brackets in
-                  the bracket view.
-                </p>
               </div>
 
-              {error && (
-                <p
-                  style={{
-                    color: "#fca5a5",
-                    marginTop: "0.25rem",
-                    marginBottom: "0.5rem",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  {error}
-                </p>
-              )}
+              {error && <p className={styles.errorText}>{error}</p>}
 
               <button
                 type="submit"
                 disabled={submitting}
-                style={{
-                  marginTop: "0.5rem",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  border: "none",
-                  background:
-                    "linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #0f172a 100%)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: "0.9rem",
-                  cursor: submitting ? "default" : "pointer",
-                  opacity: submitting ? 0.7 : 1,
-                  width: "100%",
-                }}
+                className={styles.createBtn}
+                style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}
               >
-                {submitting ? "Creating..." : "Create team"}
+                {submitting ? "Creating..." : "Confirm Creation"}
               </button>
             </form>
           </div>
@@ -1264,7 +975,8 @@ async function handleJoinByCode(e) {
   );
 }
 
-// ---------- subcomponents ----------
+// ---------- Subcomponents (Styled with CSS Modules) ----------
+
 function TeamCard({
   team,
   onDelete,
@@ -1279,7 +991,6 @@ function TeamCard({
   const slots = buildMemberSlots(team.members || []);
   const otherMembers = (team.members || []).filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
-
   const visibilityLabel = team.isPublic ? "Public" : "Private";
 
   function handleCopyCode() {
@@ -1290,54 +1001,85 @@ function TeamCard({
   }
 
   return (
-    <div style={teamCardStyle}>
-      {/* Header row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "0.35rem",
-          gap: "0.5rem",
-        }}
-      >
-        <h3
-          style={{
-            margin: 0,
-            fontSize: "1rem",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {team.tag ? `[${team.tag}] ` : ""}
-          {team.name}
-        </h3>
-        <span style={gameBadgeStyle}>{team.game}</span>
+    <div className={styles.teamCard}>
+      {/* Header */}
+      <div className={styles.cardHeader}>
+        <div>
+          <h3 className={styles.teamName}>
+            <span className={styles.teamTag}>
+              {team.tag ? `[${team.tag}]` : ""}
+            </span>{" "}
+            {team.name}
+          </h3>
+        </div>
+        <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
-      {/* Visibility + invite code (captain only) */}
+      {/* Code Box (Captain only) */}
       {team.isCaptain && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: "0.5rem",
-            marginBottom: "0.5rem",
-            fontSize: "0.75rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <span style={{ color: "#9ca3af" }}>Visibility:</span>
+        <div className={styles.codeBox}>
+          <span className={styles.codeDisplay}>
+            {team.joinCode || "NO CODE"}
+          </span>
+          <div>
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              disabled={!team.joinCode}
+              className={styles.miniBtn}
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              onClick={() => onRegenJoinCode(team)}
+              className={styles.miniBtn}
+            >
+              New
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Slots Visualizer */}
+      <div className={styles.slotsContainer}>
+        {slots.map((slot, idx) => {
+          let slotClass = styles.slot;
+          if (slot) slotClass += ` ${styles.slotFilled}`;
+          if (slot?.isCaptain) slotClass += ` ${styles.slotCaptain}`;
+
+          return (
+            <div key={idx} className={slotClass} title={slot?.name || "Open"}>
+              {slot ? (slot.isCaptain ? "★" : slot.name.slice(0, 2).toUpperCase()) : "-"}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Management Area (Captain) */}
+      {team.isCaptain && (
+        <div style={{ marginBottom: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "0.75rem",
+              color: "#64748b",
+              marginBottom: "4px",
+            }}
+          >
+            <span>Visibility</span>
             <select
               value={team.isPublic ? "public" : "private"}
               onChange={(e) =>
                 onToggleVisibility(team, e.target.value === "public")
               }
               style={{
-                ...miniSelectStyle,
-                textTransform: "capitalize",
+                background: "none",
+                border: "none",
+                color: team.isPublic ? "#22c55e" : "#f59e0b",
+                fontSize: "0.75rem",
+                cursor: "pointer",
               }}
             >
               <option value="private">Private</option>
@@ -1345,269 +1087,57 @@ function TeamCard({
             </select>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ color: "#9ca3af" }}>Invite code:</span>
-            <span
-              style={{
-                padding: "0.1rem 0.5rem",
-                borderRadius: "999px",
-                border: "1px dashed rgba(148,163,184,0.6)",
-                fontFamily: "monospace",
-                letterSpacing: "0.15em",
-                fontSize: "0.75rem",
-              }}
-            >
-              {team.joinCode || "------"}
-            </span>
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              disabled={!team.joinCode}
-              style={smallSecondaryButtonStyle}
-            >
-              Copy
-            </button>
-            <button
-              type="button"
-              onClick={() => onRegenJoinCode(team)}
-              style={smallSecondaryButtonStyle}
-            >
-              Regenerate
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Member slots (5, captain in the middle) */}
-      <div
-        style={{
-          marginTop: "0.2rem",
-          display: "flex",
-          gap: "0.35rem",
-          justifyContent: "space-between",
-        }}
-      >
-        {slots.map((slot, idx) => (
-          <div
-            key={idx}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: "0.3rem 0.35rem",
-              borderRadius: "999px",
-              border: `1px solid ${
-                slot?.isCaptain ? "#f97316" : "rgba(148,163,184,0.35)"
-              }`,
-              backgroundColor: slot ? "#020617" : "rgba(15,23,42,0.8)",
-              fontSize: "0.7rem",
-              textAlign: "center",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {slot ? (
-              <>
-                {slot.name}
-                {slot.isCaptain ? " (C)" : ""}
-              </>
-            ) : (
-              <span style={{ color: "#6b7280" }}>Open slot</span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Manage members (captain only) */}
-      {team.isCaptain && otherMembers.length > 0 && (
-        <div
-          style={{
-            marginTop: "0.6rem",
-            padding: "0.4rem 0.45rem",
-            borderRadius: "8px",
-            border: "1px dashed rgba(148,163,184,0.4)",
-            backgroundColor: "rgba(15,23,42,0.8)",
-            fontSize: "0.75rem",
-          }}
-        >
-          <div
-            style={{
-              marginBottom: "0.25rem",
-              color: "#9ca3af",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <span>Manage members</span>
-            <span style={{ fontSize: "0.7rem", color: "#6b7280" }}>
-              Promote a new captain or kick players
-            </span>
-          </div>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}
-          >
-            {otherMembers.map((m) => (
-              <div
-                key={m.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <span
-                  style={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {m.name}
-                </span>
-                <div style={{ display: "flex", gap: "0.3rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => onPromote(team, m)}
-                    style={smallPrimaryButtonStyle}
-                  >
-                    Promote
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onKick(team, m)}
-                    style={smallDangerButtonStyle}
-                  >
-                    Kick
-                  </button>
-                </div>
+          {/* Join Requests */}
+          {team.isPublic && hasRequests && (
+            <div className={styles.requestsBox}>
+              <div style={{ color: "#60a5fa", fontWeight: "bold" }}>
+                Join Requests ({team.joinRequests.length})
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Join requests (captain of public team) */}
-      {team.isCaptain && team.isPublic && hasRequests && (
-        <div
-          style={{
-            marginTop: "0.6rem",
-            padding: "0.4rem 0.45rem",
-            borderRadius: "8px",
-            border: "1px dashed rgba(59,130,246,0.6)",
-            backgroundColor: "rgba(15,23,42,0.9)",
-            fontSize: "0.75rem",
-          }}
-        >
-          <div
-            style={{
-              marginBottom: "0.25rem",
-              color: "#93c5fd",
-              fontWeight: 500,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <span>Join requests</span>
-            <span
-              style={{
-                fontSize: "0.7rem",
-                color: "#60a5fa",
-              }}
-            >
-              {team.joinRequests.length} pending
-            </span>
-          </div>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}
-          >
-            {team.joinRequests.map((req) => (
-              <div
-                key={req.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <span
-                  style={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {req.playerName}
-                </span>
-                <div style={{ display: "flex", gap: "0.3rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => onApproveRequest(team, req)}
-                    style={smallPrimaryButtonStyle}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onRejectRequest(team, req)}
-                    style={smallSecondaryButtonStyle}
-                  >
-                    Reject
-                  </button>
+              {team.joinRequests.map((req) => (
+                <div key={req.id} className={styles.reqRow}>
+                  <span className={styles.reqName}>{req.playerName}</span>
+                  <div>
+                    <button
+                      onClick={() => onApproveRequest(team, req)}
+                      className={styles.miniBtn}
+                      style={{ color: "#22c55e", borderColor: "#22c55e" }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => onRejectRequest(team, req)}
+                      className={styles.miniBtn}
+                      style={{ color: "#ef4444", borderColor: "#ef4444" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Members + actions row */}
-      <div
-        style={{
-          marginTop: "0.6rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontSize: "0.8rem",
-          color: "#9ca3af",
-        }}
-      >
-        <span>
-          Members: <strong>{team.memberCount}</strong>{" "}
-          <span style={{ color: "#6b7280" }}>
-            / {team.maxSize || 7} · {visibilityLabel}
-          </span>
-        </span>
-
-        <div style={{ display: "flex", gap: "0.35rem" }}>
-          {team.isCaptain && (
+      {/* Footer Actions */}
+      <div className={styles.cardFooter}>
+        <span>{team.memberCount} Members</span>
+        <div className={styles.footerBtns}>
+          {team.isCaptain ? (
             <button
-              type="button"
               onClick={() => onDelete(team)}
-              style={dangerButtonStyle}
+              className={styles.btnDanger}
             >
-              Delete
+              Disband
+            </button>
+          ) : (
+            <button
+              onClick={() => onLeave(team)}
+              className={styles.btnNeutral}
+            >
+              Leave
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => onLeave(team)}
-            style={secondaryButtonStyle}
-          >
-            Leave
-          </button>
         </div>
       </div>
     </div>
@@ -1641,110 +1171,4 @@ function buildMemberSlots(members = []) {
   }
 
   return slots;
-}
-
-// ---------- styles ----------
-const cardStyle = {
-  padding: "1rem",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.35)",
-  backgroundColor: "#020617",
-};
-
-const teamCardStyle = {
-  padding: "0.9rem",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.3)",
-  background:
-    "radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%)",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.4rem 0.6rem",
-  borderRadius: "8px",
-  border: "1px solid #4b5563",
-  backgroundColor: "#020617",
-  color: "white",
-  fontSize: "0.9rem",
-  outline: "none",
-};
-
-const filterSelectStyle = {
-  ...inputStyle,
-  height: "2.1rem",
-  paddingRight: "2rem",
-};
-
-const miniSelectStyle = {
-  padding: "0.15rem 0.4rem",
-  borderRadius: "999px",
-  border: "1px solid #4b5563",
-  backgroundColor: "#020617",
-  color: "#e5e7eb",
-  fontSize: "0.7rem",
-};
-
-const dangerButtonStyle = {
-  padding: "0.25rem 0.6rem",
-  borderRadius: "999px",
-  border: "1px solid #f97373",
-  backgroundColor: "transparent",
-  color: "#fca5a5",
-  fontSize: "0.75rem",
-  cursor: "pointer",
-};
-
-const secondaryButtonStyle = {
-  padding: "0.25rem 0.6rem",
-  borderRadius: "999px",
-  border: "1px solid #4b5563",
-  backgroundColor: "transparent",
-  color: "#e5e7eb",
-  fontSize: "0.75rem",
-  cursor: "pointer",
-};
-
-const smallPrimaryButtonStyle = {
-  padding: "0.15rem 0.5rem",
-  borderRadius: "999px",
-  border: "1px solid #22c55e",
-  backgroundColor: "transparent",
-  color: "#bbf7d0",
-  fontSize: "0.7rem",
-  cursor: "pointer",
-};
-
-const smallDangerButtonStyle = {
-  padding: "0.15rem 0.5rem",
-  borderRadius: "999px",
-  border: "1px solid #f97373",
-  backgroundColor: "transparent",
-  color: "#fecaca",
-  fontSize: "0.7rem",
-  cursor: "pointer",
-};
-
-const smallSecondaryButtonStyle = {
-  padding: "0.15rem 0.5rem",
-  borderRadius: "999px",
-  border: "1px solid #4b5563",
-  backgroundColor: "transparent",
-  color: "#e5e7eb",
-  fontSize: "0.7rem",
-  cursor: "pointer",
-};
-
-const gameBadgeStyle = {
-  fontSize: "0.7rem",
-  padding: "2px 6px",
-  borderRadius: "999px",
-  border: "1px solid #4b5563",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-};
-
-function getGameLabel(code, supportedGames) {
-  const found = supportedGames.find((g) => g.code === code);
-  return found ? found.label : code;
 }

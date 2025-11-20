@@ -1,0 +1,400 @@
+/* styles/Teams.module.css */
+
+.shell {
+  min-height: 100vh;
+  background: #0b0d12;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1200px;
+  padding: 28px 16px 64px;
+}
+
+/* --- Header / Hero --- */
+.header {
+  margin-bottom: 2rem;
+  padding: 2rem;
+  border-radius: 20px;
+  background: radial-gradient(
+      800px 400px at 50% -40%,
+      rgba(59, 130, 246, 0.15),
+      rgba(0, 0, 0, 0)
+    ),
+    linear-gradient(180deg, #13151b, #0f1117);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.title {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(to bottom right, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 600px;
+}
+
+.userBadge {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- Control Bar (The long bar with join/filter) --- */
+.controlBar {
+  display: grid;
+  grid-template-columns: 1fr auto; /* Left filters, Right actions */
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .controlBar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.glassPanel {
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Input Styles */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.input,
+.select {
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #2d3442;
+  background: #020617;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 160px;
+}
+
+.input:focus,
+.select:focus {
+  border-color: #60a5fa;
+}
+
+.joinBtn {
+  height: 42px;
+  padding: 0 1.2rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.joinBtn:hover { opacity: 0.9; }
+.joinBtn:disabled { opacity: 0.5; cursor: default; }
+
+.errorText {
+  font-size: 0.75rem;
+  color: #f87171;
+  margin-top: 4px;
+}
+
+/* Action Buttons (Find / Create) */
+.actionGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.primaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s;
+  white-space: nowrap;
+}
+.primaryBtn:hover { transform: translateY(-1px); }
+.primaryBtn:active { transform: translateY(0); }
+
+.createBtn {
+  composes: primaryBtn;
+  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+}
+
+/* --- Team Grid --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.teamCard {
+  background: #0f1219;
+  border: 1px solid #222636;
+  border-radius: 16px;
+  padding: 1.25rem;
+  transition: border-color 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.teamCard:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.teamName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.teamTag {
+  color: #60a5fa;
+  margin-right: 6px;
+}
+
+.gameBadge {
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Code Box */
+.codeBox {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px dashed #334155;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.codeDisplay {
+  font-family: monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  color: #e2e8f0;
+}
+
+.miniBtn {
+  font-size: 0.7rem;
+  background: transparent;
+  border: 1px solid #475569;
+  color: #94a3b8;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.miniBtn:hover { background: #1e293b; color: #fff; }
+
+/* Slots Visualizer */
+.slotsContainer {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+
+.slot {
+  flex: 1;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  background: #020617;
+  border: 1px solid #1e293b;
+  color: #64748b;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.slotFilled {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: #334155;
+}
+
+.slotCaptain {
+  border-color: #f59e0b; /* Amber border for captain */
+  color: #fbbf24;
+}
+
+/* Footer Actions */
+.cardFooter {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.footerBtns {
+  display: flex;
+  gap: 8px;
+}
+
+.btnDanger {
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid #7f1d1d;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.btnDanger:hover { background: #450a0a; }
+
+.btnNeutral {
+  color: #cbd5e1;
+  background: transparent;
+  border: 1px solid #475569;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.btnNeutral:hover { background: #1e293b; }
+
+/* --- Empty State --- */
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  border: 2px dashed #1e293b;
+  border-radius: 20px;
+  color: #64748b;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* --- Modal --- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 440px;
+  background: #0f1219;
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: popIn 0.2s ease-out;
+}
+
+.modalTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.closeModal {
+  float: right;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Requests Section (Mini) */
+.requestsBox {
+  margin-top: 0.75rem;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 0.8rem;
+}
+.reqRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.reqName { color: #cbd5e1; }
