@@ -1,5 +1,5 @@
 // pages/profile.js
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import styles from "../styles/Profile.module.css";
@@ -18,7 +18,49 @@ import styles from "../styles/Profile.module.css";
  */
 
 // ---------- Game config (UI only) ----------
+// Alphabetical by label: HONOR OF KINGS, TEAMFIGHT TACTICS, VALORANT
 const GAME_DEFS = [
+  {
+    code: "HOK",
+    label: "HONOR OF KINGS",
+    description: "Used for Honor of Kings teams and tournaments.",
+    kind: "SINGLE_NAME", // one IGN field
+    rankTiers: [
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond",
+      "Master",
+      "Grandmaster",
+      "Grandmaster Mythic",
+      "Grandmaster Epic",
+      "Grandmaster Legend",
+    ],
+    defaultRegion: "NA",
+    regions: ["NA", "EU", "SEA", "MENA", "Other"], // used as "Server"
+  },
+  {
+    code: "TFT",
+    label: "TEAMFIGHT TACTICS",
+    description: "Used for Teamfight Tactics tournaments and events.",
+    kind: "TAGGED_ID", // name + tag
+    rankTiers: [
+      "Iron",
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Emerald",
+      "Diamond",
+      "Master",
+      "Grandmaster",
+      "Challenger",
+    ],
+    rankDivisions: ["1", "2", "3", "4"],
+    defaultRegion: "NA",
+    regions: ["NA", "EUW", "EUNE", "OCE", "KR", "BR", "Other"],
+  },
   {
     code: "VALORANT",
     label: "VALORANT",
@@ -39,56 +81,15 @@ const GAME_DEFS = [
     defaultRegion: "NA",
     regions: ["NA", "EU", "APAC", "KR", "LATAM", "BR", "Other"],
   },
-  {
-    code: "TFT",
-    label: "TEAMFIGHT TACTICS",
-    description: "Used for TFT tournaments and events.",
-    kind: "TAGGED_ID", // name + tag
-    rankTiers: [
-      "Iron",
-      "Bronze",
-      "Silver",
-      "Gold",
-      "Platinum",
-      "Emerald",
-      "Diamond",
-      "Master",
-      "Grandmaster",
-      "Challenger",
-    ],
-    rankDivisions: ["1", "2", "3", "4"],
-    defaultRegion: "NA",
-    regions: ["NA", "EUW", "EUNE", "OCE", "KR", "BR", "Other"],
-  },
-  {
-    code: "HOK",
-    label: "HONOR OF KINGS",
-    description: "Used for Honor of Kings teams and tournaments.",
-    kind: "SINGLE_NAME",
-    rankTiers: [
-      "Bronze",
-      "Silver",
-      "Gold",
-      "Platinum",
-      "Diamond",
-      "Master",
-      "Grandmaster",
-      "Grandmaster Mythic",
-      "Grandmaster Epic",
-      "Grandmaster Legend",
-    ],
-    defaultRegion: "NA",
-    regions: ["NA", "EU", "SEA", "MENA", "Other"], // used as "Server"
-  },
 ];
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
 
-// HOK: per-tier division options for non-Grandmaster tiers
+// HOK: per-tier division options (non-Grandmaster)
 const HOK_DIVISIONS_BY_TIER = {
   Bronze: ["III", "II", "I"], // 3 sub-tiers
-  Silver: ["III", "II", "I"], // assume 3
-  Gold: ["III", "II", "I"], // 3
+  Silver: ["III", "II", "I"], // assume 3 as well
+  Gold: ["III", "II", "I"], // 3 sub-tiers
   Platinum: ["IV", "III", "II", "I"], // 4
   Diamond: ["V", "IV", "III", "II", "I"], // 5
   Master: ["V", "IV", "III", "II", "I"], // 5
@@ -160,7 +161,7 @@ export async function getServerSideProps({ req }) {
       rankTier: p.rankTier || "",
       rankDivision: p.rankDivision || "",
       region: p.region || "",
-      // HOK extras
+      // HoK extras
       hokStars:
         typeof p.hokStars === "number" ? p.hokStars : p.hokStars || "",
       hokPeakScore:
@@ -179,7 +180,7 @@ export async function getServerSideProps({ req }) {
   });
 
   // featuredGames: keep only known games, max 3
-  const rawFeatured = Array.isArray(player.featuredGames)
+  const rawFeatured = Array.isArray(player.featureedGames)
     ? player.featuredGames
     : [];
   const featuredGames = rawFeatured
@@ -244,16 +245,48 @@ export default function Profile({
   );
 
   // currently selected game for editor
-  const [selectedGame, setSelectedGame] = useState(
-    featuredGames[0] || "VALORANT"
-  );
+  const [selectedGame, setSelectedGame] = useState("VALORANT");
+
+  // helper to also store in localStorage
+  function selectGameAndStore(code) {
+    setSelectedGame(code);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("vc_profile_lastGame", code);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  // on mount / when featuredGames changes, try to restore last game
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = window.localStorage.getItem("vc_profile_lastGame");
+        if (saved && GAME_CODES.includes(saved)) {
+          setSelectedGame(saved);
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // fallback: first featured game or VALORANT
+    if (featuredGames[0]) {
+      setSelectedGame(featuredGames[0]);
+    } else {
+      setSelectedGame("VALORANT");
+    }
+  }, [featuredGames]);
 
   function getGameDef(code) {
     return GAME_DEFS.find((g) => g.code === code) || GAME_DEFS[0];
   }
 
   function handleSelectGame(e) {
-    setSelectedGame(e.target.value);
+    selectGameAndStore(e.target.value);
   }
 
   function handleProfileSaved(gameCode, profile) {
@@ -301,7 +334,7 @@ export default function Profile({
   }
 
   function handleFeaturedCardClick(code) {
-    setSelectedGame(code);
+    selectGameAndStore(code);
   }
 
   const selectedDef = getGameDef(selectedGame);
@@ -781,22 +814,20 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       gameDef.rankDivisions.length > 0;
     divisionOptions = gameDef.rankDivisions;
   } else if (gameDef.code === "HOK") {
-    // For HoK, we always want something in the “sub-tier / division” slot,
+    // For HoK, we want a "sub-tier" slot even if nothing selected,
     // but for the Grandmaster family we use stars instead.
-    const gmFamily = [
-      "Grandmaster",
-      "Grandmaster Mythic",
-      "Grandmaster Epic",
-      "Grandmaster Legend",
-    ];
-
-    if (gmFamily.includes(rankTier)) {
+    if (
+      rankTier === "Grandmaster" ||
+      rankTier === "Grandmaster Mythic" ||
+      rankTier === "Grandmaster Epic" ||
+      rankTier === "Grandmaster Legend"
+    ) {
       showDivision = false; // stars field will appear instead
     } else if (rankTier && HOK_DIVISIONS_BY_TIER[rankTier]) {
       showDivision = true;
       divisionOptions = HOK_DIVISIONS_BY_TIER[rankTier];
     } else {
-      // no tier selected yet – still show an empty sub-tier dropdown
+      // No tier yet – still show an empty dropdown
       showDivision = true;
       divisionOptions = [];
     }
@@ -928,7 +959,6 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       if (!data.ok) {
         setMessage(data.error || "Failed to save profile.");
       } else {
-        // Whatever the backend actually saved (may have auto-fixed rank/stars)
         const saved = data.profile || payload;
 
         // ---- Sync local state so UI updates immediately ----
@@ -1011,7 +1041,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       </div>
 
-      {/* IGN + Region/Server row */}
+      {/* IGN row */}
       {gameDef.kind === "TAGGED_ID" ? (
         <div
           style={{
@@ -1065,14 +1095,16 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
               />
             ))}
         </div>
-      ) : gameDef.code === "HOK" ? (
-        // HoK: name + server on same row
+      ) : (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.3fr)",
-            gap: "0.5rem",
             marginTop: "0.2rem",
+            display: gameDef.code === "HOK" ? "grid" : "block",
+            gridTemplateColumns:
+              gameDef.code === "HOK"
+                ? "minmax(0, 2fr) minmax(0, 1.3fr)"
+                : undefined,
+            gap: gameDef.code === "HOK" ? "0.5rem" : undefined,
           }}
         >
           <Field
@@ -1081,26 +1113,19 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             value={singleIgn}
             onChange={setSingleIgn}
           />
-          <SelectField
-            label="Server"
-            value={region}
-            onChange={setRegion}
-            options={gameDef.regions}
-            placeholder="Select"
-          />
-        </div>
-      ) : (
-        <div style={{ marginTop: "0.2rem" }}>
-          <Field
-            label="In-game name"
-            placeholder="Your in-game name"
-            value={singleIgn}
-            onChange={setSingleIgn}
-          />
+          {gameDef.code === "HOK" && (
+            <SelectField
+              label="Server"
+              value={region}
+              onChange={setRegion}
+              options={gameDef.regions}
+              placeholder="Select"
+            />
+          )}
         </div>
       )}
 
-      {/* Rank + region/server/peak row */}
+      {/* Rank + region / peak row */}
       <div
         style={{
           display: "grid",
@@ -1134,7 +1159,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           rankTier === "Grandmaster Epic" ||
           rankTier === "Grandmaster Legend" ? (
             <Field
-              label="Grandmaster stars (0 - 100+)"
+              label="Grandmaster stars (0 - 500)"
               placeholder="0"
               value={hokStars}
               onChange={setHokStars}
@@ -1152,9 +1177,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         ) : (
           showDivision && (
             <SelectField
-              label={
-                gameDef.code === "HOK" ? "Sub-tier / Division" : "Division"
-              }
+              label="Division"
               value={rankDivision}
               onChange={setRankDivision}
               options={divisionOptions}
@@ -1164,7 +1187,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           )
         )}
 
-        {/* Region/server for non-HoK games, or Peak score for HoK */}
+        {/* Third column: Peak score for HoK, or Region when not already shown */}
         {!showRegionTop &&
           (gameDef.code === "HOK" ? (
             <Field
@@ -1182,12 +1205,14 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
               placeholder="Select"
             />
           ) : (
-            <Field
-              label="Region"
-              placeholder="e.g. NA, EUW, SEA"
-              value={region}
-              onChange={setRegion}
-            />
+            !showRegionTop && (
+              <Field
+                label="Region"
+                placeholder="e.g. NA, EUW, SEA"
+                value={region}
+                onChange={setRegion}
+              />
+            )
           ))}
       </div>
 
@@ -1237,7 +1262,8 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       )}
 
-            <div
+      {/* Bottom explanatory text – per game, talking about future tournaments */}
+      <div
         style={{
           marginTop: "0.25rem",
           fontSize: "0.75rem",
@@ -1277,7 +1303,6 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           );
         })()}
       </div>
-
 
       <div
         style={{
