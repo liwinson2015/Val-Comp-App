@@ -327,8 +327,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* UPDATED: Set specifically to accommodate TFT content + padding */
-  min-height: 600px;
+  /* CHANGED: Reduced from 600px to 460px to remove empty space */
+  min-height: 460px;
 }
 
 .gameEditorTopRow {
