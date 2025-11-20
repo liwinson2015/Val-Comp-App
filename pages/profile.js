@@ -84,6 +84,8 @@ const GAME_DEFS = [
 ];
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
+
+// map game codes → icon paths (in /public/icons)
 const GAME_ICON_PATHS = {
   HOK: "/icons/hok-icon.png",
   TFT: "/icons/tft-icon.png",
@@ -371,13 +373,18 @@ export default function Profile({
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>GAME PROFILES</h2>
           </div>
+          <p className={styles.gameIntro}>
+            These profiles store your in-game names and ranks for different
+            games. We use this info to auto-fill team and tournament forms.
+            Make sure it matches what you actually use in-game.
+          </p>
 
           <div className={styles.gameLayout}>
-            {/* LEFT SIDEBAR: Featured games */}
+            {/* LEFT: featured games sidebar */}
             <aside className={styles.featuredSidebar}>
-              <div className={styles.featuredHeader}>
-                <div className={styles.featuredLabel}>Featured games</div>
-                <div className={styles.featuredHint}>
+              <div className={styles.featuredSidebarHeader}>
+                <div className={styles.featuredSidebarTitle}>FEATURED GAMES</div>
+                <div className={styles.featuredSidebarSub}>
                   Up to 3 profiles shown on your player card.
                 </div>
               </div>
@@ -388,12 +395,11 @@ export default function Profile({
                     key={code}
                     code={code}
                     profile={profiles[code] || {}}
-                    isActive={selectedGame === code}
                     onClick={() => handleFeaturedCardClick(code)}
+                    isActive={selectedGame === code}
                   />
                 ))}
 
-                {/* Empty slots up to 3 */}
                 {featuredGames.length < 3 &&
                   Array.from({ length: 3 - featuredGames.length }).map(
                     (_, idx) => (
@@ -404,9 +410,9 @@ export default function Profile({
                         <div className={styles.featuredEmptyTitle}>
                           Empty slot
                         </div>
-                        <div className={styles.featuredEmptyText}>
-                          Choose a game below and mark it as featured to show it
-                          here.
+                        <div>
+                          Choose a game in the editor and mark it as featured
+                          to show it here.
                         </div>
                       </div>
                     )
@@ -414,60 +420,49 @@ export default function Profile({
               </div>
             </aside>
 
-            {/* RIGHT: Editor + description */}
+            {/* RIGHT: editor / game details */}
             <div className={styles.gameMain}>
-              <p className={styles.gameIntro}>
-                These profiles store your in-game names and ranks for different
-                games. We use this info to auto-fill team and tournament forms.
-                Make sure it matches what you actually use in-game.
-              </p>
-
-              <div className={styles.gameEditorBox}>
-                {/* Top row: game select + featured toggle */}
-                <div className={styles.gameEditorTopRow}>
-                  <div className={styles.gameSelectWrap}>
-                    <label
-                      htmlFor="game-select"
-                      className={styles.gameSelectLabel}
-                    >
-                      Select game to edit
-                    </label>
-                    <select
-                      id="game-select"
-                      value={selectedGame}
-                      onChange={handleSelectGame}
-                      className={styles.gameSelect}
-                    >
-                      {GAME_DEFS.map((g) => (
-                        <option key={g.code} value={g.code}>
-                          {g.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleFeatured(selectedGame)}
-                    className={
-                      isSelectedFeatured
-                        ? styles.featureToggleActive
-                        : styles.featureToggle
-                    }
+              <div className={styles.gameEditorTopRow}>
+                <div className={styles.gameSelectWrap}>
+                  <label
+                    htmlFor="game-select"
+                    className={styles.gameSelectLabel}
                   >
-                    {isSelectedFeatured
-                      ? "Unfeature game"
-                      : "Feature this game"}
-                  </button>
+                    Select game to edit
+                  </label>
+                  <select
+                    id="game-select"
+                    value={selectedGame}
+                    onChange={handleSelectGame}
+                    className={styles.gameSelect}
+                  >
+                    {GAME_DEFS.map((g) => (
+                      <option key={g.code} value={g.code}>
+                        {g.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <GameProfileEditor
-                  key={selectedGame}
-                  gameDef={selectedDef}
-                  profile={selectedProfile}
-                  onProfileSaved={handleProfileSaved}
-                />
+                <button
+                  type="button"
+                  onClick={() => handleToggleFeatured(selectedGame)}
+                  className={`${styles.featureToggle} ${
+                    isSelectedFeatured ? styles.featureToggleActive : ""
+                  }`}
+                >
+                  {isSelectedFeatured
+                    ? "Unfeature game"
+                    : "Feature this game"}
+                </button>
               </div>
+
+              <GameProfileEditor
+                key={selectedGame}
+                gameDef={selectedDef}
+                profile={selectedProfile}
+                onProfileSaved={handleProfileSaved}
+              />
             </div>
           </div>
         </section>
@@ -559,9 +554,7 @@ export default function Profile({
                 <div className={styles.linkedLabel}>Discord</div>
                 <div className={styles.linkedValue}>
                   Connected as{" "}
-                    <span className={styles.mono}>
-                      {username || "Unknown"}
-                    </span>
+                  <span className={styles.mono}>{username || "Unknown"}</span>
                 </div>
               </div>
             </div>
@@ -599,7 +592,6 @@ function FeaturedGameCard({ code, profile, onClick, isActive }) {
       ? `${profile.rankTier} ${profile.rankDivision}`
       : profile.rankTier || "Rank not set";
 
-  const region = profile.region || "Region not set";
   const iconSrc = GAME_ICON_PATHS[code];
 
   return (
@@ -623,12 +615,11 @@ function FeaturedGameCard({ code, profile, onClick, isActive }) {
         <div className={styles.featuredGameLabel}>{def.label}</div>
         <div className={styles.featuredIgn}>{ign}</div>
         <div className={styles.featuredRank}>{rank}</div>
-        <div className={styles.featuredRegion}>{region}</div>
+        {/* intentionally not showing server / region on the card */}
       </div>
     </button>
   );
 }
-
 
 // ---------- Game profile editor ----------
 function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
