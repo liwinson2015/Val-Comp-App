@@ -84,7 +84,7 @@ export default function HomePage({ featured }) {
 
             <h3 className={styles.featuredTitle}>Solo Skirmish #1</h3>
             <p className={styles.featuredSubtitle}>
-              16-player 1v1 bracket. Fast matches, single elimination.
+              16-player 1v1 bracket. Fast matches, Double elimination.
               Winner takes the skin prize.
             </p>
 
