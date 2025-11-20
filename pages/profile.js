@@ -947,7 +947,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         >
           <Field
             label="Name"
-            placeholder="EDG WINSON"
+            placeholder="EDG Zmjjkk"
             value={namePart}
             onChange={setNamePart}
           />
@@ -1033,7 +1033,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         }}
       >
         <SelectField
-          label="Rank tier"
+          label=" Peak Rank tier"
           value={rankTier}
           onChange={(value) => {
             setRankTier(value);
@@ -1133,7 +1133,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           }}
         >
           <SelectField
-            label="Double Up rank tier"
+            label="Double Up Peak rank tier"
             value={tftDoubleTier}
             onChange={(value) => {
               setTftDoubleTier(value);
