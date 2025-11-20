@@ -38,7 +38,7 @@ const GAME_DEFS = [
       "Grandmaster Legend",
     ],
     defaultRegion: "NA",
-    regions: ["NA", "EU", "SEA", "MENA", "Other"], // still stored, but we don't show "Server" in the UI now
+    regions: ["NA", "EU", "SEA", "MENA", "Other"], // used as "Server"
   },
   {
     code: "TFT",
@@ -85,7 +85,7 @@ const GAME_DEFS = [
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
 
-// icons in /public/icons/*
+// icons for the left featured cards
 const GAME_ICON_PATHS = {
   HOK: "/icons/hok-icon.png",
   TFT: "/icons/tft-icon.png",
@@ -368,25 +368,23 @@ export default function Profile({
           </div>
         </section>
 
-        {/* Game Profiles */}
+        {/* GAME PROFILES */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>GAME PROFILES</h2>
           </div>
           <p className={styles.gameIntro}>
             These profiles store your in-game names and ranks for different
-            games. We use this info to auto-fill team and tournament forms.
-            Make sure it matches what you actually use in-game.
+            games. We use this info to auto-fill team and tournament forms. Make
+            sure it matches what you actually use in-game.
           </p>
 
           <div className={styles.gameLayout}>
-            {/* LEFT – Featured sidebar */}
-            <aside className={styles.featuredSidebar}>
-              <div className={styles.featuredSidebarHeader}>
-                <div className={styles.featuredSidebarTitle}>
-                  FEATURED GAMES
-                </div>
-                <div className={styles.featuredSidebarSub}>
+            {/* LEFT SIDEBAR */}
+            <aside className={styles.gameSidebar}>
+              <div className={styles.gameSidebarHeader}>
+                <div className={styles.gameSidebarLabel}>FEATURED GAMES</div>
+                <div className={styles.gameSidebarHint}>
                   Up to 3 profiles shown on your player card.
                 </div>
               </div>
@@ -397,6 +395,7 @@ export default function Profile({
                     key={code}
                     code={code}
                     profile={profiles[code] || {}}
+                    iconSrc={GAME_ICON_PATHS[code]}
                     isActive={selectedGame === code}
                     onClick={() => handleFeaturedCardClick(code)}
                   />
@@ -406,16 +405,13 @@ export default function Profile({
                 {featuredGames.length < 3 &&
                   Array.from({ length: 3 - featuredGames.length }).map(
                     (_, idx) => (
-                      <div
-                        key={`empty-${idx}`}
-                        className={styles.featuredEmpty}
-                      >
+                      <div key={`empty-${idx}`} className={styles.featuredEmpty}>
                         <div className={styles.featuredEmptyTitle}>
                           Empty slot
                         </div>
                         <div>
-                          Choose a game in the editor and mark it as featured to
-                          show it here.
+                          Choose a game in the editor and mark it as featured
+                          to show it here.
                         </div>
                       </div>
                     )
@@ -423,49 +419,55 @@ export default function Profile({
               </div>
             </aside>
 
-            {/* RIGHT – Editor panel */}
-            <div className={styles.gameMain}>
-              <div className={styles.gameEditorTopRow}>
-                <div className={styles.gameSelectWrap}>
-                  <label
-                    htmlFor="game-select"
-                    className={styles.gameSelectLabel}
+            {/* RIGHT EDITOR */}
+            <div className={styles.gameEditorCol}>
+              <div className={styles.gameEditorShell}>
+                {/* Top row: game select + featured toggle */}
+                <div className={styles.gameEditorTopRow}>
+                  <div className={styles.gameSelectWrap}>
+                    <label
+                      htmlFor="game-select"
+                      className={styles.gameSelectLabel}
+                    >
+                      Select game to edit
+                    </label>
+                    <select
+                      id="game-select"
+                      value={selectedGame}
+                      onChange={handleSelectGame}
+                      className={styles.gameSelect}
+                    >
+                      {GAME_DEFS.map((g) => (
+                        <option key={g.code} value={g.code}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFeatured(selectedGame)}
+                    className={
+                      isSelectedFeatured
+                        ? `${styles.featureToggle} ${styles.featureToggleActive}`
+                        : styles.featureToggle
+                    }
                   >
-                    Select game to edit
-                  </label>
-                  <select
-                    id="game-select"
-                    value={selectedGame}
-                    onChange={handleSelectGame}
-                    className={styles.gameSelect}
-                  >
-                    {GAME_DEFS.map((g) => (
-                      <option key={g.code} value={g.code}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
+                    {isSelectedFeatured
+                      ? "Unfeature game"
+                      : "Feature this game"}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleToggleFeatured(selectedGame)}
-                  className={
-                    isSelectedFeatured
-                      ? `${styles.featureToggle} ${styles.featureToggleActive}`
-                      : styles.featureToggle
-                  }
-                >
-                  {isSelectedFeatured ? "Unfeature game" : "Feature this game"}
-                </button>
+                {/* Actual profile editor */}
+                <GameProfileEditor
+                  key={selectedGame}
+                  gameDef={selectedDef}
+                  profile={selectedProfile}
+                  onProfileSaved={handleProfileSaved}
+                />
               </div>
-
-              <GameProfileEditor
-                key={selectedGame}
-                gameDef={selectedDef}
-                profile={selectedProfile}
-                onProfileSaved={handleProfileSaved}
-              />
             </div>
           </div>
         </section>
@@ -584,7 +586,7 @@ export default function Profile({
 }
 
 // ---------- Featured game card ----------
-function FeaturedGameCard({ code, profile, onClick, isActive }) {
+function FeaturedGameCard({ code, profile, iconSrc, isActive, onClick }) {
   const def = GAME_DEFS.find((g) => g.code === code);
   if (!def) return null;
 
@@ -595,29 +597,27 @@ function FeaturedGameCard({ code, profile, onClick, isActive }) {
       ? `${profile.rankTier} ${profile.rankDivision}`
       : profile.rankTier || "Rank not set";
 
-  const iconSrc = GAME_ICON_PATHS[code];
-
   return (
     <button
       type="button"
       onClick={onClick}
       className={
         isActive
-          ? `${styles.featuredCard} ${styles.featuredCardActive}`
-          : styles.featuredCard
+          ? `${styles.featuredButton} ${styles.featuredButtonActive}`
+          : styles.featuredButton
       }
     >
-      <div className={styles.featuredIcon}>
-        {iconSrc && (
+      <div className={styles.featuredIconWrap}>
+        {iconSrc ? (
           <img
             src={iconSrc}
             alt={`${def.label} icon`}
-            className={styles.featuredIconImg}
+            className={styles.featuredIcon}
           />
-        )}
+        ) : null}
       </div>
-      <div className={styles.featuredText}>
-        <div className={styles.featuredGameLabel}>{def.label}</div>
+      <div className={styles.featuredTextBlock}>
+        <div className={styles.featuredGameName}>{def.label}</div>
         <div className={styles.featuredIgn}>{ign}</div>
         <div className={styles.featuredRank}>{rank}</div>
       </div>
@@ -987,20 +987,32 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             ))}
         </div>
       ) : (
-        // SINGLE_NAME (HoK)
         <div
           style={{
             marginTop: "0.2rem",
+            display: gameDef.code === "HOK" ? "grid" : "block",
+            gridTemplateColumns:
+              gameDef.code === "HOK"
+                ? "minmax(0, 2fr) minmax(0, 1.3fr)"
+                : undefined,
+            gap: gameDef.code === "HOK" ? "0.5rem" : undefined,
           }}
         >
           <Field
             label="In-game name"
-            placeholder={
-              gameDef.code === "HOK" ? "Your HoK name" : "In-game name"
-            }
+            placeholder="Your HoK name"
             value={singleIgn}
             onChange={setSingleIgn}
           />
+          {gameDef.code === "HOK" && (
+            <SelectField
+              label="Server"
+              value={region}
+              onChange={setRegion}
+              options={gameDef.regions}
+              placeholder="Select"
+            />
+          )}
         </div>
       )}
 
@@ -1010,7 +1022,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           display: "grid",
           gridTemplateColumns:
             gameDef.code === "HOK"
-              ? "minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.4fr)"
+              ? "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)" // make both numeric fields same width
               : showDivision
               ? "minmax(0, 2fr) minmax(0, 1fr)" +
                 (!showRegionTop ? " minmax(0, 1.3fr)" : "")
@@ -1139,15 +1151,6 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
             allowEmpty
           />
         </div>
-      )}
-
-      {/* Spacer so non-TFT games roughly match TFT form height */}
-      {gameDef.code !== "TFT" && (
-        <div
-          style={{
-            height: "2.4rem",
-          }}
-        />
       )}
 
       {/* Bottom explanatory text – per game, talking about future tournaments */}
