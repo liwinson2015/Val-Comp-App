@@ -30,6 +30,7 @@ const GameProfileSchema = new mongoose.Schema(
     hokStars: {
       type: Number,
       min: 0,
+      max: 500,
     },
 
     // Peak Tournament score (1200–3000 range you care about)
