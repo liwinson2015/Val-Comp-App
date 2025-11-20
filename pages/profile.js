@@ -38,8 +38,7 @@ const GAME_DEFS = [
       "Grandmaster Legend",
     ],
     defaultRegion: "NA",
-    // still stored in DB as region, but we don't show a "Server" field anymore
-    regions: ["NA", "EU", "SEA", "MENA", "Other"],
+    regions: ["NA", "EU", "SEA", "MENA", "Other"], // still stored, but we don't show "Server" in the UI now
   },
   {
     code: "TFT",
@@ -96,8 +95,8 @@ const GAME_ICON_PATHS = {
 // HOK: per-tier division options (non-Grandmaster)
 const HOK_DIVISIONS_BY_TIER = {
   Bronze: ["III", "II", "I"], // 3 sub-tiers
-  Silver: ["III", "II", "I"],
-  Gold: ["III", "II", "I"],
+  Silver: ["III", "II", "I"], // assume 3 as well
+  Gold: ["III", "II", "I"], // 3 sub-tiers
   Platinum: ["IV", "III", "II", "I"], // 4
   Diamond: ["V", "IV", "III", "II", "I"], // 5
   Master: ["V", "IV", "III", "II", "I"], // 5
@@ -910,7 +909,6 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         display: "flex",
         flexDirection: "column",
         gap: "0.45rem",
-        flex: 1,
       }}
     >
       <div>
@@ -1147,7 +1145,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
       {gameDef.code !== "TFT" && (
         <div
           style={{
-            height: "2.6rem",
+            height: "2.4rem",
           }}
         />
       )}
