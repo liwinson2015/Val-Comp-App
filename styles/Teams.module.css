@@ -170,7 +170,6 @@
 /* --- Team Grid --- */
 .grid {
   display: grid;
-  /* Cards are wide (min 500px) so they take up half screen on desktop */
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 20px;
 }
@@ -287,16 +286,15 @@
 }
 
 /* Captain Slot (Center, Bigger) */
+/* UPDATED: Removed orange border/glow. Kept size. */
 .slotCaptain {
   height: 80px;
   flex: 1.3;
-  border-color: #f59e0b;
-  background: radial-gradient(circle at center, #451a03 0%, #0f172a 100%);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
   z-index: 2;
+  /* No border color override here so it acts like a normal slot, just bigger */
 }
 
-/* Highlight for Current User */
+/* Highlight for Current User (Green Border) */
 .slotMe {
   border-color: #22c55e !important;
   box-shadow: 0 0 0 1px #22c55e, 0 0 15px rgba(34, 197, 94, 0.2);
