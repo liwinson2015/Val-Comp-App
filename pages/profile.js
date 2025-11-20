@@ -1,5 +1,5 @@
 // pages/profile.js
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import styles from "../styles/Profile.module.css";
@@ -244,63 +244,15 @@ export default function Profile({
     initialFeaturedGames || []
   );
 
-  // currently selected game for editor
-  const [selectedGame, setSelectedGame] = useState(GAME_DEFS[0].code); // default: first game (HOK)
-
-  // helper to also store in sessionStorage
-  function selectGameAndStore(code) {
-    setSelectedGame(code);
-    try {
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("vc_profile_lastGame", code);
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }
-
-  // on mount / when featuredGames change, decide what to show
-  useEffect(() => {
-    // Only restore lastGame when this is a *reload*
-    try {
-      if (typeof window !== "undefined") {
-        const navEntries = window.performance.getEntriesByType("navigation");
-        const navType = navEntries && navEntries[0] && navEntries[0].type;
-
-        if (navType === "reload") {
-          const saved = window.sessionStorage.getItem("vc_profile_lastGame");
-          if (saved && GAME_CODES.includes(saved)) {
-            setSelectedGame(saved);
-            return;
-          }
-        }
-
-        // For normal navigation / coming back: always reset to first game
-        if (featuredGames[0]) {
-          setSelectedGame(featuredGames[0]);
-        } else {
-          setSelectedGame(GAME_DEFS[0].code);
-        }
-        return;
-      }
-    } catch {
-      // ignore and fall through
-    }
-
-    // SSR / fallback
-    if (featuredGames[0]) {
-      setSelectedGame(featuredGames[0]);
-    } else {
-      setSelectedGame(GAME_DEFS[0].code);
-    }
-  }, [featuredGames]);
+  // always start on the first game in GAME_DEFS (HONOR OF KINGS)
+  const [selectedGame, setSelectedGame] = useState(GAME_DEFS[0].code);
 
   function getGameDef(code) {
     return GAME_DEFS.find((g) => g.code === code) || GAME_DEFS[0];
   }
 
   function handleSelectGame(e) {
-    selectGameAndStore(e.target.value);
+    setSelectedGame(e.target.value);
   }
 
   function handleProfileSaved(gameCode, profile) {
@@ -348,7 +300,7 @@ export default function Profile({
   }
 
   function handleFeaturedCardClick(code) {
-    selectGameAndStore(code);
+    setSelectedGame(code);
   }
 
   const selectedDef = getGameDef(selectedGame);
