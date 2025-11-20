@@ -259,7 +259,7 @@
   height: 90px;
 }
 
-/* Base Empty Slot */
+/* Base EMPTY slot */
 .slot {
   flex: 1;
   height: 50px;
@@ -268,7 +268,8 @@
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
-  background: #020617;
+
+  background: #020617; /* plain dark for empty */
   border: 1px solid #1e293b;
   color: #64748b;
   border-radius: 8px;
@@ -278,43 +279,54 @@
   transition: all 0.2s ease;
 }
 
-/* 1. MEMBER FILLED (Tech Blue Gradient) */
+/* Shared overlay (only visible when filled) */
+.slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(15, 23, 42, 0.15), transparent 45%),
+    radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 0;
+}
+
+/* FILLED slot (captain + members share same Valorant BG) */
 .slotFilled {
-  background: 
-    radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, rgba(2, 6, 23, 0) 60%),
-    linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  background-image: url("/images/team-slot-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   border-color: #334155;
   color: #f0f9ff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* 2. CAPTAIN FILLED (Gold/Amber Gradient) */
+.slotFilled::before {
+  opacity: 1;
+}
+
+/* CAPTAIN slot – bigger + gold glow */
 .slotCaptain {
   height: 80px;
   flex: 1.3;
   z-index: 2;
-  
-  /* Rich amber gradient with a glow in the center */
-  background: 
-    radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.25) 0%, rgba(69, 26, 3, 0) 70%),
-    linear-gradient(180deg, #281205 0%, #020617 100%);
 
-  /* Gold border styling */
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fffbeb;
-  
-  /* Outer glow to make it pop */
-  box-shadow: 
+  border: 1px solid rgba(245, 158, 11, 0.7);
+  box-shadow:
     0 10px 25px -5px rgba(0, 0, 0, 0.5),
-    0 0 15px rgba(245, 158, 11, 0.1);
+    0 0 18px rgba(245, 158, 11, 0.4);
+  color: #fffbeb;
 }
 
-/* 3. ME Highlight (Green Border Override) */
+/* Highlight for "me" */
 .slotMe {
   border-color: #22c55e !important;
-  box-shadow: 
-    0 0 0 1px #22c55e, 
-    0 0 20px rgba(34, 197, 94, 0.15) !important;
+  box-shadow:
+    0 0 0 1px #22c55e,
+    0 0 20px rgba(34, 197, 94, 0.2) !important;
   z-index: 3;
 }
 
