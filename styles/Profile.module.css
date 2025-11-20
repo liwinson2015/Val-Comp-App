@@ -174,6 +174,7 @@
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 18px;
+  /* Ensuring both columns stretch to same height */
   align-items: stretch;
 }
 
@@ -192,6 +193,8 @@
   padding: 14px 12px;
   display: flex;
   flex-direction: column;
+  /* Ensure sidebar height matches parent grid cell */
+  height: 100%; 
 }
 
 .gameSidebarHeader {
@@ -216,6 +219,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* EXPAND TO FILL SPACE */
+  flex: 1; 
 }
 
 /* featured cards */
@@ -232,6 +237,8 @@
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  /* STRETCH CARD TO FILL AVAILABLE HEIGHT */
+  flex: 1;
 }
 
 .featuredButtonActive {
@@ -293,6 +300,11 @@
   background: rgba(15,23,42,0.5);
   font-size: 11px;
   color: #9ca3af;
+  /* STRETCH EMPTY SLOT TO MATCH BUTTONS */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .featuredEmptyTitle {
@@ -315,8 +327,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* big enough for TFT double-up so all games have same card height */
-  min-height: 280px;
+  /* UPDATED: Set specifically to accommodate TFT content + padding */
+  min-height: 600px;
 }
 
 .gameEditorTopRow {
