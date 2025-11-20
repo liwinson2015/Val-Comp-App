@@ -344,6 +344,7 @@
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 16px;
   margin-top: 6px;
+  align-items: stretch;        /* make both columns equal height */
 }
 
 @media (max-width: 860px) {
@@ -361,6 +362,7 @@
   padding: 10px 9px;
   display: flex;
   flex-direction: column;
+  height: 100%;                /* stretch to match right side */
 }
 
 .featuredSidebarHeader {
@@ -491,6 +493,8 @@
   border: 1px solid #1f2332;
   background: #020617;
   padding: 12px 12px 14px;
+  height: 100%;             /* stretch with sidebar */
+  min-height: 260px;        /* ensure non-TFT games are as tall as TFT */
 }
 
 .gameEditorTopRow {
