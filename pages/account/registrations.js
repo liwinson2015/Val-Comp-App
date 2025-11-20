@@ -1,4 +1,4 @@
-// /pages/hiaccount/registrations.js
+// /pages/account/registrations.js
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
