@@ -84,6 +84,11 @@ const GAME_DEFS = [
 ];
 
 const GAME_CODES = GAME_DEFS.map((g) => g.code);
+const GAME_ICON_PATHS = {
+  HOK: "/icons/hok-icon.png",
+  TFT: "/icons/tft-icon.png",
+  VALORANT: "/icons/valorant-icon.png",
+};
 
 // HOK: per-tier division options (non-Grandmaster)
 const HOK_DIVISIONS_BY_TIER = {
@@ -595,6 +600,7 @@ function FeaturedGameCard({ code, profile, onClick, isActive }) {
       : profile.rankTier || "Rank not set";
 
   const region = profile.region || "Region not set";
+  const iconSrc = GAME_ICON_PATHS[code];
 
   return (
     <button
@@ -604,7 +610,15 @@ function FeaturedGameCard({ code, profile, onClick, isActive }) {
         isActive ? styles.featuredCardActive : ""
       }`}
     >
-      <div className={styles.featuredIcon} aria-hidden />
+      <div className={styles.featuredIcon}>
+        {iconSrc ? (
+          <img
+            src={iconSrc}
+            alt={`${def.label} icon`}
+            className={styles.featuredIconImg}
+          />
+        ) : null}
+      </div>
       <div className={styles.featuredText}>
         <div className={styles.featuredGameLabel}>{def.label}</div>
         <div className={styles.featuredIgn}>{ign}</div>
@@ -614,6 +628,7 @@ function FeaturedGameCard({ code, profile, onClick, isActive }) {
     </button>
   );
 }
+
 
 // ---------- Game profile editor ----------
 function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
