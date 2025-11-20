@@ -13,7 +13,6 @@ const SUPPORTED_GAMES = [
   { code: "HOK", label: "Honor of Kings" },
 ];
 
-// cookie parser
 function parseCookies(cookieHeader = "") {
   return Object.fromEntries(
     (cookieHeader || "")
@@ -416,9 +415,7 @@ export default function TeamsPage({
   }
 
   async function handlePromote(team, member) {
-    if (
-      !window.confirm(`Promote ${member.name} to captain?`)
-    ) {
+    if (!window.confirm(`Promote ${member.name} to captain?`)) {
       return;
     }
     try {
@@ -454,9 +451,7 @@ export default function TeamsPage({
   }
 
   async function handleKick(team, member) {
-    if (
-      !window.confirm(`Kick ${member.name}?`)
-    ) {
+    if (!window.confirm(`Kick ${member.name}?`)) {
       return;
     }
     try {
@@ -619,7 +614,9 @@ export default function TeamsPage({
     <div className={styles.shell}>
       <div className={styles.wrap}>
         <div className={styles.header}>
-          <span className={styles.userBadge}>Logged in as {player.username}</span>
+          <span className={styles.userBadge}>
+            Logged in as {player.username}
+          </span>
           <h1 className={styles.title}>My Teams</h1>
           <p className={styles.subtitle}>
             Manage your squads, create new teams, or join existing ones using an
@@ -640,7 +637,11 @@ export default function TeamsPage({
                   placeholder="ABC123"
                   maxLength={6}
                   className={styles.input}
-                  style={{ width: "120px", textAlign: "center", letterSpacing: "2px" }}
+                  style={{
+                    width: "120px",
+                    textAlign: "center",
+                    letterSpacing: "2px",
+                  }}
                 />
                 <button
                   type="submit"
@@ -760,12 +761,21 @@ export default function TeamsPage({
               &times;
             </button>
             <h2 className={styles.modalTitle}>Create a new Team</h2>
-            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: "0.9rem",
+                marginBottom: "1.5rem",
+              }}
+            >
               Assemble your squad. You will be assigned as the Captain.
             </p>
 
             <form onSubmit={handleCreate}>
-              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <div
+                className={styles.inputGroup}
+                style={{ marginBottom: "1rem" }}
+              >
                 <label htmlFor="team-game" className={styles.label}>
                   Game
                 </label>
@@ -784,7 +794,10 @@ export default function TeamsPage({
                 </select>
               </div>
 
-              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <div
+                className={styles.inputGroup}
+                style={{ marginBottom: "1rem" }}
+              >
                 <label htmlFor="team-name" className={styles.label}>
                   Team Name
                 </label>
@@ -799,7 +812,10 @@ export default function TeamsPage({
                 />
               </div>
 
-              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <div
+                className={styles.inputGroup}
+                style={{ marginBottom: "1rem" }}
+              >
                 <label htmlFor="team-tag" className={styles.label}>
                   Tag (Max 4 chars)
                 </label>
@@ -821,7 +837,11 @@ export default function TeamsPage({
                 type="submit"
                 disabled={submitting}
                 className={styles.createBtn}
-                style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  marginTop: "1rem",
+                }}
               >
                 {submitting ? "Creating..." : "Confirm Creation"}
               </button>
@@ -837,7 +857,7 @@ export default function TeamsPage({
 
 function TeamCard({
   team,
-  currentUser, // Passed down from parent to check IDs
+  currentUser,
   onDelete,
   onLeave,
   onPromote,
@@ -895,32 +915,19 @@ function TeamCard({
         </div>
       )}
 
-      {/* SLOTS VISUALIZER */}
       <div className={styles.slotsContainer}>
         {slots.map((slot, idx) => {
-          // Base class
           let slotClass = styles.slot;
-          
-          // Is this the captain's slot? (Index 2)
           if (idx === 2) slotClass += ` ${styles.slotCaptain}`;
-          
-          // Is this slot filled?
           if (slot) slotClass += ` ${styles.slotFilled}`;
-
-          // Is this ME? (The logged in user)
           if (slot && currentUser && slot.id === currentUser.id) {
             slotClass += ` ${styles.slotMe}`;
           }
 
           return (
             <div key={idx} className={slotClass} title={slot?.name || "Open"}>
-              {/* If captain slot, show Star Icon */}
               {idx === 2 && <div className={styles.captainStar}>★</div>}
-              
-              {/* Name */}
-              <div className={styles.slotName}>
-                {slot ? slot.name.slice(0, 2).toUpperCase() : "-"}
-              </div>
+              <div className={styles.slotName}>{slot ? slot.name : "-"}</div>
             </div>
           );
         })}
@@ -934,7 +941,7 @@ function TeamCard({
               justifyContent: "space-between",
               fontSize: "0.75rem",
               color: "#64748b",
-              marginBottom: "4px",
+              marginBottom: "8px",
             }}
           >
             <span>Visibility</span>
@@ -949,12 +956,40 @@ function TeamCard({
                 color: team.isPublic ? "#22c55e" : "#f59e0b",
                 fontSize: "0.75rem",
                 cursor: "pointer",
+                outline: "none",
               }}
             >
               <option value="private">Private</option>
               <option value="public">Public</option>
             </select>
           </div>
+
+          {otherMembers.length > 0 && (
+            <div className={styles.rosterBox}>
+              <div className={styles.rosterHeader}>Manage Roster</div>
+              {otherMembers.map((m) => (
+                <div key={m.id} className={styles.rosterRow}>
+                  <span className={styles.rosterName}>{m.name}</span>
+                  <div className={styles.rosterActions}>
+                    <button
+                      onClick={() => onPromote(team, m)}
+                      className={styles.miniBtn}
+                      style={{ color: "#60a5fa", borderColor: "#1e40af" }}
+                    >
+                      Promote
+                    </button>
+                    <button
+                      onClick={() => onKick(team, m)}
+                      className={styles.miniBtn}
+                      style={{ color: "#f87171", borderColor: "#7f1d1d" }}
+                    >
+                      Kick
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {team.isPublic && hasRequests && (
             <div className={styles.requestsBox}>
@@ -1019,7 +1054,6 @@ function buildMemberSlots(members = []) {
   const captain = members.find((m) => m.isCaptain) || members[0] || null;
   const others = members.filter((m) => m !== captain);
 
-  // position order: middle, left, right, far-left, far-right
   const positions = [2, 1, 3, 0, 4];
 
   if (captain) {
