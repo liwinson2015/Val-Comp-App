@@ -7,13 +7,13 @@ import styles from "../styles/Profile.module.css";
 /**
  * Expected (optional) shape for player.registeredFor items if you later populate it:
  * {
- *   id: "skirmish-1",
- *   name: "Valorant Skirmish #1",
- *   game: "VALORANT",
- *   mode: "1v1",
- *   date: "2025-11-02T23:00:00Z",
- *   placement: 5,
- *   result: "Round of 8"
+ * id: "skirmish-1",
+ * name: "Valorant Skirmish #1",
+ * game: "VALORANT",
+ * mode: "1v1",
+ * date: "2025-11-02T23:00:00Z",
+ * placement: 5,
+ * result: "Round of 8"
  * }
  */
 
@@ -1022,7 +1022,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           display: "grid",
           gridTemplateColumns:
             gameDef.code === "HOK"
-              ? "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)" // make both numeric fields same width
+              ? "minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr)" // CHANGED: Gave more space to Peak Score
               : showDivision
               ? "minmax(0, 2fr) minmax(0, 1fr)" +
                 (!showRegionTop ? " minmax(0, 1.3fr)" : "")
