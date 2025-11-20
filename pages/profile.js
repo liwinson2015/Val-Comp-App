@@ -366,151 +366,104 @@ export default function Profile({
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>GAME PROFILES</h2>
           </div>
-          <p
-            style={{
-              margin: "0 0 0.9rem",
-              fontSize: "0.9rem",
-              color: "#9ca3af",
-            }}
-          >
-            These profiles store your in-game names and ranks for different
-            games. We use this info to auto-fill team and tournament forms.
-            Make sure it matches what you actually use in-game.
-          </p>
 
-          {/* Featured games row (player cards) */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "0.6rem",
-              marginBottom: "0.9rem",
-            }}
-          >
-            {featuredGames.map((code) => (
-              <FeaturedGameCard
-                key={code}
-                code={code}
-                profile={profiles[code] || {}}
-                onClick={() => handleFeaturedCardClick(code)}
-              />
-            ))}
-
-            {/* Empty slots up to 3 */}
-            {featuredGames.length < 3 &&
-              Array.from({ length: 3 - featuredGames.length }).map((_, idx) => (
-                <div
-                  key={`empty-${idx}`}
-                  style={{
-                    minWidth: "190px",
-                    flex: "0 0 auto",
-                    borderRadius: "12px",
-                    border: "1px dashed rgba(148,163,184,0.5)",
-                    padding: "0.55rem 0.7rem",
-                    backgroundColor: "rgba(15,23,42,0.5)",
-                    fontSize: "0.8rem",
-                    color: "#9ca3af",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
-                      marginBottom: "0.2rem",
-                    }}
-                  >
-                    Empty slot
-                  </div>
-                  <div>
-                    Choose a game in the editor below and mark it as featured to
-                    show it here.
-                  </div>
+          <div className={styles.gameLayout}>
+            {/* LEFT SIDEBAR: Featured games */}
+            <aside className={styles.featuredSidebar}>
+              <div className={styles.featuredHeader}>
+                <div className={styles.featuredLabel}>Featured games</div>
+                <div className={styles.featuredHint}>
+                  Up to 3 profiles shown on your player card.
                 </div>
-              ))}
-          </div>
-
-          {/* Editor: select game + profile form */}
-          <div
-            style={{
-              borderRadius: "10px",
-              border: "1px solid rgba(148,163,184,0.35)",
-              padding: "0.75rem 0.9rem 0.9rem",
-              backgroundColor: "#020617",
-            }}
-          >
-            {/* Top row: game select + featured toggle */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "0.6rem",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "0.7rem",
-              }}
-            >
-              <div style={{ minWidth: "220px" }}>
-                <label
-                  htmlFor="game-select"
-                  style={{
-                    display: "block",
-                    marginBottom: "0.15rem",
-                    fontSize: "0.8rem",
-                    color: "#9ca3af",
-                  }}
-                >
-                  Select game to edit
-                </label>
-                <select
-                  id="game-select"
-                  value={selectedGame}
-                  onChange={handleSelectGame}
-                  style={{
-                    width: "100%",
-                    padding: "0.35rem 0.6rem",
-                    borderRadius: "8px",
-                    border: "1px solid #4b5563",
-                    backgroundColor: "#020617",
-                    color: "#f9fafb",
-                    fontSize: "0.85rem",
-                    outline: "none",
-                  }}
-                >
-                  {GAME_DEFS.map((g) => (
-                    <option key={g.code} value={g.code}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleToggleFeatured(selectedGame)}
-                style={{
-                  padding: "0.35rem 0.8rem",
-                  borderRadius: "999px",
-                  border: "1px solid #facc15",
-                  backgroundColor: isSelectedFeatured
-                    ? "#facc15"
-                    : "transparent",
-                  color: isSelectedFeatured ? "#111827" : "#facc15",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {isSelectedFeatured ? "Unfeature game" : "Feature this game"}
-              </button>
-            </div>
+              <div className={styles.featuredList}>
+                {featuredGames.map((code) => (
+                  <FeaturedGameCard
+                    key={code}
+                    code={code}
+                    profile={profiles[code] || {}}
+                    isActive={selectedGame === code}
+                    onClick={() => handleFeaturedCardClick(code)}
+                  />
+                ))}
 
-            <GameProfileEditor
-              key={selectedGame}
-              gameDef={selectedDef}
-              profile={selectedProfile}
-              onProfileSaved={handleProfileSaved}
-            />
+                {/* Empty slots up to 3 */}
+                {featuredGames.length < 3 &&
+                  Array.from({ length: 3 - featuredGames.length }).map(
+                    (_, idx) => (
+                      <div
+                        key={`empty-${idx}`}
+                        className={styles.featuredEmpty}
+                      >
+                        <div className={styles.featuredEmptyTitle}>
+                          Empty slot
+                        </div>
+                        <div className={styles.featuredEmptyText}>
+                          Choose a game below and mark it as featured to show it
+                          here.
+                        </div>
+                      </div>
+                    )
+                  )}
+              </div>
+            </aside>
+
+            {/* RIGHT: Editor + description */}
+            <div className={styles.gameMain}>
+              <p className={styles.gameIntro}>
+                These profiles store your in-game names and ranks for different
+                games. We use this info to auto-fill team and tournament forms.
+                Make sure it matches what you actually use in-game.
+              </p>
+
+              <div className={styles.gameEditorBox}>
+                {/* Top row: game select + featured toggle */}
+                <div className={styles.gameEditorTopRow}>
+                  <div className={styles.gameSelectWrap}>
+                    <label
+                      htmlFor="game-select"
+                      className={styles.gameSelectLabel}
+                    >
+                      Select game to edit
+                    </label>
+                    <select
+                      id="game-select"
+                      value={selectedGame}
+                      onChange={handleSelectGame}
+                      className={styles.gameSelect}
+                    >
+                      {GAME_DEFS.map((g) => (
+                        <option key={g.code} value={g.code}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFeatured(selectedGame)}
+                    className={
+                      isSelectedFeatured
+                        ? styles.featureToggleActive
+                        : styles.featureToggle
+                    }
+                  >
+                    {isSelectedFeatured
+                      ? "Unfeature game"
+                      : "Feature this game"}
+                  </button>
+                </div>
+
+                <GameProfileEditor
+                  key={selectedGame}
+                  gameDef={selectedDef}
+                  profile={selectedProfile}
+                  onProfileSaved={handleProfileSaved}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -601,7 +554,9 @@ export default function Profile({
                 <div className={styles.linkedLabel}>Discord</div>
                 <div className={styles.linkedValue}>
                   Connected as{" "}
-                  <span className={styles.mono}>{username || "Unknown"}</span>
+                    <span className={styles.mono}>
+                      {username || "Unknown"}
+                    </span>
                 </div>
               </div>
             </div>
@@ -628,7 +583,7 @@ export default function Profile({
 }
 
 // ---------- Featured game card ----------
-function FeaturedGameCard({ code, profile, onClick }) {
+function FeaturedGameCard({ code, profile, onClick, isActive }) {
   const def = GAME_DEFS.find((g) => g.code === code);
   if (!def) return null;
 
@@ -645,56 +600,16 @@ function FeaturedGameCard({ code, profile, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      style={{
-        minWidth: "190px",
-        flex: "0 0 auto",
-        borderRadius: "12px",
-        border: "1px solid rgba(148,163,184,0.6)",
-        padding: "0.55rem 0.7rem",
-        background:
-          "radial-gradient(circle at top left, #1f2937 0, #020617 55%, #020617 100%)",
-        textAlign: "left",
-        cursor: "pointer",
-      }}
+      className={`${styles.featuredCard} ${
+        isActive ? styles.featuredCardActive : ""
+      }`}
     >
-      <div
-        style={{
-          fontSize: "0.8rem",
-          fontWeight: 600,
-          letterSpacing: "0.04em",
-          marginBottom: "0.15rem",
-        }}
-      >
-        {def.label}
-      </div>
-      <div
-        style={{
-          fontSize: "0.8rem",
-          color: "#e5e7eb",
-          marginBottom: "0.12rem",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {ign}
-      </div>
-      <div
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.05rem",
-        }}
-      >
-        {rank}
-      </div>
-      <div
-        style={{
-          fontSize: "0.7rem",
-          color: "#6b7280",
-        }}
-      >
-        {region}
+      <div className={styles.featuredIcon} aria-hidden />
+      <div className={styles.featuredText}>
+        <div className={styles.featuredGameLabel}>{def.label}</div>
+        <div className={styles.featuredIgn}>{ign}</div>
+        <div className={styles.featuredRank}>{rank}</div>
+        <div className={styles.featuredRegion}>{region}</div>
       </div>
     </button>
   );
