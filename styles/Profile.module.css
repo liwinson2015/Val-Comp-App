@@ -327,8 +327,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* CHANGED: Reduced from 600px to 460px to remove empty space */
-  min-height: 460px;
+  /* CHANGED: Reduced from 460px to 420px to tighten the fit */
+  min-height: 420px;
 }
 
 .gameEditorTopRow {
