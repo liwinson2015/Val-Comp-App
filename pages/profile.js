@@ -19,7 +19,7 @@ import styles from "../styles/Profile.module.css";
 
 // ---------- Game config (UI only) ----------
 // Alphabetical by label: HONOR OF KINGS, TEAMFIGHT TACTICS, VALORANT
-const GAME_DEFS = 
+const GAME_DEFS = [
   {
     code: "HOK",
     label: "HONOR OF KINGS",
