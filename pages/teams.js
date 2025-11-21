@@ -146,7 +146,8 @@ export async function getServerSideProps({ req, query }) {
       memberCount: members.length,
       isCaptain: iAmCaptain,
       isPublic: !!t.isPublic,
-      maxSize: t.maxSize || 7,
+      // UPDATED: Default to 5 if null
+      maxSize: t.maxSize || 5,
       joinCode: t.joinCode || null,
       members,
       joinRequests: pendingForCaptainByTeam[teamIdStr] || [],
@@ -275,7 +276,8 @@ export default function TeamsPage({
           memberCount: data.team.memberCount || 1,
           isCaptain: true,
           isPublic: false,
-          maxSize: data.team.maxSize || 7,
+          // UPDATED: Limit to 5
+          maxSize: data.team.maxSize || 5,
           joinCode: data.team.joinCode || null,
           members: [
             { id: player.id, name: player.username, isCaptain: true },
@@ -316,7 +318,7 @@ export default function TeamsPage({
       if (data.joined && data.team) {
         const existing = teams.find((t) => t.id === data.team.id);
         if (!existing) {
-          // UPDATED: Use the populated members list from the backend
+          // UPDATED: Use 5 as fallback limit
           const newTeam = {
             id: data.team.id,
             name: data.team.name,
@@ -325,9 +327,9 @@ export default function TeamsPage({
             memberCount: data.team.memberCount,
             isCaptain: false,
             isPublic: !!data.team.isPublic,
-            maxSize: data.team.maxSize || 7,
+            maxSize: data.team.maxSize || 5,
             joinCode: data.team.joinCode || null,
-            members: data.team.members, // Full list from backend
+            members: data.team.members,
             joinRequests: [],
           };
           setTeams((prev) => [...prev, newTeam]);
@@ -858,6 +860,9 @@ function TeamCard({
   const slots = buildMemberSlots(team.members || []);
   const otherMembers = (team.members || []).filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
+  // UPDATED: Default limit to 5 for display
+  const maxSize = team.maxSize || 5;
+  const visibilityLabel = team.isPublic ? "Public" : "Private";
 
   function handleCopyCode() {
     if (!team.joinCode) return;
@@ -1015,7 +1020,10 @@ function TeamCard({
       )}
 
       <div className={styles.cardFooter}>
-        <span>{team.memberCount} Members</span>
+        {/* UPDATED: Display default max size of 5 */}
+        <span>
+          Members: <strong>{team.memberCount}</strong> / {maxSize} · {visibilityLabel}
+        </span>
         <div className={styles.footerBtns}>
           {team.isCaptain ? (
             <button

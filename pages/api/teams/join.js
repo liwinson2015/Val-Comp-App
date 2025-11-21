@@ -46,6 +46,9 @@ export default async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Player not found." });
   }
 
+  // Set the Hard Limit here
+  const MAX_TEAM_SIZE = 5;
+
   // ---------- 1) JOIN BY INVITE CODE (Instant Join) ----------
   if (joinCode) {
     const code = String(joinCode).trim().toUpperCase();
@@ -76,12 +79,15 @@ export default async function handler(req, res) {
       });
     }
 
+    // UPDATED: Check against MAX_TEAM_SIZE (5)
     const memberCount = (team.members || []).length + 1; // + captain
-    const maxSize = team.maxSize || 7;
-    if (memberCount >= maxSize) {
+    // Use DB maxSize if set, otherwise default to 5
+    const effectiveLimit = team.maxSize || MAX_TEAM_SIZE; 
+    
+    if (memberCount >= effectiveLimit) {
       return res.status(400).json({
         ok: false,
-        error: "This team is full.",
+        error: `This team is full (Max ${effectiveLimit}).`,
       });
     }
 
@@ -90,8 +96,7 @@ export default async function handler(req, res) {
     team.members.push(player._id);
     await team.save();
 
-    // --- FIX STARTS HERE ---
-    // Populate EVERYONE so the frontend can show the full roster immediately
+    // Populate full roster for frontend
     await team.populate([
       { path: "captain", select: "username discordUsername" },
       { path: "members", select: "username discordUsername" },
@@ -116,7 +121,6 @@ export default async function handler(req, res) {
         });
       }
     });
-    // --- FIX ENDS HERE ---
 
     return res.status(200).json({
       ok: true,
@@ -127,11 +131,11 @@ export default async function handler(req, res) {
         name: team.name,
         tag: team.tag || "",
         game: team.game,
-        memberCount: membersFormatted.length, // Updated count
+        memberCount: membersFormatted.length,
         isPublic: !!team.isPublic,
-        maxSize,
+        maxSize: effectiveLimit,
         joinCode: team.joinCode || null,
-        members: membersFormatted, // Send the full list back!
+        members: membersFormatted,
       },
     });
   }
@@ -163,9 +167,11 @@ export default async function handler(req, res) {
     });
   }
 
+  // UPDATED: Check limit here too
   const memberCount = (team.members || []).length + 1; // + captain
-  const maxSize = team.maxSize || 7;
-  if (memberCount > maxSize) {
+  const effectiveLimit = team.maxSize || MAX_TEAM_SIZE;
+
+  if (memberCount >= effectiveLimit) {
     return res.status(400).json({
       ok: false,
       error: "This team is full.",
