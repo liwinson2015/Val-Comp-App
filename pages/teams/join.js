@@ -293,8 +293,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
   const renderSlots = Array.from({ length: team.maxSize || 7 }, (_, i) => {
     return team.membersDetails[i] || null;
   });
-  
-  const rolesDisplay = team.rolesNeeded.slice(0, 4);
 
   let statusLabel = "";
   let statusClass = "";
@@ -321,36 +319,31 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
       
-      {/* Captain and Meta Data Block */}
-      <div className={styles.dataBlock}>
-          {/* Captain Display */}
-          <div className={styles.captainDisplay}>
-            <span>Captain:</span> 
-            <span className={styles.captainName}>{getDisplayName(team.captainName)}</span>
-          </div>
-          
-          {/* Rank Badge */}
-          <div className={styles.rankBadge} style={{marginTop: '0.5rem'}}>
-             Rank: <strong>{team.rank}</strong>
-          </div>
+      {/* Captain and Meta Area */}
+      <div className={styles.captainDisplay}>
+        <span>Captain:</span> 
+        <span className={styles.captainName}>{getDisplayName(team.captainName)}</span>
       </div>
 
-      {/* Roles Row (Separated by border) */}
+      {/* Rank & Roles Badges */}
       <div className={styles.metaRow}>
+           {/* Rank Badge */}
+           <span className={styles.rankBadge}>
+             Rank: <strong>{team.rank}</strong>
+           </span>
+           
            {/* Roles Needed Badges */}
            <div className={styles.rolesContainer}>
-             <span style={{color: '#94a3b8', fontSize: '0.75rem'}}>LOOKING FOR:</span>
-             {rolesDisplay.map(r => (
+             {team.rolesNeeded.slice(0, 4).map(r => (
                <span key={r} className={styles.roleChip}>
                  {r}
                </span>
              ))}
-             {team.rolesNeeded.length === 0 && <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>None listed</span>}
              {team.rolesNeeded.length > 4 && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>+{team.rolesNeeded.length - 4}</span>}
            </div>
       </div>
       
-      {/* CAPACITY BAR (Firing Angle Style - Now just simple segments) */}
+      {/* CAPACITY BAR (Firing Angle Style) */}
       <div className={styles.slotsContainer}>
           <div className={styles.capacityBar}>
             {renderSlots.map((member, idx) => {
@@ -363,7 +356,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               } else if (isFilled) {
                   segmentType = 'slotFilled';
               }
-              
+    
               return (
                 <div 
                   key={idx} 
@@ -373,9 +366,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
                 </div>
               );
             })}
-          </div>
-          <div className={styles.capacityText}>
-              {team.maxSize > 5 ? '5 Starters + 2 Subs' : `${team.maxSize} Total Slots`}
           </div>
       </div>
 
