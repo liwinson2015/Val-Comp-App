@@ -123,7 +123,7 @@ export default function JoinTeamsPage({
   // Modal State (confirm join)
   const [teamToJoin, setTeamToJoin] = useState(null);
 
-  // NEW: Modal State for "IGN Required"
+  // Modal State for "IGN Required"
   const [showMissingProfileModal, setShowMissingProfileModal] =
     useState(false);
   const [missingGame, setMissingGame] = useState(null);
@@ -165,9 +165,9 @@ export default function JoinTeamsPage({
       });
       const data = await res.json();
 
-      // 🔒 API says: need profile update first (e.g. missing VALORANT IGN)
-      if (data.requiresProfile && data.game === "VALORANT") {
-        setMissingGame("VALORANT");
+      // 🔒 API says: need profile update first (VALORANT or HOK)
+      if (data.requiresProfile && data.game) {
+        setMissingGame(data.game); // "VALORANT" or "HOK"
         setShowMissingProfileModal(true);
         return; // do NOT mark as requested
       }
@@ -200,6 +200,14 @@ export default function JoinTeamsPage({
     const haystack = `${t.name} ${t.tag}`.toLowerCase();
     return haystack.includes(searchLower);
   });
+
+  // Label to show inside the modal
+  const gameLabel =
+    missingGame === "VALORANT"
+      ? "VALORANT"
+      : missingGame === "HOK"
+      ? "Honor of Kings"
+      : "in-game";
 
   return (
     <div className={styles.shell}>
@@ -364,11 +372,8 @@ export default function JoinTeamsPage({
               }}
             >
               You don't have your{" "}
-              <strong>
-                {missingGame === "VALORANT" ? "VALORANT" : "in-game"}
-              </strong>{" "}
-              name set yet. Please update your profile before requesting to join
-              this team.
+              <strong>{gameLabel}</strong> name set yet. Please update your
+              profile before requesting to join this team.
             </p>
             <div className={teamModalStyles.modalActions}>
               <button

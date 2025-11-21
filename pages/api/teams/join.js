@@ -16,6 +16,32 @@ function parseCookies(header = "") {
   );
 }
 
+function getMissingProfileGame(player, teamGame) {
+  if (!player || !player.gameProfiles) return null;
+
+  if (teamGame === "VALORANT") {
+    const ign =
+      player.gameProfiles?.VALORANT?.ign &&
+      player.gameProfiles.VALORANT.ign.trim();
+    if (!ign) return "VALORANT";
+  }
+
+  if (teamGame === "HOK") {
+    const ign =
+      player.gameProfiles?.HOK?.ign &&
+      player.gameProfiles.HOK.ign.trim();
+    if (!ign) return "HOK";
+  }
+
+  return null;
+}
+
+function missingProfileError(game) {
+  if (game === "VALORANT") return "Missing VALORANT IGN on profile.";
+  if (game === "HOK") return "Missing Honor of Kings IGN on profile.";
+  return "Missing in-game name on profile.";
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res
@@ -65,19 +91,15 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "No team found with that invite code." });
     }
 
-    // 🔒 GATE: If this is a VALORANT team and player has no Valorant IGN, block join
-    if (team.game === "VALORANT") {
-      const valorantIgn =
-        player.gameProfiles?.VALORANT?.ign &&
-        player.gameProfiles.VALORANT.ign.trim();
-      if (!valorantIgn) {
-        return res.status(200).json({
-          ok: false,
-          requiresProfile: true,
-          game: "VALORANT",
-          error: "Missing VALORANT IGN on profile.",
-        });
-      }
+    // 🔒 GATE: If this is a VALORANT or HOK team and player has no IGN, block join
+    const missingGame = getMissingProfileGame(player, team.game);
+    if (missingGame) {
+      return res.status(200).json({
+        ok: false,
+        requiresProfile: true,
+        game: missingGame,
+        error: missingProfileError(missingGame),
+      });
     }
 
     const playerIdStr = String(player._id);
@@ -179,19 +201,15 @@ export default async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Team not found." });
   }
 
-  // 🔒 GATE: If this is a VALORANT team and player has no Valorant IGN, block request
-  if (team.game === "VALORANT") {
-    const valorantIgn =
-      player.gameProfiles?.VALORANT?.ign &&
-      player.gameProfiles.VALORANT.ign.trim();
-    if (!valorantIgn) {
-      return res.status(200).json({
-        ok: false,
-        requiresProfile: true,
-        game: "VALORANT",
-        error: "Missing VALORANT IGN on profile.",
-      });
-    }
+  // 🔒 GATE: If this is a VALORANT or HOK team and player has no IGN, block request
+  const missingGame = getMissingProfileGame(player, team.game);
+  if (missingGame) {
+    return res.status(200).json({
+      ok: false,
+      requiresProfile: true,
+      game: missingGame,
+      error: missingProfileError(missingGame),
+    });
   }
 
   if (!team.isPublic) {
