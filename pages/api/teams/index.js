@@ -32,7 +32,8 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: "Not logged in" });
     }
 
-    const { name, tag, game } = req.body || {};
+    // --- UPDATED: Extract new fields from body ---
+    const { name, tag, game, rank, rolesNeeded } = req.body || {};
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return res
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "Player not found for this session." });
     }
 
-    // --- NEW: CHECK TEAM LIMIT (Max 5 per game) ---
+    // Check Team Limit (Max 5 per game)
     const existingCount = await Team.countDocuments({
       game: gameCode,
       $or: [{ captain: playerId }, { members: playerId }],
@@ -96,17 +97,22 @@ export default async function handler(req, res) {
       });
     }
 
-    // --- NEW: Generate Invite Code ---
+    // Generate Invite Code
     const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    // --- UPDATED: Create Team with Rank and Roles ---
     const team = await Team.create({
       name: name.trim().toUpperCase(),
       tag: tagUpper,
       game: gameCode,
       captain: captain._id,
       members: [captain._id],
-      joinCode: joinCode, // Save the generated code
-      maxSize: 7,         // Default size per your request
+      joinCode: joinCode,
+      maxSize: 7,
+      
+      // Save new fields (with defaults)
+      rank: rank || "Unranked",
+      rolesNeeded: Array.isArray(rolesNeeded) ? rolesNeeded : [],
     });
 
     return res.status(201).json({
@@ -120,6 +126,9 @@ export default async function handler(req, res) {
         memberCount: team.members.length,
         maxSize: team.maxSize,
         joinCode: team.joinCode,
+        // Return new fields so frontend updates immediately
+        rank: team.rank,
+        rolesNeeded: team.rolesNeeded,
       },
     });
   } catch (err) {

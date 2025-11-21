@@ -1,4 +1,3 @@
-// models/Team.js
 import mongoose from "mongoose";
 
 const { Schema } = mongoose;
@@ -28,6 +27,17 @@ const TeamSchema = new Schema(
       trim: true,
       uppercase: true,
     },
+
+    // --- NEW FIELDS FOR RECRUITMENT ---
+    rank: {
+      type: String,
+      default: "Unranked",
+    },
+    rolesNeeded: {
+      type: [String],
+      default: [],
+    },
+    // ----------------------------------
 
     // Captain (owner) of the team
     captain: {
