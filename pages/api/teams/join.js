@@ -65,6 +65,21 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "No team found with that invite code." });
     }
 
+    // 🔒 GATE: If this is a VALORANT team and player has no Valorant IGN, block join
+    if (team.game === "VALORANT") {
+      const valorantIgn =
+        player.gameProfiles?.VALORANT?.ign &&
+        player.gameProfiles.VALORANT.ign.trim();
+      if (!valorantIgn) {
+        return res.status(200).json({
+          ok: false,
+          requiresProfile: true,
+          game: "VALORANT",
+          error: "Missing VALORANT IGN on profile.",
+        });
+      }
+    }
+
     const playerIdStr = String(player._id);
     const captainIdStr = String(team.captain);
     const isCaptain = captainIdStr === playerIdStr;
@@ -79,9 +94,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const memberCount = (team.members || []).length + 1; 
+    const memberCount = (team.members || []).length + 1; // captain + members
     const effectiveLimit = team.maxSize || MAX_TEAM_SIZE;
-    
+
     if (memberCount >= effectiveLimit) {
       return res.status(400).json({
         ok: false,
@@ -93,24 +108,48 @@ export default async function handler(req, res) {
     team.members.push(player._id);
     await team.save();
 
-    // Populate full roster
+    // Populate full roster (include gameProfiles so we can use IGN)
     await team.populate([
-      { path: "captain", select: "username discordUsername" },
-      { path: "members", select: "username discordUsername" },
+      { path: "captain", select: "username discordUsername gameProfiles" },
+      { path: "members", select: "username discordUsername gameProfiles" },
     ]);
 
     const membersFormatted = [];
+
+    // Helper to pick proper display name based on game + profile IGN
+    function getDisplayName(doc) {
+      if (!doc) return "Player";
+
+      let baseName = doc.username || doc.discordUsername || "Player";
+
+      if (team.game === "VALORANT") {
+        const ign =
+          doc.gameProfiles?.VALORANT?.ign &&
+          doc.gameProfiles.VALORANT.ign.trim();
+        if (ign) return ign;
+      } else if (team.game === "HOK") {
+        const ign =
+          doc.gameProfiles?.HOK?.ign &&
+          doc.gameProfiles.HOK.ign.trim();
+        if (ign) return ign;
+      }
+
+      return baseName;
+    }
+
+    // Captain first
     membersFormatted.push({
       id: String(team.captain._id),
-      name: team.captain.username || team.captain.discordUsername || "Captain",
+      name: getDisplayName(team.captain),
       isCaptain: true,
     });
 
+    // Then all members except captain
     team.members.forEach((m) => {
       if (String(m._id) !== String(team.captain._id)) {
         membersFormatted.push({
           id: String(m._id),
-          name: m.username || m.discordUsername || "Member",
+          name: getDisplayName(m),
           isCaptain: false,
         });
       }
@@ -138,6 +177,21 @@ export default async function handler(req, res) {
   const team = await Team.findById(teamId);
   if (!team) {
     return res.status(404).json({ ok: false, error: "Team not found." });
+  }
+
+  // 🔒 GATE: If this is a VALORANT team and player has no Valorant IGN, block request
+  if (team.game === "VALORANT") {
+    const valorantIgn =
+      player.gameProfiles?.VALORANT?.ign &&
+      player.gameProfiles.VALORANT.ign.trim();
+    if (!valorantIgn) {
+      return res.status(200).json({
+        ok: false,
+        requiresProfile: true,
+        game: "VALORANT",
+        error: "Missing VALORANT IGN on profile.",
+      });
+    }
   }
 
   if (!team.isPublic) {

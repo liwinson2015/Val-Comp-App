@@ -445,23 +445,19 @@ export default function TeamsPage({
     });
     const data = await res.json();
 
+    // 🔒 API says: you need to update profile first
+    if (data.requiresProfile && data.game === "VALORANT") {
+      setMissingGame("VALORANT");
+      setShowMissingProfileModal(true);
+      return; // DO NOT join, do not add team
+    }
+
     if (!data.ok) {
       setJoinCodeError(data.error || "Failed to join.");
       return;
     }
 
-    // ✅ Now we know what team this code belongs to
     if (data.joined && data.team) {
-      const teamGame = data.team.game;
-
-      // If the invite code points to a VALORANT team and you have no Valorant IGN,
-      // show the same "IGN Required" modal and block the join.
-      if (teamGame === "VALORANT" && !hasValorantIgn) {
-        setMissingGame("VALORANT");
-        setShowMissingProfileModal(true);
-        return; // don't add the team to state
-      }
-
       const existing = teams.find((t) => t.id === data.team.id);
       if (!existing) {
         const newTeam = {
