@@ -60,7 +60,7 @@ export async function getServerSideProps({ req, query }) {
     captain: { $ne: playerDoc._id },
     members: { $ne: playerDoc._id },
   })
-  .select('name tag game rank rolesNeeded memberCount maxSize captain members')
+  .select('name tag game rank rolesNeeded memberCount maxSize captain members') // Select necessary fields
   .sort({ createdAt: -1 }).lean(); 
 
   // 2. Fetch Requests
@@ -81,6 +81,7 @@ export async function getServerSideProps({ req, query }) {
     _id: { $in: Array.from(allPlayerIds) } 
   }).select('username discordUsername gameProfiles').lean();
 
+  // Helper to get the correct name from the fetched player documents
   const getPlayerDisplayInfo = (playerObj, gameCode) => {
     const baseName = playerObj.username || playerObj.discordUsername || "Player";
     let ign = baseName;
@@ -138,6 +139,7 @@ export async function getServerSideProps({ req, query }) {
       player: {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
+        // Pass specific flag to check if profile is set
         hasCustomName: !!playerDoc.gameProfiles?.VALORANT?.ign || !!playerDoc.gameProfiles?.HOK?.ign 
       },
       initialPublicTeams: formattedPublicTeams,
@@ -176,6 +178,7 @@ export default function JoinTeamsPage({
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
 
+    // Redirection check relies on logic in /api/teams/join now, but client-side check is still good.
     if (!player.hasCustomName) {
       const confirmRedirect = window.confirm(
         "You need to set your In-Game Name (Valorant/HoK ID) in your profile before joining a team.\n\nGo to Profile now?"
@@ -221,6 +224,7 @@ export default function JoinTeamsPage({
   const filteredTeams = publicTeams.filter((t) => {
     if (selectedGame !== "ALL" && t.game !== selectedGame) return false;
     if (!searchLower) return true;
+    // Search both team name/tag, and captain name (cleaned)
     const captainSearchable = getDisplayName(t.captainName).toLowerCase();
     const haystack = `${t.name} ${t.tag} ${captainSearchable}`.toLowerCase();
     return haystack.includes(searchLower);
@@ -290,16 +294,10 @@ export default function JoinTeamsPage({
 
 // ---------- Subcomponent: Updated Card ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
-  // Starters are the first 5 members
   const starters = team.membersDetails.slice(0, 5);
-  
-  // We fill 5 slots with member objects or null
   const starterSlots = Array.from({ length: 5 }, (_, i) => {
     return starters[i] || null;
   });
-
-  // Roles Needed for display (limit to 4 for card size)
-  const rolesDisplay = team.rolesNeeded.slice(0, 4);
 
   let statusLabel = "";
   let statusClass = "";
@@ -329,29 +327,23 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             <span className={styles.captainName}>{getDisplayName(team.captainName)}</span>
           </div>
 
-          {/* Rank & Roles Badges */}
-          <div className={styles.metaRow}>
-               {/* Rank Badge */}
-               <span className={styles.rankBadge}>
-                 Rank: <strong>{team.rank}</strong>
+          {/* Rank & Roles */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+               <span style={{ fontSize: '0.75rem', color: '#94a3b8', background:'#1e293b', padding:'4px 8px', borderRadius:'4px', border:'1px solid #334155' }}>
+                 {team.rank}
                </span>
-               
-               {/* Roles Needed Badges */}
-               <div className={styles.rolesContainer}>
-                 {rolesDisplay.map(r => (
-                   <span key={r} className={styles.roleChip}>
-                     {r}
-                   </span>
-                 ))}
-                 {team.rolesNeeded.length > 4 && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>+{team.rolesNeeded.length - 4}</span>}
-               </div>
+               {team.rolesNeeded.slice(0, 3).map(r => (
+                 <span key={r} style={{ fontSize: '0.75rem', color: '#60a5fa', background:'rgba(59, 130, 246, 0.1)', padding:'4px 8px', borderRadius:'4px', border:'1px solid rgba(59, 130, 246, 0.3)' }}>{r}</span>
+               ))}
+               {team.rolesNeeded.length > 3 && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>+{team.rolesNeeded.length - 3}</span>}
           </div>
         </div>
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
-      {/* VISUAL SLOTS WITH NAMES (Agent/Role Card Design) */}
+      {/* VISUAL SLOTS WITH NAMES */}
       <div className={styles.slotsContainer}>
+        <div className={styles.slotRow}>
         {starterSlots.map((member, idx) => {
           const isFilled = !!member;
           const isCap = member && member.isCaptain;
@@ -366,13 +358,11 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               }`} 
               title={member ? getDisplayName(member.name) : "Open Slot"}
             >
-              {member 
-                ? <span>{getDisplayName(member.name)}</span> 
-                : <span style={{transform: 'skewX(0)', opacity: 0.5}}>{idx < 5 ? 'OPEN' : 'SUB'}</span>
-              }
+              {member ? <span>{getDisplayName(member.name)}</span> : ""}
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Warning if Sub */}
