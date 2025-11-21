@@ -1,4 +1,3 @@
-// pages/teams.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { connectToDatabase } from "../lib/mongodb";
@@ -141,10 +140,8 @@ export async function getServerSideProps({ req, query }) {
       name: t.name,
       tag: t.tag || "",
       game: t.game,
-      // Pass through new fields (if they exist in DB)
       rank: t.rank || "Unranked",
       rolesNeeded: t.rolesNeeded || [],
-      
       memberCount: members.length,
       isCaptain: iAmCaptain,
       isPublic: !!t.isPublic,
@@ -179,34 +176,27 @@ export default function TeamsPage({
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [joinCodeError, setJoinCodeError] = useState("");
   const [joiningByCode, setJoiningByCode] = useState(false);
   
-  // Creation State
+  // Create Modal State
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
-  const [game, setGame] = useState(
-    initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code || "VALORANT"
-  );
-  
-  // NEW: Creation Metadata State
-  const [createRank, setCreateRank] = useState("Unranked");
-  const [createRoles, setCreateRoles] = useState([]); // Array of strings
-
+  const [game, setGame] = useState(initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code || "VALORANT");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   
+  // Active Team Tab
   const [activeTeamId, setActiveTeamId] = useState(null);
 
-  // Reset metadata when game changes in modal
-  useEffect(() => {
-    if (GAME_META[game]) {
-      setCreateRank(GAME_META[game].ranks[0]);
-      setCreateRoles([]);
-    }
-  }, [game]);
+  // NEW: "Go Public" Modal State
+  const [showPublicModal, setShowPublicModal] = useState(false);
+  const [pendingPublicTeam, setPendingPublicTeam] = useState(null);
+  const [publicRank, setPublicRank] = useState("Unranked");
+  const [publicRoles, setPublicRoles] = useState([]);
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -231,14 +221,6 @@ export default function TeamsPage({
     setShowModal(false);
     setName("");
     setTag("");
-    setCreateRoles([]);
-  }
-
-  function toggleCreateRole(role) {
-    setCreateRoles(prev => {
-      if (prev.includes(role)) return prev.filter(r => r !== role);
-      return [...prev, role];
-    });
   }
 
   function handleNameChange(e) {
@@ -261,17 +243,11 @@ export default function TeamsPage({
 
     setSubmitting(true);
     try {
+      // Create is simple again (no rank/roles)
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          name: name.trim(), 
-          tag: tag.trim(), 
-          game,
-          // Send new fields
-          rank: createRank,
-          rolesNeeded: createRoles
-        }),
+        body: JSON.stringify({ name: name.trim(), tag: tag.trim(), game }),
       });
       const data = await res.json();
       if (!data.ok) {
@@ -282,8 +258,8 @@ export default function TeamsPage({
           name: data.team.name,
           tag: data.team.tag || "",
           game: data.team.game,
-          rank: createRank,
-          rolesNeeded: createRoles,
+          rank: "Unranked",
+          rolesNeeded: [],
           memberCount: 1,
           isCaptain: true,
           isPublic: false,
@@ -302,6 +278,69 @@ export default function TeamsPage({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // --- Visibility Logic ---
+
+  // 1. Triggered when Dropdown changes
+  function handleToggleVisibility(team, nextIsPublic) {
+    if (nextIsPublic) {
+      // Open Modal to configure settings
+      setPendingPublicTeam(team);
+      
+      // Pre-fill if data exists, or default to game meta
+      const gameMeta = GAME_META[team.game];
+      setPublicRank(team.rank && team.rank !== "Unranked" ? team.rank : (gameMeta?.ranks[0] || "Unranked"));
+      setPublicRoles(team.rolesNeeded || []);
+      
+      setShowPublicModal(true);
+    } else {
+      // Go Private immediately (no extra data needed)
+      confirmVisibilityChange(team, false, null, []);
+    }
+  }
+
+  // 2. Logic to call API
+  async function confirmVisibilityChange(team, isPublic, rank, rolesNeeded) {
+    try {
+      const body = { action: "setVisibility", isPublic };
+      
+      // Only send extra data if going public
+      if (isPublic) {
+        body.rank = rank;
+        body.rolesNeeded = rolesNeeded;
+      }
+
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTeams((prev) => prev.map((t) => 
+          t.id === team.id 
+          ? { ...t, isPublic: !!data.isPublic, rank: data.rank || t.rank, rolesNeeded: data.rolesNeeded || t.rolesNeeded } 
+          : t
+        ));
+      }
+      // Close modal if it was open
+      setShowPublicModal(false);
+      setPendingPublicTeam(null);
+    } catch (err) { console.error(err); }
+  }
+
+  // 3. Modal Confirm Button Action
+  function submitPublicModal() {
+    if (!pendingPublicTeam) return;
+    confirmVisibilityChange(pendingPublicTeam, true, publicRank, publicRoles);
+  }
+
+  function togglePublicRole(role) {
+    setPublicRoles(prev => {
+      if (prev.includes(role)) return prev.filter(r => r !== role);
+      return [...prev, role];
+    });
   }
 
   // ... Join by Code logic ...
@@ -350,7 +389,7 @@ export default function TeamsPage({
     }
   }
 
-  // ... Standard Actions (Delete, Leave, Promote, Kick, ToggleVis, Regen, Approve/Reject, Swap) ...
+  // ... Standard Actions ...
   async function handleDeleteTeam(team) {
     if (!window.confirm(`Delete ${team.name}? This cannot be undone.`)) return;
     try {
@@ -425,19 +464,6 @@ export default function TeamsPage({
           return { ...t, members: newMembers, memberCount: newMembers.length };
         })
       );
-    } catch (err) { console.error(err); }
-  }
-  async function handleToggleVisibility(team, nextIsPublic) {
-    try {
-      const res = await fetch(`/api/teams/${team.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "setVisibility", isPublic: nextIsPublic }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setTeams((prev) => prev.map((t) => t.id === team.id ? { ...t, isPublic: !!data.isPublic } : t));
-      }
     } catch (err) { console.error(err); }
   }
   async function handleRegenJoinCode(team) {
@@ -630,65 +656,76 @@ export default function TeamsPage({
             <h2 className={styles.modalTitle}>Create a new Team</h2>
             <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>Assemble your squad. You will be assigned as the Captain.</p>
             <form onSubmit={handleCreate}>
-              
-              {/* Game Selection */}
               <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
                 <label className={styles.label}>Game</label>
                 <select value={game} onChange={(e) => setGame(e.target.value)} className={styles.select} style={{ width: "100%" }}>
                   {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
                 </select>
               </div>
-
-              {/* Name & Tag */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '12px', marginBottom: "1rem" }}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>Team Name</label>
-                  <input type="text" value={name} onChange={handleNameChange} placeholder="e.g. EDWARD GAMING" className={styles.input} style={{ width: "100%" }} />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>Tag</label>
-                  <input type="text" value={tag} onChange={handleTagChange} placeholder="EDG" maxLength={4} className={styles.input} style={{ width: "100%" }} />
-                </div>
-              </div>
-
-              {/* Rank Selection (Dynamic based on Game) */}
               <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
-                <label className={styles.label}>Average Rank</label>
-                <select 
-                  value={createRank} 
-                  onChange={(e) => setCreateRank(e.target.value)} 
-                  className={styles.select} 
-                  style={{ width: "100%" }}
-                >
-                  {GAME_META[game].ranks.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
+                <label className={styles.label}>Team Name</label>
+                <input type="text" value={name} onChange={handleNameChange} placeholder="e.g. EDWARD GAMING" className={styles.input} style={{ width: "100%" }} />
               </div>
-
-              {/* Roles Selection (Dynamic clickable badges) */}
               <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
-                <span className={styles.label}>Roles Needed (Optional)</span>
-                <div className={styles.roleContainer}>
-                  {GAME_META[game].roles.map((r) => {
-                    const isActive = createRoles.includes(r);
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => toggleCreateRole(r)}
-                        className={`${styles.roleBadge} ${isActive ? styles.roleBadgeActive : ''}`}
-                      >
-                        {r}
-                      </button>
-                    )
-                  })}
-                </div>
+                <label className={styles.label}>Tag (Max 4 chars)</label>
+                <input type="text" value={tag} onChange={handleTagChange} placeholder="EDG" maxLength={4} className={styles.input} style={{ width: "100%" }} />
               </div>
-
               {error && <p className={styles.errorText}>{error}</p>}
               <button type="submit" disabled={submitting} className={styles.createBtn} style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>{submitting ? "Creating..." : "Confirm Creation"}</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- GO PUBLIC MODAL --- */}
+      {showPublicModal && pendingPublicTeam && (
+        <div className={styles.modalOverlay} onClick={() => setShowPublicModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowPublicModal(false)} className={styles.closeModal}>&times;</button>
+            <h2 className={styles.modalTitle}>Make Team Public?</h2>
+            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              This will list <strong>{pendingPublicTeam.name}</strong> on the "Find a Team" page. Please help players find you by providing more details.
+            </p>
+            
+            {/* Rank Selection */}
+            <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <label className={styles.label}>Average Rank</label>
+              <select 
+                value={publicRank} 
+                onChange={(e) => setPublicRank(e.target.value)} 
+                className={styles.select} 
+                style={{ width: "100%" }}
+              >
+                {GAME_META[pendingPublicTeam.game]?.ranks.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                )) || <option value="Unranked">Unranked</option>}
+              </select>
+            </div>
+
+            {/* Roles Selection */}
+            <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <span className={styles.label}>Roles Needed (Optional)</span>
+              <div className={styles.roleContainer}>
+                {GAME_META[pendingPublicTeam.game]?.roles.map((r) => {
+                  const isActive = publicRoles.includes(r);
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => togglePublicRole(r)}
+                      className={`${styles.roleBadge} ${isActive ? styles.roleBadgeActive : ''}`}
+                    >
+                      {r}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button onClick={() => setShowPublicModal(false)} className={styles.cancelBtn}>Cancel</button>
+              <button onClick={submitPublicModal} className={styles.confirmBtn} style={{background: '#22c55e'}}>Confirm & Publish</button>
+            </div>
           </div>
         </div>
       )}
@@ -716,7 +753,6 @@ function TeamCard({
     return team.members.slice(0, 5).map(m => m.id);
   });
 
-  // Sync when team changes
   useEffect(() => {
      setActiveIds(team.members.slice(0, 5).map(m => m.id));
   }, [team.id]);
@@ -762,19 +798,20 @@ function TeamCard({
             <span className={styles.teamTag}>{team.tag ? `${team.tag} | ` : ""}</span> {team.name}
           </h3>
           
-          <div style={{ marginTop: '4px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-             {/* Display Rank */}
-             <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Rank: <strong style={{ color: '#e2e8f0' }}>{team.rank || "Unranked"}</strong></span>
-             
-             {/* Display Roles Needed (Only if any) */}
-             {team.rolesNeeded && team.rolesNeeded.length > 0 && (
-               <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                 Looking for: {team.rolesNeeded.map(r => (
-                   <span key={r} style={{ marginLeft: '6px', color: '#60a5fa', background: 'rgba(30,41,59,0.5)', padding: '2px 6px', borderRadius: '4px' }}>{r}</span>
-                 ))}
-               </span>
-             )}
-          </div>
+          {/* Only show Rank/Roles if the team is PUBLIC */}
+          {team.isPublic && (
+            <div style={{ marginTop: '4px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+               <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Rank: <strong style={{ color: '#e2e8f0' }}>{team.rank || "Unranked"}</strong></span>
+               
+               {team.rolesNeeded && team.rolesNeeded.length > 0 && (
+                 <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                   Looking for: {team.rolesNeeded.map(r => (
+                     <span key={r} style={{ marginLeft: '6px', color: '#60a5fa', background: 'rgba(30,41,59,0.5)', padding: '2px 6px', borderRadius: '4px' }}>{r}</span>
+                   ))}
+                 </span>
+               )}
+            </div>
+          )}
           
           {benchMembers.length > 0 && (
             <span className={styles.subText} style={{ marginTop: '6px' }}>

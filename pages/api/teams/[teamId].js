@@ -1,4 +1,3 @@
-// pages/api/teams/[teamId].js
 import { connectToDatabase } from "../../../lib/mongodb";
 import Team from "../../../models/Team";
 import TeamJoinRequest from "../../../models/TeamJoinRequest";
@@ -64,7 +63,7 @@ export default async function handler(req, res) {
     }
 
     await Team.deleteOne({ _id: teamId });
-    // Optional: clean up pending join requests for this team
+    // Clean up pending join requests for this team
     await TeamJoinRequest.deleteMany({ teamId: team._id });
 
     return res.status(200).json({ ok: true, deleted: true });
@@ -221,6 +220,14 @@ export default async function handler(req, res) {
 
       const nextPublic = !!isPublic;
       team.isPublic = nextPublic;
+
+      // --- UPDATED: Update Rank and Roles if provided ---
+      if (nextPublic) {
+         if (req.body.rank) team.rank = req.body.rank;
+         if (req.body.rolesNeeded) team.rolesNeeded = req.body.rolesNeeded;
+      }
+      // --------------------------------------------------
+
       await team.save();
 
       // Optional: if making private, clear pending public join requests
@@ -234,6 +241,8 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         isPublic: team.isPublic,
+        rank: team.rank,
+        rolesNeeded: team.rolesNeeded
       });
     }
 
