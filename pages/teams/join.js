@@ -40,13 +40,19 @@ export async function getServerSideProps({ req, query }) {
   }
 
   await connectToDatabase();
+
   const playerDoc = await Player.findById(playerId).lean();
-  if (!playerDoc) return { redirect: { destination: "/", permanent: false } };
+  if (!playerDoc) {
+    return { redirect: { destination: "/", permanent: false } };
+  }
 
   const requestedGame = typeof query.game === "string" ? query.game : "";
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
-  const initialSelectedGame = allowedGameCodes.includes(requestedGame) ? requestedGame : "ALL";
+  const initialSelectedGame = allowedGameCodes.includes(requestedGame)
+    ? requestedGame
+    : "ALL";
 
+  // 1. Fetch Teams
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
@@ -56,20 +62,23 @@ export async function getServerSideProps({ req, query }) {
   .select('name tag game rank rolesNeeded maxSize captain members')
   .sort({ createdAt: -1 }).lean(); 
 
+  // 2. Fetch Requests
   const pendingByUserRaw = await TeamJoinRequest.find({
     playerId: playerDoc._id,
     status: "pending",
   }).lean();
   const pendingByUserSet = new Set(pendingByUserRaw.map((r) => String(r.teamId)));
 
+  // 3. Fetch Member Names
   const allPlayerIds = new Set();
   publicTeamsRaw.forEach(t => {
     allPlayerIds.add(String(t.captain));
     if (t.members) t.members.forEach(m => allPlayerIds.add(String(m)));
   });
 
-  const allPlayersDocs = await Player.find({ _id: { $in: Array.from(allPlayerIds) } })
-    .select('username discordUsername gameProfiles').lean();
+  const allPlayersDocs = await Player.find({ 
+    _id: { $in: Array.from(allPlayerIds) } 
+  }).select('username discordUsername gameProfiles').lean();
 
   const getPlayerDisplayInfo = (playerObj, gameCode) => {
     const baseName = playerObj.username || playerObj.discordUsername || "Player";
@@ -80,8 +89,11 @@ export async function getServerSideProps({ req, query }) {
   };
 
   const playerMap = {};
-  allPlayersDocs.forEach(p => playerMap[String(p._id)] = p);
+  allPlayersDocs.forEach(p => {
+    playerMap[String(p._id)] = p;
+  });
 
+  // 4. Format and FILTER
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
     const memberCount = t.members ? t.members.length : 0;
@@ -97,11 +109,21 @@ export async function getServerSideProps({ req, query }) {
       rolesNeeded: t.rolesNeeded || [],
       memberCount,
       maxSize: t.maxSize || 7,
+      // Calculate Full Status
       isFull: memberCount >= (t.maxSize || 7),
       hasPendingRequestByMe: pendingByUserSet.has(teamIdStr),
-      captainName: getPlayerDisplayInfo(captainDoc, gameCode),    
+      captainName: getPlayerDisplayInfo(captainDoc, gameCode),
+      
+      // Pass member details for slots
+      membersDetails: (t.members || []).map(mId => ({
+        name: getPlayerDisplayInfo(playerMap[String(mId)], gameCode),
+        isCaptain: String(mId) === String(t.captain)
+      }))
     };
-  });
+  })
+  // --- THE FIX: Remove full teams from the list ---
+  .filter(team => !team.isFull);
+  // -----------------------------------------------
 
   return {
     props: {
@@ -124,9 +146,9 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [search, setSearch] = useState("");
   
-  const [requestingFor, setRequestingFor] = useState(null); // Holds ID of team actively being requested
-  const [teamToJoin, setTeamToJoin] = useState(null); // Holds Team Object for Modal
-  const [joinError, setJoinError] = useState(""); // NEW: Error state for modal
+  const [requestingFor, setRequestingFor] = useState(null);
+  const [teamToJoin, setTeamToJoin] = useState(null);
+  const [joinError, setJoinError] = useState(""); 
   const [showProfileAlert, setShowProfileAlert] = useState(false);
 
   function handleGameSelect(e) {
@@ -146,23 +168,20 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       setShowProfileAlert(true);
       return;
     }
-    // Open Modal and clear previous errors
     setJoinError("");
     setTeamToJoin(team);
   }
 
-  // Close modal handler
   function closeJoinModal() {
-    if (requestingFor) return; // Prevent closing while loading
+    if (requestingFor) return; 
     setTeamToJoin(null);
     setJoinError("");
   }
 
   async function confirmJoin() {
     if (!teamToJoin) return;
-    
     const team = teamToJoin;
-    setRequestingFor(team.id); // Start Loading
+    setRequestingFor(team.id);
     setJoinError("");
 
     try {
@@ -174,10 +193,8 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       const data = await res.json();
       
       if (!data.ok) {
-        // Show error IN MODAL instead of alert
         setJoinError(data.error || "Request failed. Please try again.");
       } else {
-        // Success: Update UI and Close Modal
         setPublicTeams((prev) =>
           prev.map((t) => t.id === team.id ? { ...t, hasPendingRequestByMe: true } : t)
         );
@@ -187,7 +204,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       console.error(err);
       setJoinError("Network error. Check your connection.");
     } finally {
-      setRequestingFor(null); // Stop Loading
+      setRequestingFor(null);
     }
   }
 
@@ -203,44 +220,40 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       <div className={styles.wrap}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <h1 className={styles.title}>FIND SQUAD</h1>
-            <p className={styles.subtitle}>// DEPLOYMENT READY</p>
+            <span className={styles.userBadge}>Logged in as {getDisplayName(player.username)}</span>
+            <h1 className={styles.title}>Find a Team</h1>
+            <p className={styles.subtitle}>Browse public teams. Join a squad that matches your rank and role.</p>
           </div>
-          <button onClick={() => router.push("/teams")} className={styles.backBtn}>&lt; MY TEAMS</button>
+          <button onClick={() => router.push("/teams")} className={styles.backBtn}>← My Teams</button>
         </div>
 
         <div className={styles.controlBar}>
-          <div className={styles.inputGroup}>
-            <span className={styles.label}>Target Game</span>
-            <select className={styles.select} value={selectedGame} onChange={handleGameSelect}>
-              <option value="ALL">ALL PROTOCOLS</option>
-              {supportedGames.map(g => <option key={g.code} value={g.code}>{g.label.toUpperCase()}</option>)}
-            </select>
-          </div>
-          <div className={styles.inputGroup} style={{flex:1}}>
-            <span className={styles.label}>Search Database</span>
-            <input className={styles.input} value={search} onChange={e=>setSearch(e.target.value)} placeholder="SEARCH ID..." />
+          <div className={styles.glassPanel}>
+            <div className={styles.inputGroup}>
+              <label htmlFor="game-filter" className={styles.label}>Game</label>
+              <select id="game-filter" value={selectedGame} onChange={handleGameSelect} className={styles.select}>
+                <option value="ALL">All games</option>
+                {supportedGames.map(g => <option key={g.code} value={g.code}>{g.label}</option>))}
+              </select>
+            </div>
+            <div className={styles.inputGroup} style={{ flex: 1 }}>
+              <label htmlFor="team-search" className={styles.label}>Search</label>
+              <input id="team-search" type="text" value={search} onChange={handleSearchChange} placeholder="Search team or captain..." className={styles.input} />
+            </div>
           </div>
         </div>
 
         <div className={styles.grid}>
           {filteredTeams.length === 0 ? (
-            <div className={styles.emptyState}>NO SIGNALS FOUND.</div>
+            <div className={styles.emptyState}>NO SQUADS FOUND.</div>
           ) : (
             filteredTeams.map((team) => (
-              <PublicTeamCard 
-                key={team.id} 
-                team={team} 
-                onRequestJoin={onRequestClick} 
-                // No individual loading prop needed anymore since modal handles it
-                requesting={false} 
-              />
+              <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} />
             ))
           )}
         </div>
       </div>
 
-      {/* --- JOIN MODAL (UPDATED) --- */}
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={closeJoinModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -250,7 +263,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
               Captain {getDisplayName(teamToJoin.captainName)} will be notified.
             </p>
             
-            {/* Error Message Area */}
             {joinError && (
               <div style={{color: '#ff3333', background: 'rgba(255,0,0,0.1)', border: '1px solid #ff3333', padding: '10px', marginBottom: '20px', fontSize: '0.8rem', fontFamily: 'monospace'}}>
                 ⚠ ERROR: {joinError}
@@ -258,9 +270,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
             )}
 
             <div className={styles.modalActions}>
-              <button onClick={closeJoinModal} className={styles.cancelBtn} disabled={!!requestingFor}>
-                ABORT
-              </button>
+              <button onClick={closeJoinModal} className={styles.cancelBtn} disabled={!!requestingFor}>ABORT</button>
               <button onClick={confirmJoin} className={styles.confirmBtn} disabled={!!requestingFor}>
                 {requestingFor ? "TRANSMITTING..." : "CONFIRM"}
               </button>
@@ -269,7 +279,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       )}
 
-      {/* --- PROFILE ALERT MODAL --- */}
       {showProfileAlert && (
         <div className={styles.modalOverlay} onClick={() => setShowProfileAlert(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -300,11 +309,15 @@ function PublicTeamCard({ team, onRequestJoin }) {
 
   const theme = getTheme(team.rank);
   
-  // Slots logic
-  const slots = Array.from({ length: team.maxSize || 7 }, (_, i) => i < team.memberCount);
+  // Use membersDetails if available, otherwise fallback
+  const allSlots = team.membersDetails || [];
+  const renderSlots = Array.from({ length: team.maxSize || 7 }, (_, i) => {
+    return allSlots[i] || null;
+  });
 
   let actionLabel = "";
   if (team.hasPendingRequestByMe) actionLabel = "PENDING";
+  // isFull check is redundant here since we filter them out, but good for safety
   else if (team.isFull) actionLabel = "FULL";
 
   const canRequest = !team.isFull && !team.hasPendingRequestByMe;
@@ -354,12 +367,26 @@ function PublicTeamCard({ team, onRequestJoin }) {
 
         <div className={styles.rosterSection}>
           <div className={styles.slotsRow}>
-            {slots.map((filled, i) => (
-              <div key={i} className={`${styles.slot} ${filled ? styles.slotFilled : styles.slotEmpty}`} />
-            ))}
+            {renderSlots.map((member, idx) => {
+              const isFilled = !!member;
+              // Fallback check for captain status
+              const isCap = member && member.isCaptain;
+              
+              let segmentType = 'slotEmpty';
+              if (isCap) segmentType = 'slotCaptain';
+              else if (isFilled) segmentType = 'slotFilled';
+              
+              return (
+                <div 
+                  key={idx} 
+                  className={`${styles.slot} ${styles[segmentType]}`}
+                  title={member ? `${getDisplayName(member.name)}` : "Open Slot"}
+                >
+                </div>
+              );
+            })}
           </div>
           
-          {/* Spacer or Warning */}
           {canRequest && willBeSub ? (
             <div className={styles.cyberWarning}>
               <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
