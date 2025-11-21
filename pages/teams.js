@@ -282,13 +282,11 @@ export default function TeamsPage({
     return true; // other games have no requirement yet
   }
 
-  // --- FIX: Helper to Get Correct Name for New Team (Client-Side) ---
   function getMyDisplayNameForGame(gameCode) {
     if (gameCode === "VALORANT" && valorantIgn) return valorantIgn;
     if (gameCode === "HOK" && hokIgn) return hokIgn;
     return player.username;
   }
-  // ------------------------------------------------------------------
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -356,7 +354,7 @@ export default function TeamsPage({
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
-        // --- FIX: USE CORRECT IGN FOR OPTIMISTIC UPDATE ---
+        // FIX: USE CORRECT IGN FOR OPTIMISTIC UPDATE
         const displayName = getMyDisplayNameForGame(game);
         
         const newTeam = {
@@ -1211,9 +1209,13 @@ function TeamCard({
     team.members.slice(0, 5).map((m) => m.id)
   );
 
+  // --- FIX APPLIED HERE ---
+  // Only sync/reset activeIds when the team ID changes.
+  // This prevents automatic roster refilling when the member array changes order.
   useEffect(() => {
     setActiveIds(team.members.slice(0, 5).map((m) => m.id));
-  }, [team.id, team.members]);
+  }, [team.id]); 
+  // -------------------------
 
   const activeMembers = team.members.filter((m) =>
     activeIds.includes(m.id)
@@ -1239,14 +1241,18 @@ function TeamCard({
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
+      // 1. Update local state instantly (bench)
       setActiveIds((prev) => prev.filter((id) => id !== memberId));
+      // 2. Call API to update the order in the database
       onRosterSwap(team, memberId, false);
     } else {
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
       }
+      // 1. Update local state instantly (start)
       setActiveIds((prev) => [...prev, memberId]);
+      // 2. Call API to update the order in the database
       onRosterSwap(team, memberId, true);
     }
   }
