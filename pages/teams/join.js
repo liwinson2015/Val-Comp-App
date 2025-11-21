@@ -244,7 +244,8 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   );
 }
 
-// ---------- NEW CYBER HUD CARD ----------
+// pages/teams/join.js (Bottom of file)
+
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
   // Determine Theme Color based on Rank
   const getTheme = (rank) => {
@@ -319,13 +320,12 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             ))}
           </div>
           
-          {/* --- FIX: CONDITIONAL RENDER OR SPACER --- */}
+          {/* Sub Warning or Spacer */}
           {canRequest && willBeSub ? (
             <div className={styles.cyberWarning}>
               <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
             </div>
           ) : (
-            // Render invisible spacer to keep layout height consistent
             <div className={styles.warningSpacer}></div>
           )}
 
@@ -338,7 +338,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               </span>
             ) : (
               <button 
-                onClick={() => onRequestClick(team)} 
+                onClick={() => onRequestJoin(team)} 
                 disabled={requesting}
                 className={styles.joinBtn}
               >
