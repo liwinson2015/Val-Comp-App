@@ -7,7 +7,7 @@ import Team from "../models/Team";
 import TeamJoinRequest from "../models/TeamJoinRequest";
 import styles from "../styles/Teams.module.css";
 
-// Supported games for UI and filtering
+// Supported games
 const SUPPORTED_GAMES = [
   { code: "VALORANT", label: "VALORANT" },
   { code: "HOK", label: "Honor of Kings" },
@@ -45,12 +45,7 @@ export async function getServerSideProps({ req, query }) {
 
   const playerDoc = await Player.findById(playerId).lean();
   if (!playerDoc) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
+    return { redirect: { destination: "/", permanent: false } };
   }
 
   const requestedGame = typeof query.game === "string" ? query.game : "";
@@ -59,7 +54,7 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
-  // ---- My teams ----
+  // My teams
   const myTeamsRaw = await Team.find({
     game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
@@ -67,7 +62,7 @@ export async function getServerSideProps({ req, query }) {
     .sort({ createdAt: 1 })
     .lean();
 
-  // ---- Pending join requests ----
+  // Pending requests
   const captainTeamIds = myTeamsRaw
     .filter((t) => String(t.captain) === String(playerDoc._id))
     .map((t) => t._id);
@@ -80,19 +75,14 @@ export async function getServerSideProps({ req, query }) {
     }).lean();
   }
 
-  // ---- Collect member names ----
+  // Member names
   const memberIdSet = new Set();
-
-  function addId(id) {
-    if (!id) return;
-    memberIdSet.add(String(id));
-  }
+  function addId(id) { if (id) memberIdSet.add(String(id)); }
 
   myTeamsRaw.forEach((t) => {
     addId(t.captain);
     (t.members || []).forEach(addId);
   });
-
   pendingForCaptainRaw.forEach((r) => addId(r.playerId));
 
   const allMemberIds = Array.from(memberIdSet);
@@ -102,17 +92,13 @@ export async function getServerSideProps({ req, query }) {
 
   const nameMap = {};
   memberDocs.forEach((p) => {
-    const key = String(p._id);
-    nameMap[key] = p.username || p.discordUsername || "Player";
+    nameMap[String(p._id)] = p.username || p.discordUsername || "Player";
   });
 
-  // ---- Group pending requests ----
   const pendingForCaptainByTeam = {};
   pendingForCaptainRaw.forEach((r) => {
     const teamKey = String(r.teamId);
-    if (!pendingForCaptainByTeam[teamKey]) {
-      pendingForCaptainByTeam[teamKey] = [];
-    }
+    if (!pendingForCaptainByTeam[teamKey]) pendingForCaptainByTeam[teamKey] = [];
     pendingForCaptainByTeam[teamKey].push({
       id: String(r._id),
       playerId: String(r.playerId),
@@ -120,13 +106,16 @@ export async function getServerSideProps({ req, query }) {
     });
   });
 
-  // ---- Format teams ----
   const formattedMyTeams = myTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
     const captainId = String(t.captain);
     let memberIds = (t.members || []).map((m) => String(m));
 
-    if (!memberIds.includes(captainId)) {
+    // Ensure captain is at index 0 if not already
+    if (memberIds.indexOf(captainId) > 0) {
+      memberIds = memberIds.filter(id => id !== captainId);
+      memberIds.unshift(captainId);
+    } else if (!memberIds.includes(captainId)) {
       memberIds.unshift(captainId);
     }
 
@@ -146,7 +135,7 @@ export async function getServerSideProps({ req, query }) {
       memberCount: members.length,
       isCaptain: iAmCaptain,
       isPublic: !!t.isPublic,
-      maxSize: t.maxSize || 7, // Max 7 total
+      maxSize: t.maxSize || 7,
       joinCode: t.joinCode || null,
       members,
       joinRequests: pendingForCaptainByTeam[teamIdStr] || [],
@@ -194,11 +183,8 @@ export default function TeamsPage({
     setSelectedGame(newGame);
     const query = newGame === "ALL" ? {} : { game: newGame };
     router.push({ pathname: "/teams", query }, undefined, { shallow: true });
-    if (newGame === "ALL") {
-      setGame(supportedGames[0]?.code || "VALORANT");
-    } else {
-      setGame(newGame);
-    }
+    if (newGame === "ALL") setGame(supportedGames[0]?.code || "VALORANT");
+    else setGame(newGame);
   }
 
   function handleRoleSelect(e) {
@@ -218,15 +204,13 @@ export default function TeamsPage({
   }
 
   function handleNameChange(e) {
-    const raw = e.target.value || "";
-    setName(raw.toUpperCase());
+    setName((e.target.value || "").toUpperCase());
   }
 
   function handleTagChange(e) {
     const raw = e.target.value || "";
     const lettersOnly = raw.replace(/[^a-zA-Z]/g, "");
-    const upper = lettersOnly.toUpperCase().slice(0, 4);
-    setTag(upper);
+    setTag(lettersOnly.toUpperCase().slice(0, 4));
   }
 
   async function handleCreate(e) {
@@ -256,7 +240,7 @@ export default function TeamsPage({
           memberCount: 1,
           isCaptain: true,
           isPublic: false,
-          maxSize: 7, 
+          maxSize: 7,
           joinCode: data.team.joinCode || null,
           members: [{ id: player.id, name: player.username, isCaptain: true }],
           joinRequests: [],
@@ -276,10 +260,9 @@ export default function TeamsPage({
     e.preventDefault();
     setJoinCodeError("");
     const code = (joinCodeInput || "").trim().toUpperCase();
-    if (!code || code.length !== 6) {
-      setJoinCodeError("Invite code must be 6 characters.");
-      return;
-    }
+    if (!code || code.length !== 6)
+      return setJoinCodeError("Invite code must be 6 characters.");
+
     setJoiningByCode(true);
     try {
       const res = await fetch("/api/teams/join", {
@@ -289,26 +272,19 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (!data.ok) {
-        setJoinCodeError(data.error || "Failed to join with this code.");
+        setJoinCodeError(data.error || "Failed to join.");
         return;
       }
       if (data.joined && data.team) {
         const existing = teams.find((t) => t.id === data.team.id);
         if (!existing) {
           const newTeam = {
-            id: data.team.id,
-            name: data.team.name,
-            tag: data.team.tag || "",
-            game: data.team.game,
+            ...data.team,
             memberCount: data.team.memberCount,
             isCaptain: false,
-            isPublic: !!data.team.isPublic,
             maxSize: data.team.maxSize || 7,
-            joinCode: data.team.joinCode || null,
-            members: data.team.members,
             joinRequests: [],
-            // SPECIAL FLAG: Tell the TeamCard this is a new join
-            justJoined: true, 
+            justJoined: true,
           };
           setTeams((prev) => [...prev, newTeam]);
         }
@@ -322,7 +298,7 @@ export default function TeamsPage({
     }
   }
 
-  // Standard actions
+  // --- Standard Actions ---
   async function handleDeleteTeam(team) {
     if (!window.confirm(`Delete ${team.name}?`)) return;
     try {
@@ -330,9 +306,7 @@ export default function TeamsPage({
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleLeaveTeam(team) {
@@ -346,9 +320,7 @@ export default function TeamsPage({
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handlePromote(team, member) {
@@ -361,24 +333,17 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (!data.ok) return alert(data.error);
-      const newCaptainId = data.newCaptainId;
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
           const newMembers = t.members.map((m) => ({
             ...m,
-            isCaptain: m.id === newCaptainId,
+            isCaptain: m.id === data.newCaptainId,
           }));
-          return {
-            ...t,
-            members: newMembers,
-            isCaptain: newCaptainId === player.id,
-          };
+          return { ...t, members: newMembers, isCaptain: data.newCaptainId === player.id };
         })
       );
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleKick(team, member) {
@@ -398,9 +363,7 @@ export default function TeamsPage({
           return { ...t, members: newMembers, memberCount: newMembers.length };
         })
       );
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleToggleVisibility(team, nextIsPublic) {
@@ -412,17 +375,13 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (data.ok) {
-        setTeams((prev) =>
-          prev.map((t) => (t.id === team.id ? { ...t, isPublic: !!data.isPublic } : t))
-        );
+        setTeams((prev) => prev.map((t) => t.id === team.id ? { ...t, isPublic: !!data.isPublic } : t));
       }
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleRegenJoinCode(team) {
-    if (!window.confirm("Regenerate invite code?")) return;
+    if (!window.confirm("Regenerate code?")) return;
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
@@ -431,17 +390,12 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (data.ok) {
-        setTeams((prev) =>
-          prev.map((t) => (t.id === team.id ? { ...t, joinCode: data.joinCode } : t))
-        );
+        setTeams((prev) => prev.map((t) => t.id === team.id ? { ...t, joinCode: data.joinCode } : t));
       }
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleApproveRequest(team, req) {
-    if (!window.confirm(`Approve ${req.playerName}?`)) return;
     try {
       const res = await fetch(`/api/teams/requests/${req.id}`, {
         method: "POST",
@@ -453,10 +407,7 @@ export default function TeamsPage({
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
-          const newMembers = [
-            ...t.members,
-            { id: req.playerId, name: req.playerName, isCaptain: false },
-          ];
+          const newMembers = [...t.members, { id: req.playerId, name: req.playerName, isCaptain: false }];
           return {
             ...t,
             members: newMembers,
@@ -465,13 +416,10 @@ export default function TeamsPage({
           };
         })
       );
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleRejectRequest(team, req) {
-    if (!window.confirm(`Reject ${req.playerName}?`)) return;
     try {
       const res = await fetch(`/api/teams/requests/${req.id}`, {
         method: "POST",
@@ -481,27 +429,57 @@ export default function TeamsPage({
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) =>
-        prev.map((t) =>
-          t.id === team.id
-            ? { ...t, joinRequests: t.joinRequests.filter((r) => r.id !== req.id) }
-            : t
-        )
+        prev.map((t) => t.id === team.id ? { ...t, joinRequests: t.joinRequests.filter((r) => r.id !== req.id) } : t)
       );
+    } catch (err) { console.error(err); }
+  }
+
+  // --- NEW: HANDLE ROSTER SWAP AND SAVE TO DB ---
+  async function handleRosterSwap(team, memberId, toActive) {
+    // 1. Calculate new order locally first
+    const teamClone = { ...team };
+    const memberIndex = teamClone.members.findIndex(m => m.id === memberId);
+    if (memberIndex === -1) return;
+
+    const member = teamClone.members[memberIndex];
+    const newMembers = [...teamClone.members];
+    newMembers.splice(memberIndex, 1); // remove from old spot
+
+    if (toActive) {
+      // Move to index 1 (Active, after Captain)
+      newMembers.splice(1, 0, member);
+    } else {
+      // Move to end (Bench)
+      newMembers.push(member);
+    }
+
+    // 2. Optimistic UI Update
+    setTeams((prev) => prev.map((t) => (t.id === team.id ? { ...t, members: newMembers } : t)));
+
+    // 3. Call API to save
+    try {
+      const res = await fetch("/api/teams/roster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          teamId: team.id, 
+          newMemberOrder: newMembers.map(m => m.id) // Send just IDs
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert("Failed to save roster: " + data.error);
+        // Revert on failure (reload page or rollback state)
+        setTeams((prev) => prev.map((t) => (t.id === team.id ? team : t)));
+      }
     } catch (err) {
       console.error(err);
+      alert("Failed to save roster.");
     }
   }
 
-  const byGame =
-    selectedGame === "ALL"
-      ? teams
-      : teams.filter((t) => t.game === selectedGame);
-  const visibleTeams =
-    roleFilter === "ALL"
-      ? byGame
-      : roleFilter === "CAPTAIN"
-      ? byGame.filter((t) => t.isCaptain)
-      : byGame.filter((t) => !t.isCaptain);
+  const byGame = selectedGame === "ALL" ? teams : teams.filter((t) => t.game === selectedGame);
+  const visibleTeams = roleFilter === "ALL" ? byGame : roleFilter === "CAPTAIN" ? byGame.filter((t) => t.isCaptain) : byGame.filter((t) => !t.isCaptain);
 
   return (
     <div className={styles.shell}>
@@ -517,64 +495,34 @@ export default function TeamsPage({
             <form onSubmit={handleJoinByCode} className={styles.inputGroup}>
               <span className={styles.label}>Join by code</span>
               <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  value={joinCodeInput}
-                  onChange={(e) =>
-                    setJoinCodeInput((e.target.value || "").toUpperCase())
-                  }
-                  placeholder="ABC123"
-                  maxLength={6}
-                  className={styles.input}
-                  style={{ width: "120px", textAlign: "center", letterSpacing: "2px" }}
-                />
-                <button
-                  type="submit"
-                  disabled={joiningByCode}
-                  className={styles.joinBtn}
-                >
-                  {joiningByCode ? "..." : "Join"}
-                </button>
+                <input value={joinCodeInput} onChange={(e) => setJoinCodeInput((e.target.value || "").toUpperCase())} placeholder="ABC123" maxLength={6} className={styles.input} style={{ width: "120px", textAlign: "center", letterSpacing: "2px" }} />
+                <button type="submit" disabled={joiningByCode} className={styles.joinBtn}>{joiningByCode ? "..." : "Join"}</button>
               </div>
               {joinCodeError && <span className={styles.errorText}>{joinCodeError}</span>}
             </form>
-
             <div className={styles.inputGroup}>
               <label className={styles.label}>Filter Game</label>
-              <select
-                value={selectedGame}
-                onChange={handleGameSelect}
-                className={styles.select}
-              >
+              <select value={selectedGame} onChange={handleGameSelect} className={styles.select}>
                 <option value="ALL">All games</option>
-                {supportedGames.map((g) => (
-                  <option key={g.code} value={g.code}>{g.label}</option>
-                ))}
+                {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
               </select>
             </div>
-
             <div className={styles.inputGroup}>
               <label className={styles.label}>Filter Role</label>
-              <select
-                value={roleFilter}
-                onChange={handleRoleSelect}
-                className={styles.select}
-              >
+              <select value={roleFilter} onChange={handleRoleSelect} className={styles.select}>
                 <option value="ALL">All roles</option>
                 <option value="CAPTAIN">Captain teams</option>
                 <option value="MEMBER">Joined teams</option>
               </select>
             </div>
           </div>
-
           <div className={styles.actionGroup}>
             <button onClick={() => router.push("/teams/join")} className={styles.primaryBtn}>Find a Team</button>
             <button onClick={openModal} className={styles.createBtn}>+ Create</button>
           </div>
         </div>
 
-        <p style={{ margin: "0 0 1rem", fontSize: "0.9rem", color: "#64748b" }}>
-          Showing <strong>{visibleTeams.length}</strong> active team{visibleTeams.length === 1 ? "" : "s"}
-        </p>
+        <p style={{ margin: "0 0 1rem", fontSize: "0.9rem", color: "#64748b" }}>Showing <strong>{visibleTeams.length}</strong> active team{visibleTeams.length === 1 ? "" : "s"}</p>
 
         <div className={styles.grid}>
           {visibleTeams.map((team) => (
@@ -590,6 +538,7 @@ export default function TeamsPage({
               onRegenJoinCode={handleRegenJoinCode}
               onApproveRequest={handleApproveRequest}
               onRejectRequest={handleRejectRequest}
+              onRosterSwap={handleRosterSwap}
             />
           ))}
         </div>
@@ -600,9 +549,7 @@ export default function TeamsPage({
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={closeModal} className={styles.closeModal}>&times;</button>
             <h2 className={styles.modalTitle}>Create a new Team</h2>
-            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
-              Assemble your squad. You will be assigned as the Captain.
-            </p>
+            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>Assemble your squad. You will be assigned as the Captain.</p>
             <form onSubmit={handleCreate}>
               <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
                 <label className={styles.label}>Game</label>
@@ -619,9 +566,7 @@ export default function TeamsPage({
                 <input type="text" value={tag} onChange={handleTagChange} placeholder="EDG" maxLength={4} className={styles.input} style={{ width: "100%" }} />
               </div>
               {error && <p className={styles.errorText}>{error}</p>}
-              <button type="submit" disabled={submitting} className={styles.createBtn} style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>
-                {submitting ? "Creating..." : "Confirm Creation"}
-              </button>
+              <button type="submit" disabled={submitting} className={styles.createBtn} style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>{submitting ? "Creating..." : "Confirm Creation"}</button>
             </form>
           </div>
         </div>
@@ -643,33 +588,13 @@ function TeamCard({
   onRegenJoinCode,
   onApproveRequest,
   onRejectRequest,
+  onRosterSwap
 }) {
-  // --- 1. SMART ROSTER STATE ---
-  // Initialize activeIds with the first 5 members.
-  const [activeIds, setActiveIds] = useState(() => {
-    // If team has more than 5, only first 5 are active by default
-    return team.members.slice(0, 5).map(m => m.id);
-  });
+  // 1. Split the members list: First 5 are Active, Rest are Bench
+  // By default, the order in the DB determines who is active.
+  const activeMembers = team.members.slice(0, 5);
+  const benchMembers = team.members.slice(5);
 
-  // Effect: If a new player just joined (team.justJoined), ensure they are added to active list
-  useEffect(() => {
-    if (team.justJoined) {
-      // Find the new member (last one)
-      const newMember = team.members[team.members.length - 1];
-      if (newMember && !activeIds.includes(newMember.id) && activeIds.length < 5) {
-        setActiveIds(prev => [...prev, newMember.id]);
-      }
-    }
-  }, [team.members.length, team.justJoined]); // Dependency on length change
-
-  // --- 2. DERIVE LISTS ---
-  // Get the actual member objects based on activeIds
-  const activeMembers = team.members.filter(m => activeIds.includes(m.id));
-  
-  // Anyone NOT in activeIds is on the Bench/Waitlist
-  const benchMembers = team.members.filter(m => !activeIds.includes(m.id));
-
-  // Captain Logic
   const slots = buildMemberSlots(activeMembers);
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
@@ -684,21 +609,6 @@ function TeamCard({
     navigator.clipboard.writeText(team.joinCode).catch((err) => console.error("Copy failed", err));
   }
 
-  // Swap Logic
-  function toggleActiveStatus(memberId) {
-    if (activeIds.includes(memberId)) {
-      // BENCH: Remove from activeIds
-      setActiveIds(prev => prev.filter(id => id !== memberId));
-    } else {
-      // START: Add to activeIds (Check limit first)
-      if (activeIds.length >= 5) {
-        alert("Active roster is full (5/5). Bench someone first.");
-        return;
-      }
-      setActiveIds(prev => [...prev, memberId]);
-    }
-  }
-
   return (
     <div className={styles.teamCard}>
       <div className={styles.cardHeader}>
@@ -708,7 +618,6 @@ function TeamCard({
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
-      {/* Captain Code Box */}
       {team.isCaptain && (
         <div className={styles.codeBox}>
           <span className={styles.codeDisplay}>{team.joinCode || "NO CODE"}</span>
@@ -719,7 +628,7 @@ function TeamCard({
         </div>
       )}
 
-      {/* SLOTS VISUALIZER (Only Active Players) */}
+      {/* TOP 5 ACTIVE SLOTS */}
       <div className={styles.slotsContainer}>
         {slots.map((slot, idx) => {
           let slotClass = styles.slot;
@@ -738,7 +647,22 @@ function TeamCard({
         })}
       </div>
 
-      {/* CAPTAIN CONTROLS */}
+      {/* WAITLIST / BENCH SECTION (If there are sub players) */}
+      {benchMembers.length > 0 && (
+        <div style={{ marginBottom: "1rem", padding: "0.5rem", border: "1px dashed #334155", borderRadius: "8px" }}>
+          <div style={{ fontSize: "0.7rem", color: "#94a3b8", marginBottom: "4px", textTransform: "uppercase", fontWeight: "bold" }}>
+            Substitutes / Waitlist
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {benchMembers.map(m => (
+              <div key={m.id} style={{ background: "#1e293b", padding: "4px 8px", borderRadius: "4px", fontSize: "0.8rem", color: "#cbd5e1" }}>
+                {m.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {team.isCaptain && (
         <div style={{ marginBottom: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
@@ -758,16 +682,17 @@ function TeamCard({
             <div className={styles.rosterBox}>
               <div className={styles.rosterHeader}>Manage Roster</div>
               {otherMembers.map((m) => {
-                const isActive = activeIds.includes(m.id);
+                // Is this person currently active (in the top 5 indices)?
+                const isActive = activeMembers.some(am => am.id === m.id);
                 return (
                   <div key={m.id} className={styles.rosterRow}>
                     <span className={styles.rosterName} style={{ opacity: isActive ? 1 : 0.5 }}>
                       {m.name} {isActive ? "" : "(Sub)"}
                     </span>
                     <div className={styles.rosterActions}>
-                      {/* TOGGLE BUTTON */}
+                      {/* Swap Button */}
                       <button 
-                        onClick={() => toggleActiveStatus(m.id)}
+                        onClick={() => onRosterSwap(team, m.id, !isActive)}
                         className={styles.miniBtn}
                         style={{ 
                           color: isActive ? "#fbbf24" : "#4ade80", 
@@ -803,7 +728,6 @@ function TeamCard({
         </div>
       )}
 
-      {/* FOOTER (Contains Waitlist Warning for Members) */}
       <div className={styles.cardFooter}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span>Members: <strong>{team.memberCount}</strong> / {maxSize}</span>
@@ -840,17 +764,22 @@ function buildMemberSlots(members = []) {
   const slots = new Array(MAX).fill(null);
   if (!members.length) return slots;
 
-  const captain = members.find((m) => m.isCaptain) || members[0] || null;
+  // Ensure captain is always center if present in this list
+  const captain = members.find((m) => m.isCaptain);
   const others = members.filter((m) => m !== captain);
 
+  // 2 is center
   const positions = [2, 1, 3, 0, 4];
 
+  // If the captain is active, place them at 2.
+  // If captain isn't in active list (weird case), slot 2 is treated normally.
   if (captain) {
     slots[2] = captain;
   }
 
   let posIdx = 0;
   for (const m of others) {
+    // skip filled slots
     while (posIdx < positions.length && slots[positions[posIdx]] !== null) {
       posIdx++;
     }
