@@ -170,7 +170,7 @@
 /* --- Team Grid --- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(550px, 1fr)); /* Slightly wider for header info */
+  grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
   gap: 20px;
 }
 
@@ -193,7 +193,7 @@
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center; /* CHANGED: Center alignment for bigger badges */
   margin-bottom: 1.2rem;
   gap: 1rem;
 }
@@ -207,7 +207,7 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px; /* More space between code and badge */
 }
 
 .teamName {
@@ -229,35 +229,38 @@
 }
 
 .gameBadge {
-  font-size: 0.7rem;
-  padding: 4px 10px;
+  /* UPDATED: Much bigger to match Team Name */
+  font-size: 0.9rem; 
+  padding: 6px 14px;
   border-radius: 99px;
   background: #1e293b;
   color: #94a3b8;
   border: 1px solid #334155;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
 
-/* Compact Code Pill (New) */
+/* Compact Code Pill */
 .compactCode {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
+  gap: 8px;
+  /* UPDATED: Bigger padding and font */
+  padding: 5px 12px; 
   background: rgba(15, 23, 42, 0.8);
   border: 1px dashed #334155;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
   color: #cbd5e1;
 }
 
 .codeText {
   font-family: monospace;
-  letter-spacing: 0.05em;
-  font-weight: 600;
+  letter-spacing: 0.1em; /* More spacing for readability */
+  font-weight: 700;
   color: #fff;
+  font-size: 1rem; /* Make code text stand out */
 }
 
 .iconBtn {
@@ -265,7 +268,7 @@
   border: none;
   color: #94a3b8;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 1rem; /* Bigger icons */
   padding: 0;
   display: flex;
   align-items: center;
