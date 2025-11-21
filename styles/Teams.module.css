@@ -14,7 +14,7 @@
   padding: 28px 16px 64px;
 }
 
-/* --- Header --- */
+/* --- Header / Hero --- */
 .header {
   margin-bottom: 2rem;
   padding: 2rem;
@@ -173,7 +173,7 @@
   gap: 8px;
   margin-bottom: 1.5rem;
   overflow-x: auto;
-  padding-bottom: 4px; /* Space for scrollbar */
+  padding-bottom: 4px;
 }
 
 .tabBtn {
@@ -196,11 +196,21 @@
   color: #fff;
 }
 
+/* FIXED: Added border-radius and flex properties so it matches the inactive tab */
 .tabBtnActive {
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-color: #60a5fa;
+  border: 1px solid #60a5fa;
   color: #fff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  padding: 10px 20px;
+  border-radius: 12px; /* This was missing! */
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
 }
 
 .tabTag {
@@ -217,7 +227,6 @@
   padding: 2rem;
   position: relative;
   overflow: hidden;
-  /* Ensure it takes full width available but not absurdly wide on massive screens */
   max-width: 100%; 
 }
 
@@ -242,7 +251,7 @@
 }
 
 .teamName {
-  font-size: 1.8rem; /* Bigger for single view */
+  font-size: 1.8rem;
   font-weight: 800;
   margin: 0;
   line-height: 1.1;
@@ -264,7 +273,7 @@
 }
 
 .gameBadge {
-  font-size: 0.9rem;
+  font-size: 0.9rem; 
   padding: 6px 14px;
   border-radius: 99px;
   background: #1e293b;
@@ -312,24 +321,24 @@
 /* --- SLOTS VISUALIZER --- */
 .slotsContainer {
   display: flex;
-  gap: 12px;
-  margin-bottom: 2rem;
+  gap: 8px;
+  margin-bottom: 1.5rem;
   align-items: center;
-  height: 110px; /* Taller for single view */
+  height: 90px;
 }
 
 .slot {
   flex: 1;
-  height: 60px;
+  height: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   background: #020617;
   border: 1px solid #1e293b;
   color: #64748b;
-  border-radius: 8px;
+  border-radius: 6px;
   white-space: nowrap;
   overflow: hidden;
   position: relative;
@@ -344,16 +353,16 @@
 }
 
 .slotCaptain {
-  height: 96px; /* Much bigger captain */
-  flex: 1.5;
+  height: 84px;
+  flex: 1.4;
   z-index: 2;
   background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
   border: none;
-  /* Standard white text for captain to match members */
-  color: #e2e8f0; 
-  filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
+  color: #e2e8f0;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
 }
 
+/* ME Highlight (Text Glow) */
 .slotMe {
   color: #4ade80 !important; 
   font-weight: 800;
@@ -370,42 +379,42 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 98%;
-  font-size: 1rem;
+  font-size: 0.9rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   text-shadow: 0 2px 3px rgba(0, 0, 0, 0.9);
 }
 
 .captainStar {
-  font-size: 12px;
+  font-size: 11px;
   color: #fbbf24;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   text-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
 }
 
 /* --- Roster Management --- */
 .rosterBox {
-  margin-top: 1.5rem;
+  margin-top: 1.2rem;
   background: rgba(2, 6, 23, 0.6);
   border: 1px solid #1e293b;
-  border-radius: 16px;
-  padding: 1.5rem;
+  border-radius: 12px;
+  padding: 1rem;
 }
 
 .rosterHeader {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   color: #64748b;
   font-weight: 800;
   letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .rosterRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -414,54 +423,52 @@
 }
 
 .rosterName {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #cbd5e1;
   font-weight: 500;
 }
 
 .rosterActions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .miniBtn {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   background: transparent;
   border: 1px solid #475569;
   color: #94a3b8;
-  padding: 4px 12px;
+  padding: 2px 8px;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
 }
 .miniBtn:hover { background: #1e293b; color: #fff; }
 
 /* Footer Actions */
 .cardFooter {
   margin-top: auto;
-  padding-top: 1.5rem;
+  padding-top: 1.2rem;
   border-top: 1px solid #1e293b;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #64748b;
 }
 
 .footerBtns {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .btnDanger {
   color: #ef4444;
   background: transparent;
   border: 1px solid #7f1d1d;
-  padding: 6px 14px;
+  padding: 4px 10px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
   transition: all 0.2s;
 }
 .btnDanger:hover { background: #450a0a; color: #fff; }
@@ -470,11 +477,10 @@
   color: #cbd5e1;
   background: transparent;
   border: 1px solid #475569;
-  padding: 6px 14px;
+  padding: 4px 10px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
   transition: all 0.2s;
 }
 .btnNeutral:hover { background: #1e293b; color: #fff; }
@@ -489,7 +495,7 @@
 }
 
 .emptyIcon {
-  font-size: 3rem;
+  font-size: 2rem;
   margin-bottom: 1rem;
   opacity: 0.5;
 }
