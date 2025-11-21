@@ -1,4 +1,3 @@
-// pages/teams.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { connectToDatabase } from "../lib/mongodb";
@@ -283,6 +282,13 @@ export default function TeamsPage({
     return true; // other games have no requirement yet
   }
 
+  // --- HELPER: Get Correct Name for New Team ---
+  function getMyDisplayNameForGame(gameCode) {
+    if (gameCode === "VALORANT" && valorantIgn) return valorantIgn;
+    if (gameCode === "HOK" && hokIgn) return hokIgn;
+    return player.username;
+  }
+
   function handleGameSelect(e) {
     const newGame = e.target.value;
     setSelectedGame(newGame);
@@ -349,6 +355,9 @@ export default function TeamsPage({
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
+        // --- FIX: USE CORRECT IGN FOR OPTIMISTIC UPDATE ---
+        const displayName = getMyDisplayNameForGame(game);
+        
         const newTeam = {
           id: data.team.id,
           name: data.team.name,
@@ -362,7 +371,7 @@ export default function TeamsPage({
           maxSize: 7,
           joinCode: data.team.joinCode || null,
           members: [
-            { id: player.id, name: player.username, isCaptain: true },
+            { id: player.id, name: displayName, isCaptain: true },
           ],
           joinRequests: [],
         };
@@ -486,6 +495,9 @@ export default function TeamsPage({
       if (data.joined && data.team) {
         const existing = teams.find((t) => t.id === data.team.id);
         if (!existing) {
+          // For joining, use correct name too
+          const displayName = getMyDisplayNameForGame(data.team.game);
+          
           const newTeam = {
             ...data.team,
             memberCount: data.team.memberCount,
@@ -493,6 +505,8 @@ export default function TeamsPage({
             maxSize: data.team.maxSize || 7,
             joinRequests: [],
             justJoined: true,
+            // Ensure members list is populated if returned empty, or updated
+            members: data.team.members || [{id: player.id, name: displayName, isCaptain: false}] 
           };
           setTeams((prev) => [...prev, newTeam]);
           setActiveTeamId(newTeam.id);
