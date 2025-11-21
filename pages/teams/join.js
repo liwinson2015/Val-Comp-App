@@ -5,7 +5,7 @@ import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import Team from "../../models/Team";
 import TeamJoinRequest from "../../models/TeamJoinRequest";
-import styles from "../../styles/JoinTeams.module.css";
+import styles from "../../styles/JoinTeams.module.css"; 
 
 const SUPPORTED_GAMES = [
   { code: "VALORANT", label: "VALORANT" },
@@ -21,101 +21,70 @@ function parseCookies(header = "") {
   );
 }
 
-// Helper to strip tag line (e.g. "Winson#NA1" -> "Winson")
 const getDisplayName = (fullName) => {
   if (!fullName) return "Unknown";
   return fullName.split('#')[0];
 };
 
-// ---------- SERVER SIDE ----------
+// ---------- SERVER SIDE (Unchanged logic, cleaner formatting) ----------
 export async function getServerSideProps({ req, query }) {
   const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
   if (!playerId) {
-    const next = "/teams/join";
-    const encoded = encodeURIComponent(next);
-    return {
-      redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false },
-    };
+    const encoded = encodeURIComponent("/teams/join");
+    return { redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false } };
   }
 
   await connectToDatabase();
-
   const playerDoc = await Player.findById(playerId).lean();
-  if (!playerDoc) {
-    return { redirect: { destination: "/", permanent: false } };
-  }
+  if (!playerDoc) return { redirect: { destination: "/", permanent: false } };
 
   const requestedGame = typeof query.game === "string" ? query.game : "";
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
-  const initialSelectedGame = allowedGameCodes.includes(requestedGame)
-    ? requestedGame
-    : "ALL";
+  const initialSelectedGame = allowedGameCodes.includes(requestedGame) ? requestedGame : "ALL";
 
-  // 1. Fetch Teams
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
     captain: { $ne: playerDoc._id },
     members: { $ne: playerDoc._id },
   })
-  .select('name tag game rank rolesNeeded maxSize captain members') 
+  .select('name tag game rank rolesNeeded maxSize captain members')
   .sort({ createdAt: -1 }).lean(); 
 
-  // 2. Fetch Requests
   const pendingByUserRaw = await TeamJoinRequest.find({
     playerId: playerDoc._id,
     status: "pending",
   }).lean();
   const pendingByUserSet = new Set(pendingByUserRaw.map((r) => String(r.teamId)));
 
-  // 3. FETCH MEMBER NAMES & CAPTAIN NAMES
   const allPlayerIds = new Set();
   publicTeamsRaw.forEach(t => {
     allPlayerIds.add(String(t.captain));
     if (t.members) t.members.forEach(m => allPlayerIds.add(String(m)));
   });
 
-  const allPlayersDocs = await Player.find({ 
-    _id: { $in: Array.from(allPlayerIds) } 
-  }).select('username discordUsername gameProfiles').lean();
+  const allPlayersDocs = await Player.find({ _id: { $in: Array.from(allPlayerIds) } })
+    .select('username discordUsername gameProfiles').lean();
 
   const getPlayerDisplayInfo = (playerObj, gameCode) => {
     const baseName = playerObj.username || playerObj.discordUsername || "Player";
     let ign = baseName;
-
-    if (gameCode === "VALORANT" && playerObj.gameProfiles?.VALORANT?.ign) {
-        ign = playerObj.gameProfiles.VALORANT.ign.trim();
-    } else if (gameCode === "HOK" && playerObj.gameProfiles?.HOK?.ign) {
-        ign = playerObj.gameProfiles.HOK.ign.trim();
-    }
+    if (gameCode === "VALORANT" && playerObj.gameProfiles?.VALORANT?.ign) ign = playerObj.gameProfiles.VALORANT.ign.trim();
+    else if (gameCode === "HOK" && playerObj.gameProfiles?.HOK?.ign) ign = playerObj.gameProfiles.HOK.ign.trim();
     return ign;
   };
 
   const playerMap = {};
-  allPlayersDocs.forEach(p => {
-    playerMap[String(p._id)] = p;
-  });
+  allPlayersDocs.forEach(p => playerMap[String(p._id)] = p);
 
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
     const memberCount = t.members ? t.members.length : 0;
     const gameCode = t.game;
-    const captainId = String(t.captain);
-
-    // Build member objects for display
-    const membersDetails = (t.members || []).map(mId => {
-      const pDoc = playerMap[String(mId)];
-      return {
-        name: getPlayerDisplayInfo(pDoc, gameCode),
-        isCaptain: String(mId) === captainId
-      };
-    });
-
-    const captainDoc = playerMap[captainId];
-    const captainName = getPlayerDisplayInfo(captainDoc, gameCode);
-
+    const captainDoc = playerMap[String(t.captain)];
+    
     return {
       id: teamIdStr,
       name: t.name,
@@ -127,8 +96,7 @@ export async function getServerSideProps({ req, query }) {
       maxSize: t.maxSize || 7,
       isFull: memberCount >= (t.maxSize || 7),
       hasPendingRequestByMe: pendingByUserSet.has(teamIdStr),
-      captainName,    
-      membersDetails, 
+      captainName: getPlayerDisplayInfo(captainDoc, gameCode),    
     };
   });
 
@@ -147,12 +115,7 @@ export async function getServerSideProps({ req, query }) {
 }
 
 // ---------- CLIENT COMPONENT ----------
-export default function JoinTeamsPage({
-  player,
-  initialPublicTeams,
-  initialSelectedGame,
-  supportedGames,
-}) {
+export default function JoinTeamsPage({ player, initialPublicTeams, initialSelectedGame, supportedGames }) {
   const router = useRouter();
   const [publicTeams, setPublicTeams] = useState(initialPublicTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
@@ -167,17 +130,10 @@ export default function JoinTeamsPage({
     router.push({ pathname: "/teams/join", query }, undefined, { shallow: true });
   }
 
-  function handleSearchChange(e) {
-    setSearch(e.target.value || "");
-  }
-
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
     if (!player.hasCustomName) {
-      const confirmRedirect = window.confirm(
-        "You need to set your IGN in your profile before joining a team.\n\nGo to Profile now?"
-      );
-      if (confirmRedirect) router.push("/profile");
+      if (window.confirm("Set your IGN in profile first?")) router.push("/profile");
       return;
     }
     setTeamToJoin(team);
@@ -196,16 +152,13 @@ export default function JoinTeamsPage({
         body: JSON.stringify({ teamId: team.id }),
       });
       const data = await res.json();
-      if (!data.ok) {
-        alert(data.error || "Failed to request to join.");
-        return;
-      }
+      if (!data.ok) return alert(data.error || "Failed.");
+      
       setPublicTeams((prev) =>
         prev.map((t) => t.id === team.id ? { ...t, hasPendingRequestByMe: true } : t)
       );
     } catch (err) {
       console.error(err);
-      alert("Something went wrong.");
     } finally {
       setRequestingFor(null);
     }
@@ -215,9 +168,7 @@ export default function JoinTeamsPage({
   const filteredTeams = publicTeams.filter((t) => {
     if (selectedGame !== "ALL" && t.game !== selectedGame) return false;
     if (!searchLower) return true;
-    const captainSearchable = getDisplayName(t.captainName).toLowerCase();
-    const haystack = `${t.name} ${t.tag} ${captainSearchable}`.toLowerCase();
-    return haystack.includes(searchLower);
+    return `${t.name} ${t.tag} ${t.captainName}`.toLowerCase().includes(searchLower);
   });
 
   return (
@@ -225,35 +176,29 @@ export default function JoinTeamsPage({
       <div className={styles.wrap}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <span className={styles.userBadge}>Logged in as {getDisplayName(player.username)}</span>
-            <h1 className={styles.title}>Find a Team</h1>
-            <p className={styles.subtitle}>Browse public teams. Join a squad that matches your rank and role.</p>
+            <h1 className={styles.title}>FIND SQUAD</h1>
+            <p className={styles.subtitle}>// DEPLOYMENT READY</p>
           </div>
-          <button type="button" onClick={() => router.push("/teams")} className={styles.backBtn}>← My Teams</button>
+          <button onClick={() => router.push("/teams")} className={styles.backBtn}>&lt; MY TEAMS</button>
         </div>
 
         <div className={styles.controlBar}>
-          <div className={styles.glassPanel}>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Game</label>
-              <select id="game-filter" value={selectedGame} onChange={handleGameSelect} className={styles.select}>
-                <option value="ALL">All games</option>
-                {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
-              </select>
-            </div>
-            <div className={styles.inputGroup} style={{ flex: 1 }}>
-              <label htmlFor="team-search" className={styles.label}>Search</label>
-              <input id="team-search" type="text" value={search} onChange={handleSearchChange} placeholder="Search team or captain..." className={styles.input} />
-            </div>
+          <div className={styles.inputGroup}>
+            <span className={styles.label}>Target Game</span>
+            <select className={styles.select} value={selectedGame} onChange={handleGameSelect}>
+              <option value="ALL">ALL PROTOCOLS</option>
+              {supportedGames.map(g => <option key={g.code} value={g.code}>{g.label.toUpperCase()}</option>)}
+            </select>
+          </div>
+          <div className={styles.inputGroup} style={{flex:1}}>
+            <span className={styles.label}>Search Database</span>
+            <input className={styles.input} value={search} onChange={e=>setSearch(e.target.value)} placeholder="SEARCH ID..." />
           </div>
         </div>
 
         <div className={styles.grid}>
           {filteredTeams.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyTitle}>No public teams found</div>
-              <p className={styles.emptyText}>Try adjusting your filters.</p>
-            </div>
+            <div className={styles.emptyState}>NO SIGNALS FOUND.</div>
           ) : (
             filteredTeams.map((team) => (
               <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} requesting={requestingFor === team.id} />
@@ -265,11 +210,11 @@ export default function JoinTeamsPage({
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={() => setTeamToJoin(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>Join {teamToJoin.name}?</h3>
-            <p className={styles.modalText}>Request to join <strong>{getDisplayName(teamToJoin.captainName)}'s</strong> team?</p>
+            <h3 className={styles.modalTitle}>INITIATE JOIN?</h3>
+            <p className={styles.modalText}>Requesting access to {teamToJoin.name}. Captain {getDisplayName(teamToJoin.captainName)} will be notified.</p>
             <div className={styles.modalActions}>
-              <button onClick={() => setTeamToJoin(null)} className={styles.cancelBtn}>Cancel</button>
-              <button onClick={confirmJoin} className={styles.confirmBtn}>Confirm Request</button>
+              <button onClick={() => setTeamToJoin(null)} className={styles.cancelBtn}>ABORT</button>
+              <button onClick={confirmJoin} className={styles.confirmBtn}>CONFIRM</button>
             </div>
           </div>
         </div>
@@ -278,118 +223,89 @@ export default function JoinTeamsPage({
   );
 }
 
-// ---------- SUBCOMPONENT: TEAM CARD ----------
+// ---------- NEW CYBER HUD CARD ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
-  // Render 5 slots for visual lineup (or max size)
-  const rosterSlots = Array.from({ length: 5 }, (_, i) => {
-    return team.membersDetails[i] || null;
-  });
-
-  // Determine Rank Color Strip
-  const getRankColor = (rank) => {
+  // Determine Theme Color based on Rank
+  const getTheme = (rank) => {
     const r = (rank || "").toLowerCase();
-    if (r.includes('immortal') || r.includes('radiant') || r.includes('grandmaster')) return '#ef4444'; // Red
-    if (r.includes('diamond') || r.includes('ascendant') || r.includes('master')) return '#a855f7'; // Purple
-    if (r.includes('platinum') || r.includes('gold')) return '#0ea5e9'; // Blue/Cyan
-    if (r.includes('silver') || r.includes('bronze') || r.includes('iron')) return '#9ca3af'; // Gray
-    return '#334155'; // Default Dark
+    if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; // Yellow
+    if (r.includes('immortal') || r.includes('master')) return { hex: '#ff0055', dim: 'rgba(255, 0, 85, 0.2)' }; // Red
+    if (r.includes('diamond') || r.includes('ascendant')) return { hex: '#d946ef', dim: 'rgba(217, 70, 239, 0.2)' }; // Purple
+    if (r.includes('platinum')) return { hex: '#06b6d4', dim: 'rgba(6, 182, 212, 0.2)' }; // Cyan
+    if (r.includes('gold')) return { hex: '#f59e0b', dim: 'rgba(245, 158, 11, 0.2)' }; // Orange
+    return { hex: '#ffffff', dim: 'rgba(255,255,255,0.1)' }; // White/Gray
   };
 
-  const rankColor = getRankColor(team.rank);
+  const theme = getTheme(team.rank);
+  
+  // Create slots for visual bar
+  const slots = Array.from({ length: team.maxSize || 7 }, (_, i) => i < team.memberCount);
 
-  let statusLabel = "";
-  let statusClass = "";
-  if (team.hasPendingRequestByMe) {
-    statusLabel = "REQUESTED";
-    statusClass = styles.statusRequested;
-  } else if (team.isFull) {
-    statusLabel = "FULL";
-    statusClass = styles.statusFull;
-  }
-
-  const canRequest = !team.isFull && !team.hasPendingRequestByMe;
+  let actionLabel = "";
+  if (team.hasPendingRequestByMe) actionLabel = "PENDING";
+  else if (team.isFull) actionLabel = "FULL";
 
   return (
-    <div className={styles.teamCard}>
-      {/* Left Rank Strip */}
-      <div className={styles.rankStrip} style={{ background: rankColor }}></div>
-
+    <div 
+      className={styles.teamCard} 
+      style={{ '--rank-color': theme.hex, '--rank-color-dim': theme.dim }}
+    >
+      <div className={styles.rankStrip}></div>
       <div className={styles.cardContent}>
-        {/* Header */}
+        
         <div className={styles.topRow}>
-          <div className={styles.teamInfo}>
-            <h3 className={styles.teamName}>{team.name}</h3>
-            <div className={styles.teamMeta}>
-              <span className={styles.tagBadge}>{team.tag}</span>
-              <span>•</span>
-              <span style={{color: rankColor, fontWeight: 'bold'}}>{team.rank}</span>
-            </div>
+          <div>
+            <div className={styles.teamTag}>{team.tag}</div>
+            <div className={styles.teamName}>{team.name}</div>
           </div>
-          <span className={styles.gameBadge}>{team.game}</span>
+          <div className={styles.rankDisplay}>
+            <span className={styles.rankText}>{team.rank}</span>
+            <span className={styles.gameText}>{team.game}</span>
+          </div>
         </div>
 
-        {/* Roles Needed */}
-        {team.rolesNeeded && team.rolesNeeded.length > 0 && (
-          <div className={styles.rolesRow}>
-            {team.rolesNeeded.slice(0, 3).map(r => (
-              <span key={r} className={styles.rolePill}>{r}</span>
-            ))}
-            {team.rolesNeeded.length > 3 && <span className={styles.rolePill}>+{team.rolesNeeded.length - 3}</span>}
+        <div className={styles.statsGrid}>
+          <div className={styles.statBox}>
+            <span className={styles.statLabel}>Captain</span>
+            <span className={styles.statValue}>{getDisplayName(team.captainName)}</span>
           </div>
-        )}
+          <div className={styles.statBox}>
+            <span className={styles.statLabel}>Looking For</span>
+            <div>
+              {team.rolesNeeded.length > 0 ? (
+                team.rolesNeeded.slice(0, 3).map(r => <span key={r} className={styles.roleTag}>{r}</span>)
+              ) : (
+                <span style={{color:'#444', fontSize:'0.7rem'}}>ANY</span>
+              )}
+            </div>
+          </div>
+        </div>
 
-        {/* Avatar Roster */}
-        <div className={styles.avatarSection}>
-          <div className={styles.sectionLabel}>Starting Lineup</div>
-          <div className={styles.avatarRow}>
-            {rosterSlots.map((member, idx) => {
-              if (member) {
-                const name = getDisplayName(member.name);
-                const initial = name.charAt(0).toUpperCase();
-                const isCap = member.isCaptain;
-                return (
-                  <div 
-                    key={idx} 
-                    className={`${styles.avatar} ${isCap ? styles.avatarCaptain : styles.avatarFilled}`}
-                    title={name + (isCap ? " (Captain)" : "")}
-                  >
-                    {initial}
-                  </div>
-                )
-              } else {
-                return (
-                  <div key={idx} className={`${styles.avatar} ${styles.avatarEmpty}`} title="Open Slot">
-                    +
-                  </div>
-                )
-              }
-            })}
-            {team.memberCount > 5 && (
-              <div className={styles.moreCount}>+{team.memberCount - 5} Subs</div>
+        <div className={styles.rosterSection}>
+          <div className={styles.slotsRow}>
+            {slots.map((filled, i) => (
+              <div key={i} className={`${styles.slot} ${filled ? styles.slotFilled : styles.slotEmpty}`} />
+            ))}
+          </div>
+          <div className={styles.rosterStatus}>
+            <span className={styles.countText}>{team.memberCount}/{team.maxSize || 7} OPERATIVES</span>
+            
+            {actionLabel ? (
+              <span className={styles.statusText} style={{color: actionLabel === 'FULL' ? '#ff3333' : '#0099ff'}}>
+                {actionLabel}
+              </span>
+            ) : (
+              <button 
+                onClick={() => onRequestJoin(team)} 
+                disabled={requesting}
+                className={styles.joinBtn}
+              >
+                {requesting ? "PROCESSING..." : "INITIALIZE JOIN"}
+              </button>
             )}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className={styles.actions}>
-          <div className={styles.capacityText}>
-            {team.memberCount} / {team.maxSize} Players
-          </div>
-          
-          {statusLabel ? (
-            <span className={statusClass === styles.statusRequested ? styles.statusRequested : styles.statusFull}>
-              {statusLabel}
-            </span>
-          ) : (
-            <button 
-              onClick={() => onRequestJoin(team)} 
-              disabled={requesting} 
-              className={styles.joinBtn}
-            >
-              {requesting ? "..." : "Join Team"}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -1,391 +1,352 @@
 /* styles/JoinTeams.module.css */
 
+/* --- Global Layout --- */
 .shell {
   min-height: 100vh;
-  background: #0b0d12;
+  background: #050505; /* Ultra dark */
   color: #fff;
   display: flex;
   justify-content: center;
-  font-family: 'Inter', sans-serif; /* Ensure you have a nice font loaded globally if possible */
+  font-family: 'Rajdhani', 'Inter', sans-serif; /* If you can add a tech font later, do it */
 }
 
 .wrap {
   width: 100%;
   max-width: 1200px;
-  padding: 28px 16px 64px;
+  padding: 40px 20px;
 }
 
 /* --- Header --- */
 .header {
-  margin-bottom: 2rem;
-  padding: 2rem;
-  border-radius: 24px;
-  background: radial-gradient(
-      800px 400px at 50% -40%,
-      rgba(59, 130, 246, 0.15),
-      rgba(0, 0, 0, 0)
-    ),
-    linear-gradient(180deg, #13151b, #0f1117);
-  border: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
+  align-items: flex-end;
+  margin-bottom: 3rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
 }
 
-.headerContent { flex: 1; }
-
 .title {
-  margin: 0 0 0.5rem 0;
-  font-size: 2.5rem; /* Larger, bolder title */
+  font-size: 3rem;
   font-weight: 900;
-  letter-spacing: -0.03em;
-  background: linear-gradient(to bottom right, #ffffff, #94a3b8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  margin: 0;
+  line-height: 0.9;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255,255,255,0.1);
 }
 
 .subtitle {
+  color: #666;
+  font-size: 0.9rem;
   margin: 0;
-  color: #9ca3af;
-  font-size: 1rem;
-  line-height: 1.5;
-  max-width: 600px;
-}
-
-.userBadge {
-  display: inline-block;
-  margin-bottom: 1rem;
-  padding: 4px 12px;
-  border-radius: 99px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-family: monospace;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .backBtn {
-  padding: 0.8rem 1.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05);
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.9rem;
+  background: transparent;
+  border: 1px solid #333;
+  color: #666;
+  padding: 10px 20px;
+  font-family: monospace;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: 0.2s;
 }
-.backBtn:hover { background: rgba(255,255,255,0.1); }
+.backBtn:hover { border-color: #fff; color: #fff; }
 
-/* --- Control Bar --- */
+/* --- Filters (Simplified Tech Look) --- */
 .controlBar {
-  margin-bottom: 2.5rem;
-  width: 100%;
-}
-
-.glassPanel {
-  padding: 1.2rem;
-  border-radius: 20px;
-  background: #0f1219;
-  border: 1px solid #222636;
+  margin-bottom: 2rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  align-items: flex-end;
-  width: 100%;
+  gap: 20px;
+  background: #0a0a0a;
+  padding: 15px;
+  border: 1px solid #222;
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 200px; 
 }
 
 .label {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 700;
+  font-size: 0.6rem;
+  color: #444;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+  font-weight: 700;
 }
 
-.input, .select {
-  height: 48px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid #2d3442;
-  background: #020617;
+.select, .input {
+  background: #000;
+  border: 1px solid #333;
   color: #fff;
-  font-size: 0.95rem;
-  outline: none;
-  transition: all 0.2s;
-  width: 100%;
+  padding: 10px;
+  border-radius: 0; /* Sharp edges */
+  font-family: monospace;
+  min-width: 200px;
 }
+.select:focus, .input:focus { outline: 1px solid #fff; border-color: #fff; }
 
-.input:focus, .select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-}
-
-/* --- Team Grid --- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); /* Wider cards */
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 30px;
 }
 
-/* --- NEW: THE CARD DESIGN --- */
+/* --- THE CYBER CARD --- */
 .teamCard {
-  background: #13161c;
-  border-radius: 20px;
-  border: 1px solid #2d3442;
-  overflow: hidden;
   position: relative;
-  display: flex;
-  flex-direction: column;
+  background: #0a0a0a;
+  border: 1px solid #222;
+  /* The cut corner shape */
+  clip-path: polygon(
+    0 0, 
+    100% 0, 
+    100% calc(100% - 20px), 
+    calc(100% - 20px) 100%, 
+    0 100%
+  );
   transition: all 0.2s ease;
 }
 
+/* Hover Effect: Lift and Glow */
 .teamCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-  border-color: #475569;
+  transform: translateY(-5px);
+  border-color: var(--rank-color);
+  box-shadow: 0 0 30px -10px var(--rank-color-dim);
 }
 
-/* The Rank Strip (Left Border Color) */
+/* Scanline Texture Overlay */
+.teamCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(45deg, #ffffff03 25%, transparent 25%, transparent 50%, #ffffff03 50%, #ffffff03 75%, transparent 75%, transparent);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Left Color Strip */
 .rankStrip {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 6px;
-  background: #334155; /* Default */
-  z-index: 10;
+  width: 4px;
+  background: var(--rank-color);
+  z-index: 1;
 }
 
 .cardContent {
-  padding: 1.5rem;
-  padding-left: calc(1.5rem + 6px); /* Offset for rank strip */
+  position: relative;
+  z-index: 2;
+  padding: 1.5rem 1.5rem 1.5rem 2rem; /* Extra left pad for strip */
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
   height: 100%;
 }
 
-/* Header Section */
+/* --- Card Header --- */
 .topRow {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  margin-bottom: 1rem;
 }
 
-.teamInfo {
-  display: flex;
-  flex-direction: column;
-}
-
-.teamName {
-  font-size: 1.25rem;
-  font-weight: 800;
+.teamTag {
+  font-size: 2rem;
+  font-weight: 900;
   color: #fff;
-  line-height: 1.1;
-  margin: 0 0 4px 0;
-}
-
-.teamMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: #94a3b8;
-}
-
-.tagBadge {
-  font-family: monospace;
-  background: rgba(255,255,255,0.05);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-weight: 700;
-}
-
-/* Roles Needed Badges */
-.rolesRow {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.rolePill {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 99px;
-  background: rgba(37, 99, 235, 0.1);
-  color: #60a5fa;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-}
-
-/* --- AVATAR CLUSTER --- */
-.avatarSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sectionLabel {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.avatarRow {
-  display: flex;
-  align-items: center;
-  gap: -8px; /* Overlap effect */
+.teamName {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
 }
 
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: #1e293b;
-  border: 3px solid #13161c; /* Matches card bg to create spacing */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+.rankDisplay {
+  text-align: right;
+}
+
+.rankText {
+  display: block;
   font-size: 0.9rem;
-  color: #94a3b8;
-  margin-right: -10px; /* Overlap */
-  position: relative;
-  transition: transform 0.2s;
-  cursor: default;
+  font-weight: 800;
+  color: var(--rank-color);
+  text-transform: uppercase;
 }
 
-.avatar:hover {
-  transform: translateY(-4px);
-  z-index: 20;
-  border-color: #3b82f6;
-  color: #fff;
+.gameText {
+  display: block;
+  font-size: 0.6rem;
+  color: #444;
+  font-weight: 700;
 }
 
-.avatarCaptain {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #fff;
-  z-index: 5;
+/* --- Stats Grid --- */
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 1.5rem;
+  border-top: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 12px 0;
 }
 
-.avatarFilled {
-  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-  color: #e2e8f0;
+.statBox {
+  display: flex;
+  flex-direction: column;
 }
 
-.avatarEmpty {
-  background: transparent;
-  border: 2px dashed #334155;
-  color: #475569;
-  font-size: 1.2rem;
-  font-weight: 300;
+.statLabel {
+  font-size: 0.6rem;
+  color: #444;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 4px;
 }
 
-.moreCount {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-left: 16px;
+.statValue {
+  font-size: 0.85rem;
+  color: #ccc;
   font-weight: 600;
 }
 
-/* --- Footer Actions --- */
-.actions {
+/* Roles: Glitchy Tags */
+.roleTag {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: #fff;
+  background: #222;
+  padding: 2px 6px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  border-left: 2px solid var(--rank-color);
+}
+
+/* --- Ammo Counter Slots --- */
+.rosterSection {
   margin-top: auto;
+}
+
+.slotsRow {
   display: flex;
-  align-items: center;
+  gap: 4px;
+  height: 8px;
+  margin-bottom: 10px;
+}
+
+.slot {
+  flex: 1;
+  background: #1a1a1a;
+  transform: skewX(-20deg);
+}
+
+.slotFilled { background: var(--rank-color); box-shadow: 0 0 8px var(--rank-color); }
+.slotEmpty { background: #1a1a1a; border: 1px solid #333; }
+
+.rosterStatus {
+  display: flex;
   justify-content: space-between;
-  padding-top: 1rem;
-  border-top: 1px solid #222636;
+  align-items: center;
 }
 
-.capacityText {
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
+.countText {
+  font-size: 0.75rem;
+  color: #666;
+  font-family: monospace;
 }
 
+/* --- Join Button (Cyber Style) --- */
 .joinBtn {
-  background: #fff;
-  color: #000;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 99px;
+  background: transparent;
+  border: 1px solid var(--rank-color);
+  color: var(--rank-color);
+  padding: 6px 16px;
+  font-family: monospace;
   font-weight: 700;
-  font-size: 0.85rem;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 0.8rem;
 }
 
 .joinBtn:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  background: var(--rank-color);
+  color: #000;
+  box-shadow: 0 0 15px var(--rank-color-dim);
 }
 
 .joinBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
+  border-color: #333;
+  color: #333;
   cursor: not-allowed;
 }
 
-/* Status Badges */
-.statusRequested {
-  color: #60a5fa;
-  font-weight: 700;
-  font-size: 0.85rem;
+/* Status Text */
+.statusText {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-.statusFull {
-  color: #ef4444;
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-/* --- Empty State / Modal (Standard) --- */
+/* --- Empty State / Modal --- */
 .emptyState {
   grid-column: 1 / -1;
   text-align: center;
   padding: 4rem;
-  border: 1px dashed #334155;
-  border-radius: 20px;
-  color: #64748b;
+  border: 1px dashed #333;
+  color: #444;
 }
 
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.8);
-  backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  backdrop-filter: blur(5px);
 }
 
 .modalContent {
-  background: #0f1219;
-  border: 1px solid #334155;
-  border-radius: 24px;
-  padding: 32px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  padding: 40px;
   width: 100%;
-  max-width: 420px;
-  text-align: center;
+  max-width: 500px;
+  position: relative;
+}
+/* Tech corners for modal */
+.modalContent::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 20px; height: 20px;
+  background: linear-gradient(135deg, transparent 50%, #fff 50%);
 }
 
-.modalTitle { margin: 0 0 0.5rem; color: #fff; }
-.modalText { color: #94a3b8; margin-bottom: 2rem; }
-.modalActions { display: flex; gap: 12px; }
-.cancelBtn { flex: 1; padding: 12px; border-radius: 12px; background: transparent; border: 1px solid #334155; color: #94a3b8; cursor: pointer; }
-.confirmBtn { flex: 1; padding: 12px; border-radius: 12px; background: #fff; color: #000; font-weight: 700; border: none; cursor: pointer; }
+.modalTitle { color: #fff; text-transform: uppercase; font-weight: 900; font-size: 2rem; margin: 0 0 1rem 0; }
+.modalText { color: #888; font-family: monospace; margin-bottom: 2rem; }
+.modalActions { display: flex; gap: 20px; }
+.cancelBtn { flex: 1; padding: 15px; background: #111; border: 1px solid #333; color: #fff; text-transform: uppercase; cursor: pointer; }
+.cancelBtn:hover { border-color: #fff; }
+.confirmBtn { flex: 1; padding: 15px; background: #fff; border: none; color: #000; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+.confirmBtn:hover { background: #ddd; }
