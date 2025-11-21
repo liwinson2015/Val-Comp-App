@@ -60,7 +60,7 @@ export async function getServerSideProps({ req, query }) {
     captain: { $ne: playerDoc._id },
     members: { $ne: playerDoc._id },
   })
-  .select('name tag game rank rolesNeeded memberCount maxSize captain members')
+  .select('name tag game rank rolesNeeded memberCount maxSize captain members') // Select necessary fields
   .sort({ createdAt: -1 }).lean(); 
 
   // 2. Fetch Requests
@@ -291,15 +291,15 @@ export default function JoinTeamsPage({
 // ---------- Subcomponent: Updated Card ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
   // Starters are the first 5 members
-  const starters = team.membersDetails.slice(0, 5);
+  const allSlots = team.membersDetails.slice(0, team.maxSize || 7);
   
-  // We fill 5 slots with member objects or null
-  const starterSlots = Array.from({ length: 5 }, (_, i) => {
-    return starters[i] || null;
+  // We fill up to maxSize slots
+  const renderSlots = Array.from({ length: team.maxSize || 7 }, (_, i) => {
+    return allSlots[i] || null;
   });
 
-  // Roles Needed for display (limit to 4 for card size)
-  const rolesDisplay = team.rolesNeeded.slice(0, 4);
+  // Determine which slots are active (first 5 or up to member count if less than 5)
+  const activeCount = Math.min(team.memberCount, 5);
 
   let statusLabel = "";
   let statusClass = "";
@@ -350,26 +350,28 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
-      {/* VISUAL SLOTS WITH NAMES (Agent/Role Card Design) */}
+      {/* HEXAGONAL SLOTS (CAPACITY VISUAL) */}
       <div className={styles.slotsContainer}>
-        {starterSlots.map((member, idx) => {
+        {renderSlots.map((member, idx) => {
           const isFilled = !!member;
           const isCap = member && member.isCaptain;
+          
+          let slotType = 'empty';
+          if (isCap) {
+              slotType = 'slotCaptain';
+          } else if (isFilled) {
+              slotType = 'slotFilled';
+          }
+
+          // Visual separation after 5th slot
+          const marginClass = idx === 5 ? ' ' + styles.marginHex : '';
           
           return (
             <div 
               key={idx} 
-              className={`${styles.slot} ${
-                isCap ? styles.slotCaptain : 
-                isFilled ? styles.slotFilled : 
-                styles.slotEmpty
-              }`} 
-              title={member ? getDisplayName(member.name) : "Open Slot"}
+              className={`${styles.slot} ${styles[slotType]} ${marginClass}`}
+              title={member ? `${getDisplayName(member.name)} (${isCap ? 'Captain' : 'Member'})` : "Open Slot"}
             >
-              {member 
-                ? <span>{getDisplayName(member.name)}</span> 
-                : <span style={{transform: 'skewX(0)', opacity: 0.5}}>{idx < 5 ? 'OPEN' : 'SUB'}</span>
-              }
             </div>
           );
         })}
@@ -396,7 +398,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           {canRequest && (
             <button
               type="button"
-              onClick={() => onRequestJoin(team)}
+              onClick={() => onRequestClick(team)}
               disabled={requesting}
               className={styles.joinBtn}
             >
