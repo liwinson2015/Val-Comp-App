@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Player not found." });
   }
 
-  // ---------- 1) JOIN BY INVITE CODE (works for public + private) ----------
+  // ---------- 1) JOIN BY INVITE CODE (Instant Join) ----------
   if (joinCode) {
     const code = String(joinCode).trim().toUpperCase();
     if (!code || code.length !== 6) {
@@ -85,14 +85,38 @@ export default async function handler(req, res) {
       });
     }
 
+    // Add player
     team.members = team.members || [];
     team.members.push(player._id);
     await team.save();
 
-    // get captain name so client can show both immediately
-    const captainDoc = await Player.findById(team.captain).lean();
-    const captainName =
-      captainDoc?.username || captainDoc?.discordUsername || "Player";
+    // --- FIX STARTS HERE ---
+    // Populate EVERYONE so the frontend can show the full roster immediately
+    await team.populate([
+      { path: "captain", select: "username discordUsername" },
+      { path: "members", select: "username discordUsername" },
+    ]);
+
+    const membersFormatted = [];
+
+    // 1. Push Captain
+    membersFormatted.push({
+      id: String(team.captain._id),
+      name: team.captain.username || team.captain.discordUsername || "Captain",
+      isCaptain: true,
+    });
+
+    // 2. Push Members
+    team.members.forEach((m) => {
+      if (String(m._id) !== String(team.captain._id)) {
+        membersFormatted.push({
+          id: String(m._id),
+          name: m.username || m.discordUsername || "Member",
+          isCaptain: false,
+        });
+      }
+    });
+    // --- FIX ENDS HERE ---
 
     return res.status(200).json({
       ok: true,
@@ -103,17 +127,16 @@ export default async function handler(req, res) {
         name: team.name,
         tag: team.tag || "",
         game: team.game,
-        memberCount: memberCount,
+        memberCount: membersFormatted.length, // Updated count
         isPublic: !!team.isPublic,
         maxSize,
         joinCode: team.joinCode || null,
-        captainId: captainIdStr,
-        captainName,
+        members: membersFormatted, // Send the full list back!
       },
     });
   }
 
-  // ---------- 2) REQUEST TO JOIN BY TEAM ID (public listing) ----------
+  // ---------- 2) REQUEST TO JOIN BY TEAM ID (Public Listing) ----------
   const team = await Team.findById(teamId);
   if (!team) {
     return res.status(404).json({ ok: false, error: "Team not found." });

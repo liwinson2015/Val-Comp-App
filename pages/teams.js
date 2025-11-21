@@ -316,30 +316,18 @@ export default function TeamsPage({
       if (data.joined && data.team) {
         const existing = teams.find((t) => t.id === data.team.id);
         if (!existing) {
-          const members = [];
-          if (data.team.captainId && data.team.captainId !== player.id) {
-            members.push({
-              id: data.team.captainId,
-              name: data.team.captainName || "Captain",
-              isCaptain: true,
-            });
-          }
-          members.push({
-            id: player.id,
-            name: player.username,
-            isCaptain: data.team.captainId === player.id,
-          });
+          // UPDATED: Use the populated members list from the backend
           const newTeam = {
             id: data.team.id,
             name: data.team.name,
             tag: data.team.tag || "",
             game: data.team.game,
-            memberCount: data.team.memberCount || members.length,
-            isCaptain: data.team.captainId === player.id,
+            memberCount: data.team.memberCount,
+            isCaptain: false,
             isPublic: !!data.team.isPublic,
             maxSize: data.team.maxSize || 7,
             joinCode: data.team.joinCode || null,
-            members,
+            members: data.team.members, // Full list from backend
             joinRequests: [],
           };
           setTeams((prev) => [...prev, newTeam]);
@@ -883,7 +871,6 @@ function TeamCard({
       <div className={styles.cardHeader}>
         <h3 className={styles.teamName}>
           <span className={styles.teamTag}>
-            {/* UPDATED: Use Vertical Bar */}
             {team.tag ? `${team.tag} | ` : ""}
           </span>{" "}
           {team.name}
@@ -928,8 +915,6 @@ function TeamCard({
           return (
             <div key={idx} className={slotClass} title={slot?.name || "Open"}>
               {idx === 2 && <div className={styles.captainStar}>★</div>}
-              
-              {/* UPDATED: Use Vertical Bar in slots */}
               <div className={styles.slotName}>
                 {slot
                   ? `${team.tag ? `${team.tag} | ` : ""}${slot.name}`
