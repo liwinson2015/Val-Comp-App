@@ -1,0 +1,321 @@
+/* styles/JoinTeams.module.css */
+
+.shell {
+  min-height: 100vh;
+  background: #0b0d12;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1200px;
+  padding: 28px 16px 64px;
+}
+
+/* --- Header / Hero --- */
+.header {
+  margin-bottom: 2rem;
+  padding: 2rem;
+  border-radius: 20px;
+  background: radial-gradient(
+      800px 400px at 50% -40%,
+      rgba(59, 130, 246, 0.15),
+      rgba(0, 0, 0, 0)
+    ),
+    linear-gradient(180deg, #13151b, #0f1117);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.headerContent {
+  flex: 1;
+}
+
+.title {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(to bottom right, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 600px;
+}
+
+.userBadge {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.backBtn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(75, 85, 99, 0.5);
+  background: rgba(31, 41, 55, 0.4);
+  color: #e5e7eb;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.backBtn:hover {
+  background: rgba(55, 65, 81, 0.6);
+  border-color: #9ca3af;
+  color: #fff;
+}
+
+/* --- Control Bar --- */
+.controlBar {
+  margin-bottom: 2rem;
+  width: 100%; /* Ensure it takes full width */
+}
+
+.glassPanel {
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  width: 100%; /* Ensure glass panel fills the bar */
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* This ensures flex items don't shrink too small */
+  min-width: 200px; 
+}
+
+.label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-left: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input,
+.select {
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #2d3442;
+  background: #020617;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%; /* Fill parent inputGroup */
+}
+
+.input:focus,
+.select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* --- Team Grid --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.teamCard {
+  background: #0f1219;
+  border: 1px solid #222636;
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.teamCard:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.teamName {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.teamTag {
+  color: #60a5fa;
+  margin-right: 6px;
+}
+
+.gameBadge {
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Slots Visualizer (Simplified for Public View) */
+.slotsContainer {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 1.2rem;
+  height: 40px;
+  align-items: flex-end;
+}
+
+.slot {
+  flex: 1;
+  height: 8px; /* Thin bar style */
+  background: #1e293b;
+  border-radius: 2px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.slotFilled {
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.slotCaptain {
+  background: #f59e0b; /* Gold for captain */
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+  height: 12px; /* Taller */
+}
+
+.slotEmpty {
+  background: #334155;
+  opacity: 0.3;
+}
+
+/* Footer / Actions */
+.cardFooter {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.memberCount {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.statusBadge {
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statusRequested {
+  border-color: #3b82f6;
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.statusFull {
+  border-color: #4b5563;
+  color: #9ca3af;
+  background: rgba(75, 85, 99, 0.1);
+}
+
+.joinBtn {
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.joinBtn:hover:not(:disabled) {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.joinBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Empty State --- */
+.emptyState {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  border: 1px dashed #334155;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.3);
+  color: #94a3b8;
+}
+
+.emptyTitle {
+  color: #fff;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.emptyText {
+  font-size: 0.9rem;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
