@@ -32,8 +32,11 @@ export async function getServerSideProps({ req, query }) {
   const playerId = cookies.playerId || null;
 
   if (!playerId) {
-    const encoded = encodeURIComponent("/teams/join");
-    return { redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false } };
+    const next = "/teams/join";
+    const encoded = encodeURIComponent(next);
+    return {
+      redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false },
+    };
   }
 
   await connectToDatabase();
@@ -44,7 +47,6 @@ export async function getServerSideProps({ req, query }) {
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
   const initialSelectedGame = allowedGameCodes.includes(requestedGame) ? requestedGame : "ALL";
 
-  // Fetch Teams - Removed 'memberCount' to fix 500 error
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
@@ -122,8 +124,9 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [search, setSearch] = useState("");
   
-  const [requestingFor, setRequestingFor] = useState(null);
-  const [teamToJoin, setTeamToJoin] = useState(null);
+  const [requestingFor, setRequestingFor] = useState(null); // Holds ID of team actively being requested
+  const [teamToJoin, setTeamToJoin] = useState(null); // Holds Team Object for Modal
+  const [joinError, setJoinError] = useState(""); // NEW: Error state for modal
   const [showProfileAlert, setShowProfileAlert] = useState(false);
 
   function handleGameSelect(e) {
@@ -143,14 +146,24 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       setShowProfileAlert(true);
       return;
     }
+    // Open Modal and clear previous errors
+    setJoinError("");
     setTeamToJoin(team);
+  }
+
+  // Close modal handler
+  function closeJoinModal() {
+    if (requestingFor) return; // Prevent closing while loading
+    setTeamToJoin(null);
+    setJoinError("");
   }
 
   async function confirmJoin() {
     if (!teamToJoin) return;
+    
     const team = teamToJoin;
-    setRequestingFor(team.id);
-    setTeamToJoin(null);
+    setRequestingFor(team.id); // Start Loading
+    setJoinError("");
 
     try {
       const res = await fetch("/api/teams/join", {
@@ -159,16 +172,22 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         body: JSON.stringify({ teamId: team.id }),
       });
       const data = await res.json();
-      if (!data.ok) return alert(data.error || "Failed.");
       
-      setPublicTeams((prev) =>
-        prev.map((t) => t.id === team.id ? { ...t, hasPendingRequestByMe: true } : t)
-      );
+      if (!data.ok) {
+        // Show error IN MODAL instead of alert
+        setJoinError(data.error || "Request failed. Please try again.");
+      } else {
+        // Success: Update UI and Close Modal
+        setPublicTeams((prev) =>
+          prev.map((t) => t.id === team.id ? { ...t, hasPendingRequestByMe: true } : t)
+        );
+        setTeamToJoin(null);
+      }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong.");
+      setJoinError("Network error. Check your connection.");
     } finally {
-      setRequestingFor(null);
+      setRequestingFor(null); // Stop Loading
     }
   }
 
@@ -209,25 +228,48 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
             <div className={styles.emptyState}>NO SIGNALS FOUND.</div>
           ) : (
             filteredTeams.map((team) => (
-              <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} requesting={requestingFor === team.id} />
+              <PublicTeamCard 
+                key={team.id} 
+                team={team} 
+                onRequestJoin={onRequestClick} 
+                // No individual loading prop needed anymore since modal handles it
+                requesting={false} 
+              />
             ))
           )}
         </div>
       </div>
 
+      {/* --- JOIN MODAL (UPDATED) --- */}
       {teamToJoin && (
-        <div className={styles.modalOverlay} onClick={() => setTeamToJoin(null)}>
+        <div className={styles.modalOverlay} onClick={closeJoinModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.modalTitle}>INITIATE JOIN?</h3>
-            <p className={styles.modalText}>Requesting access to {teamToJoin.name}. Captain {getDisplayName(teamToJoin.captainName)} will be notified.</p>
+            <p className={styles.modalText}>
+              Requesting access to <strong>{teamToJoin.name}</strong>.<br/>
+              Captain {getDisplayName(teamToJoin.captainName)} will be notified.
+            </p>
+            
+            {/* Error Message Area */}
+            {joinError && (
+              <div style={{color: '#ff3333', background: 'rgba(255,0,0,0.1)', border: '1px solid #ff3333', padding: '10px', marginBottom: '20px', fontSize: '0.8rem', fontFamily: 'monospace'}}>
+                ⚠ ERROR: {joinError}
+              </div>
+            )}
+
             <div className={styles.modalActions}>
-              <button onClick={() => setTeamToJoin(null)} className={styles.cancelBtn}>ABORT</button>
-              <button onClick={confirmJoin} className={styles.confirmBtn}>CONFIRM</button>
+              <button onClick={closeJoinModal} className={styles.cancelBtn} disabled={!!requestingFor}>
+                ABORT
+              </button>
+              <button onClick={confirmJoin} className={styles.confirmBtn} disabled={!!requestingFor}>
+                {requestingFor ? "TRANSMITTING..." : "CONFIRM"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* --- PROFILE ALERT MODAL --- */}
       {showProfileAlert && (
         <div className={styles.modalOverlay} onClick={() => setShowProfileAlert(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -244,10 +286,8 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   );
 }
 
-// pages/teams/join.js (Bottom of file)
-
-function PublicTeamCard({ team, onRequestJoin, requesting }) {
-  // Determine Theme Color based on Rank
+// ---------- NEW CYBER HUD CARD ----------
+function PublicTeamCard({ team, onRequestJoin }) {
   const getTheme = (rank) => {
     const r = (rank || "").toLowerCase();
     if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; 
@@ -260,14 +300,13 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
 
   const theme = getTheme(team.rank);
   
-  // Create slots for visual bar
+  // Slots logic
   const slots = Array.from({ length: team.maxSize || 7 }, (_, i) => i < team.memberCount);
 
   let actionLabel = "";
   if (team.hasPendingRequestByMe) actionLabel = "PENDING";
   else if (team.isFull) actionLabel = "FULL";
 
-  // Check if sub warning is needed
   const canRequest = !team.isFull && !team.hasPendingRequestByMe;
   const willBeSub = team.memberCount >= 5;
 
@@ -320,7 +359,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             ))}
           </div>
           
-          {/* Sub Warning or Spacer */}
+          {/* Spacer or Warning */}
           {canRequest && willBeSub ? (
             <div className={styles.cyberWarning}>
               <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
@@ -339,10 +378,9 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             ) : (
               <button 
                 onClick={() => onRequestJoin(team)} 
-                disabled={requesting}
                 className={styles.joinBtn}
               >
-                {requesting ? "PROCESSING..." : "INITIALIZE JOIN"}
+                INITIALIZE JOIN
               </button>
             )}
           </div>

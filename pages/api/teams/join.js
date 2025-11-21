@@ -43,6 +43,18 @@ function missingProfileError(game) {
   return "Missing in-game name on profile.";
 }
 
+// Helper to accurately count team size
+function getTeamSize(team) {
+  const memberSet = new Set();
+  // Add captain
+  if (team.captain) memberSet.add(String(team.captain));
+  // Add members array
+  if (team.members && Array.isArray(team.members)) {
+    team.members.forEach(m => memberSet.add(String(m)));
+  }
+  return memberSet.size;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res
@@ -116,10 +128,11 @@ export default async function handler(req, res) {
       });
     }
 
-    const memberCount = (team.members || []).length + 1; // captain + members
+    // --- FIXED LOGIC: Accurate count ---
+    const currentSize = getTeamSize(team);
     const effectiveLimit = team.maxSize || MAX_TEAM_SIZE;
 
-    if (memberCount >= effectiveLimit) {
+    if (currentSize >= effectiveLimit) {
       return res.status(400).json({
         ok: false,
         error: `This team is full (Max ${effectiveLimit}).`,
@@ -127,7 +140,10 @@ export default async function handler(req, res) {
     }
 
     team.members = team.members || [];
-    team.members.push(player._id);
+    // Only push if not already in list (double check)
+    if (!team.members.includes(player._id)) {
+        team.members.push(player._id);
+    }
     await team.save();
 
     // Populate full roster and use IGN where available
@@ -230,10 +246,11 @@ export default async function handler(req, res) {
     });
   }
 
-  const memberCount = (team.members || []).length + 1;
+  // --- FIXED LOGIC: Accurate count ---
+  const currentSize = getTeamSize(team);
   const effectiveLimit = team.maxSize || MAX_TEAM_SIZE;
 
-  if (memberCount >= effectiveLimit) {
+  if (currentSize >= effectiveLimit) {
     return res.status(400).json({
       ok: false,
       error: "This team is full.",
