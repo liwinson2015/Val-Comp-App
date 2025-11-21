@@ -167,7 +167,7 @@
   background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
 }
 
-/* --- NEW TABS SYSTEM --- */
+/* --- TABS --- */
 .tabsContainer {
   display: flex;
   gap: 8px;
@@ -196,14 +196,13 @@
   color: #fff;
 }
 
-/* FIXED: Added border-radius and flex properties so it matches the inactive tab */
 .tabBtnActive {
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   border: 1px solid #60a5fa;
   color: #fff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
   padding: 10px 20px;
-  border-radius: 12px; /* This was missing! */
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -219,7 +218,7 @@
   font-family: monospace;
 }
 
-/* --- Team Card (Now Single View) --- */
+/* --- Team Card --- */
 .teamCard {
   background: #0f1219;
   border: 1px solid #222636;
@@ -284,7 +283,6 @@
   white-space: nowrap;
 }
 
-/* Compact Code Pill */
 .compactCode {
   display: flex;
   align-items: center;
@@ -362,7 +360,6 @@
   filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
 }
 
-/* ME Highlight (Text Glow) */
 .slotMe {
   color: #4ade80 !important; 
   font-weight: 800;
@@ -500,7 +497,7 @@
   opacity: 0.5;
 }
 
-/* --- Modal --- */
+/* --- Modal General --- */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -544,7 +541,6 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Requests Section (Mini) */
 .requestsBox {
   margin-top: 0.75rem;
   background: rgba(30, 41, 59, 0.5);
@@ -560,9 +556,7 @@
 }
 .reqName { color: #cbd5e1; }
 
-/* styles/Teams.module.css */
-
-/* --- New Inputs for Create Modal --- */
+/* --- New Inputs for Create/Publish Modals --- */
 .roleContainer {
   display: flex;
   flex-wrap: wrap;
@@ -593,12 +587,44 @@
   font-weight: 600;
 }
 
-.sectionLabel {
-  font-size: 0.75rem;
+/* --- NEW MODAL ACTIONS (UPDATED ROUNDED BUTTONS) --- */
+.modalActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 2rem;
+}
+
+.cancelBtn, .confirmBtn {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 12px; /* Rounded corners */
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 2px solid #334155;
   color: #94a3b8;
-  font-weight: 600;
-  margin-bottom: 4px;
-  display: block;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #cbd5e1;
+  color: #fff;
+}
+
+.confirmBtn {
+  border: none;
+  color: white;
+  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+}
+
+.confirmBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.5);
 }

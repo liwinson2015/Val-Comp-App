@@ -724,7 +724,7 @@ export default function TeamsPage({
 
             <div className={styles.modalActions}>
               <button onClick={() => setShowPublicModal(false)} className={styles.cancelBtn}>Cancel</button>
-              <button onClick={submitPublicModal} className={styles.confirmBtn} style={{background: '#22c55e'}}>Confirm & Publish</button>
+              <button onClick={submitPublicModal} className={styles.confirmBtn}>Confirm & Publish</button>
             </div>
           </div>
         </div>
