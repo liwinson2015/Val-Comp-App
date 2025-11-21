@@ -258,17 +258,10 @@
   transform: skewX(-20deg);
 }
 
-/* --- SLOT COLORS --- */
-.slotFilled { 
-  background: var(--rank-color); /* Uses the card's rank color (Purple/Yellow/Cyan) */
+/* --- UPDATED: Uniform Color for all members --- */
+.slotFilled, .slotCaptain { 
+  background: var(--rank-color); 
   box-shadow: 0 0 8px var(--rank-color); 
-}
-
-.slotCaptain {
-  background: #fbbf24 !important; /* Force Gold for Captain */
-  box-shadow: 0 0 8px #fbbf24 !important;
-  border: 1px solid #f59e0b;
-  z-index: 5;
 }
 
 .slotEmpty { 
@@ -322,7 +315,7 @@
   letter-spacing: 0.1em;
 }
 
-/* --- WARNING BOX --- */
+/* --- CYBER WARNING BOX --- */
 .cyberWarning {
   font-size: 0.65rem;
   color: #fbbf24;
@@ -347,9 +340,9 @@
   box-sizing: border-box;
 }
 
-/* --- SPACER (Keeps layout stable when warning is missing) --- */
+/* --- SPACER --- */
 .warningSpacer {
-  height: 32px; /* Matches cyberWarning */
+  height: 32px; 
   margin-top: 10px;
   width: 100%;
 }

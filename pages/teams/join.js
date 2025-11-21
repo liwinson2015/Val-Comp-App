@@ -113,14 +113,13 @@ export async function getServerSideProps({ req, query }) {
       hasPendingRequestByMe: pendingByUserSet.has(teamIdStr),
       captainName: getPlayerDisplayInfo(captainDoc, gameCode),
       
-      // Pass member details for slots
       membersDetails: (t.members || []).map(mId => ({
         name: getPlayerDisplayInfo(playerMap[String(mId)], gameCode),
         isCaptain: String(mId) === String(t.captain)
       }))
     };
   })
-  .filter(team => !team.isFull);
+  .filter(team => !team.isFull); 
 
   return {
     props: {
@@ -251,7 +250,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
             <div className={styles.emptyState}>NO SQUADS FOUND.</div>
           ) : (
             filteredTeams.map((team) => (
-              <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} requesting={requestingFor === team.id} />
+              <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} />
             ))
           )}
         </div>
@@ -299,7 +298,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 }
 
 // ---------- NEW CYBER HUD CARD ----------
-function PublicTeamCard({ team, onRequestJoin, requesting }) {
+function PublicTeamCard({ team, onRequestJoin }) {
   const getTheme = (rank) => {
     const r = (rank || "").toLowerCase();
     if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; 
@@ -371,12 +370,9 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           <div className={styles.slotsRow}>
             {renderSlots.map((member, idx) => {
               const isFilled = !!member;
-              // Fallback check for captain status
-              const isCap = member && member.isCaptain;
-              
+              // --- UPDATED: Treat Captain Same as Member Visually ---
               let segmentType = 'slotEmpty';
-              if (isCap) segmentType = 'slotCaptain';
-              else if (isFilled) segmentType = 'slotFilled';
+              if (isFilled) segmentType = 'slotFilled';
               
               return (
                 <div 
@@ -389,7 +385,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             })}
           </div>
           
-          {/* --- FIXED: SHOW WARNING OR SPACER TO KEEP HEIGHT --- */}
           {canRequest && willBeSub ? (
             <div className={styles.cyberWarning}>
               <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
@@ -409,9 +404,8 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               <button 
                 onClick={() => onRequestJoin(team)} 
                 className={styles.joinBtn}
-                disabled={requesting}
               >
-                {requesting ? "PROCESSING..." : "INITIALIZE JOIN"}
+                INITIALIZE JOIN
               </button>
             )}
           </div>
