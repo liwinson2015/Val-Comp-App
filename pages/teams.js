@@ -10,17 +10,40 @@ import styles from "../styles/Teams.module.css";
 const GAME_META = {
   VALORANT: {
     label: "VALORANT",
-    ranks: ["Unranked", "Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"],
-    roles: ["Duelist", "Initiator", "Controller", "Sentinel", "Flex"]
+    ranks: [
+      "Unranked",
+      "Iron",
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond",
+      "Ascendant",
+      "Immortal",
+      "Radiant",
+    ],
+    roles: ["Duelist", "Initiator", "Controller", "Sentinel", "Flex"],
   },
   HOK: {
     label: "Honor of Kings",
-    ranks: ["Unranked", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"],
-    roles: ["Clash Lane", "Farm Lane", "Mid Lane", "Jungle", "Roamer"]
-  }
+    ranks: [
+      "Unranked",
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond",
+      "Master",
+      "Grandmaster",
+    ],
+    roles: ["Clash Lane", "Farm Lane", "Mid Lane", "Jungle", "Roamer"],
+  },
 };
 
-const SUPPORTED_GAMES = Object.keys(GAME_META).map(code => ({ code, label: GAME_META[code].label }));
+const SUPPORTED_GAMES = Object.keys(GAME_META).map((code) => ({
+  code,
+  label: GAME_META[code].label,
+}));
 
 function parseCookies(cookieHeader = "") {
   return Object.fromEntries(
@@ -57,6 +80,19 @@ export async function getServerSideProps({ req, query }) {
     return { redirect: { destination: "/", permanent: false } };
   }
 
+  // 🔴 NEW: require Valorant IGN to use Teams page
+  const valorantIgn =
+    playerDoc.gameProfiles?.VALORANT?.ign &&
+    playerDoc.gameProfiles.VALORANT.ign.trim();
+  if (!valorantIgn) {
+    return {
+      redirect: {
+        destination: "/profile?missing=valorantIgn",
+        permanent: false,
+      },
+    };
+  }
+
   const requestedGame = typeof query.game === "string" ? query.game : "";
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
   const initialSelectedGame = allowedGameCodes.includes(requestedGame)
@@ -86,7 +122,9 @@ export async function getServerSideProps({ req, query }) {
 
   // Member names logic...
   const memberIdSet = new Set();
-  function addId(id) { if (id) memberIdSet.add(String(id)); }
+  function addId(id) {
+    if (id) memberIdSet.add(String(id));
+  }
 
   myTeamsRaw.forEach((t) => {
     addId(t.captain);
@@ -99,18 +137,25 @@ export async function getServerSideProps({ req, query }) {
     ? await Player.find({ _id: { $in: allMemberIds } }).lean()
     : [];
 
+  // NEW: keep full docs AND a simple name map (for join requests)
   const nameMap = {};
+  const playerById = {};
   memberDocs.forEach((p) => {
-    nameMap[String(p._id)] = p.username || p.discordUsername || "Player";
+    const key = String(p._id);
+    playerById[key] = p;
+    nameMap[key] = p.username || p.discordUsername || "Player";
   });
 
   const pendingForCaptainByTeam = {};
   pendingForCaptainRaw.forEach((r) => {
     const teamKey = String(r.teamId);
-    if (!pendingForCaptainByTeam[teamKey]) pendingForCaptainByTeam[teamKey] = [];
+    if (!pendingForCaptainByTeam[teamKey]) {
+      pendingForCaptainByTeam[teamKey] = [];
+    }
     pendingForCaptainByTeam[teamKey].push({
       id: String(r._id),
       playerId: String(r.playerId),
+      // Join requests can stay as Discord-style names for now
       playerName: nameMap[String(r.playerId)] || "Player",
     });
   });
@@ -121,17 +166,48 @@ export async function getServerSideProps({ req, query }) {
     let memberIds = (t.members || []).map((m) => String(m));
 
     if (memberIds.indexOf(captainId) > 0) {
-      memberIds = memberIds.filter(id => id !== captainId);
+      memberIds = memberIds.filter((id) => id !== captainId);
       memberIds.unshift(captainId);
     } else if (!memberIds.includes(captainId)) {
       memberIds.unshift(captainId);
     }
 
-    const members = memberIds.map((mid) => ({
-      id: mid,
-      name: nameMap[mid] || "Player",
-      isCaptain: mid === captainId,
-    }));
+    // 🔴 NEW: display Valorant IGN (or HOK IGN) instead of Discord username
+    const members = memberIds.map((mid) => {
+      const pDoc = playerById[mid];
+      let displayName = "Player";
+
+      if (t.game === "VALORANT") {
+        const ign =
+          pDoc?.gameProfiles?.VALORANT?.ign &&
+          pDoc.gameProfiles.VALORANT.ign.trim();
+        if (ign) {
+          displayName = ign;
+        } else {
+          displayName =
+            pDoc?.username || pDoc?.discordUsername || nameMap[mid] || "Player";
+        }
+      } else if (t.game === "HOK") {
+        // Optional: use HoK IGN if set, otherwise fall back
+        const ign =
+          pDoc?.gameProfiles?.HOK?.ign && pDoc.gameProfiles.HOK.ign.trim();
+        if (ign) {
+          displayName = ign;
+        } else {
+          displayName =
+            pDoc?.username || pDoc?.discordUsername || nameMap[mid] || "Player";
+        }
+      } else {
+        displayName =
+          pDoc?.username || pDoc?.discordUsername || nameMap[mid] || "Player";
+      }
+
+      return {
+        id: mid,
+        name: displayName,
+        isCaptain: mid === captainId,
+      };
+    });
 
     const iAmCaptain = captainId === String(playerDoc._id);
 
@@ -156,7 +232,10 @@ export async function getServerSideProps({ req, query }) {
     props: {
       player: {
         id: playerDoc._id.toString(),
-        username: playerDoc.username || playerDoc.discordUsername || "Player",
+        username:
+          playerDoc.username || playerDoc.discordUsername || "Player",
+        // NEW: pass Valorant IGN down so client can use it
+        valorantIgn: valorantIgn || "",
       },
       initialTeams: formattedMyTeams,
       initialSelectedGame,
@@ -174,21 +253,27 @@ export default function TeamsPage({
 }) {
   const router = useRouter();
   const [teams, setTeams] = useState(initialTeams || []);
-  const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
+  const [selectedGame, setSelectedGame] = useState(
+    initialSelectedGame || "ALL"
+  );
   const [roleFilter, setRoleFilter] = useState("ALL");
-  
+
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [joinCodeError, setJoinCodeError] = useState("");
   const [joiningByCode, setJoiningByCode] = useState(false);
-  
+
   // Create Modal State
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
-  const [game, setGame] = useState(initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code || "VALORANT");
+  const [game, setGame] = useState(
+    initialSelectedGame !== "ALL"
+      ? initialSelectedGame
+      : supportedGames[0]?.code || "VALORANT"
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  
+
   // Active Team Tab
   const [activeTeamId, setActiveTeamId] = useState(null);
 
@@ -203,7 +288,8 @@ export default function TeamsPage({
     setSelectedGame(newGame);
     const query = newGame === "ALL" ? {} : { game: newGame };
     router.push({ pathname: "/teams", query }, undefined, { shallow: true });
-    if (newGame === "ALL") setGame(supportedGames[0]?.code || "VALORANT");
+    if (newGame === "ALL")
+      setGame(supportedGames[0]?.code || "VALORANT");
     else setGame(newGame);
   }
 
@@ -253,6 +339,11 @@ export default function TeamsPage({
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
+        const displayNameForMe =
+          player.valorantIgn && player.valorantIgn.trim()
+            ? player.valorantIgn.trim()
+            : player.username;
+
         const newTeam = {
           id: data.team.id,
           name: data.team.name,
@@ -265,7 +356,14 @@ export default function TeamsPage({
           isPublic: false,
           maxSize: 7,
           joinCode: data.team.joinCode || null,
-          members: [{ id: player.id, name: player.username, isCaptain: true }],
+          // NEW: use Valorant IGN for the captain in the local state
+          members: [
+            {
+              id: player.id,
+              name: displayNameForMe,
+              isCaptain: true,
+            },
+          ],
           joinRequests: [],
         };
         setTeams((prev) => [...prev, newTeam]);
@@ -287,12 +385,16 @@ export default function TeamsPage({
     if (nextIsPublic) {
       // Open Modal to configure settings
       setPendingPublicTeam(team);
-      
+
       // Pre-fill if data exists, or default to game meta
       const gameMeta = GAME_META[team.game];
-      setPublicRank(team.rank && team.rank !== "Unranked" ? team.rank : (gameMeta?.ranks[0] || "Unranked"));
+      setPublicRank(
+        team.rank && team.rank !== "Unranked"
+          ? team.rank
+          : gameMeta?.ranks[0] || "Unranked"
+      );
       setPublicRoles(team.rolesNeeded || []);
-      
+
       setShowPublicModal(true);
     } else {
       // Go Private immediately (no extra data needed)
@@ -304,7 +406,7 @@ export default function TeamsPage({
   async function confirmVisibilityChange(team, isPublic, rank, rolesNeeded) {
     try {
       const body = { action: "setVisibility", isPublic };
-      
+
       // Only send extra data if going public
       if (isPublic) {
         body.rank = rank;
@@ -318,27 +420,41 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (data.ok) {
-        setTeams((prev) => prev.map((t) => 
-          t.id === team.id 
-          ? { ...t, isPublic: !!data.isPublic, rank: data.rank || t.rank, rolesNeeded: data.rolesNeeded || t.rolesNeeded } 
-          : t
-        ));
+        setTeams((prev) =>
+          prev.map((t) =>
+            t.id === team.id
+              ? {
+                  ...t,
+                  isPublic: !!data.isPublic,
+                  rank: data.rank || t.rank,
+                  rolesNeeded: data.rolesNeeded || t.rolesNeeded,
+                }
+              : t
+          )
+        );
       }
       // Close modal if it was open
       setShowPublicModal(false);
       setPendingPublicTeam(null);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   // 3. Modal Confirm Button Action
   function submitPublicModal() {
     if (!pendingPublicTeam) return;
-    confirmVisibilityChange(pendingPublicTeam, true, publicRank, publicRoles);
+    confirmVisibilityChange(
+      pendingPublicTeam,
+      true,
+      publicRank,
+      publicRoles
+    );
   }
 
   function togglePublicRole(role) {
-    setPublicRoles(prev => {
-      if (prev.includes(role)) return prev.filter(r => r !== role);
+    setPublicRoles((prev) => {
+      if (prev.includes(role)) return prev.filter((r) => r !== role);
       return [...prev, role];
     });
   }
@@ -391,23 +507,35 @@ export default function TeamsPage({
 
   // ... Standard Actions ...
   async function handleDeleteTeam(team) {
-    if (!window.confirm(`Delete ${team.name}? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ${team.name}? This cannot be undone.`))
+      return;
     try {
-      const res = await fetch(`/api/teams/${team.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
       if (activeTeamId === team.id) setActiveTeamId(null);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handleLeaveTeam(team) {
     const otherMembers = team.members.filter((m) => !m.isCaptain);
     if (team.isCaptain) {
       if (otherMembers.length > 0) {
-        alert("You are the Captain. Please promote another member to Captain before leaving.");
+        alert(
+          "You are the Captain. Please promote another member to Captain before leaving."
+        );
         return;
       } else {
-        if (!window.confirm("You are the last member. Leaving will delete the team. Continue?")) return;
+        if (
+          !window.confirm(
+            "You are the last member. Leaving will delete the team. Continue?"
+          )
+        )
+          return;
         return handleDeleteTeam(team);
       }
     }
@@ -422,7 +550,9 @@ export default function TeamsPage({
       if (!data.ok) return alert(data.error);
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
       if (activeTeamId === team.id) setActiveTeamId(null);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handlePromote(team, member) {
     if (!window.confirm(`Promote ${member.name} to captain?`)) return;
@@ -430,7 +560,10 @@ export default function TeamsPage({
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "promote", targetPlayerId: member.id }),
+        body: JSON.stringify({
+          action: "promote",
+          targetPlayerId: member.id,
+        }),
       });
       const data = await res.json();
       if (!data.ok) return alert(data.error);
@@ -442,10 +575,16 @@ export default function TeamsPage({
             ...m,
             isCaptain: m.id === data.newCaptainId,
           }));
-          return { ...t, members: newMembers, isCaptain: data.newCaptainId === player.id };
+          return {
+            ...t,
+            members: newMembers,
+            isCaptain: data.newCaptainId === player.id,
+          };
         })
       );
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handleKick(team, member) {
     if (!window.confirm(`Kick ${member.name}?`)) return;
@@ -453,7 +592,10 @@ export default function TeamsPage({
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "kick", targetPlayerId: member.id }),
+        body: JSON.stringify({
+          action: "kick",
+          targetPlayerId: member.id,
+        }),
       });
       const data = await res.json();
       if (!data.ok) return alert(data.error);
@@ -461,10 +603,16 @@ export default function TeamsPage({
         prev.map((t) => {
           if (t.id !== team.id) return t;
           const newMembers = t.members.filter((m) => m.id !== member.id);
-          return { ...t, members: newMembers, memberCount: newMembers.length };
+          return {
+            ...t,
+            members: newMembers,
+            memberCount: newMembers.length,
+          };
         })
       );
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handleRegenJoinCode(team) {
     if (!window.confirm("Regenerate code?")) return;
@@ -476,9 +624,15 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (data.ok) {
-        setTeams((prev) => prev.map((t) => t.id === team.id ? { ...t, joinCode: data.joinCode } : t));
+        setTeams((prev) =>
+          prev.map((t) =>
+            t.id === team.id ? { ...t, joinCode: data.joinCode } : t
+          )
+        );
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handleApproveRequest(team, req) {
     try {
@@ -492,7 +646,10 @@ export default function TeamsPage({
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
-          const newMembers = [...t.members, { id: req.playerId, name: req.playerName, isCaptain: false }];
+          const newMembers = [
+            ...t.members,
+            { id: req.playerId, name: req.playerName, isCaptain: false },
+          ];
           return {
             ...t,
             members: newMembers,
@@ -501,7 +658,9 @@ export default function TeamsPage({
           };
         })
       );
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handleRejectRequest(team, req) {
     try {
@@ -515,15 +674,24 @@ export default function TeamsPage({
       setTeams((prev) =>
         prev.map((t) =>
           t.id === team.id
-            ? { ...t, joinRequests: t.joinRequests.filter((r) => r.id !== req.id) }
+            ? {
+                ...t,
+                joinRequests: t.joinRequests.filter(
+                  (r) => r.id !== req.id
+                ),
+              }
             : t
         )
       );
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   }
   async function handleRosterSwap(team, memberId, toActive) {
     const teamClone = { ...team };
-    const memberIndex = teamClone.members.findIndex(m => m.id === memberId);
+    const memberIndex = teamClone.members.findIndex(
+      (m) => m.id === memberId
+    );
     if (memberIndex === -1) return;
     const member = teamClone.members[memberIndex];
     const newMembers = [...teamClone.members];
@@ -533,20 +701,26 @@ export default function TeamsPage({
     } else {
       newMembers.push(member);
     }
-    setTeams((prev) => prev.map((t) => (t.id === team.id ? { ...t, members: newMembers } : t)));
+    setTeams((prev) =>
+      prev.map((t) =>
+        t.id === team.id ? { ...t, members: newMembers } : t
+      )
+    );
     try {
       const res = await fetch("/api/teams/roster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          teamId: team.id, 
-          newMemberOrder: newMembers.map(m => m.id)
+        body: JSON.stringify({
+          teamId: team.id,
+          newMemberOrder: newMembers.map((m) => m.id),
         }),
       });
       const data = await res.json();
       if (!data.ok) {
         alert("Failed to save roster: " + data.error);
-        setTeams((prev) => prev.map((t) => (t.id === team.id ? team : t)));
+        setTeams((prev) =>
+          prev.map((t) => (t.id === team.id ? team : t))
+        );
       }
     } catch (err) {
       console.error(err);
@@ -554,48 +728,103 @@ export default function TeamsPage({
     }
   }
 
-  const byGame = selectedGame === "ALL" ? teams : teams.filter((t) => t.game === selectedGame);
-  const visibleTeams = roleFilter === "ALL" ? byGame : roleFilter === "CAPTAIN" ? byGame.filter((t) => t.isCaptain) : byGame.filter((t) => !t.isCaptain);
+  const byGame =
+    selectedGame === "ALL"
+      ? teams
+      : teams.filter((t) => t.game === selectedGame);
+  const visibleTeams =
+    roleFilter === "ALL"
+      ? byGame
+      : roleFilter === "CAPTAIN"
+      ? byGame.filter((t) => t.isCaptain)
+      : byGame.filter((t) => !t.isCaptain);
 
   useEffect(() => {
     if (!activeTeamId && visibleTeams.length > 0) {
       setActiveTeamId(visibleTeams[0].id);
-    } else if (visibleTeams.length > 0 && !visibleTeams.find(t => t.id === activeTeamId)) {
+    } else if (
+      visibleTeams.length > 0 &&
+      !visibleTeams.find((t) => t.id === activeTeamId)
+    ) {
       setActiveTeamId(visibleTeams[0].id);
     }
   }, [visibleTeams, activeTeamId]);
 
-  const activeTeam = visibleTeams.find(t => t.id === activeTeamId);
+  const activeTeam = visibleTeams.find((t) => t.id === activeTeamId);
 
   return (
     <div className={styles.shell}>
       <div className={styles.wrap}>
         <div className={styles.header}>
-          <span className={styles.userBadge}>Logged in as {player.username}</span>
+          <span className={styles.userBadge}>
+            Logged in as {player.username}
+          </span>
           <h1 className={styles.title}>My Teams</h1>
-          <p className={styles.subtitle}>Manage your squads, create new teams, or join existing ones.</p>
+          <p className={styles.subtitle}>
+            Manage your squads, create new teams, or join existing ones.
+          </p>
         </div>
 
         <div className={styles.controlBar}>
           <div className={styles.glassPanel}>
-            <form onSubmit={handleJoinByCode} className={styles.inputGroup}>
+            <form
+              onSubmit={handleJoinByCode}
+              className={styles.inputGroup}
+            >
               <span className={styles.label}>Join by code</span>
               <div style={{ display: "flex", gap: "8px" }}>
-                <input value={joinCodeInput} onChange={(e) => setJoinCodeInput((e.target.value || "").toUpperCase())} placeholder="ABC123" maxLength={6} className={styles.input} style={{ width: "120px", textAlign: "center", letterSpacing: "2px" }} />
-                <button type="submit" disabled={joiningByCode} className={styles.joinBtn}>{joiningByCode ? "..." : "Join"}</button>
+                <input
+                  value={joinCodeInput}
+                  onChange={(e) =>
+                    setJoinCodeInput(
+                      (e.target.value || "").toUpperCase()
+                    )
+                  }
+                  placeholder="ABC123"
+                  maxLength={6}
+                  className={styles.input}
+                  style={{
+                    width: "120px",
+                    textAlign: "center",
+                    letterSpacing: "2px",
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={joiningByCode}
+                  className={styles.joinBtn}
+                >
+                  {joiningByCode ? "..." : "Join"}
+                </button>
               </div>
-              {joinCodeError && <span className={styles.errorText}>{joinCodeError}</span>}
+              {joinCodeError && (
+                <span className={styles.errorText}>
+                  {joinCodeError}
+                </span>
+              )}
             </form>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Filter Game</label>
-              <select value={selectedGame} onChange={handleGameSelect} className={styles.select}>
+              <select
+                value={selectedGame}
+                onChange={handleGameSelect}
+                className={styles.select}
+              >
                 <option value="ALL">All games</option>
-                {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
+                {supportedGames.map((g) => (
+                  <option key={g.code} value={g.code}>
+                    {g.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Filter Role</label>
-              <select value={roleFilter} onChange={handleRoleSelect} className={styles.select}>
+              <select
+                value={roleFilter}
+                onChange={handleRoleSelect}
+                className={styles.select}
+              >
                 <option value="ALL">All roles</option>
                 <option value="CAPTAIN">Captain teams</option>
                 <option value="MEMBER">Joined teams</option>
@@ -603,20 +832,37 @@ export default function TeamsPage({
             </div>
           </div>
           <div className={styles.actionGroup}>
-            <button onClick={() => router.push("/teams/join")} className={styles.primaryBtn}>Find a Team</button>
-            <button onClick={openModal} className={styles.createBtn}>+ Create</button>
+            <button
+              onClick={() => router.push("/teams/join")}
+              className={styles.primaryBtn}
+            >
+              Find a Team
+            </button>
+            <button
+              onClick={openModal}
+              className={styles.createBtn}
+            >
+              + Create
+            </button>
           </div>
         </div>
 
         {visibleTeams.length > 0 && (
           <div className={styles.tabsContainer}>
-            {visibleTeams.map(t => (
-              <button 
+            {visibleTeams.map((t) => (
+              <button
                 key={t.id}
                 onClick={() => setActiveTeamId(t.id)}
-                className={activeTeamId === t.id ? styles.tabBtnActive : styles.tabBtn}
+                className={
+                  activeTeamId === t.id
+                    ? styles.tabBtnActive
+                    : styles.tabBtn
+                }
               >
-                <span className={styles.tabTag}>{t.tag} |</span> {t.name}
+                <span className={styles.tabTag}>
+                  {t.tag ? `${t.tag} | ` : ""}
+                </span>{" "}
+                {t.name}
               </button>
             ))}
           </div>
@@ -625,8 +871,17 @@ export default function TeamsPage({
         {!activeTeam && visibleTeams.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>∅</div>
-            <h3 style={{ color: "#fff", margin: "0 0 0.5rem" }}>No teams found</h3>
-            <p style={{ margin: 0 }}>Adjust your filters or create a new team to get started.</p>
+            <h3
+              style={{
+                color: "#fff",
+                margin: "0 0 0.5rem",
+              }}
+            >
+              No teams found
+            </h3>
+            <p style={{ margin: 0 }}>
+              Adjust your filters or create a new team to get started.
+            </p>
           </div>
         ) : (
           activeTeam && (
@@ -650,28 +905,96 @@ export default function TeamsPage({
 
       {/* --- CREATE TEAM MODAL --- */}
       {showModal && (
-        <div className={styles.modalOverlay} onClick={closeModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={closeModal} className={styles.closeModal}>&times;</button>
+        <div
+          className={styles.modalOverlay}
+          onClick={closeModal}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeModal}
+              className={styles.closeModal}
+            >
+              &times;
+            </button>
             <h2 className={styles.modalTitle}>Create a new Team</h2>
-            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>Assemble your squad. You will be assigned as the Captain.</p>
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: "0.9rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              Assemble your squad. You will be assigned as the Captain.
+            </p>
             <form onSubmit={handleCreate}>
-              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <div
+                className={styles.inputGroup}
+                style={{ marginBottom: "1rem" }}
+              >
                 <label className={styles.label}>Game</label>
-                <select value={game} onChange={(e) => setGame(e.target.value)} className={styles.select} style={{ width: "100%" }}>
-                  {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
+                <select
+                  value={game}
+                  onChange={(e) => setGame(e.target.value)}
+                  className={styles.select}
+                  style={{ width: "100%" }}
+                >
+                  {supportedGames.map((g) => (
+                    <option key={g.code} value={g.code}>
+                      {g.label}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <div
+                className={styles.inputGroup}
+                style={{ marginBottom: "1rem" }}
+              >
                 <label className={styles.label}>Team Name</label>
-                <input type="text" value={name} onChange={handleNameChange} placeholder="e.g. EDWARD GAMING" className={styles.input} style={{ width: "100%" }} />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={handleNameChange}
+                  placeholder="e.g. EDWARD GAMING"
+                  className={styles.input}
+                  style={{ width: "100%" }}
+                />
               </div>
-              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
-                <label className={styles.label}>Tag (Max 4 chars)</label>
-                <input type="text" value={tag} onChange={handleTagChange} placeholder="EDG" maxLength={4} className={styles.input} style={{ width: "100%" }} />
+              <div
+                className={styles.inputGroup}
+                style={{ marginBottom: "1rem" }}
+              >
+                <label className={styles.label}>
+                  Tag (Max 4 chars)
+                </label>
+                <input
+                  type="text"
+                  value={tag}
+                  onChange={handleTagChange}
+                  placeholder="EDG"
+                  maxLength={4}
+                  className={styles.input}
+                  style={{ width: "100%" }}
+                />
               </div>
-              {error && <p className={styles.errorText}>{error}</p>}
-              <button type="submit" disabled={submitting} className={styles.createBtn} style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>{submitting ? "Creating..." : "Confirm Creation"}</button>
+              {error && (
+                <p className={styles.errorText}>{error}</p>
+              )}
+              <button
+                type="submit"
+                disabled={submitting}
+                className={styles.createBtn}
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  marginTop: "1rem",
+                }}
+              >
+                {submitting ? "Creating..." : "Confirm Creation"}
+              </button>
             </form>
           </div>
         </div>
@@ -679,52 +1002,105 @@ export default function TeamsPage({
 
       {/* --- GO PUBLIC MODAL --- */}
       {showPublicModal && pendingPublicTeam && (
-        <div className={styles.modalOverlay} onClick={() => setShowPublicModal(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setShowPublicModal(false)} className={styles.closeModal}>&times;</button>
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowPublicModal(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowPublicModal(false)}
+              className={styles.closeModal}
+            >
+              &times;
+            </button>
             <h2 className={styles.modalTitle}>Make Team Public?</h2>
-            <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
-              This will list <strong>{pendingPublicTeam.name}</strong> on the "Find a Team" page. Please help players find you by providing more details.
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: "0.9rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              This will list{" "}
+              <strong>{pendingPublicTeam.name}</strong> on the
+              "Find a Team" page. Please help players find you by
+              providing more details.
             </p>
-            
+
             {/* Rank Selection */}
-            <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+            <div
+              className={styles.inputGroup}
+              style={{ marginBottom: "1rem" }}
+            >
               <label className={styles.label}>Average Rank</label>
-              <select 
-                value={publicRank} 
-                onChange={(e) => setPublicRank(e.target.value)} 
-                className={styles.select} 
+              <select
+                value={publicRank}
+                onChange={(e) =>
+                  setPublicRank(e.target.value)
+                }
+                className={styles.select}
                 style={{ width: "100%" }}
               >
-                {GAME_META[pendingPublicTeam.game]?.ranks.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                )) || <option value="Unranked">Unranked</option>}
+                {GAME_META[pendingPublicTeam.game]?.ranks.map(
+                  (r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  )
+                ) || (
+                  <option value="Unranked">Unranked</option>
+                )}
               </select>
             </div>
 
             {/* Roles Selection */}
-            <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
-              <span className={styles.label}>Roles Needed (Optional)</span>
+            <div
+              className={styles.inputGroup}
+              style={{ marginBottom: "1rem" }}
+            >
+              <span className={styles.label}>
+                Roles Needed (Optional)
+              </span>
               <div className={styles.roleContainer}>
-                {GAME_META[pendingPublicTeam.game]?.roles.map((r) => {
-                  const isActive = publicRoles.includes(r);
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => togglePublicRole(r)}
-                      className={`${styles.roleBadge} ${isActive ? styles.roleBadgeActive : ''}`}
-                    >
-                      {r}
-                    </button>
-                  )
-                })}
+                {GAME_META[pendingPublicTeam.game]?.roles.map(
+                  (r) => {
+                    const isActive = publicRoles.includes(r);
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => togglePublicRole(r)}
+                        className={`${styles.roleBadge} ${
+                          isActive
+                            ? styles.roleBadgeActive
+                            : ""
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    );
+                  }
+                )}
               </div>
             </div>
 
             <div className={styles.modalActions}>
-              <button onClick={() => setShowPublicModal(false)} className={styles.cancelBtn}>Cancel</button>
-              <button onClick={submitPublicModal} className={styles.confirmBtn}>Confirm & Publish</button>
+              <button
+                onClick={() => setShowPublicModal(false)}
+                className={styles.cancelBtn}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPublicModal}
+                className={styles.confirmBtn}
+              >
+                Confirm & Publish
+              </button>
             </div>
           </div>
         </div>
@@ -746,44 +1122,52 @@ function TeamCard({
   onRegenJoinCode,
   onApproveRequest,
   onRejectRequest,
-  onRosterSwap
+  onRosterSwap,
 }) {
   // Initialize activeIds
   const [activeIds, setActiveIds] = useState(() => {
-    return team.members.slice(0, 5).map(m => m.id);
+    return team.members.slice(0, 5).map((m) => m.id);
   });
 
   useEffect(() => {
-     setActiveIds(team.members.slice(0, 5).map(m => m.id));
+    setActiveIds(team.members.slice(0, 5).map((m) => m.id));
   }, [team.id]);
 
-  const activeMembers = team.members.filter(m => activeIds.includes(m.id));
-  const benchMembers = team.members.filter(m => !activeIds.includes(m.id));
+  const activeMembers = team.members.filter((m) =>
+    activeIds.includes(m.id)
+  );
+  const benchMembers = team.members.filter(
+    (m) => !activeIds.includes(m.id)
+  );
   const slots = buildMemberSlots(activeMembers);
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
   const maxSize = team.maxSize || 7;
   const visibilityLabel = team.isPublic ? "Public" : "Private";
-  const amIWaitlisted = currentUser && benchMembers.some(m => m.id === currentUser.id);
+  const amIWaitlisted =
+    currentUser &&
+    benchMembers.some((m) => m.id === currentUser.id);
 
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
-      setActiveIds(prev => prev.filter(id => id !== memberId));
+      setActiveIds((prev) => prev.filter((id) => id !== memberId));
       onRosterSwap(team, memberId, false);
     } else {
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
       }
-      setActiveIds(prev => [...prev, memberId]);
+      setActiveIds((prev) => [...prev, memberId]);
       onRosterSwap(team, memberId, true);
     }
   }
 
   function handleCopyCode() {
     if (!team.joinCode) return;
-    navigator.clipboard.writeText(team.joinCode).catch((err) => console.error("Copy failed", err));
+    navigator.clipboard
+      .writeText(team.joinCode)
+      .catch((err) => console.error("Copy failed", err));
   }
 
   function handleRegen() {
@@ -795,28 +1179,87 @@ function TeamCard({
       <div className={styles.cardHeader}>
         <div className={styles.headerLeft}>
           <h3 className={styles.teamName}>
-            <span className={styles.teamTag}>{team.tag ? `${team.tag} | ` : ""}</span> {team.name}
+            <span className={styles.teamTag}>
+              {team.tag ? `${team.tag} | ` : ""}
+            </span>{" "}
+            {team.name}
           </h3>
-          
+
           {/* Only show Rank/Roles if the team is PUBLIC */}
           {team.isPublic && (
-            <div style={{ marginTop: '4px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-               <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Rank: <strong style={{ color: '#e2e8f0' }}>{team.rank || "Unranked"}</strong></span>
-               
-               {team.rolesNeeded && team.rolesNeeded.length > 0 && (
-                 <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                   Looking for: {team.rolesNeeded.map(r => (
-                     <span key={r} style={{ marginLeft: '6px', color: '#60a5fa', background: 'rgba(30,41,59,0.5)', padding: '2px 6px', borderRadius: '4px' }}>{r}</span>
-                   ))}
-                 </span>
-               )}
+            <div
+              style={{
+                marginTop: "4px",
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#94a3b8",
+                }}
+              >
+                Rank:{" "}
+                <strong style={{ color: "#e2e8f0" }}>
+                  {team.rank || "Unranked"}
+                </strong>
+              </span>
+
+              {team.rolesNeeded &&
+                team.rolesNeeded.length > 0 && (
+                  <span
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#94a3b8",
+                    }}
+                  >
+                    Looking for:{" "}
+                    {team.rolesNeeded.map((r) => (
+                      <span
+                        key={r}
+                        style={{
+                          marginLeft: "6px",
+                          color: "#60a5fa",
+                          background: "rgba(30,41,59,0.5)",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {r}
+                      </span>
+                    ))}
+                  </span>
+                )}
             </div>
           )}
-          
+
           {benchMembers.length > 0 && (
-            <span className={styles.subText} style={{ marginTop: '6px' }}>
-              Substitutes: {benchMembers.map((m, i) => (
-                <span key={m.id} className={m.id === currentUser?.id ? styles.slotMe : ''} style={{ color: m.id === currentUser?.id ? '#4ade80' : 'inherit', fontWeight: m.id === currentUser?.id ? 'bold' : 'normal' }}>
+            <span
+              className={styles.subText}
+              style={{ marginTop: "6px" }}
+            >
+              Substitutes:{" "}
+              {benchMembers.map((m, i) => (
+                <span
+                  key={m.id}
+                  className={
+                    m.id === currentUser?.id
+                      ? styles.slotMe
+                      : ""
+                  }
+                  style={{
+                    color:
+                      m.id === currentUser?.id
+                        ? "#4ade80"
+                        : "inherit",
+                    fontWeight:
+                      m.id === currentUser?.id
+                        ? "bold"
+                        : "normal",
+                  }}
+                >
                   {i > 0 && ", "}
                   {m.name}
                 </span>
@@ -828,9 +1271,23 @@ function TeamCard({
         <div className={styles.headerRight}>
           {team.isCaptain && (
             <div className={styles.compactCode}>
-              <span className={styles.codeText}>{team.joinCode || "----"}</span>
-              <button onClick={handleCopyCode} className={styles.iconBtn} title="Copy">❐</button>
-              <button onClick={handleRegen} className={styles.iconBtn} title="Regenerate">↻</button>
+              <span className={styles.codeText}>
+                {team.joinCode || "----"}
+              </span>
+              <button
+                onClick={handleCopyCode}
+                className={styles.iconBtn}
+                title="Copy"
+              >
+                ❐
+              </button>
+              <button
+                onClick={handleRegen}
+                className={styles.iconBtn}
+                title="Regenerate"
+              >
+                ↻
+              </button>
             </div>
           )}
           <span className={styles.gameBadge}>{team.game}</span>
@@ -842,13 +1299,26 @@ function TeamCard({
           let slotClass = styles.slot;
           if (idx === 2) slotClass += ` ${styles.slotCaptain}`;
           if (slot) slotClass += ` ${styles.slotFilled}`;
-          if (slot && currentUser && slot.id === currentUser.id) slotClass += ` ${styles.slotMe}`;
+          if (
+            slot &&
+            currentUser &&
+            slot.id === currentUser.id
+          )
+            slotClass += ` ${styles.slotMe}`;
 
           return (
-            <div key={idx} className={slotClass} title={slot?.name || "Open"}>
-              {idx === 2 && <div className={styles.captainStar}>★</div>}
+            <div
+              key={idx}
+              className={slotClass}
+              title={slot?.name || "Open"}
+            >
+              {idx === 2 && (
+                <div className={styles.captainStar}>★</div>
+              )}
               <div className={styles.slotName}>
-                {slot ? `${team.tag ? `${team.tag} | ` : ""}${slot.name}` : "-"}
+                {slot
+                  ? `${team.tag ? `${team.tag} | ` : ""}${slot.name}`
+                  : "-"}
               </div>
             </div>
           );
@@ -857,12 +1327,32 @@ function TeamCard({
 
       {team.isCaptain && (
         <div style={{ marginBottom: "1rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "0.75rem",
+              color: "#64748b",
+              marginBottom: "8px",
+            }}
+          >
             <span>Visibility</span>
             <select
               value={team.isPublic ? "public" : "private"}
-              onChange={(e) => onToggleVisibility(team, e.target.value === "public")}
-              style={{ background: "none", border: "none", color: team.isPublic ? "#22c55e" : "#f59e0b", fontSize: "0.75rem", cursor: "pointer", outline: "none" }}
+              onChange={(e) =>
+                onToggleVisibility(
+                  team,
+                  e.target.value === "public"
+                )
+              }
+              style={{
+                background: "none",
+                border: "none",
+                color: team.isPublic ? "#22c55e" : "#f59e0b",
+                fontSize: "0.75rem",
+                cursor: "pointer",
+                outline: "none",
+              }}
             >
               <option value="private">Private</option>
               <option value="public">Public</option>
@@ -872,24 +1362,61 @@ function TeamCard({
           {/* Manage Roster (Captain sees self-excluded) */}
           {otherMembers.length > 0 && (
             <div className={styles.rosterBox}>
-              <div className={styles.rosterHeader}>Manage Roster</div>
+              <div className={styles.rosterHeader}>
+                Manage Roster
+              </div>
               {otherMembers.map((m) => {
                 const isActive = activeIds.includes(m.id);
                 return (
-                  <div key={m.id} className={styles.rosterRow}>
-                    <span className={styles.rosterName} style={{ opacity: isActive ? 1 : 0.5 }}>
+                  <div
+                    key={m.id}
+                    className={styles.rosterRow}
+                  >
+                    <span
+                      className={styles.rosterName}
+                      style={{
+                        opacity: isActive ? 1 : 0.5,
+                      }}
+                    >
                       {m.name} {isActive ? "" : "(Sub)"}
                     </span>
                     <div className={styles.rosterActions}>
-                      <button 
-                        onClick={() => handleToggleActive(m.id)}
+                      <button
+                        onClick={() =>
+                          handleToggleActive(m.id)
+                        }
                         className={styles.miniBtn}
-                        style={{ color: isActive ? "#fbbf24" : "#4ade80", borderColor: isActive ? "#fbbf24" : "#4ade80" }}
+                        style={{
+                          color: isActive
+                            ? "#fbbf24"
+                            : "#4ade80",
+                          borderColor: isActive
+                            ? "#fbbf24"
+                            : "#4ade80",
+                        }}
                       >
                         {isActive ? "Bench" : "Start"}
                       </button>
-                      <button onClick={() => onPromote(team, m)} className={styles.miniBtn} style={{ color: "#60a5fa", borderColor: "#1e40af" }}>Promote</button>
-                      <button onClick={() => onKick(team, m)} className={styles.miniBtn} style={{ color: "#f87171", borderColor: "#7f1d1d" }}>Kick</button>
+                      <button
+                        onClick={() => onPromote(team, m)}
+                        className={styles.miniBtn}
+                        style={{
+                          color: "#60a5fa",
+                          borderColor: "#1e40af",
+                        }}
+                      >
+                        Promote
+                      </button>
+                      <button
+                        onClick={() => onKick(team, m)}
+                        className={styles.miniBtn}
+                        style={{
+                          color: "#f87171",
+                          borderColor: "#7f1d1d",
+                        }}
+                      >
+                        Kick
+                      </button>
                     </div>
                   </div>
                 );
@@ -899,13 +1426,44 @@ function TeamCard({
 
           {team.isPublic && hasRequests && (
             <div className={styles.requestsBox}>
-              <div style={{ color: "#60a5fa", fontWeight: "bold" }}>Join Requests ({team.joinRequests.length})</div>
+              <div
+                style={{
+                  color: "#60a5fa",
+                  fontWeight: "bold",
+                }}
+              >
+                Join Requests ({team.joinRequests.length})
+              </div>
               {team.joinRequests.map((req) => (
                 <div key={req.id} className={styles.reqRow}>
-                  <span className={styles.reqName}>{req.playerName}</span>
+                  <span className={styles.reqName}>
+                    {req.playerName}
+                  </span>
                   <div>
-                    <button onClick={() => onApproveRequest(team, req)} className={styles.miniBtn} style={{ color: "#22c55e", borderColor: "#22c55e" }}>✓</button>
-                    <button onClick={() => onRejectRequest(team, req)} className={styles.miniBtn} style={{ color: "#ef4444", borderColor: "#ef4444" }}>✕</button>
+                    <button
+                      onClick={() =>
+                        onApproveRequest(team, req)
+                      }
+                      className={styles.miniBtn}
+                      style={{
+                        color: "#22c55e",
+                        borderColor: "#22c55e",
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() =>
+                        onRejectRequest(team, req)
+                      }
+                      className={styles.miniBtn}
+                      style={{
+                        color: "#ef4444",
+                        borderColor: "#ef4444",
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
               ))}
@@ -915,17 +1473,47 @@ function TeamCard({
       )}
 
       <div className={styles.cardFooter}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span>Members: <strong>{team.memberCount}</strong> / {maxSize} · {visibilityLabel}</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <span>
+            Members: <strong>{team.memberCount}</strong> /{" "}
+            {maxSize} · {visibilityLabel}
+          </span>
           {!team.isCaptain && amIWaitlisted && (
-            <span style={{ fontSize: "0.7rem", color: "#fbbf24", border: "1px solid #fbbf24", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>⚠ WAITLISTED</span>
+            <span
+              style={{
+                fontSize: "0.7rem",
+                color: "#fbbf24",
+                border: "1px solid #fbbf24",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontWeight: "bold",
+              }}
+            >
+              ⚠ WAITLISTED
+            </span>
           )}
         </div>
         <div className={styles.footerBtns}>
           {team.isCaptain ? (
-            <button onClick={() => onDelete(team)} className={styles.btnDanger}>Disband</button>
+            <button
+              onClick={() => onDelete(team)}
+              className={styles.btnDanger}
+            >
+              Disband
+            </button>
           ) : (
-            <button onClick={() => onLeave(team)} className={styles.btnNeutral}>Leave</button>
+            <button
+              onClick={() => onLeave(team)}
+              className={styles.btnNeutral}
+            >
+              Leave
+            </button>
           )}
         </div>
       </div>
@@ -937,7 +1525,8 @@ function buildMemberSlots(members = []) {
   const MAX = 5;
   const slots = new Array(MAX).fill(null);
   if (!members.length) return slots;
-  const captain = members.find((m) => m.isCaptain) || members[0] || null;
+  const captain =
+    members.find((m) => m.isCaptain) || members[0] || null;
   const others = members.filter((m) => m !== captain);
   const positions = [2, 1, 3, 0, 4];
   if (captain) {
@@ -945,7 +1534,10 @@ function buildMemberSlots(members = []) {
   }
   let posIdx = 0;
   for (const m of others) {
-    while (posIdx < positions.length && slots[positions[posIdx]] !== null) {
+    while (
+      posIdx < positions.length &&
+      slots[positions[posIdx]] !== null
+    ) {
       posIdx++;
     }
     if (posIdx >= positions.length) break;
