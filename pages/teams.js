@@ -431,13 +431,6 @@ export default function TeamsPage({
   e.preventDefault();
   setJoinCodeError("");
 
-  // 🔒 If you're in VALORANT context and don't have a Valorant IGN, show the popup
-  if (selectedGame === "VALORANT" && !hasValorantIgn) {
-    setMissingGame("VALORANT");
-    setShowMissingProfileModal(true);
-    return; // don't try to join yet
-  }
-
   const code = (joinCodeInput || "").trim().toUpperCase();
   if (!code || code.length !== 6) {
     return setJoinCodeError("Invite code must be 6 characters.");
@@ -451,11 +444,24 @@ export default function TeamsPage({
       body: JSON.stringify({ joinCode: code }),
     });
     const data = await res.json();
+
     if (!data.ok) {
       setJoinCodeError(data.error || "Failed to join.");
       return;
     }
+
+    // ✅ Now we know what team this code belongs to
     if (data.joined && data.team) {
+      const teamGame = data.team.game;
+
+      // If the invite code points to a VALORANT team and you have no Valorant IGN,
+      // show the same "IGN Required" modal and block the join.
+      if (teamGame === "VALORANT" && !hasValorantIgn) {
+        setMissingGame("VALORANT");
+        setShowMissingProfileModal(true);
+        return; // don't add the team to state
+      }
+
       const existing = teams.find((t) => t.id === data.team.id);
       if (!existing) {
         const newTeam = {
@@ -480,6 +486,7 @@ export default function TeamsPage({
     setJoiningByCode(false);
   }
 }
+
 
 
   // --- Standard Actions ---
