@@ -883,7 +883,8 @@ function TeamCard({
       <div className={styles.cardHeader}>
         <h3 className={styles.teamName}>
           <span className={styles.teamTag}>
-            {team.tag ? `[${team.tag}]` : ""}
+            {/* UPDATED: Use Vertical Bar */}
+            {team.tag ? `${team.tag} | ` : ""}
           </span>{" "}
           {team.name}
         </h3>
@@ -927,10 +928,11 @@ function TeamCard({
           return (
             <div key={idx} className={slotClass} title={slot?.name || "Open"}>
               {idx === 2 && <div className={styles.captainStar}>★</div>}
-              {/* UPDATED: Shows Tag + Name */}
+              
+              {/* UPDATED: Use Vertical Bar in slots */}
               <div className={styles.slotName}>
                 {slot
-                  ? `${team.tag ? `[${team.tag}] ` : ""}${slot.name}`
+                  ? `${team.tag ? `${team.tag} | ` : ""}${slot.name}`
                   : "-"}
               </div>
             </div>
