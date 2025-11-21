@@ -282,7 +282,7 @@
 .slotFilled {
   background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
   border: none;
-  color: #e2e8f0;
+  color: #e2e8f0; /* Standard white/light grey */
   box-shadow: none;
 }
 
@@ -293,7 +293,8 @@
   z-index: 2;
   background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
   border: none;
-  color: #fbbf24;
+  /* UPDATED: Changed from gold to standard white */
+  color: #e2e8f0; 
   filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
 }
 
@@ -301,30 +302,29 @@
 .slotMe {
   color: #4ade80 !important; 
   font-weight: 800;
-  text-shadow: 0 0 12px rgba(74, 222, 128, 0.8); /* Stronger green glow */
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
   filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.5));
   z-index: 3;
 }
 
 /* IMPROVED TEXT STYLING */
 .slotName {
-  font-weight: 800; /* Bolder */
+  font-weight: 800;
   margin-top: 0;
   padding: 0 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 98%;
-  font-size: 0.9rem; /* Slightly larger */
-  letter-spacing: 0.05em; /* Wider spacing */
-  text-transform: uppercase; /* uppercase for gaming look */
-  /* Sharp shadow to make text pop off the background */
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   text-shadow: 0 2px 3px rgba(0, 0, 0, 0.9);
 }
 
 .captainStar {
   font-size: 11px;
-  color: #fbbf24;
+  color: #fbbf24; /* Star remains gold */
   margin-bottom: 3px;
   text-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
 }
