@@ -7,7 +7,6 @@ import Team from "../models/Team";
 import TeamJoinRequest from "../models/TeamJoinRequest";
 import styles from "../styles/Teams.module.css";
 
-// Supported games
 const SUPPORTED_GAMES = [
   { code: "VALORANT", label: "VALORANT" },
   { code: "HOK", label: "Honor of Kings" },
@@ -54,7 +53,6 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
-  // My teams
   const myTeamsRaw = await Team.find({
     game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
@@ -62,7 +60,6 @@ export async function getServerSideProps({ req, query }) {
     .sort({ createdAt: 1 })
     .lean();
 
-  // Pending requests
   const captainTeamIds = myTeamsRaw
     .filter((t) => String(t.captain) === String(playerDoc._id))
     .map((t) => t._id);
@@ -75,7 +72,6 @@ export async function getServerSideProps({ req, query }) {
     }).lean();
   }
 
-  // Member names
   const memberIdSet = new Set();
   function addId(id) { if (id) memberIdSet.add(String(id)); }
 
@@ -111,7 +107,6 @@ export async function getServerSideProps({ req, query }) {
     const captainId = String(t.captain);
     let memberIds = (t.members || []).map((m) => String(m));
 
-    // Ensure captain is at index 0 if not already
     if (memberIds.indexOf(captainId) > 0) {
       memberIds = memberIds.filter(id => id !== captainId);
       memberIds.unshift(captainId);
@@ -240,7 +235,7 @@ export default function TeamsPage({
           memberCount: 1,
           isCaptain: true,
           isPublic: false,
-          maxSize: 7,
+          maxSize: 7, 
           joinCode: data.team.joinCode || null,
           members: [{ id: player.id, name: player.username, isCaptain: true }],
           joinRequests: [],
@@ -298,7 +293,7 @@ export default function TeamsPage({
     }
   }
 
-  // --- Standard Actions ---
+  // Standard actions
   async function handleDeleteTeam(team) {
     if (!window.confirm(`Delete ${team.name}?`)) return;
     try {
@@ -429,12 +424,16 @@ export default function TeamsPage({
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) =>
-        prev.map((t) => t.id === team.id ? { ...t, joinRequests: t.joinRequests.filter((r) => r.id !== req.id) } : t)
+        prev.map((t) =>
+          t.id === team.id
+            ? { ...t, joinRequests: t.joinRequests.filter((r) => r.id !== req.id) }
+            : t
+        )
       );
     } catch (err) { console.error(err); }
   }
 
-  // --- NEW: HANDLE ROSTER SWAP AND SAVE TO DB ---
+  // --- NEW: Roster Swap (Save to DB) ---
   async function handleRosterSwap(team, memberId, toActive) {
     // 1. Calculate new order locally first
     const teamClone = { ...team };
@@ -446,7 +445,7 @@ export default function TeamsPage({
     newMembers.splice(memberIndex, 1); // remove from old spot
 
     if (toActive) {
-      // Move to index 1 (Active, after Captain)
+      // Insert at index 1 (after Captain)
       newMembers.splice(1, 0, member);
     } else {
       // Move to end (Bench)
@@ -469,7 +468,7 @@ export default function TeamsPage({
       const data = await res.json();
       if (!data.ok) {
         alert("Failed to save roster: " + data.error);
-        // Revert on failure (reload page or rollback state)
+        // Revert on failure
         setTeams((prev) => prev.map((t) => (t.id === team.id ? team : t)));
       }
     } catch (err) {
@@ -590,19 +589,54 @@ function TeamCard({
   onRejectRequest,
   onRosterSwap
 }) {
-  // 1. Split the members list: First 5 are Active, Rest are Bench
-  // By default, the order in the DB determines who is active.
-  const activeMembers = team.members.slice(0, 5);
-  const benchMembers = team.members.slice(5);
+  // 1. STATE: Local Active IDs to control slots
+  const [activeIds, setActiveIds] = useState(() => {
+    return team.members.slice(0, 5).map(m => m.id);
+  });
 
-  const slots = buildMemberSlots(activeMembers);
+  // Update local state when team members change (e.g. join or DB load)
+  useEffect(() => {
+    // If we have new members, check if we should auto-fill slots
+    const currentActive = team.members.slice(0, 5).map(m => m.id);
+    
+    // If this is a "fresh join", we might want to respect that.
+    // But simpler: just use the array order from parent as source of truth if it changed significantly
+    if (team.justJoined) {
+       setActiveIds(currentActive);
+    }
+  }, [team.members, team.justJoined]);
+
+  // 2. Derived Lists
+  const activeMembers = team.members.filter(m => activeIds.includes(m.id));
+  const benchMembers = team.members.filter(m => !activeIds.includes(m.id));
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
   const maxSize = team.maxSize || 7;
   const visibilityLabel = team.isPublic ? "Public" : "Private";
-
-  // Am I on the bench?
   const amIWaitlisted = currentUser && benchMembers.some(m => m.id === currentUser.id);
+
+  // 3. Build Visual Slots
+  const slots = buildMemberSlots(activeMembers);
+
+  // 4. Handler for Swap
+  function handleToggleActive(memberId) {
+    const isActive = activeIds.includes(memberId);
+    if (isActive) {
+      // BENCH: Remove from activeIds
+      setActiveIds(prev => prev.filter(id => id !== memberId));
+      // Also update parent order (move to end)
+      onRosterSwap(team, memberId, false);
+    } else {
+      // START: Check limit
+      if (activeIds.length >= 5) {
+        alert("Active roster is full (5/5). Bench someone first.");
+        return;
+      }
+      setActiveIds(prev => [...prev, memberId]);
+      // Update parent order (move to start)
+      onRosterSwap(team, memberId, true);
+    }
+  }
 
   function handleCopyCode() {
     if (!team.joinCode) return;
@@ -628,7 +662,23 @@ function TeamCard({
         </div>
       )}
 
-      {/* TOP 5 ACTIVE SLOTS */}
+      {/* --- SUBSTITUTES LIST (Now below team name) --- */}
+      {benchMembers.length > 0 && (
+        <div style={{ marginBottom: "1rem", padding: "0.5rem", border: "1px dashed #334155", borderRadius: "8px", display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: "bold", marginRight: "5px" }}>
+            Substitutes:
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {benchMembers.map(m => (
+              <div key={m.id} style={{ background: "#1e293b", padding: "2px 8px", borderRadius: "4px", fontSize: "0.8rem", color: "#cbd5e1" }}>
+                {m.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- TOP 5 SLOTS --- */}
       <div className={styles.slotsContainer}>
         {slots.map((slot, idx) => {
           let slotClass = styles.slot;
@@ -647,22 +697,7 @@ function TeamCard({
         })}
       </div>
 
-      {/* WAITLIST / BENCH SECTION (If there are sub players) */}
-      {benchMembers.length > 0 && (
-        <div style={{ marginBottom: "1rem", padding: "0.5rem", border: "1px dashed #334155", borderRadius: "8px" }}>
-          <div style={{ fontSize: "0.7rem", color: "#94a3b8", marginBottom: "4px", textTransform: "uppercase", fontWeight: "bold" }}>
-            Substitutes / Waitlist
-          </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {benchMembers.map(m => (
-              <div key={m.id} style={{ background: "#1e293b", padding: "4px 8px", borderRadius: "4px", fontSize: "0.8rem", color: "#cbd5e1" }}>
-                {m.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* --- CAPTAIN CONTROLS --- */}
       {team.isCaptain && (
         <div style={{ marginBottom: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
@@ -677,31 +712,25 @@ function TeamCard({
             </select>
           </div>
 
-          {/* MANAGE ROSTER: Includes Bench/Start Toggles */}
+          {/* Manage Roster with Bench/Start Buttons */}
           {otherMembers.length > 0 && (
             <div className={styles.rosterBox}>
               <div className={styles.rosterHeader}>Manage Roster</div>
               {otherMembers.map((m) => {
-                // Is this person currently active (in the top 5 indices)?
-                const isActive = activeMembers.some(am => am.id === m.id);
+                const isActive = activeIds.includes(m.id);
                 return (
                   <div key={m.id} className={styles.rosterRow}>
                     <span className={styles.rosterName} style={{ opacity: isActive ? 1 : 0.5 }}>
-                      {m.name} {isActive ? "" : "(Sub)"}
+                      {m.name}
                     </span>
                     <div className={styles.rosterActions}>
-                      {/* Swap Button */}
                       <button 
-                        onClick={() => onRosterSwap(team, m.id, !isActive)}
+                        onClick={() => handleToggleActive(m.id)}
                         className={styles.miniBtn}
-                        style={{ 
-                          color: isActive ? "#fbbf24" : "#4ade80", 
-                          borderColor: isActive ? "#fbbf24" : "#4ade80" 
-                        }}
+                        style={{ color: isActive ? "#fbbf24" : "#4ade80", borderColor: isActive ? "#fbbf24" : "#4ade80" }}
                       >
                         {isActive ? "Bench" : "Start"}
                       </button>
-
                       <button onClick={() => onPromote(team, m)} className={styles.miniBtn} style={{ color: "#60a5fa", borderColor: "#1e40af" }}>Promote</button>
                       <button onClick={() => onKick(team, m)} className={styles.miniBtn} style={{ color: "#f87171", borderColor: "#7f1d1d" }}>Kick</button>
                     </div>
@@ -731,22 +760,10 @@ function TeamCard({
       <div className={styles.cardFooter}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span>Members: <strong>{team.memberCount}</strong> / {maxSize}</span>
-          
-          {/* WAITLIST WARNING FOR MEMBER */}
           {!team.isCaptain && amIWaitlisted && (
-            <span style={{ 
-              fontSize: "0.7rem", 
-              color: "#fbbf24", 
-              border: "1px solid #fbbf24", 
-              padding: "2px 6px", 
-              borderRadius: "4px",
-              fontWeight: "bold" 
-            }}>
-              ⚠ WAITLISTED
-            </span>
+            <span style={{ fontSize: "0.7rem", color: "#fbbf24", border: "1px solid #fbbf24", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>⚠ WAITLISTED</span>
           )}
         </div>
-
         <div className={styles.footerBtns}>
           {team.isCaptain ? (
             <button onClick={() => onDelete(team)} className={styles.btnDanger}>Disband</button>
@@ -764,22 +781,17 @@ function buildMemberSlots(members = []) {
   const slots = new Array(MAX).fill(null);
   if (!members.length) return slots;
 
-  // Ensure captain is always center if present in this list
-  const captain = members.find((m) => m.isCaptain);
+  const captain = members.find((m) => m.isCaptain) || members[0] || null;
   const others = members.filter((m) => m !== captain);
 
-  // 2 is center
   const positions = [2, 1, 3, 0, 4];
 
-  // If the captain is active, place them at 2.
-  // If captain isn't in active list (weird case), slot 2 is treated normally.
   if (captain) {
     slots[2] = captain;
   }
 
   let posIdx = 0;
   for (const m of others) {
-    // skip filled slots
     while (posIdx < positions.length && slots[positions[posIdx]] !== null) {
       posIdx++;
     }
