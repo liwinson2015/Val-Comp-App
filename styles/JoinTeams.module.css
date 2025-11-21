@@ -3,7 +3,7 @@
 /* --- Global Layout --- */
 .shell {
   min-height: 100vh;
-  background: #050505; /* Ultra dark */
+  background: #050505;
   color: #fff;
   display: flex;
   justify-content: center;
@@ -155,7 +155,9 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 1rem;
 }
 
 .teamTag {
@@ -175,34 +177,28 @@
   margin-top: 2px;
 }
 
-.rankDisplay {
+/* Game Display (Top Right) */
+.gameDisplay {
   text-align: right;
-}
-
-.rankText {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--rank-color);
-  text-transform: uppercase;
+  background: #111;
+  padding: 4px 10px;
+  border: 1px solid #333;
 }
 
 .gameText {
-  display: block;
-  font-size: 0.6rem;
-  color: #444;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-/* Stats Grid */
+/* Stats Grid (Now holds Captain and Rank) */
 .statsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
   margin-bottom: 1rem;
-  border-top: 1px solid #1a1a1a;
-  border-bottom: 1px solid #1a1a1a;
-  padding: 12px 0;
 }
 
 .statBox {
@@ -219,9 +215,17 @@
 }
 
 .statValue {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #ccc;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Roles Section */
+.rolesSection {
+  margin-bottom: 1.5rem;
 }
 
 .roleTag {
@@ -229,10 +233,12 @@
   font-size: 0.7rem;
   color: #fff;
   background: #222;
-  padding: 2px 6px;
-  margin-right: 4px;
-  margin-bottom: 4px;
-  border-left: 2px solid var(--rank-color);
+  padding: 4px 8px;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  border-left: 3px solid var(--rank-color);
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 /* Roster Section */
@@ -316,7 +322,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  /* Angled corners */
   clip-path: polygon(
     0 0, 
     100% 0, 

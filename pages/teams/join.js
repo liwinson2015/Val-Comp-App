@@ -44,6 +44,7 @@ export async function getServerSideProps({ req, query }) {
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
   const initialSelectedGame = allowedGameCodes.includes(requestedGame) ? requestedGame : "ALL";
 
+  // Fetch Teams - Removed 'memberCount' to fix 500 error
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
@@ -81,6 +82,7 @@ export async function getServerSideProps({ req, query }) {
 
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
+    // Calculate memberCount manually
     const memberCount = t.members ? t.members.length : 0;
     const gameCode = t.game;
     const captainDoc = playerMap[String(t.captain)];
@@ -123,8 +125,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   
   const [requestingFor, setRequestingFor] = useState(null);
   const [teamToJoin, setTeamToJoin] = useState(null);
-  
-  // NEW: State for the Profile Alert Modal
   const [showProfileAlert, setShowProfileAlert] = useState(false);
 
   function handleGameSelect(e) {
@@ -137,7 +137,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
     
-    // 1. CUSTOM MODAL CHECK (Replaces window.confirm)
     if (!player.hasCustomName) {
       setShowProfileAlert(true);
       return;
@@ -213,7 +212,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       </div>
 
-      {/* --- JOIN MODAL --- */}
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={() => setTeamToJoin(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -227,14 +225,11 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       )}
 
-      {/* --- PROFILE ALERT MODAL (Replaces window popup) --- */}
       {showProfileAlert && (
         <div className={styles.modalOverlay} onClick={() => setShowProfileAlert(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.modalTitle}>MISSING ID</h3>
-            <p className={styles.modalText}>
-              You must register your In-Game Name in your profile before applying to squads.
-            </p>
+            <p className={styles.modalText}>You must register your In-Game Name in your profile before applying to squads.</p>
             <div className={styles.modalActions}>
               <button onClick={() => setShowProfileAlert(false)} className={styles.cancelBtn}>CLOSE</button>
               <button onClick={() => router.push('/profile')} className={styles.confirmBtn}>GO TO PROFILE</button>
@@ -248,6 +243,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 
 // ---------- NEW CYBER HUD CARD ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
+  // Determine Theme Color based on Rank
   const getTheme = (rank) => {
     const r = (rank || "").toLowerCase();
     if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; 
@@ -260,17 +256,16 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
 
   const theme = getTheme(team.rank);
   
-  // Slots logic
+  // Create slots for visual bar
   const slots = Array.from({ length: team.maxSize || 7 }, (_, i) => i < team.memberCount);
 
   let actionLabel = "";
   if (team.hasPendingRequestByMe) actionLabel = "PENDING";
   else if (team.isFull) actionLabel = "FULL";
 
-  // --- SUB CHECK ---
-  // If I request to join now, will I be the 6th or 7th person?
+  // Check if sub warning is needed
   const canRequest = !team.isFull && !team.hasPendingRequestByMe;
-  const willBeSub = team.memberCount >= 5; // Current count is 5+, so I become 6+
+  const willBeSub = team.memberCount >= 5;
 
   return (
     <div 
@@ -285,8 +280,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             <div className={styles.teamTag}>{team.tag}</div>
             <div className={styles.teamName}>{team.name}</div>
           </div>
-          <div className={styles.rankDisplay}>
-            <span className={styles.rankText}>{team.rank}</span>
+          <div className={styles.gameDisplay}>
             <span className={styles.gameText}>{team.game}</span>
           </div>
         </div>
@@ -297,14 +291,19 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             <span className={styles.statValue}>{getDisplayName(team.captainName)}</span>
           </div>
           <div className={styles.statBox}>
-            <span className={styles.statLabel}>Looking For</span>
-            <div>
-              {team.rolesNeeded.length > 0 ? (
-                team.rolesNeeded.slice(0, 3).map(r => <span key={r} className={styles.roleTag}>{r}</span>)
-              ) : (
-                <span style={{color:'#444', fontSize:'0.7rem'}}>ANY</span>
-              )}
-            </div>
+            <span className={styles.statLabel}>Avg Rank</span>
+            <span className={styles.statValue} style={{color: 'var(--rank-color)'}}>{team.rank}</span>
+          </div>
+        </div>
+
+        <div className={styles.rolesSection}>
+          <span className={styles.statLabel}>Target Roles</span>
+          <div style={{marginTop:'4px'}}>
+            {team.rolesNeeded.length > 0 ? (
+              team.rolesNeeded.slice(0, 4).map(r => <span key={r} className={styles.roleTag}>{r}</span>)
+            ) : (
+              <span style={{color:'#444', fontSize:'0.7rem'}}>OPEN RECRUITMENT</span>
+            )}
           </div>
         </div>
 
@@ -318,7 +317,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           {/* --- CYBER WARNING FOR SUB --- */}
           {canRequest && willBeSub && (
             <div className={styles.cyberWarning}>
-              <span>⚠ WARNING: ROSTER FULL. JOINING AS SUB.</span>
+              <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
             </div>
           )}
 
@@ -331,7 +330,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               </span>
             ) : (
               <button 
-                onClick={() => onRequestJoin(team)} 
+                onClick={() => onRequestClick(team)} 
                 disabled={requesting}
                 className={styles.joinBtn}
               >
