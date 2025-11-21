@@ -121,9 +121,8 @@ export async function getServerSideProps({ req, query }) {
       }))
     };
   })
-  // --- THE FIX: Remove full teams from the list ---
+  // Remove full teams from the list
   .filter(team => !team.isFull);
-  // -----------------------------------------------
 
   return {
     props: {
@@ -220,9 +219,8 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       <div className={styles.wrap}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <span className={styles.userBadge}>Logged in as {getDisplayName(player.username)}</span>
-            <h1 className={styles.title}>Find a Team</h1>
-            <p className={styles.subtitle}>Browse public teams. Join a squad that matches your rank and role.</p>
+            <h1 className={styles.title}>FIND SQUAD</h1>
+            <p className={styles.subtitle}>// DEPLOYMENT READY</p>
           </div>
           <button onClick={() => router.push("/teams")} className={styles.backBtn}>← My Teams</button>
         </div>
@@ -232,8 +230,8 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
             <div className={styles.inputGroup}>
               <label htmlFor="game-filter" className={styles.label}>Game</label>
               <select id="game-filter" value={selectedGame} onChange={handleGameSelect} className={styles.select}>
-                <option value="ALL">All games</option>
-                {supportedGames.map(g => <option key={g.code} value={g.code}>{g.label}</option>))}
+                <option value="ALL">ALL PROTOCOLS</option>
+                {supportedGames.map(g => <option key={g.code} value={g.code}>{g.label.toUpperCase()}</option>)}
               </select>
             </div>
             <div className={styles.inputGroup} style={{ flex: 1 }}>
