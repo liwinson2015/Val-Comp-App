@@ -75,7 +75,6 @@ export async function getServerSideProps({ req, query }) {
     }).lean();
   }
 
-  // Member names
   const memberIdSet = new Set();
   function addId(id) { if (id) memberIdSet.add(String(id)); }
 
@@ -165,6 +164,10 @@ export default function TeamsPage({
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  
+  // NEW: Active Team ID for Tabs
+  const [activeTeamId, setActiveTeamId] = useState(null);
+
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [joinCodeError, setJoinCodeError] = useState("");
   const [joiningByCode, setJoiningByCode] = useState(false);
@@ -245,6 +248,7 @@ export default function TeamsPage({
           joinRequests: [],
         };
         setTeams((prev) => [...prev, newTeam]);
+        setActiveTeamId(newTeam.id); // Switch to new team
         closeModal();
       }
     } catch (err) {
@@ -286,6 +290,9 @@ export default function TeamsPage({
             justJoined: true,
           };
           setTeams((prev) => [...prev, newTeam]);
+          setActiveTeamId(newTeam.id); // Switch to joined team
+        } else {
+          setActiveTeamId(existing.id);
         }
         setJoinCodeInput("");
       }
@@ -297,14 +304,15 @@ export default function TeamsPage({
     }
   }
 
-  // --- Standard Actions ---
+  // Standard Actions
   async function handleDeleteTeam(team) {
-    if (!window.confirm(`Delete ${team.name}?`)) return;
+    if (!window.confirm(`Delete ${team.name}? This cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/teams/${team.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
+      if (activeTeamId === team.id) setActiveTeamId(null);
     } catch (err) { console.error(err); }
   }
 
@@ -319,6 +327,7 @@ export default function TeamsPage({
       const data = await res.json();
       if (!data.ok) return alert(data.error);
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
+      if (activeTeamId === team.id) setActiveTeamId(null);
     } catch (err) { console.error(err); }
   }
 
@@ -332,6 +341,7 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (!data.ok) return alert(data.error);
+      const newCaptainId = data.newCaptainId;
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== team.id) return t;
@@ -437,7 +447,6 @@ export default function TeamsPage({
     } catch (err) { console.error(err); }
   }
 
-  // --- Roster Swap (Save to DB) ---
   async function handleRosterSwap(team, memberId, toActive) {
     const teamClone = { ...team };
     const memberIndex = teamClone.members.findIndex(m => m.id === memberId);
@@ -475,8 +484,22 @@ export default function TeamsPage({
     }
   }
 
+  // --- FILTERING ---
   const byGame = selectedGame === "ALL" ? teams : teams.filter((t) => t.game === selectedGame);
   const visibleTeams = roleFilter === "ALL" ? byGame : roleFilter === "CAPTAIN" ? byGame.filter((t) => t.isCaptain) : byGame.filter((t) => !t.isCaptain);
+
+  // --- SELECT TEAM LOGIC ---
+  // If no team is active but we have visible teams, select the first one
+  useEffect(() => {
+    if (!activeTeamId && visibleTeams.length > 0) {
+      setActiveTeamId(visibleTeams[0].id);
+    } else if (visibleTeams.length > 0 && !visibleTeams.find(t => t.id === activeTeamId)) {
+      // If current active team is filtered out, select first visible
+      setActiveTeamId(visibleTeams[0].id);
+    }
+  }, [visibleTeams, activeTeamId]);
+
+  const activeTeam = visibleTeams.find(t => t.id === activeTeamId);
 
   return (
     <div className={styles.shell}>
@@ -519,13 +542,38 @@ export default function TeamsPage({
           </div>
         </div>
 
-        <p style={{ margin: "0 0 1rem", fontSize: "0.9rem", color: "#64748b" }}>Showing <strong>{visibleTeams.length}</strong> active team{visibleTeams.length === 1 ? "" : "s"}</p>
+        {/* --- NEW TABS NAVIGATION --- */}
+        {visibleTeams.length > 0 && (
+          <div className={styles.tabsContainer}>
+            {visibleTeams.map(t => (
+              <button 
+                key={t.id}
+                onClick={() => setActiveTeamId(t.id)}
+                className={activeTeamId === t.id ? styles.tabBtnActive : styles.tabBtn} // Note: using tabBtnActive/tabBtn
+                style={{ 
+                  background: activeTeamId === t.id ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'rgba(30, 41, 59, 0.5)',
+                  color: activeTeamId === t.id ? '#fff' : '#94a3b8',
+                  border: activeTeamId === t.id ? '1px solid #60a5fa' : '1px solid #334155'
+                }}
+              >
+                <span className={styles.tabTag}>[{t.tag}]</span> {t.name}
+              </button>
+            ))}
+          </div>
+        )}
 
-        <div className={styles.grid}>
-          {visibleTeams.map((team) => (
+        {/* --- SINGLE CARD VIEW --- */}
+        {!activeTeam && visibleTeams.length === 0 ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>∅</div>
+            <h3 style={{ color: "#fff", margin: "0 0 0.5rem" }}>No teams found</h3>
+            <p style={{ margin: 0 }}>Adjust your filters or create a new team to get started.</p>
+          </div>
+        ) : (
+          activeTeam && (
             <TeamCard
-              key={team.id}
-              team={team}
+              key={activeTeam.id}
+              team={activeTeam}
               currentUser={player}
               onDelete={handleDeleteTeam}
               onLeave={handleLeaveTeam}
@@ -537,10 +585,11 @@ export default function TeamsPage({
               onRejectRequest={handleRejectRequest}
               onRosterSwap={handleRosterSwap}
             />
-          ))}
-        </div>
+          )
+        )}
       </div>
 
+      {/* Modal Logic Same as before */}
       {showModal && (
         <div className={styles.modalOverlay} onClick={closeModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -595,6 +644,9 @@ function TeamCard({
     if (team.justJoined) {
        const currentActive = team.members.slice(0, 5).map(m => m.id);
        setActiveIds(currentActive);
+    } else {
+        // Update active IDs if member list changes externally (e.g. swap)
+       setActiveIds(team.members.slice(0, 5).map(m => m.id));
     }
   }, [team.members, team.justJoined]);
 
@@ -610,14 +662,14 @@ function TeamCard({
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
-      setActiveIds(prev => prev.filter(id => id !== memberId));
+      // BENCH
       onRosterSwap(team, memberId, false);
     } else {
+      // START
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
       }
-      setActiveIds(prev => [...prev, memberId]);
       onRosterSwap(team, memberId, true);
     }
   }
@@ -633,18 +685,16 @@ function TeamCard({
 
   return (
     <div className={styles.teamCard}>
-      {/* HEADER SECTION: Name + Subs + Code */}
       <div className={styles.cardHeader}>
         <div className={styles.headerLeft}>
           <h3 className={styles.teamName}>
             <span className={styles.teamTag}>{team.tag ? `${team.tag} | ` : ""}</span> {team.name}
           </h3>
           
-          {/* NEW LOCATION: SUBSTITUTES LIST */}
           {benchMembers.length > 0 && (
             <span className={styles.subText}>
               Substitutes: {benchMembers.map((m, i) => (
-                <span key={m.id} className={m.id === currentUser?.id ? styles.slotMe : ''}>
+                <span key={m.id} className={m.id === currentUser?.id ? styles.slotMe : ''} style={{ color: m.id === currentUser?.id ? '#4ade80' : 'inherit', fontWeight: m.id === currentUser?.id ? 'bold' : 'normal' }}>
                   {i > 0 && ", "}
                   {m.name}
                 </span>
@@ -654,7 +704,6 @@ function TeamCard({
         </div>
 
         <div className={styles.headerRight}>
-          {/* NEW LOCATION: COMPACT INVITE CODE */}
           {team.isCaptain && (
             <div className={styles.compactCode}>
               <span className={styles.codeText}>{team.joinCode || "----"}</span>
@@ -666,7 +715,6 @@ function TeamCard({
         </div>
       </div>
 
-      {/* TOP 5 ACTIVE SLOTS */}
       <div className={styles.slotsContainer}>
         {slots.map((slot, idx) => {
           let slotClass = styles.slot;
@@ -685,7 +733,6 @@ function TeamCard({
         })}
       </div>
 
-      {/* CAPTAIN CONTROLS */}
       {team.isCaptain && (
         <div style={{ marginBottom: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
@@ -700,7 +747,6 @@ function TeamCard({
             </select>
           </div>
 
-          {/* MANAGE ROSTER */}
           {otherMembers.length > 0 && (
             <div className={styles.rosterBox}>
               <div className={styles.rosterHeader}>Manage Roster</div>

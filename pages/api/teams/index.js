@@ -4,7 +4,7 @@ import Team from "../../../models/Team";
 import Player from "../../../models/Player";
 
 // Supported game codes
-const SUPPORTED_GAMES = ["VALORANT", "HOK"]; // add more later if needed
+const SUPPORTED_GAMES = ["VALORANT", "HOK"];
 
 // basic cookie parser
 function parseCookies(header = "") {
@@ -59,7 +59,6 @@ export default async function handler(req, res) {
     }
 
     if (tagUpper.length > 4) {
-      // slice already prevents this, but just in case
       return res.status(400).json({
         ok: false,
         error: "Team tag must be 4 characters or fewer.",
@@ -84,12 +83,30 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "Player not found for this session." });
     }
 
+    // --- NEW: CHECK TEAM LIMIT (Max 5 per game) ---
+    const existingCount = await Team.countDocuments({
+      game: gameCode,
+      $or: [{ captain: playerId }, { members: playerId }],
+    });
+
+    if (existingCount >= 5) {
+      return res.status(400).json({
+        ok: false,
+        error: `You cannot join or create more than 5 teams for ${gameCode}.`,
+      });
+    }
+
+    // --- NEW: Generate Invite Code ---
+    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
     const team = await Team.create({
-      name: name.trim().toUpperCase(), // store uppercase name
-      tag: tagUpper,                   // clean, uppercase tag
+      name: name.trim().toUpperCase(),
+      tag: tagUpper,
       game: gameCode,
       captain: captain._id,
       members: [captain._id],
+      joinCode: joinCode, // Save the generated code
+      maxSize: 7,         // Default size per your request
     });
 
     return res.status(201).json({
@@ -101,6 +118,8 @@ export default async function handler(req, res) {
         game: team.game,
         captainId: team.captain.toString(),
         memberCount: team.members.length,
+        maxSize: team.maxSize,
+        joinCode: team.joinCode,
       },
     });
   } catch (err) {
