@@ -60,7 +60,9 @@ export async function getServerSideProps({ req, query }) {
     captain: { $ne: playerDoc._id },
     members: { $ne: playerDoc._id },
   })
-  .select('name tag game rank rolesNeeded memberCount maxSize captain members') // Select necessary fields
+  // --- FIX: REMOVED 'memberCount' from select statement ---
+  .select('name tag game rank rolesNeeded maxSize captain members') 
+  // --------------------------------------------------------
   .sort({ createdAt: -1 }).lean(); 
 
   // 2. Fetch Requests
@@ -101,7 +103,7 @@ export async function getServerSideProps({ req, query }) {
 
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
-    const memberCount = t.members ? t.members.length : 0;
+    const memberCount = t.members ? t.members.length : 0; // Calculated here instead of Mongoose
     const gameCode = t.game;
     const captainId = String(t.captain);
 
@@ -124,7 +126,7 @@ export async function getServerSideProps({ req, query }) {
       game: gameCode,
       rank: t.rank || "Unranked",
       rolesNeeded: t.rolesNeeded || [],
-      memberCount,
+      memberCount,    // Now calculated from members.length
       maxSize: t.maxSize || 7,
       isFull: memberCount >= (t.maxSize || 7),
       hasPendingRequestByMe: pendingByUserSet.has(teamIdStr),
@@ -290,7 +292,6 @@ export default function JoinTeamsPage({
 
 // ---------- Subcomponent: Updated Card ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
-  // Starters are the first 5 members
   const allSlots = team.membersDetails.slice(0, team.maxSize || 7);
   
   // We fill up to maxSize slots
@@ -298,8 +299,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
     return allSlots[i] || null;
   });
 
-  // Determine which slots are active (first 5 or up to member count if less than 5)
-  const activeCount = Math.min(team.memberCount, 5);
+  const rolesDisplay = team.rolesNeeded.slice(0, 4);
 
   let statusLabel = "";
   let statusClass = "";
@@ -364,8 +364,10 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           }
 
           // Visual separation after 5th slot
-          const marginClass = idx === 5 ? ' ' + styles.marginHex : '';
-          
+          // We need a specific class to handle margin separation 
+          // between starter (0-4) and sub (5-6) slots if max size is 7
+          const marginClass = idx === 4 && team.maxSize > 5 ? styles.marginHex : '';
+
           return (
             <div 
               key={idx} 
