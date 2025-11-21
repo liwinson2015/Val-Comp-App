@@ -26,7 +26,7 @@ const getDisplayName = (fullName) => {
   return fullName.split('#')[0];
 };
 
-// ---------- SERVER SIDE (Unchanged logic, cleaner formatting) ----------
+// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, query }) {
   const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
@@ -120,8 +120,12 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   const [publicTeams, setPublicTeams] = useState(initialPublicTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [search, setSearch] = useState("");
+  
   const [requestingFor, setRequestingFor] = useState(null);
   const [teamToJoin, setTeamToJoin] = useState(null);
+  
+  // NEW: State for the Profile Alert Modal
+  const [showProfileAlert, setShowProfileAlert] = useState(false);
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -132,8 +136,10 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
+    
+    // 1. CUSTOM MODAL CHECK (Replaces window.confirm)
     if (!player.hasCustomName) {
-      if (window.confirm("Set your IGN in profile first?")) router.push("/profile");
+      setShowProfileAlert(true);
       return;
     }
     setTeamToJoin(team);
@@ -207,6 +213,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       </div>
 
+      {/* --- JOIN MODAL --- */}
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={() => setTeamToJoin(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -219,31 +226,51 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
           </div>
         </div>
       )}
+
+      {/* --- PROFILE ALERT MODAL (Replaces window popup) --- */}
+      {showProfileAlert && (
+        <div className={styles.modalOverlay} onClick={() => setShowProfileAlert(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>MISSING ID</h3>
+            <p className={styles.modalText}>
+              You must register your In-Game Name in your profile before applying to squads.
+            </p>
+            <div className={styles.modalActions}>
+              <button onClick={() => setShowProfileAlert(false)} className={styles.cancelBtn}>CLOSE</button>
+              <button onClick={() => router.push('/profile')} className={styles.confirmBtn}>GO TO PROFILE</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------- NEW CYBER HUD CARD ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
-  // Determine Theme Color based on Rank
   const getTheme = (rank) => {
     const r = (rank || "").toLowerCase();
-    if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; // Yellow
-    if (r.includes('immortal') || r.includes('master')) return { hex: '#ff0055', dim: 'rgba(255, 0, 85, 0.2)' }; // Red
-    if (r.includes('diamond') || r.includes('ascendant')) return { hex: '#d946ef', dim: 'rgba(217, 70, 239, 0.2)' }; // Purple
-    if (r.includes('platinum')) return { hex: '#06b6d4', dim: 'rgba(6, 182, 212, 0.2)' }; // Cyan
-    if (r.includes('gold')) return { hex: '#f59e0b', dim: 'rgba(245, 158, 11, 0.2)' }; // Orange
-    return { hex: '#ffffff', dim: 'rgba(255,255,255,0.1)' }; // White/Gray
+    if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; 
+    if (r.includes('immortal') || r.includes('master')) return { hex: '#ff0055', dim: 'rgba(255, 0, 85, 0.2)' }; 
+    if (r.includes('diamond') || r.includes('ascendant')) return { hex: '#d946ef', dim: 'rgba(217, 70, 239, 0.2)' }; 
+    if (r.includes('platinum')) return { hex: '#06b6d4', dim: 'rgba(6, 182, 212, 0.2)' }; 
+    if (r.includes('gold')) return { hex: '#f59e0b', dim: 'rgba(245, 158, 11, 0.2)' }; 
+    return { hex: '#ffffff', dim: 'rgba(255,255,255,0.1)' }; 
   };
 
   const theme = getTheme(team.rank);
   
-  // Create slots for visual bar
+  // Slots logic
   const slots = Array.from({ length: team.maxSize || 7 }, (_, i) => i < team.memberCount);
 
   let actionLabel = "";
   if (team.hasPendingRequestByMe) actionLabel = "PENDING";
   else if (team.isFull) actionLabel = "FULL";
+
+  // --- SUB CHECK ---
+  // If I request to join now, will I be the 6th or 7th person?
+  const canRequest = !team.isFull && !team.hasPendingRequestByMe;
+  const willBeSub = team.memberCount >= 5; // Current count is 5+, so I become 6+
 
   return (
     <div 
@@ -287,7 +314,15 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               <div key={i} className={`${styles.slot} ${filled ? styles.slotFilled : styles.slotEmpty}`} />
             ))}
           </div>
-          <div className={styles.rosterStatus}>
+          
+          {/* --- CYBER WARNING FOR SUB --- */}
+          {canRequest && willBeSub && (
+            <div className={styles.cyberWarning}>
+              <span>⚠ WARNING: ROSTER FULL. JOINING AS SUB.</span>
+            </div>
+          )}
+
+          <div className={styles.rosterStatus} style={{marginTop: '10px'}}>
             <span className={styles.countText}>{team.memberCount}/{team.maxSize || 7} OPERATIVES</span>
             
             {actionLabel ? (

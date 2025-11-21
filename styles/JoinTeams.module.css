@@ -7,7 +7,7 @@
   color: #fff;
   display: flex;
   justify-content: center;
-  font-family: 'Rajdhani', 'Inter', sans-serif; /* If you can add a tech font later, do it */
+  font-family: 'Rajdhani', 'Inter', sans-serif; 
 }
 
 .wrap {
@@ -57,7 +57,7 @@
 }
 .backBtn:hover { border-color: #fff; color: #fff; }
 
-/* --- Filters (Simplified Tech Look) --- */
+/* --- Filters --- */
 .controlBar {
   margin-bottom: 2rem;
   display: flex;
@@ -86,7 +86,7 @@
   border: 1px solid #333;
   color: #fff;
   padding: 10px;
-  border-radius: 0; /* Sharp edges */
+  border-radius: 0; 
   font-family: monospace;
   min-width: 200px;
 }
@@ -98,12 +98,11 @@
   gap: 30px;
 }
 
-/* --- THE CYBER CARD --- */
+/* --- CYBER CARD --- */
 .teamCard {
   position: relative;
   background: #0a0a0a;
   border: 1px solid #222;
-  /* The cut corner shape */
   clip-path: polygon(
     0 0, 
     100% 0, 
@@ -112,16 +111,16 @@
     0 100%
   );
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Hover Effect: Lift and Glow */
 .teamCard:hover {
   transform: translateY(-5px);
   border-color: var(--rank-color);
   box-shadow: 0 0 30px -10px var(--rank-color-dim);
 }
 
-/* Scanline Texture Overlay */
 .teamCard::before {
   content: "";
   position: absolute;
@@ -132,7 +131,6 @@
   z-index: 0;
 }
 
-/* Left Color Strip */
 .rankStrip {
   position: absolute;
   left: 0;
@@ -146,13 +144,13 @@
 .cardContent {
   position: relative;
   z-index: 2;
-  padding: 1.5rem 1.5rem 1.5rem 2rem; /* Extra left pad for strip */
+  padding: 1.5rem 1.5rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* --- Card Header --- */
+/* Header */
 .topRow {
   display: flex;
   justify-content: space-between;
@@ -196,12 +194,12 @@
   font-weight: 700;
 }
 
-/* --- Stats Grid --- */
+/* Stats Grid */
 .statsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   border-top: 1px solid #1a1a1a;
   border-bottom: 1px solid #1a1a1a;
   padding: 12px 0;
@@ -226,7 +224,6 @@
   font-weight: 600;
 }
 
-/* Roles: Glitchy Tags */
 .roleTag {
   display: inline-block;
   font-size: 0.7rem;
@@ -238,7 +235,7 @@
   border-left: 2px solid var(--rank-color);
 }
 
-/* --- Ammo Counter Slots --- */
+/* Roster Section */
 .rosterSection {
   margin-top: auto;
 }
@@ -271,7 +268,7 @@
   font-family: monospace;
 }
 
-/* --- Join Button (Cyber Style) --- */
+/* Actions */
 .joinBtn {
   background: transparent;
   border: 1px solid var(--rank-color);
@@ -298,12 +295,35 @@
   cursor: not-allowed;
 }
 
-/* Status Text */
 .statusText {
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+
+/* --- NEW: CYBER WARNING BOX --- */
+.cyberWarning {
+  font-size: 0.65rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid #fbbf24;
+  padding: 8px;
+  margin-top: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Angled corners */
+  clip-path: polygon(
+    0 0, 
+    100% 0, 
+    100% calc(100% - 8px), 
+    calc(100% - 8px) 100%, 
+    0 100%
+  );
 }
 
 /* --- Empty State / Modal --- */
@@ -334,7 +354,7 @@
   max-width: 500px;
   position: relative;
 }
-/* Tech corners for modal */
+/* Tech corner accent */
 .modalContent::after {
   content: "";
   position: absolute;
