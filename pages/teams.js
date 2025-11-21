@@ -1215,6 +1215,12 @@ function TeamCard({
     currentUser &&
     benchMembers.some((m) => m.id === currentUser.id);
 
+  // --- HELPER TO REMOVE #TAG ---
+  function getDisplayName(name) {
+    if (!name) return "";
+    return name.split("#")[0]; // "Name#123" -> "Name"
+  }
+
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
@@ -1322,7 +1328,7 @@ function TeamCard({
                   }}
                 >
                   {i > 0 && ", "}
-                  {m.name}
+                  {getDisplayName(m.name)}
                 </span>
               ))}
             </span>
@@ -1380,7 +1386,7 @@ function TeamCard({
                 {slot
                   ? `${
                       team.tag ? `${team.tag} | ` : ""
-                    }${slot.name}`
+                    }${getDisplayName(slot.name)}`
                   : "-"}
               </div>
             </div>
@@ -1437,7 +1443,8 @@ function TeamCard({
                         opacity: isActive ? 1 : 0.5,
                       }}
                     >
-                      {m.name} {isActive ? "" : "(Sub)"}
+                      {getDisplayName(m.name)}{" "}
+                      {isActive ? "" : "(Sub)"}
                     </span>
                     <div className={styles.rosterActions}>
                       <button
@@ -1495,7 +1502,7 @@ function TeamCard({
                   className={styles.reqRow}
                 >
                   <span className={styles.reqName}>
-                    {req.playerName}
+                    {getDisplayName(req.playerName)}
                   </span>
                   <div>
                     <button
