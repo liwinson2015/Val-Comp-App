@@ -120,14 +120,13 @@ export async function getServerSideProps({ req, query }) {
       }))
     };
   })
-  .filter(team => !team.isFull); // Remove full teams
+  .filter(team => !team.isFull);
 
   return {
     props: {
       player: {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
-        // Initial check for general profile completion (optional usage)
         hasCustomName: !!playerDoc.gameProfiles?.VALORANT?.ign || !!playerDoc.gameProfiles?.HOK?.ign 
       },
       initialPublicTeams: formattedPublicTeams,
@@ -162,8 +161,10 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
-    // We allow opening the modal even if hasCustomName is false generally,
-    // because the API will do a strict game-specific check.
+    if (!player.hasCustomName) {
+      setShowProfileAlert(true);
+      return;
+    }
     setJoinError("");
     setTeamToJoin(team);
   }
@@ -188,13 +189,11 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       });
       const data = await res.json();
       
-      // --- THE FIX: Check for profile requirement ---
       if (data.requiresProfile) {
-        setTeamToJoin(null); // Close Join Modal
-        setShowProfileAlert(true); // Open Profile Alert
+        setTeamToJoin(null); 
+        setShowProfileAlert(true);
         return;
       }
-      // ----------------------------------------------
 
       if (!data.ok) {
         setJoinError(data.error || "Request failed. Please try again.");
@@ -252,13 +251,12 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
             <div className={styles.emptyState}>NO SQUADS FOUND.</div>
           ) : (
             filteredTeams.map((team) => (
-              <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} />
+              <PublicTeamCard key={team.id} team={team} onRequestJoin={onRequestClick} requesting={requestingFor === team.id} />
             ))
           )}
         </div>
       </div>
 
-      {/* --- JOIN MODAL --- */}
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={closeJoinModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -284,7 +282,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       )}
 
-      {/* --- PROFILE ALERT MODAL --- */}
       {showProfileAlert && (
         <div className={styles.modalOverlay} onClick={() => setShowProfileAlert(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -302,7 +299,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 }
 
 // ---------- NEW CYBER HUD CARD ----------
-function PublicTeamCard({ team, onRequestJoin }) {
+function PublicTeamCard({ team, onRequestJoin, requesting }) {
   const getTheme = (rank) => {
     const r = (rank || "").toLowerCase();
     if (r.includes('radiant') || r.includes('grandmaster')) return { hex: '#ffff00', dim: 'rgba(255, 255, 0, 0.2)' }; 
@@ -323,7 +320,6 @@ function PublicTeamCard({ team, onRequestJoin }) {
 
   let actionLabel = "";
   if (team.hasPendingRequestByMe) actionLabel = "PENDING";
-  // isFull check is redundant here since we filter them out, but good for safety
   else if (team.isFull) actionLabel = "FULL";
 
   const canRequest = !team.isFull && !team.hasPendingRequestByMe;
@@ -393,6 +389,7 @@ function PublicTeamCard({ team, onRequestJoin }) {
             })}
           </div>
           
+          {/* --- FIXED: SHOW WARNING OR SPACER TO KEEP HEIGHT --- */}
           {canRequest && willBeSub ? (
             <div className={styles.cyberWarning}>
               <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
@@ -412,8 +409,9 @@ function PublicTeamCard({ team, onRequestJoin }) {
               <button 
                 onClick={() => onRequestJoin(team)} 
                 className={styles.joinBtn}
+                disabled={requesting}
               >
-                INITIALIZE JOIN
+                {requesting ? "PROCESSING..." : "INITIALIZE JOIN"}
               </button>
             )}
           </div>
