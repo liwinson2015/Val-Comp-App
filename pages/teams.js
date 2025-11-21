@@ -75,6 +75,7 @@ export async function getServerSideProps({ req, query }) {
     }).lean();
   }
 
+  // Member names
   const memberIdSet = new Set();
   function addId(id) { if (id) memberIdSet.add(String(id)); }
 
@@ -164,10 +165,6 @@ export default function TeamsPage({
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
-  
-  // NEW: Active Team ID for Tabs
-  const [activeTeamId, setActiveTeamId] = useState(null);
-
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [joinCodeError, setJoinCodeError] = useState("");
   const [joiningByCode, setJoiningByCode] = useState(false);
@@ -179,6 +176,9 @@ export default function TeamsPage({
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  
+  // NEW: Active Team ID for Tabs
+  const [activeTeamId, setActiveTeamId] = useState(null);
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -248,7 +248,7 @@ export default function TeamsPage({
           joinRequests: [],
         };
         setTeams((prev) => [...prev, newTeam]);
-        setActiveTeamId(newTeam.id); // Switch to new team
+        setActiveTeamId(newTeam.id);
         closeModal();
       }
     } catch (err) {
@@ -290,7 +290,7 @@ export default function TeamsPage({
             justJoined: true,
           };
           setTeams((prev) => [...prev, newTeam]);
-          setActiveTeamId(newTeam.id); // Switch to joined team
+          setActiveTeamId(newTeam.id);
         } else {
           setActiveTeamId(existing.id);
         }
@@ -304,7 +304,7 @@ export default function TeamsPage({
     }
   }
 
-  // Standard Actions
+  // --- Standard Actions ---
   async function handleDeleteTeam(team) {
     if (!window.confirm(`Delete ${team.name}? This cannot be undone.`)) return;
     try {
@@ -316,7 +316,18 @@ export default function TeamsPage({
     } catch (err) { console.error(err); }
   }
 
+  // UPDATED: Captains cannot leave logic preserved
   async function handleLeaveTeam(team) {
+    const otherMembers = team.members.filter((m) => !m.isCaptain);
+    if (team.isCaptain) {
+      if (otherMembers.length > 0) {
+        alert("You are the Captain. Please promote another member to Captain before leaving.");
+        return;
+      } else {
+        if (!window.confirm("You are the last member. Leaving will delete the team. Continue?")) return;
+        return handleDeleteTeam(team);
+      }
+    }
     if (!window.confirm(`Leave ${team.name}?`)) return;
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
@@ -484,17 +495,14 @@ export default function TeamsPage({
     }
   }
 
-  // --- FILTERING ---
   const byGame = selectedGame === "ALL" ? teams : teams.filter((t) => t.game === selectedGame);
   const visibleTeams = roleFilter === "ALL" ? byGame : roleFilter === "CAPTAIN" ? byGame.filter((t) => t.isCaptain) : byGame.filter((t) => !t.isCaptain);
 
-  // --- SELECT TEAM LOGIC ---
-  // If no team is active but we have visible teams, select the first one
+  // Select logic
   useEffect(() => {
     if (!activeTeamId && visibleTeams.length > 0) {
       setActiveTeamId(visibleTeams[0].id);
     } else if (visibleTeams.length > 0 && !visibleTeams.find(t => t.id === activeTeamId)) {
-      // If current active team is filtered out, select first visible
       setActiveTeamId(visibleTeams[0].id);
     }
   }, [visibleTeams, activeTeamId]);
@@ -542,27 +550,23 @@ export default function TeamsPage({
           </div>
         </div>
 
-        {/* --- NEW TABS NAVIGATION --- */}
+        {/* --- TABS --- */}
         {visibleTeams.length > 0 && (
           <div className={styles.tabsContainer}>
             {visibleTeams.map(t => (
               <button 
                 key={t.id}
                 onClick={() => setActiveTeamId(t.id)}
-                className={activeTeamId === t.id ? styles.tabBtnActive : styles.tabBtn} // Note: using tabBtnActive/tabBtn
-                style={{ 
-                  background: activeTeamId === t.id ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'rgba(30, 41, 59, 0.5)',
-                  color: activeTeamId === t.id ? '#fff' : '#94a3b8',
-                  border: activeTeamId === t.id ? '1px solid #60a5fa' : '1px solid #334155'
-                }}
+                className={activeTeamId === t.id ? styles.tabBtnActive : styles.tabBtn}
+                // Inline overrides removed, using pure CSS classes now
               >
-                <span className={styles.tabTag}>[{t.tag}]</span> {t.name}
+                {/* UPDATED: Vertical Bar Format in Tab */}
+                <span className={styles.tabTag}>{t.tag} |</span> {t.name}
               </button>
             ))}
           </div>
         )}
 
-        {/* --- SINGLE CARD VIEW --- */}
         {!activeTeam && visibleTeams.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>∅</div>
@@ -589,7 +593,6 @@ export default function TeamsPage({
         )}
       </div>
 
-      {/* Modal Logic Same as before */}
       {showModal && (
         <div className={styles.modalOverlay} onClick={closeModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -645,7 +648,6 @@ function TeamCard({
        const currentActive = team.members.slice(0, 5).map(m => m.id);
        setActiveIds(currentActive);
     } else {
-        // Update active IDs if member list changes externally (e.g. swap)
        setActiveIds(team.members.slice(0, 5).map(m => m.id));
     }
   }, [team.members, team.justJoined]);
@@ -662,10 +664,8 @@ function TeamCard({
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
-      // BENCH
       onRosterSwap(team, memberId, false);
     } else {
-      // START
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
@@ -747,6 +747,7 @@ function TeamCard({
             </select>
           </div>
 
+          {/* Manage Roster (Captain sees self-excluded) */}
           {otherMembers.length > 0 && (
             <div className={styles.rosterBox}>
               <div className={styles.rosterHeader}>Manage Roster</div>
