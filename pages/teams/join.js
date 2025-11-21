@@ -60,7 +60,9 @@ export async function getServerSideProps({ req, query }) {
     captain: { $ne: playerDoc._id },
     members: { $ne: playerDoc._id },
   })
-  .select('name tag game rank rolesNeeded maxSize captain members')
+  // --- FIX: REMOVED 'memberCount' from select statement ---
+  .select('name tag game rank rolesNeeded maxSize captain members') 
+  // --------------------------------------------------------
   .sort({ createdAt: -1 }).lean(); 
 
   // 2. Fetch Requests
@@ -101,7 +103,7 @@ export async function getServerSideProps({ req, query }) {
 
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
-    const memberCount = t.members ? t.members.length : 0;
+    const memberCount = t.members ? t.members.length : 0; // Calculated here instead of Mongoose
     const gameCode = t.game;
     const captainId = String(t.captain);
 
@@ -124,7 +126,7 @@ export async function getServerSideProps({ req, query }) {
       game: gameCode,
       rank: t.rank || "Unranked",
       rolesNeeded: t.rolesNeeded || [],
-      memberCount,
+      memberCount,    // Now calculated from members.length
       maxSize: t.maxSize || 7,
       isFull: memberCount >= (t.maxSize || 7),
       hasPendingRequestByMe: pendingByUserSet.has(teamIdStr),
@@ -290,9 +292,14 @@ export default function JoinTeamsPage({
 
 // ---------- Subcomponent: Updated Card ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
+  const allSlots = team.membersDetails.slice(0, team.maxSize || 7);
+  
+  // We fill up to maxSize slots
   const renderSlots = Array.from({ length: team.maxSize || 7 }, (_, i) => {
-    return team.membersDetails[i] || null;
+    return allSlots[i] || null;
   });
+
+  const rolesDisplay = team.rolesNeeded.slice(0, 4);
 
   let statusLabel = "";
   let statusClass = "";
@@ -315,58 +322,61 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             <span className={styles.teamTag}>{team.tag ? `${team.tag} | ` : ""}</span>
             {team.name}
           </h3>
+          
+          {/* Display Captain Name */}
+          <div className={styles.captainDisplay}>
+            <span>Captain:</span> 
+            <span className={styles.captainName}>{getDisplayName(team.captainName)}</span>
+          </div>
+
+          {/* Rank & Roles Badges */}
+          <div className={styles.metaRow}>
+               {/* Rank Badge */}
+               <span className={styles.rankBadge}>
+                 Rank: <strong>{team.rank}</strong>
+               </span>
+               
+               {/* Roles Needed Badges */}
+               <div className={styles.rolesContainer}>
+                 {rolesDisplay.map(r => (
+                   <span key={r} className={styles.roleChip}>
+                     {r}
+                   </span>
+                 ))}
+                 {team.rolesNeeded.length > 4 && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>+{team.rolesNeeded.length - 4}</span>}
+               </div>
+          </div>
         </div>
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
-      
-      {/* Captain and Meta Area */}
-      <div className={styles.captainDisplay}>
-        <span>Captain:</span> 
-        <span className={styles.captainName}>{getDisplayName(team.captainName)}</span>
-      </div>
 
-      {/* Rank & Roles Badges */}
-      <div className={styles.metaRow}>
-           {/* Rank Badge */}
-           <span className={styles.rankBadge}>
-             Rank: <strong>{team.rank}</strong>
-           </span>
-           
-           {/* Roles Needed Badges */}
-           <div className={styles.rolesContainer}>
-             {team.rolesNeeded.slice(0, 4).map(r => (
-               <span key={r} className={styles.roleChip}>
-                 {r}
-               </span>
-             ))}
-             {team.rolesNeeded.length > 4 && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>+{team.rolesNeeded.length - 4}</span>}
-           </div>
-      </div>
-      
-      {/* CAPACITY BAR (Firing Angle Style) */}
+      {/* HEXAGONAL SLOTS (CAPACITY VISUAL) */}
       <div className={styles.slotsContainer}>
-          <div className={styles.capacityBar}>
-            {renderSlots.map((member, idx) => {
-              const isFilled = !!member;
-              const isCap = member && member.isCaptain;
-              
-              let segmentType = 'slotEmpty';
-              if (isCap) {
-                  segmentType = 'slotCaptain';
-              } else if (isFilled) {
-                  segmentType = 'slotFilled';
-              }
-    
-              return (
-                <div 
-                  key={idx} 
-                  className={`${styles.capacitySegment} ${styles[segmentType]}`}
-                  title={member ? `${getDisplayName(member.name)} (${isCap ? 'Captain' : 'Member'})` : "Open Slot"}
-                >
-                </div>
-              );
-            })}
-          </div>
+        {renderSlots.map((member, idx) => {
+          const isFilled = !!member;
+          const isCap = member && member.isCaptain;
+          
+          let slotType = 'empty';
+          if (isCap) {
+              slotType = 'slotCaptain';
+          } else if (isFilled) {
+              slotType = 'slotFilled';
+          }
+
+          // Visual separation after 5th slot
+          // We need a specific class to handle margin separation 
+          // between starter (0-4) and sub (5-6) slots if max size is 7
+          const marginClass = idx === 4 && team.maxSize > 5 ? styles.marginHex : '';
+
+          return (
+            <div 
+              key={idx} 
+              className={`${styles.slot} ${styles[slotType]} ${marginClass}`}
+              title={member ? `${getDisplayName(member.name)} (${isCap ? 'Captain' : 'Member'})` : "Open Slot"}
+            >
+            </div>
+          );
+        })}
       </div>
 
       {/* Warning if Sub */}
