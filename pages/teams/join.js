@@ -107,7 +107,7 @@ export default function JoinTeamsPage({
   const [search, setSearch] = useState("");
   const [requestingFor, setRequestingFor] = useState(null);
   
-  // NEW: State to control the custom modal
+  // Modal State
   const [teamToJoin, setTeamToJoin] = useState(null);
 
   function handleGameSelect(e) {
@@ -121,19 +121,19 @@ export default function JoinTeamsPage({
     setSearch(e.target.value || "");
   }
 
-  // Step 1: User clicks "Request", we open the modal
+  // User clicks "Request" -> Open Modal
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
     setTeamToJoin(team);
   }
 
-  // Step 2: User clicks "Confirm" inside the modal
+  // User confirms in Modal
   async function confirmJoin() {
     if (!teamToJoin) return;
     
     const team = teamToJoin;
     setRequestingFor(team.id);
-    setTeamToJoin(null); // Close modal immediately
+    setTeamToJoin(null);
 
     try {
       const res = await fetch("/api/teams/join", {
@@ -230,7 +230,6 @@ export default function JoinTeamsPage({
               <PublicTeamCard
                 key={team.id}
                 team={team}
-                // Pass the new handler
                 onRequestJoin={onRequestClick}
                 requesting={requestingFor === team.id}
               />
@@ -239,7 +238,7 @@ export default function JoinTeamsPage({
         </div>
       </div>
 
-      {/* --- NEW CUSTOM MODAL --- */}
+      {/* --- CUSTOM MODAL --- */}
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={() => setTeamToJoin(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -262,6 +261,7 @@ export default function JoinTeamsPage({
 // ---------- Subcomponent ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
   const maxSlots = 7;
+  // Create array of slot types
   const bars = Array.from({ length: maxSlots }, (_, i) => {
     if (i === 0) return 'captain';
     if (i < team.memberCount) return 'filled';
@@ -280,6 +280,10 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
   }
 
   const canRequest = !team.isFull && !team.hasPendingRequestByMe;
+  
+  // Logic: If memberCount >= 5, the next person joining is a sub.
+  const isStartingRosterFull = team.memberCount >= 5;
+  const showSubWarning = canRequest && isStartingRosterFull;
 
   return (
     <div className={styles.teamCard}>
@@ -293,6 +297,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
+      {/* Visual Slot Bars */}
       <div className={styles.slotsContainer}>
         {bars.map((type, idx) => (
           <div 
@@ -302,9 +307,21 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
               type === 'filled' ? styles.slotFilled : 
               styles.slotEmpty
             }`} 
+            title={idx < 5 ? "Starter Slot" : "Substitute Slot"}
           />
         ))}
       </div>
+
+      {/* Warning Message if filling a Sub slot */}
+      {showSubWarning ? (
+        <div className={styles.subWarningBox}>
+          <span className={styles.subIcon}>⚠</span> 
+          <span>Starting roster full. Registering as substitute.</span>
+        </div>
+      ) : (
+        // Invisible spacer to keep card heights consistent
+        <div style={{ height: '41px', marginBottom: '0' }}></div>
+      )}
 
       <div className={styles.cardFooter}>
         <span className={styles.memberCount}>

@@ -92,7 +92,7 @@
 /* --- Control Bar --- */
 .controlBar {
   margin-bottom: 2rem;
-  width: 100%; /* Ensure it takes full width */
+  width: 100%;
 }
 
 .glassPanel {
@@ -104,14 +104,13 @@
   flex-wrap: wrap;
   gap: 1rem;
   align-items: flex-end;
-  width: 100%; /* Ensure glass panel fills the bar */
+  width: 100%;
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  /* This ensures flex items don't shrink too small */
   min-width: 200px; 
 }
 
@@ -135,7 +134,7 @@
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s;
-  width: 100%; /* Fill parent inputGroup */
+  width: 100%;
 }
 
 .input:focus,
@@ -201,38 +200,66 @@
   white-space: nowrap;
 }
 
-/* Slots Visualizer (Simplified for Public View) */
+/* --- NEW SLOTS DESIGN --- */
 .slotsContainer {
   display: flex;
   gap: 4px;
-  margin-bottom: 1.2rem;
-  height: 40px;
-  align-items: flex-end;
+  margin-bottom: 0.5rem;
+  height: 30px;
+  align-items: center;
 }
 
 .slot {
   flex: 1;
-  height: 8px; /* Thin bar style */
+  height: 10px;
   background: #1e293b;
-  border-radius: 2px;
-  position: relative;
+  border-radius: 1px;
+  transform: skewX(-20deg); /* The "Gamer" angle */
   transition: all 0.2s;
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Add a gap between the 5th and 6th slot (Starter vs Sub) */
+.slot:nth-child(5) {
+  margin-right: 8px; 
 }
 
 .slotFilled {
-  background: #3b82f6;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  border: 1px solid #60a5fa;
 }
 
 .slotCaptain {
-  background: #f59e0b; /* Gold for captain */
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
-  height: 12px; /* Taller */
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  border: 1px solid #fbbf24;
+  transform: skewX(-20deg) scaleY(1.2); /* Captain is slightly taller */
+  z-index: 1;
 }
 
 .slotEmpty {
-  background: #334155;
-  opacity: 0.3;
+  background: rgba(30, 41, 59, 0.5);
+}
+
+/* --- Substitute Warning Text --- */
+.subWarningBox {
+  font-size: 0.75rem;
+  color: #fbbf24; /* Amber color */
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 41px; /* Fixed height to match spacer */
+}
+
+.subIcon {
+  font-size: 0.85rem;
 }
 
 /* Footer / Actions */
@@ -319,8 +346,8 @@
   margin: 0 auto;
   line-height: 1.5;
 }
-/* --- Add to styles/JoinTeams.module.css --- */
 
+/* --- MODAL STYLES --- */
 .modalOverlay {
   position: fixed;
   inset: 0;
