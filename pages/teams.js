@@ -1,4 +1,3 @@
-// pages/teams.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { connectToDatabase } from "../lib/mongodb";
@@ -283,6 +282,12 @@ export default function TeamsPage({
     return true; // other games have no requirement yet
   }
 
+  function getMyDisplayNameForGame(gameCode) {
+    if (gameCode === "VALORANT" && valorantIgn) return valorantIgn;
+    if (gameCode === "HOK" && hokIgn) return hokIgn;
+    return player.username;
+  }
+
   function handleGameSelect(e) {
     const newGame = e.target.value;
     setSelectedGame(newGame);
@@ -349,6 +354,9 @@ export default function TeamsPage({
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
+        // FIX: USE CORRECT IGN FOR OPTIMISTIC UPDATE
+        const displayName = getMyDisplayNameForGame(game);
+        
         const newTeam = {
           id: data.team.id,
           name: data.team.name,
@@ -362,7 +370,7 @@ export default function TeamsPage({
           maxSize: 7,
           joinCode: data.team.joinCode || null,
           members: [
-            { id: player.id, name: player.username, isCaptain: true },
+            { id: player.id, name: displayName, isCaptain: true },
           ],
           joinRequests: [],
         };
@@ -486,6 +494,9 @@ export default function TeamsPage({
       if (data.joined && data.team) {
         const existing = teams.find((t) => t.id === data.team.id);
         if (!existing) {
+          // For joining, use correct name too
+          const displayName = getMyDisplayNameForGame(data.team.game);
+          
           const newTeam = {
             ...data.team,
             memberCount: data.team.memberCount,
@@ -493,6 +504,8 @@ export default function TeamsPage({
             maxSize: data.team.maxSize || 7,
             joinRequests: [],
             justJoined: true,
+            // Ensure members list is populated if returned empty, or updated
+            members: data.team.members || [{id: player.id, name: displayName, isCaptain: false}] 
           };
           setTeams((prev) => [...prev, newTeam]);
           setActiveTeamId(newTeam.id);
@@ -1196,9 +1209,13 @@ function TeamCard({
     team.members.slice(0, 5).map((m) => m.id)
   );
 
+  // --- FIX APPLIED HERE ---
+  // Only sync/reset activeIds when the team ID changes.
+  // This prevents automatic roster refilling when the member array changes order.
   useEffect(() => {
     setActiveIds(team.members.slice(0, 5).map((m) => m.id));
-  }, [team.id, team.members]);
+  }, [team.id]); 
+  // -------------------------
 
   const activeMembers = team.members.filter((m) =>
     activeIds.includes(m.id)
@@ -1215,17 +1232,27 @@ function TeamCard({
     currentUser &&
     benchMembers.some((m) => m.id === currentUser.id);
 
+  // --- HELPER TO REMOVE #TAG ---
+  function getDisplayName(name) {
+    if (!name) return "";
+    return name.split("#")[0]; // "Name#123" -> "Name"
+  }
+
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
+      // 1. Update local state instantly (bench)
       setActiveIds((prev) => prev.filter((id) => id !== memberId));
+      // 2. Call API to update the order in the database
       onRosterSwap(team, memberId, false);
     } else {
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
       }
+      // 1. Update local state instantly (start)
       setActiveIds((prev) => [...prev, memberId]);
+      // 2. Call API to update the order in the database
       onRosterSwap(team, memberId, true);
     }
   }
@@ -1322,7 +1349,7 @@ function TeamCard({
                   }}
                 >
                   {i > 0 && ", "}
-                  {m.name}
+                  {getDisplayName(m.name)}
                 </span>
               ))}
             </span>
@@ -1380,7 +1407,7 @@ function TeamCard({
                 {slot
                   ? `${
                       team.tag ? `${team.tag} | ` : ""
-                    }${slot.name}`
+                    }${getDisplayName(slot.name)}`
                   : "-"}
               </div>
             </div>
@@ -1437,7 +1464,8 @@ function TeamCard({
                         opacity: isActive ? 1 : 0.5,
                       }}
                     >
-                      {m.name} {isActive ? "" : "(Sub)"}
+                      {getDisplayName(m.name)}{" "}
+                      {isActive ? "" : "(Sub)"}
                     </span>
                     <div className={styles.rosterActions}>
                       <button
@@ -1495,7 +1523,7 @@ function TeamCard({
                   className={styles.reqRow}
                 >
                   <span className={styles.reqName}>
-                    {req.playerName}
+                    {getDisplayName(req.playerName)}
                   </span>
                   <div>
                     <button
