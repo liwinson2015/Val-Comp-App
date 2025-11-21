@@ -1,3 +1,4 @@
+// pages/teams/join.js
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { connectToDatabase } from "../../lib/mongodb";
@@ -31,11 +32,8 @@ export async function getServerSideProps({ req, query }) {
   const playerId = cookies.playerId || null;
 
   if (!playerId) {
-    const next = "/teams/join";
-    const encoded = encodeURIComponent(next);
-    return {
-      redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false },
-    };
+    const encoded = encodeURIComponent("/teams/join");
+    return { redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false } };
   }
 
   await connectToDatabase();
@@ -46,7 +44,7 @@ export async function getServerSideProps({ req, query }) {
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
   const initialSelectedGame = allowedGameCodes.includes(requestedGame) ? requestedGame : "ALL";
 
-  // Fetch Teams
+  // Fetch Teams - Removed 'memberCount' to fix 500 error
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
@@ -141,7 +139,6 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
-    
     if (!player.hasCustomName) {
       setShowProfileAlert(true);
       return;
@@ -169,6 +166,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       );
     } catch (err) {
       console.error(err);
+      alert("Something went wrong.");
     } finally {
       setRequestingFor(null);
     }
@@ -178,9 +176,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   const filteredTeams = publicTeams.filter((t) => {
     if (selectedGame !== "ALL" && t.game !== selectedGame) return false;
     if (!searchLower) return true;
-    const captainSearchable = getDisplayName(t.captainName).toLowerCase();
-    const haystack = `${t.name} ${t.tag} ${captainSearchable}`.toLowerCase();
-    return haystack.includes(searchLower);
+    return `${t.name} ${t.tag} ${t.captainName}`.toLowerCase().includes(searchLower);
   });
 
   return (
@@ -282,7 +278,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
       <div className={styles.rankStrip}></div>
       <div className={styles.cardContent}>
         
-        {/* Top Row: Name, Tag, Game */}
         <div className={styles.topRow}>
           <div>
             <div className={styles.teamTag}>{team.tag}</div>
@@ -293,7 +288,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           </div>
         </div>
 
-        {/* Data Grid: Captain & Rank */}
         <div className={styles.statsGrid}>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>Captain</span>
@@ -305,7 +299,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           </div>
         </div>
 
-        {/* Roles Section - Full List with Wrap */}
         <div className={styles.rolesSection}>
           <span className={styles.statLabel}>Target Roles</span>
           <div style={{marginTop:'4px', display: 'flex', flexWrap: 'wrap'}}>
@@ -319,7 +312,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           </div>
         </div>
 
-        {/* Roster / Capacity Bar */}
         <div className={styles.rosterSection}>
           <div className={styles.slotsRow}>
             {slots.map((filled, i) => (
@@ -327,11 +319,14 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
             ))}
           </div>
           
-          {/* --- CYBER WARNING FOR SUB --- */}
-          {canRequest && willBeSub && (
+          {/* --- FIX: CONDITIONAL RENDER OR SPACER --- */}
+          {canRequest && willBeSub ? (
             <div className={styles.cyberWarning}>
               <span>⚠ ROSTER FULL. JOINING AS SUB.</span>
             </div>
+          ) : (
+            // Render invisible spacer to keep layout height consistent
+            <div className={styles.warningSpacer}></div>
           )}
 
           <div className={styles.rosterStatus} style={{marginTop: '10px'}}>
