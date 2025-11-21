@@ -6,6 +6,7 @@
   color: #fff;
   display: flex;
   justify-content: center;
+  font-family: 'Inter', sans-serif; /* Ensure you have a nice font loaded globally if possible */
 }
 
 .wrap {
@@ -14,11 +15,11 @@
   padding: 28px 16px 64px;
 }
 
-/* --- Header / Hero --- */
+/* --- Header --- */
 .header {
   margin-bottom: 2rem;
   padding: 2rem;
-  border-radius: 20px;
+  border-radius: 24px;
   background: radial-gradient(
       800px 400px at 50% -40%,
       rgba(59, 130, 246, 0.15),
@@ -26,22 +27,19 @@
     ),
     linear-gradient(180deg, #13151b, #0f1117);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 2rem;
 }
 
-.headerContent {
-  flex: 1;
-}
+.headerContent { flex: 1; }
 
 .title {
   margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  font-size: 2.5rem; /* Larger, bolder title */
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   background: linear-gradient(to bottom right, #ffffff, #94a3b8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -50,7 +48,7 @@
 .subtitle {
   margin: 0;
   color: #9ca3af;
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.5;
   max-width: 600px;
 }
@@ -58,7 +56,7 @@
 .userBadge {
   display: inline-block;
   margin-bottom: 1rem;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 99px;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -70,39 +68,32 @@
 }
 
 .backBtn {
-  padding: 0.6rem 1.2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(75, 85, 99, 0.5);
-  background: rgba(31, 41, 55, 0.4);
-  color: #e5e7eb;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-  backdrop-filter: blur(4px);
-}
-
-.backBtn:hover {
-  background: rgba(55, 65, 81, 0.6);
-  border-color: #9ca3af;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
   color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
+.backBtn:hover { background: rgba(255,255,255,0.1); }
 
 /* --- Control Bar --- */
 .controlBar {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
   width: 100%;
 }
 
 .glassPanel {
-  padding: 1rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.2rem;
+  border-radius: 20px;
+  background: #0f1219;
+  border: 1px solid #222636;
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.5rem;
   align-items: flex-end;
   width: 100%;
 }
@@ -110,242 +101,238 @@
 .inputGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 200px; 
 }
 
 .label {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-weight: 600;
-  margin-left: 2px;
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.input,
-.select {
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 10px;
+.input, .select {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
   border: 1px solid #2d3442;
   background: #020617;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
   width: 100%;
 }
 
-.input:focus,
-.select:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+.input:focus, .select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
 /* --- Team Grid --- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); /* Wider cards */
+  gap: 24px;
 }
 
+/* --- NEW: THE CARD DESIGN --- */
 .teamCard {
-  background: #0f1219;
-  border: 1px solid #222636;
-  border-radius: 16px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
+  background: #13161c;
+  border-radius: 20px;
+  border: 1px solid #2d3442;
+  overflow: hidden;
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .teamCard:hover {
-  border-color: #3b82f6;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  border-color: #475569;
 }
 
-.cardHeader {
+/* The Rank Strip (Left Border Color) */
+.rankStrip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: #334155; /* Default */
+  z-index: 10;
+}
+
+.cardContent {
+  padding: 1.5rem;
+  padding-left: calc(1.5rem + 6px); /* Offset for rank strip */
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  height: 100%;
+}
+
+/* Header Section */
+.topRow {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+}
+
+.teamInfo {
+  display: flex;
+  flex-direction: column;
 }
 
 .teamName {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  margin: 0;
-  line-height: 1.2;
   color: #fff;
+  line-height: 1.1;
+  margin: 0 0 4px 0;
 }
 
-.teamTag {
-  color: #60a5fa;
-  margin-right: 6px;
-}
-
-.gameBadge {
-  font-size: 0.65rem;
-  padding: 4px 10px;
-  border-radius: 99px;
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-/* --- Captain Name Display --- */
-.captainDisplay {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  margin-top: 4px;
-  margin-bottom: 1rem;
+.teamMeta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #94a3b8;
 }
 
-.captainName {
-  color: #fbbf24;
+.tagBadge {
+  font-family: monospace;
+  background: rgba(255,255,255,0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #e2e8f0;
   font-weight: 700;
 }
 
-/* --- UPDATED SLOT DESIGN (With Text) --- */
-.slotsContainer {
+/* Roles Needed Badges */
+.rolesRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rolePill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+/* --- AVATAR CLUSTER --- */
+.avatarSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 8px;
 }
 
-.slotRow {
-  display: flex;
-  gap: 6px;
-}
-
-.slot {
-  flex: 1;
-  height: 28px; 
-  background: #1e293b;
-  border-radius: 4px;
-  transform: skewX(-15deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.sectionLabel {
   font-size: 0.7rem;
-  font-weight: 700;
   color: #64748b;
-  border: 1px solid rgba(255,255,255,0.05);
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
-}
-
-.slot span {
-  transform: skewX(15deg); 
-  pointer-events: none;
-  max-width: 90%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.slotFilled {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  color: #e2e8f0;
-  border: 1px solid #475569;
-}
-
-.slotCaptain {
-  background: linear-gradient(135deg, #451a03 0%, #78350f 100%); 
-  color: #fbbf24;
-  border: 1px solid #b45309;
-}
-
-.slotEmpty {
-  background: rgba(30, 41, 59, 0.3);
-  color: transparent;
-}
-
-/* --- Substitute Warning Text --- */
-.subWarningBox {
-  font-size: 0.75rem;
-  color: #fbbf24; 
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  padding: 6px 10px;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 41px;
-}
-
-.subIcon {
-  font-size: 0.85rem;
-}
-
-
-/* Footer / Actions */
-.cardFooter {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid #1e293b;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.memberCount {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.statusBadge {
-  font-size: 0.7rem;
-  padding: 4px 10px;
-  border-radius: 99px;
-  border: 1px solid;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.statusRequested {
-  border-color: #3b82f6;
-  color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.1);
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: -8px; /* Overlap effect */
 }
 
-.statusFull {
-  border-color: #4b5563;
-  color: #9ca3af;
-  background: rgba(75, 85, 99, 0.1);
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 3px solid #13161c; /* Matches card bg to create spacing */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-right: -10px; /* Overlap */
+  position: relative;
+  transition: transform 0.2s;
+  cursor: default;
+}
+
+.avatar:hover {
+  transform: translateY(-4px);
+  z-index: 20;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.avatarCaptain {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  z-index: 5;
+}
+
+.avatarFilled {
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  color: #e2e8f0;
+}
+
+.avatarEmpty {
+  background: transparent;
+  border: 2px dashed #334155;
+  color: #475569;
+  font-size: 1.2rem;
+  font-weight: 300;
+}
+
+.moreCount {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-left: 16px;
+  font-weight: 600;
+}
+
+/* --- Footer Actions --- */
+.actions {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid #222636;
+}
+
+.capacityText {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .joinBtn {
-  padding: 0.4rem 1rem;
-  border-radius: 8px;
-  border: 1px solid #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
-  font-size: 0.8rem;
-  font-weight: 600;
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .joinBtn:hover:not(:disabled) {
-  background: #3b82f6;
-  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
 .joinBtn:disabled {
@@ -353,99 +340,52 @@
   cursor: not-allowed;
 }
 
-/* --- Empty State --- */
+/* Status Badges */
+.statusRequested {
+  color: #60a5fa;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.statusFull {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* --- Empty State / Modal (Standard) --- */
 .emptyState {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 4rem;
   border: 1px dashed #334155;
   border-radius: 20px;
-  background: rgba(15, 23, 42, 0.3);
-  color: #94a3b8;
+  color: #64748b;
 }
 
-.emptyTitle {
-  color: #fff;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
-}
-
-.emptyText {
-  font-size: 0.9rem;
-  max-width: 400px;
-  margin: 0 auto;
-  line-height: 1.5;
-}
-
-/* --- MODAL STYLES --- */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
-  animation: fadeIn 0.2s ease-out;
+  z-index: 100;
 }
 
 .modalContent {
   background: #0f1219;
   border: 1px solid #334155;
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 24px;
+  padding: 32px;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  max-width: 420px;
   text-align: center;
-  animation: scaleUp 0.2s ease-out;
 }
 
-.modalTitle {
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.modalText {
-  color: #94a3b8;
-  font-size: 0.95rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
-.modalActions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.cancelBtn {
-  background: transparent;
-  border: 1px solid #475569;
-  color: #cbd5e1;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.cancelBtn:hover { background: #1e293b; color: #fff; }
-
-.confirmBtn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border: none;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.confirmBtn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modalTitle { margin: 0 0 0.5rem; color: #fff; }
+.modalText { color: #94a3b8; margin-bottom: 2rem; }
+.modalActions { display: flex; gap: 12px; }
+.cancelBtn { flex: 1; padding: 12px; border-radius: 12px; background: transparent; border: 1px solid #334155; color: #94a3b8; cursor: pointer; }
+.confirmBtn { flex: 1; padding: 12px; border-radius: 12px; background: #fff; color: #000; font-weight: 700; border: none; cursor: pointer; }
