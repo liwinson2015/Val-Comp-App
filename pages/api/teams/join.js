@@ -46,10 +46,10 @@ export default async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Player not found." });
   }
 
-  // Set the Hard Limit here
-  const MAX_TEAM_SIZE = 5;
+  // UPDATED: Limit is now 7 (5 Starters + 2 Subs)
+  const MAX_TEAM_SIZE = 7;
 
-  // ---------- 1) JOIN BY INVITE CODE (Instant Join) ----------
+  // ---------- 1) JOIN BY INVITE CODE ----------
   if (joinCode) {
     const code = String(joinCode).trim().toUpperCase();
     if (!code || code.length !== 6) {
@@ -79,10 +79,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // UPDATED: Check against MAX_TEAM_SIZE (5)
-    const memberCount = (team.members || []).length + 1; // + captain
-    // Use DB maxSize if set, otherwise default to 5
-    const effectiveLimit = team.maxSize || MAX_TEAM_SIZE; 
+    const memberCount = (team.members || []).length + 1; 
+    const effectiveLimit = team.maxSize || MAX_TEAM_SIZE;
     
     if (memberCount >= effectiveLimit) {
       return res.status(400).json({
@@ -91,27 +89,23 @@ export default async function handler(req, res) {
       });
     }
 
-    // Add player
     team.members = team.members || [];
     team.members.push(player._id);
     await team.save();
 
-    // Populate full roster for frontend
+    // Populate full roster
     await team.populate([
       { path: "captain", select: "username discordUsername" },
       { path: "members", select: "username discordUsername" },
     ]);
 
     const membersFormatted = [];
-
-    // 1. Push Captain
     membersFormatted.push({
       id: String(team.captain._id),
       name: team.captain.username || team.captain.discordUsername || "Captain",
       isCaptain: true,
     });
 
-    // 2. Push Members
     team.members.forEach((m) => {
       if (String(m._id) !== String(team.captain._id)) {
         membersFormatted.push({
@@ -140,7 +134,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // ---------- 2) REQUEST TO JOIN BY TEAM ID (Public Listing) ----------
+  // ---------- 2) REQUEST TO JOIN BY TEAM ID ----------
   const team = await Team.findById(teamId);
   if (!team) {
     return res.status(404).json({ ok: false, error: "Team not found." });
@@ -167,8 +161,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // UPDATED: Check limit here too
-  const memberCount = (team.members || []).length + 1; // + captain
+  const memberCount = (team.members || []).length + 1;
   const effectiveLimit = team.maxSize || MAX_TEAM_SIZE;
 
   if (memberCount >= effectiveLimit) {
