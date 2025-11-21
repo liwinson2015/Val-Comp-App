@@ -250,88 +250,84 @@
 }
 .miniBtn:hover { background: #1e293b; color: #fff; }
 
-/* --- SLOTS VISUALIZER --- */
+/* --- SLOTS VISUALIZER (Aligned) --- */
 .slotsContainer {
   display: flex;
   gap: 8px;
   margin-bottom: 1.5rem;
-  align-items: flex-end;
+  align-items: center;
   height: 90px;
 }
 
 /* Base Empty Slot */
 .slot {
   flex: 1;
-  height: 50px;
+  height: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   background: #020617;
   border: 1px solid #1e293b;
   color: #64748b;
-  border-radius: 8px;
+  border-radius: 6px;
   white-space: nowrap;
   overflow: hidden;
   position: relative;
   transition: all 0.2s ease;
 }
 
-/* 1. MEMBER FILLED (Uses your image, stretched) */
+/* 1. MEMBER FILLED (Image Background, No Border) */
 .slotFilled {
-  /* FIX: Changed 'cover' to '100% 100%' to stretch the image */
   background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
   border: none;
-  color: #f0f9ff;
-  box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.3);
+  color: #e2e8f0;
+  box-shadow: none;
 }
 
-/* 2. CAPTAIN FILLED (Uses your image, stretched, bigger size) */
+/* 2. CAPTAIN FILLED (Image Background, Bigger) */
 .slotCaptain {
-  height: 80px;
-  flex: 1.3;
+  height: 84px;
+  flex: 1.4;
   z-index: 2;
-  /* FIX: Changed 'cover' to '100% 100%' to stretch the image */
   background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
   border: none;
-  color: #fffbeb;
-  box-shadow:
-    inset 0 0 0 100px rgba(0, 0, 0, 0.3),
-    0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  color: #fbbf24;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
 }
 
-/* 3. ME Highlight (Green Border Override) */
+/* 3. ME Highlight (Text Glow instead of Box Border) */
 .slotMe {
-  box-shadow:
-    inset 0 0 0 100px rgba(0, 0, 0, 0.3), /* Dark overlay */
-    inset 0 0 0 2px #22c55e, /* Green border INSIDE */
-    0 0 20px rgba(34, 197, 94, 0.3) !important; /* Green glow outside */
+  color: #4ade80 !important; 
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.6);
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.4));
   z-index: 3;
 }
 
 .slotName {
-  font-weight: 600;
-  margin-top: 4px;
-  padding: 0 4px;
+  font-weight: 700;
+  margin-top: 0;
+  padding: 0 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 95%;
+  max-width: 90%;
   font-size: 0.85rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 0.03em;
 }
 
 .captainStar {
-  font-size: 14px;
-  color: #f59e0b;
-  margin-bottom: 2px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  font-size: 10px;
+  color: #fbbf24;
+  margin-bottom: 4px;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
 }
 
 /* --- Roster Management (Kick/Promote List) --- */
 .rosterBox {
-  margin-top: 1rem;
+  margin-top: 1.2rem;
   background: rgba(2, 6, 23, 0.6);
   border: 1px solid #1e293b;
   border-radius: 12px;
@@ -342,7 +338,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   color: #64748b;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
 }
@@ -373,7 +369,7 @@
 /* Footer Actions */
 .cardFooter {
   margin-top: auto;
-  padding-top: 1rem;
+  padding-top: 1.2rem;
   border-top: 1px solid #1e293b;
   display: flex;
   justify-content: space-between;
@@ -395,8 +391,9 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.75rem;
+  transition: all 0.2s;
 }
-.btnDanger:hover { background: #450a0a; }
+.btnDanger:hover { background: #450a0a; color: #fff; }
 
 .btnNeutral {
   color: #cbd5e1;
@@ -406,8 +403,9 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.75rem;
+  transition: all 0.2s;
 }
-.btnNeutral:hover { background: #1e293b; }
+.btnNeutral:hover { background: #1e293b; color: #fff; }
 
 /* --- Empty State --- */
 .emptyState {
