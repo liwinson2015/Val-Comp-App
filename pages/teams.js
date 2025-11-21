@@ -1,4 +1,3 @@
-// pages/teams.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { connectToDatabase } from "../lib/mongodb";
@@ -177,7 +176,7 @@ export default function TeamsPage({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   
-  // NEW: Active Team ID for Tabs
+  // Active Team ID for Tabs
   const [activeTeamId, setActiveTeamId] = useState(null);
 
   function handleGameSelect(e) {
@@ -316,7 +315,6 @@ export default function TeamsPage({
     } catch (err) { console.error(err); }
   }
 
-  // UPDATED: Captains cannot leave logic preserved
   async function handleLeaveTeam(team) {
     const otherMembers = team.members.filter((m) => !m.isCaptain);
     if (team.isCaptain) {
@@ -558,9 +556,7 @@ export default function TeamsPage({
                 key={t.id}
                 onClick={() => setActiveTeamId(t.id)}
                 className={activeTeamId === t.id ? styles.tabBtnActive : styles.tabBtn}
-                // Inline overrides removed, using pure CSS classes now
               >
-                {/* UPDATED: Vertical Bar Format in Tab */}
                 <span className={styles.tabTag}>{t.tag} |</span> {t.name}
               </button>
             ))}
@@ -639,18 +635,17 @@ function TeamCard({
   onRejectRequest,
   onRosterSwap
 }) {
+  // Initialize activeIds
   const [activeIds, setActiveIds] = useState(() => {
     return team.members.slice(0, 5).map(m => m.id);
   });
 
+  // FIXED: Only reset activeIds when the team changes (tab switch).
+  // We removed 'team.members' from the dependency so the slot stays empty
+  // when you bench someone, instead of auto-filling with the next person.
   useEffect(() => {
-    if (team.justJoined) {
-       const currentActive = team.members.slice(0, 5).map(m => m.id);
-       setActiveIds(currentActive);
-    } else {
-       setActiveIds(team.members.slice(0, 5).map(m => m.id));
-    }
-  }, [team.members, team.justJoined]);
+     setActiveIds(team.members.slice(0, 5).map(m => m.id));
+  }, [team.id]);
 
   const activeMembers = team.members.filter(m => activeIds.includes(m.id));
   const benchMembers = team.members.filter(m => !activeIds.includes(m.id));
@@ -664,12 +659,18 @@ function TeamCard({
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
+      // When benching: Remove from local display immediately so slot is empty
+      setActiveIds(prev => prev.filter(id => id !== memberId));
+      // Then tell backend to move them to bottom
       onRosterSwap(team, memberId, false);
     } else {
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
       }
+      // When starting: Add to local display
+      setActiveIds(prev => [...prev, memberId]);
+      // Then tell backend to move them to top
       onRosterSwap(team, memberId, true);
     }
   }
