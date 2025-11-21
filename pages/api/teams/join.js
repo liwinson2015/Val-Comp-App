@@ -16,6 +16,7 @@ function parseCookies(header = "") {
   );
 }
 
+// Check if player is missing IGN for this game's profile
 function getMissingProfileGame(player, teamGame) {
   if (!player || !player.gameProfiles) return null;
 
@@ -72,8 +73,7 @@ export default async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Player not found." });
   }
 
-  // UPDATED: Limit is now 7 (5 Starters + 2 Subs)
-  const MAX_TEAM_SIZE = 7;
+  const MAX_TEAM_SIZE = 7; // 5 starters + 2 subs
 
   // ---------- 1) JOIN BY INVITE CODE ----------
   if (joinCode) {
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "No team found with that invite code." });
     }
 
-    // 🔒 GATE: If this is a VALORANT or HOK team and player has no IGN, block join
+    // IGN gate for VALORANT / HOK
     const missingGame = getMissingProfileGame(player, team.game);
     if (missingGame) {
       return res.status(200).json({
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
     team.members.push(player._id);
     await team.save();
 
-    // Populate full roster (include gameProfiles so we can use IGN)
+    // Populate full roster and use IGN where available
     await team.populate([
       { path: "captain", select: "username discordUsername gameProfiles" },
       { path: "members", select: "username discordUsername gameProfiles" },
@@ -138,10 +138,8 @@ export default async function handler(req, res) {
 
     const membersFormatted = [];
 
-    // Helper to pick proper display name based on game + profile IGN
     function getDisplayName(doc) {
       if (!doc) return "Player";
-
       let baseName = doc.username || doc.discordUsername || "Player";
 
       if (team.game === "VALORANT") {
@@ -159,14 +157,14 @@ export default async function handler(req, res) {
       return baseName;
     }
 
-    // Captain first
+    // captain first
     membersFormatted.push({
       id: String(team.captain._id),
       name: getDisplayName(team.captain),
       isCaptain: true,
     });
 
-    // Then all members except captain
+    // other members
     team.members.forEach((m) => {
       if (String(m._id) !== String(team.captain._id)) {
         membersFormatted.push({
@@ -201,7 +199,6 @@ export default async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Team not found." });
   }
 
-  // 🔒 GATE: If this is a VALORANT or HOK team and player has no IGN, block request
   const missingGame = getMissingProfileGame(player, team.game);
   if (missingGame) {
     return res.status(200).json({

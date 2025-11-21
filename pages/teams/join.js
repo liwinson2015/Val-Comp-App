@@ -55,7 +55,6 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
-  // Public teams logic...
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
@@ -65,7 +64,6 @@ export async function getServerSideProps({ req, query }) {
     .sort({ createdAt: 1 })
     .lean();
 
-  // Pending requests logic...
   const pendingByUserRaw = await TeamJoinRequest.find({
     playerId: playerDoc._id,
     status: "pending",
@@ -120,10 +118,10 @@ export default function JoinTeamsPage({
   const [search, setSearch] = useState("");
   const [requestingFor, setRequestingFor] = useState(null);
 
-  // Modal State (confirm join)
+  // Confirm-join modal
   const [teamToJoin, setTeamToJoin] = useState(null);
 
-  // Modal State for "IGN Required"
+  // IGN required modal
   const [showMissingProfileModal, setShowMissingProfileModal] =
     useState(false);
   const [missingGame, setMissingGame] = useState(null);
@@ -143,13 +141,11 @@ export default function JoinTeamsPage({
     setSearch(e.target.value || "");
   }
 
-  // User clicks "Request" -> Open confirmation modal
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
     setTeamToJoin(team);
   }
 
-  // User confirms in modal
   async function confirmJoin() {
     if (!teamToJoin) return;
 
@@ -165,20 +161,18 @@ export default function JoinTeamsPage({
       });
       const data = await res.json();
 
-      // 🔒 API says: need profile update first (VALORANT or HOK)
+      // profile gate for VALORANT or HOK
       if (data.requiresProfile && data.game) {
-        setMissingGame(data.game); // "VALORANT" or "HOK"
+        setMissingGame(data.game);
         setShowMissingProfileModal(true);
-        return; // do NOT mark as requested
+        return;
       }
 
       if (!data.ok) {
-        // For other errors (team full, already requested, etc.)
         window.alert(data.error || "Failed to request to join.");
         return;
       }
 
-      // Success: mark this team as requested in UI
       setPublicTeams((prev) =>
         prev.map((t) =>
           t.id === team.id ? { ...t, hasPendingRequestByMe: true } : t
@@ -192,7 +186,6 @@ export default function JoinTeamsPage({
     }
   }
 
-  // Filter teams
   const searchLower = search.trim().toLowerCase();
   const filteredTeams = publicTeams.filter((t) => {
     if (selectedGame !== "ALL" && t.game !== selectedGame) return false;
@@ -201,7 +194,6 @@ export default function JoinTeamsPage({
     return haystack.includes(searchLower);
   });
 
-  // Label to show inside the modal
   const gameLabel =
     missingGame === "VALORANT"
       ? "VALORANT"
@@ -233,7 +225,7 @@ export default function JoinTeamsPage({
           </button>
         </div>
 
-        {/* Control Bar */}
+        {/* Controls */}
         <div className={styles.controlBar}>
           <div className={styles.glassPanel}>
             <div className={styles.inputGroup}>
@@ -309,7 +301,7 @@ export default function JoinTeamsPage({
         </div>
       </div>
 
-      {/* --- CONFIRM REQUEST MODAL --- */}
+      {/* Confirm request modal */}
       {teamToJoin && (
         <div
           className={styles.modalOverlay}
@@ -345,7 +337,7 @@ export default function JoinTeamsPage({
         </div>
       )}
 
-      {/* --- MISSING PROFILE MODAL (NO IGN) --- */}
+      {/* IGN required modal */}
       {showMissingProfileModal && (
         <div
           className={teamModalStyles.modalOverlay}
@@ -396,10 +388,9 @@ export default function JoinTeamsPage({
   );
 }
 
-// ---------- Subcomponent ----------
+// ---------- CARD ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
   const maxSlots = 7;
-  // Create array of slot types
   const bars = Array.from({ length: maxSlots }, (_, i) => {
     if (i === 0) return "captain";
     if (i < team.memberCount) return "filled";
@@ -418,8 +409,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
   }
 
   const canRequest = !team.isFull && !team.hasPendingRequestByMe;
-
-  // Logic: If memberCount >= 5, the next person joining is a sub.
   const isStartingRosterFull = team.memberCount >= 5;
   const showSubWarning = canRequest && isStartingRosterFull;
 
@@ -437,7 +426,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
-      {/* Visual Slot Bars */}
       <div className={styles.slotsContainer}>
         {bars.map((type, idx) => (
           <div
@@ -454,14 +442,12 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
         ))}
       </div>
 
-      {/* Warning Message if filling a Sub slot */}
       {showSubWarning ? (
         <div className={styles.subWarningBox}>
           <span className={styles.subIcon}>⚠</span>
           <span>Starting roster full. Registering as substitute.</span>
         </div>
       ) : (
-        // Invisible spacer to keep card heights consistent
         <div style={{ height: "41px", marginBottom: "0" }}></div>
       )}
 
@@ -470,13 +456,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           {team.memberCount} / {team.maxSize || 7} Members
         </span>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}
-        >
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {statusLabel && (
             <span
               className={`${styles.statusBadge} ${statusClass}`}
