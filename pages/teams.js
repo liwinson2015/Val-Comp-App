@@ -282,12 +282,13 @@ export default function TeamsPage({
     return true; // other games have no requirement yet
   }
 
-  // --- HELPER: Get Correct Name for New Team ---
+  // --- FIX: Helper to Get Correct Name for New Team (Client-Side) ---
   function getMyDisplayNameForGame(gameCode) {
     if (gameCode === "VALORANT" && valorantIgn) return valorantIgn;
     if (gameCode === "HOK" && hokIgn) return hokIgn;
     return player.username;
   }
+  // ------------------------------------------------------------------
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
