@@ -5,7 +5,7 @@ import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import Team from "../../models/Team";
 import TeamJoinRequest from "../../models/TeamJoinRequest";
-import styles from "../../styles/JoinTeams.module.css"; // Use new CSS module
+import styles from "../../styles/JoinTeams.module.css"; 
 
 // Supported games for UI and filtering
 const SUPPORTED_GAMES = [
@@ -15,10 +15,7 @@ const SUPPORTED_GAMES = [
 
 function parseCookies(header = "") {
   return Object.fromEntries(
-    (header || "")
-      .split(";")
-      .filter(Boolean)
-      .map((c) => {
+    (header || "").split(";").filter(Boolean).map((c) => {
         const [k, ...rest] = c.trim().split("=");
         return [k, decodeURIComponent(rest.join("=") || "")];
       })
@@ -34,10 +31,7 @@ export async function getServerSideProps({ req, query }) {
     const next = "/teams/join";
     const encoded = encodeURIComponent(next);
     return {
-      redirect: {
-        destination: `/api/auth/discord?next=${encoded}`,
-        permanent: false,
-      },
+      redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false },
     };
   }
 
@@ -45,12 +39,7 @@ export async function getServerSideProps({ req, query }) {
 
   const playerDoc = await Player.findById(playerId).lean();
   if (!playerDoc) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
+    return { redirect: { destination: "/", permanent: false } };
   }
 
   const requestedGame = typeof query.game === "string" ? query.game : "";
@@ -59,25 +48,21 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
-  // Public teams that this player is NOT already captain or member of
+  // Public teams logic...
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
     captain: { $ne: playerDoc._id },
     members: { $ne: playerDoc._id },
-  })
-    .sort({ createdAt: 1 })
-    .lean();
+  }).sort({ createdAt: 1 }).lean();
 
-  // Join requests made by this player
+  // Pending requests logic...
   const pendingByUserRaw = await TeamJoinRequest.find({
     playerId: playerDoc._id,
     status: "pending",
   }).lean();
 
-  const pendingByUserSet = new Set(
-    pendingByUserRaw.map((r) => String(r.teamId))
-  );
+  const pendingByUserSet = new Set(pendingByUserRaw.map((r) => String(r.teamId)));
 
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
@@ -121,6 +106,9 @@ export default function JoinTeamsPage({
   const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [search, setSearch] = useState("");
   const [requestingFor, setRequestingFor] = useState(null);
+  
+  // NEW: State to control the custom modal
+  const [teamToJoin, setTeamToJoin] = useState(null);
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -133,16 +121,25 @@ export default function JoinTeamsPage({
     setSearch(e.target.value || "");
   }
 
-  async function handleRequestJoin(publicTeam) {
-    if (publicTeam.isFull || publicTeam.hasPendingRequestByMe) return;
-    if (!window.confirm(`Request to join ${publicTeam.name}?`)) return;
+  // Step 1: User clicks "Request", we open the modal
+  function onRequestClick(team) {
+    if (team.isFull || team.hasPendingRequestByMe) return;
+    setTeamToJoin(team);
+  }
 
-    setRequestingFor(publicTeam.id);
+  // Step 2: User clicks "Confirm" inside the modal
+  async function confirmJoin() {
+    if (!teamToJoin) return;
+    
+    const team = teamToJoin;
+    setRequestingFor(team.id);
+    setTeamToJoin(null); // Close modal immediately
+
     try {
       const res = await fetch("/api/teams/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: publicTeam.id }),
+        body: JSON.stringify({ teamId: team.id }),
       });
       const data = await res.json();
       if (!data.ok) {
@@ -152,7 +149,7 @@ export default function JoinTeamsPage({
 
       setPublicTeams((prev) =>
         prev.map((t) =>
-          t.id === publicTeam.id ? { ...t, hasPendingRequestByMe: true } : t
+          t.id === team.id ? { ...t, hasPendingRequestByMe: true } : t
         )
       );
     } catch (err) {
@@ -182,7 +179,6 @@ export default function JoinTeamsPage({
             <h1 className={styles.title}>Find a Team</h1>
             <p className={styles.subtitle}>
               Browse public teams looking for players. Teams you're already on won't show up here.
-              Use search and game filters to find the right fit.
             </p>
           </div>
           <button type="button" onClick={() => router.push("/teams")} className={styles.backBtn}>
@@ -193,23 +189,15 @@ export default function JoinTeamsPage({
         {/* Control Bar */}
         <div className={styles.controlBar}>
           <div className={styles.glassPanel}>
-            {/* Game Filter */}
             <div className={styles.inputGroup}>
               <label htmlFor="game-filter" className={styles.label}>Game</label>
-              <select
-                id="game-filter"
-                value={selectedGame}
-                onChange={handleGameSelect}
-                className={styles.select}
-              >
+              <select id="game-filter" value={selectedGame} onChange={handleGameSelect} className={styles.select}>
                 <option value="ALL">All games</option>
                 {supportedGames.map((g) => (
                   <option key={g.code} value={g.code}>{g.label}</option>
                 ))}
               </select>
             </div>
-
-            {/* Search */}
             <div className={styles.inputGroup} style={{ flex: 1 }}>
               <label htmlFor="team-search" className={styles.label}>Search</label>
               <input
@@ -219,7 +207,6 @@ export default function JoinTeamsPage({
                 onChange={handleSearchChange}
                 placeholder="Search by team name or tag..."
                 className={styles.input}
-                // Note: removed explicit inline width '100%' because flex:1 on parent handles it
               />
             </div>
           </div>
@@ -243,25 +230,42 @@ export default function JoinTeamsPage({
               <PublicTeamCard
                 key={team.id}
                 team={team}
-                onRequestJoin={handleRequestJoin}
+                // Pass the new handler
+                onRequestJoin={onRequestClick}
                 requesting={requestingFor === team.id}
               />
             ))
           )}
         </div>
       </div>
+
+      {/* --- NEW CUSTOM MODAL --- */}
+      {teamToJoin && (
+        <div className={styles.modalOverlay} onClick={() => setTeamToJoin(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>Join {teamToJoin.name}?</h3>
+            <p className={styles.modalText}>
+              This will send a request to the captain. <br/>
+              You will be notified if they accept.
+            </p>
+            <div className={styles.modalActions}>
+              <button onClick={() => setTeamToJoin(null)} className={styles.cancelBtn}>Cancel</button>
+              <button onClick={confirmJoin} className={styles.confirmBtn}>Confirm Request</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------- Subcomponent ----------
 function PublicTeamCard({ team, onRequestJoin, requesting }) {
-  // Visual bars for member count (Total 7 bars)
   const maxSlots = 7;
   const bars = Array.from({ length: maxSlots }, (_, i) => {
-    if (i === 0) return 'captain'; // First slot captain
-    if (i < team.memberCount) return 'filled'; // Members
-    return 'empty'; // Open slots
+    if (i === 0) return 'captain';
+    if (i < team.memberCount) return 'filled';
+    return 'empty';
   });
 
   let statusLabel = "";
@@ -289,7 +293,6 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
         <span className={styles.gameBadge}>{team.game}</span>
       </div>
 
-      {/* Visual Slot Bars */}
       <div className={styles.slotsContainer}>
         {bars.map((type, idx) => (
           <div 
