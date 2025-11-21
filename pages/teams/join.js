@@ -1,4 +1,3 @@
-// pages/teams/join.js
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { connectToDatabase } from "../../lib/mongodb";
@@ -32,8 +31,11 @@ export async function getServerSideProps({ req, query }) {
   const playerId = cookies.playerId || null;
 
   if (!playerId) {
-    const encoded = encodeURIComponent("/teams/join");
-    return { redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false } };
+    const next = "/teams/join";
+    const encoded = encodeURIComponent(next);
+    return {
+      redirect: { destination: `/api/auth/discord?next=${encoded}`, permanent: false },
+    };
   }
 
   await connectToDatabase();
@@ -44,7 +46,7 @@ export async function getServerSideProps({ req, query }) {
   const allowedGameCodes = SUPPORTED_GAMES.map((g) => g.code);
   const initialSelectedGame = allowedGameCodes.includes(requestedGame) ? requestedGame : "ALL";
 
-  // Fetch Teams - Removed 'memberCount' to fix 500 error
+  // Fetch Teams
   const publicTeamsRaw = await Team.find({
     isPublic: true,
     game: { $in: allowedGameCodes },
@@ -82,7 +84,6 @@ export async function getServerSideProps({ req, query }) {
 
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
-    // Calculate memberCount manually
     const memberCount = t.members ? t.members.length : 0;
     const gameCode = t.game;
     const captainDoc = playerMap[String(t.captain)];
@@ -134,6 +135,10 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
     router.push({ pathname: "/teams/join", query }, undefined, { shallow: true });
   }
 
+  function handleSearchChange(e) {
+    setSearch(e.target.value || "");
+  }
+
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
     
@@ -173,7 +178,9 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
   const filteredTeams = publicTeams.filter((t) => {
     if (selectedGame !== "ALL" && t.game !== selectedGame) return false;
     if (!searchLower) return true;
-    return `${t.name} ${t.tag} ${t.captainName}`.toLowerCase().includes(searchLower);
+    const captainSearchable = getDisplayName(t.captainName).toLowerCase();
+    const haystack = `${t.name} ${t.tag} ${captainSearchable}`.toLowerCase();
+    return haystack.includes(searchLower);
   });
 
   return (
@@ -275,6 +282,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
       <div className={styles.rankStrip}></div>
       <div className={styles.cardContent}>
         
+        {/* Top Row: Name, Tag, Game */}
         <div className={styles.topRow}>
           <div>
             <div className={styles.teamTag}>{team.tag}</div>
@@ -285,6 +293,7 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           </div>
         </div>
 
+        {/* Data Grid: Captain & Rank */}
         <div className={styles.statsGrid}>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>Captain</span>
@@ -296,17 +305,21 @@ function PublicTeamCard({ team, onRequestJoin, requesting }) {
           </div>
         </div>
 
+        {/* Roles Section - Full List with Wrap */}
         <div className={styles.rolesSection}>
           <span className={styles.statLabel}>Target Roles</span>
-          <div style={{marginTop:'4px'}}>
+          <div style={{marginTop:'4px', display: 'flex', flexWrap: 'wrap'}}>
             {team.rolesNeeded.length > 0 ? (
-              team.rolesNeeded.slice(0, 4).map(r => <span key={r} className={styles.roleTag}>{r}</span>)
+              team.rolesNeeded.map(r => (
+                <span key={r} className={styles.roleTag}>{r}</span>
+              ))
             ) : (
               <span style={{color:'#444', fontSize:'0.7rem'}}>OPEN RECRUITMENT</span>
             )}
           </div>
         </div>
 
+        {/* Roster / Capacity Bar */}
         <div className={styles.rosterSection}>
           <div className={styles.slotsRow}>
             {slots.map((filled, i) => (
