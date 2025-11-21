@@ -7,6 +7,7 @@ import Team from "../models/Team";
 import TeamJoinRequest from "../models/TeamJoinRequest";
 import styles from "../styles/Teams.module.css";
 
+// Supported games
 const SUPPORTED_GAMES = [
   { code: "VALORANT", label: "VALORANT" },
   { code: "HOK", label: "Honor of Kings" },
@@ -53,6 +54,7 @@ export async function getServerSideProps({ req, query }) {
     ? requestedGame
     : "ALL";
 
+  // My teams
   const myTeamsRaw = await Team.find({
     game: { $in: allowedGameCodes },
     $or: [{ captain: playerDoc._id }, { members: playerDoc._id }],
@@ -60,6 +62,7 @@ export async function getServerSideProps({ req, query }) {
     .sort({ createdAt: 1 })
     .lean();
 
+  // Pending requests
   const captainTeamIds = myTeamsRaw
     .filter((t) => String(t.captain) === String(playerDoc._id))
     .map((t) => t._id);
@@ -72,6 +75,7 @@ export async function getServerSideProps({ req, query }) {
     }).lean();
   }
 
+  // Member names
   const memberIdSet = new Set();
   function addId(id) { if (id) memberIdSet.add(String(id)); }
 
@@ -235,7 +239,7 @@ export default function TeamsPage({
           memberCount: 1,
           isCaptain: true,
           isPublic: false,
-          maxSize: 7, 
+          maxSize: 7,
           joinCode: data.team.joinCode || null,
           members: [{ id: player.id, name: player.username, isCaptain: true }],
           joinRequests: [],
@@ -293,7 +297,7 @@ export default function TeamsPage({
     }
   }
 
-  // Standard actions
+  // --- Standard Actions ---
   async function handleDeleteTeam(team) {
     if (!window.confirm(`Delete ${team.name}?`)) return;
     try {
@@ -433,42 +437,36 @@ export default function TeamsPage({
     } catch (err) { console.error(err); }
   }
 
-  // --- NEW: Roster Swap (Save to DB) ---
+  // --- Roster Swap (Save to DB) ---
   async function handleRosterSwap(team, memberId, toActive) {
-    // 1. Calculate new order locally first
     const teamClone = { ...team };
     const memberIndex = teamClone.members.findIndex(m => m.id === memberId);
     if (memberIndex === -1) return;
 
     const member = teamClone.members[memberIndex];
     const newMembers = [...teamClone.members];
-    newMembers.splice(memberIndex, 1); // remove from old spot
+    newMembers.splice(memberIndex, 1);
 
     if (toActive) {
-      // Insert at index 1 (after Captain)
       newMembers.splice(1, 0, member);
     } else {
-      // Move to end (Bench)
       newMembers.push(member);
     }
 
-    // 2. Optimistic UI Update
     setTeams((prev) => prev.map((t) => (t.id === team.id ? { ...t, members: newMembers } : t)));
 
-    // 3. Call API to save
     try {
       const res = await fetch("/api/teams/roster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           teamId: team.id, 
-          newMemberOrder: newMembers.map(m => m.id) // Send just IDs
+          newMemberOrder: newMembers.map(m => m.id)
         }),
       });
       const data = await res.json();
       if (!data.ok) {
         alert("Failed to save roster: " + data.error);
-        // Revert on failure
         setTeams((prev) => prev.map((t) => (t.id === team.id ? team : t)));
       }
     } catch (err) {
@@ -589,51 +587,37 @@ function TeamCard({
   onRejectRequest,
   onRosterSwap
 }) {
-  // 1. STATE: Local Active IDs to control slots
   const [activeIds, setActiveIds] = useState(() => {
     return team.members.slice(0, 5).map(m => m.id);
   });
 
-  // Update local state when team members change (e.g. join or DB load)
   useEffect(() => {
-    // If we have new members, check if we should auto-fill slots
-    const currentActive = team.members.slice(0, 5).map(m => m.id);
-    
-    // If this is a "fresh join", we might want to respect that.
-    // But simpler: just use the array order from parent as source of truth if it changed significantly
     if (team.justJoined) {
+       const currentActive = team.members.slice(0, 5).map(m => m.id);
        setActiveIds(currentActive);
     }
   }, [team.members, team.justJoined]);
 
-  // 2. Derived Lists
   const activeMembers = team.members.filter(m => activeIds.includes(m.id));
   const benchMembers = team.members.filter(m => !activeIds.includes(m.id));
+  const slots = buildMemberSlots(activeMembers);
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
   const maxSize = team.maxSize || 7;
   const visibilityLabel = team.isPublic ? "Public" : "Private";
   const amIWaitlisted = currentUser && benchMembers.some(m => m.id === currentUser.id);
 
-  // 3. Build Visual Slots
-  const slots = buildMemberSlots(activeMembers);
-
-  // 4. Handler for Swap
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
-      // BENCH: Remove from activeIds
       setActiveIds(prev => prev.filter(id => id !== memberId));
-      // Also update parent order (move to end)
       onRosterSwap(team, memberId, false);
     } else {
-      // START: Check limit
       if (activeIds.length >= 5) {
         alert("Active roster is full (5/5). Bench someone first.");
         return;
       }
       setActiveIds(prev => [...prev, memberId]);
-      // Update parent order (move to start)
       onRosterSwap(team, memberId, true);
     }
   }
@@ -643,42 +627,46 @@ function TeamCard({
     navigator.clipboard.writeText(team.joinCode).catch((err) => console.error("Copy failed", err));
   }
 
+  function handleRegen() {
+    onRegenJoinCode(team);
+  }
+
   return (
     <div className={styles.teamCard}>
+      {/* HEADER SECTION: Name + Subs + Code */}
       <div className={styles.cardHeader}>
-        <h3 className={styles.teamName}>
-          <span className={styles.teamTag}>{team.tag ? `${team.tag} | ` : ""}</span> {team.name}
-        </h3>
-        <span className={styles.gameBadge}>{team.game}</span>
+        <div className={styles.headerLeft}>
+          <h3 className={styles.teamName}>
+            <span className={styles.teamTag}>{team.tag ? `${team.tag} | ` : ""}</span> {team.name}
+          </h3>
+          
+          {/* NEW LOCATION: SUBSTITUTES LIST */}
+          {benchMembers.length > 0 && (
+            <span className={styles.subText}>
+              Substitutes: {benchMembers.map((m, i) => (
+                <span key={m.id} className={m.id === currentUser?.id ? styles.slotMe : ''}>
+                  {i > 0 && ", "}
+                  {m.name}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+
+        <div className={styles.headerRight}>
+          {/* NEW LOCATION: COMPACT INVITE CODE */}
+          {team.isCaptain && (
+            <div className={styles.compactCode}>
+              <span className={styles.codeText}>{team.joinCode || "----"}</span>
+              <button onClick={handleCopyCode} className={styles.iconBtn} title="Copy">❐</button>
+              <button onClick={handleRegen} className={styles.iconBtn} title="Regenerate">↻</button>
+            </div>
+          )}
+          <span className={styles.gameBadge}>{team.game}</span>
+        </div>
       </div>
 
-      {team.isCaptain && (
-        <div className={styles.codeBox}>
-          <span className={styles.codeDisplay}>{team.joinCode || "NO CODE"}</span>
-          <div>
-            <button onClick={handleCopyCode} disabled={!team.joinCode} className={styles.miniBtn}>Copy</button>
-            <button onClick={() => onRegenJoinCode(team)} className={styles.miniBtn}>New</button>
-          </div>
-        </div>
-      )}
-
-      {/* --- SUBSTITUTES LIST (Now below team name) --- */}
-      {benchMembers.length > 0 && (
-        <div style={{ marginBottom: "1rem", padding: "0.5rem", border: "1px dashed #334155", borderRadius: "8px", display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: "bold", marginRight: "5px" }}>
-            Substitutes:
-          </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {benchMembers.map(m => (
-              <div key={m.id} style={{ background: "#1e293b", padding: "2px 8px", borderRadius: "4px", fontSize: "0.8rem", color: "#cbd5e1" }}>
-                {m.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* --- TOP 5 SLOTS --- */}
+      {/* TOP 5 ACTIVE SLOTS */}
       <div className={styles.slotsContainer}>
         {slots.map((slot, idx) => {
           let slotClass = styles.slot;
@@ -697,7 +685,7 @@ function TeamCard({
         })}
       </div>
 
-      {/* --- CAPTAIN CONTROLS --- */}
+      {/* CAPTAIN CONTROLS */}
       {team.isCaptain && (
         <div style={{ marginBottom: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
@@ -712,7 +700,7 @@ function TeamCard({
             </select>
           </div>
 
-          {/* Manage Roster with Bench/Start Buttons */}
+          {/* MANAGE ROSTER */}
           {otherMembers.length > 0 && (
             <div className={styles.rosterBox}>
               <div className={styles.rosterHeader}>Manage Roster</div>
@@ -721,7 +709,7 @@ function TeamCard({
                 return (
                   <div key={m.id} className={styles.rosterRow}>
                     <span className={styles.rosterName} style={{ opacity: isActive ? 1 : 0.5 }}>
-                      {m.name}
+                      {m.name} {isActive ? "" : "(Sub)"}
                     </span>
                     <div className={styles.rosterActions}>
                       <button 
@@ -759,7 +747,7 @@ function TeamCard({
 
       <div className={styles.cardFooter}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span>Members: <strong>{team.memberCount}</strong> / {maxSize}</span>
+          <span>Members: <strong>{team.memberCount}</strong> / {maxSize} · {visibilityLabel}</span>
           {!team.isCaptain && amIWaitlisted && (
             <span style={{ fontSize: "0.7rem", color: "#fbbf24", border: "1px solid #fbbf24", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>⚠ WAITLISTED</span>
           )}
