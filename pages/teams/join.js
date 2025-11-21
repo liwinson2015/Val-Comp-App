@@ -6,6 +6,7 @@ import Player from "../../models/Player";
 import Team from "../../models/Team";
 import TeamJoinRequest from "../../models/TeamJoinRequest";
 import styles from "../../styles/JoinTeams.module.css";
+import teamModalStyles from "../../styles/Teams.module.css"; // reuse modal styling from /teams
 
 // Supported games for UI and filtering
 const SUPPORTED_GAMES = [
@@ -339,23 +340,23 @@ export default function JoinTeamsPage({
       {/* --- MISSING PROFILE MODAL (NO IGN) --- */}
       {showMissingProfileModal && (
         <div
-          className={styles.modalOverlay}
+          className={teamModalStyles.modalOverlay}
           onClick={() => setShowMissingProfileModal(false)}
         >
           <div
-            className={styles.modalContent}
+            className={teamModalStyles.modalContent}
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setShowMissingProfileModal(false)}
-              className={styles.closeModal}
+              className={teamModalStyles.closeModal}
             >
               &times;
             </button>
-            <h2 className={styles.modalTitle}>IGN Required</h2>
+            <h2 className={teamModalStyles.modalTitle}>IGN Required</h2>
             <p
-              className={styles.modalText}
+              className={teamModalStyles.modalText}
               style={{
                 color: "#94a3b8",
                 fontSize: "0.9rem",
@@ -366,19 +367,19 @@ export default function JoinTeamsPage({
               <strong>
                 {missingGame === "VALORANT" ? "VALORANT" : "in-game"}
               </strong>{" "}
-              name set yet. Please update your profile before
-              requesting to join this team.
+              name set yet. Please update your profile before requesting to join
+              this team.
             </p>
-            <div className={styles.modalActions}>
+            <div className={teamModalStyles.modalActions}>
               <button
                 onClick={() => setShowMissingProfileModal(false)}
-                className={styles.cancelBtn}
+                className={teamModalStyles.cancelBtn}
               >
                 Close
               </button>
               <button
                 onClick={() => router.push("/profile")}
-                className={styles.confirmBtn}
+                className={teamModalStyles.confirmBtn}
               >
                 Go to Profile
               </button>
