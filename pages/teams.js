@@ -427,59 +427,60 @@ export default function TeamsPage({
     });
   }
 
-  // --- Join by Code logic ---
-  async function handleJoinByCode(e) {
-    e.preventDefault();
-    setJoinCodeError("");
+ async function handleJoinByCode(e) {
+  e.preventDefault();
+  setJoinCodeError("");
 
-    // If trying to join VALORANT via code and no Valorant IGN, show popup
-    if (selectedGame === "VALORANT" && !hasValorantIgn) {
-      setMissingGame("VALORANT");
-      setShowMissingProfileModal(true);
+  // 🔒 If you're in VALORANT context and don't have a Valorant IGN, show the popup
+  if (selectedGame === "VALORANT" && !hasValorantIgn) {
+    setMissingGame("VALORANT");
+    setShowMissingProfileModal(true);
+    return; // don't try to join yet
+  }
+
+  const code = (joinCodeInput || "").trim().toUpperCase();
+  if (!code || code.length !== 6) {
+    return setJoinCodeError("Invite code must be 6 characters.");
+  }
+
+  setJoiningByCode(true);
+  try {
+    const res = await fetch("/api/teams/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ joinCode: code }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      setJoinCodeError(data.error || "Failed to join.");
       return;
     }
-
-    const code = (joinCodeInput || "").trim().toUpperCase();
-    if (!code || code.length !== 6)
-      return setJoinCodeError("Invite code must be 6 characters.");
-
-    setJoiningByCode(true);
-    try {
-      const res = await fetch("/api/teams/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ joinCode: code }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setJoinCodeError(data.error || "Failed to join.");
-        return;
+    if (data.joined && data.team) {
+      const existing = teams.find((t) => t.id === data.team.id);
+      if (!existing) {
+        const newTeam = {
+          ...data.team,
+          memberCount: data.team.memberCount,
+          isCaptain: false,
+          maxSize: data.team.maxSize || 7,
+          joinRequests: [],
+          justJoined: true,
+        };
+        setTeams((prev) => [...prev, newTeam]);
+        setActiveTeamId(newTeam.id);
+      } else {
+        setActiveTeamId(existing.id);
       }
-      if (data.joined && data.team) {
-        const existing = teams.find((t) => t.id === data.team.id);
-        if (!existing) {
-          const newTeam = {
-            ...data.team,
-            memberCount: data.team.memberCount,
-            isCaptain: false,
-            maxSize: data.team.maxSize || 7,
-            joinRequests: [],
-            justJoined: true,
-          };
-          setTeams((prev) => [...prev, newTeam]);
-          setActiveTeamId(newTeam.id);
-        } else {
-          setActiveTeamId(existing.id);
-        }
-        setJoinCodeInput("");
-      }
-    } catch (err) {
-      console.error(err);
-      setJoinCodeError("Something went wrong.");
-    } finally {
-      setJoiningByCode(false);
+      setJoinCodeInput("");
     }
+  } catch (err) {
+    console.error(err);
+    setJoinCodeError("Something went wrong.");
+  } finally {
+    setJoiningByCode(false);
   }
+}
+
 
   // --- Standard Actions ---
   async function handleDeleteTeam(team) {
