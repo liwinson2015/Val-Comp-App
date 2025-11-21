@@ -927,7 +927,12 @@ function TeamCard({
           return (
             <div key={idx} className={slotClass} title={slot?.name || "Open"}>
               {idx === 2 && <div className={styles.captainStar}>★</div>}
-              <div className={styles.slotName}>{slot ? slot.name : "-"}</div>
+              {/* UPDATED: Shows Tag + Name */}
+              <div className={styles.slotName}>
+                {slot
+                  ? `${team.tag ? `[${team.tag}] ` : ""}${slot.name}`
+                  : "-"}
+              </div>
             </div>
           );
         })}
