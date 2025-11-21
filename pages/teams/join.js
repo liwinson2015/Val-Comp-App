@@ -93,7 +93,7 @@ export async function getServerSideProps({ req, query }) {
     playerMap[String(p._id)] = p;
   });
 
-  // 4. Format and FILTER
+  // 4. Format and Filter
   const formattedPublicTeams = publicTeamsRaw.map((t) => {
     const teamIdStr = String(t._id);
     const memberCount = t.members ? t.members.length : 0;
@@ -109,7 +109,6 @@ export async function getServerSideProps({ req, query }) {
       rolesNeeded: t.rolesNeeded || [],
       memberCount,
       maxSize: t.maxSize || 7,
-      // Calculate Full Status
       isFull: memberCount >= (t.maxSize || 7),
       hasPendingRequestByMe: pendingByUserSet.has(teamIdStr),
       captainName: getPlayerDisplayInfo(captainDoc, gameCode),
@@ -121,14 +120,14 @@ export async function getServerSideProps({ req, query }) {
       }))
     };
   })
-  // Remove full teams from the list
-  .filter(team => !team.isFull);
+  .filter(team => !team.isFull); // Remove full teams
 
   return {
     props: {
       player: {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
+        // Initial check for general profile completion (optional usage)
         hasCustomName: !!playerDoc.gameProfiles?.VALORANT?.ign || !!playerDoc.gameProfiles?.HOK?.ign 
       },
       initialPublicTeams: formattedPublicTeams,
@@ -163,10 +162,8 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
 
   function onRequestClick(team) {
     if (team.isFull || team.hasPendingRequestByMe) return;
-    if (!player.hasCustomName) {
-      setShowProfileAlert(true);
-      return;
-    }
+    // We allow opening the modal even if hasCustomName is false generally,
+    // because the API will do a strict game-specific check.
     setJoinError("");
     setTeamToJoin(team);
   }
@@ -191,6 +188,14 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       });
       const data = await res.json();
       
+      // --- THE FIX: Check for profile requirement ---
+      if (data.requiresProfile) {
+        setTeamToJoin(null); // Close Join Modal
+        setShowProfileAlert(true); // Open Profile Alert
+        return;
+      }
+      // ----------------------------------------------
+
       if (!data.ok) {
         setJoinError(data.error || "Request failed. Please try again.");
       } else {
@@ -219,8 +224,9 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
       <div className={styles.wrap}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <h1 className={styles.title}>FIND SQUAD</h1>
-            <p className={styles.subtitle}>// DEPLOYMENT READY</p>
+            <span className={styles.userBadge}>Logged in as {getDisplayName(player.username)}</span>
+            <h1 className={styles.title}>Find a Team</h1>
+            <p className={styles.subtitle}>Browse public teams. Join a squad that matches your rank and role.</p>
           </div>
           <button onClick={() => router.push("/teams")} className={styles.backBtn}>← My Teams</button>
         </div>
@@ -230,7 +236,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
             <div className={styles.inputGroup}>
               <label htmlFor="game-filter" className={styles.label}>Game</label>
               <select id="game-filter" value={selectedGame} onChange={handleGameSelect} className={styles.select}>
-                <option value="ALL">ALL PROTOCOLS</option>
+                <option value="ALL">All games</option>
                 {supportedGames.map(g => <option key={g.code} value={g.code}>{g.label.toUpperCase()}</option>)}
               </select>
             </div>
@@ -252,6 +258,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       </div>
 
+      {/* --- JOIN MODAL --- */}
       {teamToJoin && (
         <div className={styles.modalOverlay} onClick={closeJoinModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -277,6 +284,7 @@ export default function JoinTeamsPage({ player, initialPublicTeams, initialSelec
         </div>
       )}
 
+      {/* --- PROFILE ALERT MODAL --- */}
       {showProfileAlert && (
         <div className={styles.modalOverlay} onClick={() => setShowProfileAlert(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
