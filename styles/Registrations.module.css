@@ -1,0 +1,193 @@
+/* Main Page Background & Layout */
+.shell {
+  min-height: 100vh;
+  background-color: #0f1216; /* Deep dark background */
+  background-image: 
+    linear-gradient(rgba(15, 18, 22, 0.95), rgba(15, 18, 22, 0.95)),
+    url("https://www.transparenttextures.com/patterns/cubes.png"); /* Subtle texture pattern */
+  color: #ecf0f1;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.contentWrap {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Hero Section --- */
+.hero {
+  padding: 80px 0 40px 0;
+  text-align: center;
+}
+
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(255, 70, 85, 0.15); /* Valorant Red tint */
+  color: #ff4655;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 70, 85, 0.3);
+  border-radius: 4px;
+}
+
+.heroTitle {
+  font-size: 3rem;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.heroSubtitle {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  max-width: 500px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* --- Cards --- */
+.card {
+  background: #1b2026;
+  border: 1px solid #2d343f;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #ff4655; /* Highlight on hover */
+}
+
+/* Red accent line on left of card */
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #ff4655;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.cardHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #ffffff;
+  font-style: italic;
+}
+
+/* --- Details Grid --- */
+.detailGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 24px;
+  row-gap: 8px;
+  font-size: 0.9rem;
+  padding-top: 16px;
+  border-top: 1px solid #2d343f;
+}
+
+.detailLabel {
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding-top: 2px;
+}
+
+.detailValue {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+/* --- Links --- */
+.linkAccent {
+  color: #ff4655;
+  text-decoration: none;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+
+.linkAccent:hover {
+  color: #ff808a;
+  text-decoration: underline;
+}
+
+/* --- Footer --- */
+.footer {
+  margin-top: auto;
+  padding: 60px 0 40px 0;
+  border-top: 1px solid #1e242b;
+  text-align: center;
+}
+
+.footerInner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.footerBrand {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.footerSub {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.footerCopy {
+  margin-top: 16px;
+  color: #475569;
+  font-size: 0.75rem;
+}

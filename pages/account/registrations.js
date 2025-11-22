@@ -2,7 +2,8 @@
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-import styles from "../../styles/Valorant.module.css";
+// CHANGE: Pointing to the NEW specific CSS module
+import styles from "../../styles/Registrations.module.css";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
 function parseCookies(cookieHeader = "") {
@@ -196,7 +197,7 @@ export default function MyRegistrations({ registrations }) {
         </footer>
       </div>
 
-      {/* Tiny chip helper without editing your module */}
+      {/* Tiny chip helper - kept global for simplicity as in original */}
       <style jsx global>{`
         .chip {
           display: inline-block;
