@@ -12,13 +12,13 @@ const GAME_META = {
     label: "VALORANT",
     ranks: ["Unranked", "Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"],
     roles: ["Duelist", "Initiator", "Controller", "Sentinel", "Flex"],
-    color: "#ff4655" // Valorant Red
+    color: "#ff4655" 
   },
   HOK: {
     label: "Honor of Kings",
     ranks: ["Unranked", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"],
     roles: ["Clash Lane", "Farm Lane", "Mid Lane", "Jungle", "Roamer"],
-    color: "#eab308" // HoK Gold
+    color: "#eab308"
   }
 };
 
@@ -176,6 +176,10 @@ export async function getServerSideProps({ req, query }) {
       player: {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
+        gameProfiles: {
+          VALORANT: { ign: playerDoc.gameProfiles?.VALORANT?.ign || "" },
+          HOK: { ign: playerDoc.gameProfiles?.HOK?.ign || "" },
+        }
       },
       initialTeams: formattedMyTeams,
       initialSelectedGame,
@@ -205,12 +209,33 @@ export default function TeamsPage({
   const [game, setGame] = useState(initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code || "VALORANT");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  
   const [activeTeamId, setActiveTeamId] = useState(null);
 
+  // Public Modal
   const [showPublicModal, setShowPublicModal] = useState(false);
   const [pendingPublicTeam, setPendingPublicTeam] = useState(null);
   const [publicRank, setPublicRank] = useState("Unranked");
   const [publicRoles, setPublicRoles] = useState([]);
+
+  // IGN Required Modal
+  const [showMissingProfileModal, setShowMissingProfileModal] = useState(false);
+  const [missingGame, setMissingGame] = useState(null);
+
+  const valorantIgn = player?.gameProfiles?.VALORANT?.ign && player.gameProfiles.VALORANT.ign.trim();
+  const hokIgn = player?.gameProfiles?.HOK?.ign && player.gameProfiles.HOK.ign.trim();
+
+  function hasIgnForGame(gameCode) {
+    if (gameCode === "VALORANT") return !!valorantIgn;
+    if (gameCode === "HOK") return !!hokIgn;
+    return true; 
+  }
+
+  function getMyDisplayNameForGame(gameCode) {
+    if (gameCode === "VALORANT" && valorantIgn) return valorantIgn;
+    if (gameCode === "HOK" && hokIgn) return hokIgn;
+    return player.username;
+  }
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -239,6 +264,12 @@ export default function TeamsPage({
     if (tag.trim().length > 4) return setError("Tag too long.");
     if (!game) return setError("Select a game.");
 
+    if (!hasIgnForGame(game)) {
+      setMissingGame(game);
+      setShowMissingProfileModal(true);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/teams", {
@@ -250,7 +281,25 @@ export default function TeamsPage({
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
-        router.reload(); 
+        const displayName = getMyDisplayNameForGame(game);
+        const newTeam = {
+          id: data.team.id,
+          name: data.team.name,
+          tag: data.team.tag || "",
+          game: data.team.game,
+          rank: "Unranked",
+          rolesNeeded: [],
+          memberCount: 1,
+          isCaptain: true,
+          isPublic: false,
+          maxSize: 7,
+          joinCode: data.team.joinCode || null,
+          members: [{ id: player.id, name: displayName, isCaptain: true }],
+          joinRequests: [],
+        };
+        setTeams((prev) => [...prev, newTeam]);
+        setActiveTeamId(newTeam.id);
+        closeModal();
       }
     } catch (err) {
       console.error(err);
@@ -322,11 +371,39 @@ export default function TeamsPage({
         body: JSON.stringify({ joinCode: code }),
       });
       const data = await res.json();
+
+      if (data.requiresProfile && data.game) {
+        setMissingGame(data.game);
+        setShowMissingProfileModal(true);
+        setJoinCodeError(data.error || "");
+        return;
+      }
+
       if (!data.ok) {
         setJoinCodeError(data.error || "Failed to join.");
         return;
       }
-      router.reload();
+
+      if (data.joined && data.team) {
+        const existing = teams.find((t) => t.id === data.team.id);
+        if (!existing) {
+           const displayName = getMyDisplayNameForGame(data.team.game);
+           const newTeam = {
+            ...data.team,
+            memberCount: data.team.memberCount,
+            isCaptain: false,
+            maxSize: data.team.maxSize || 7,
+            joinRequests: [],
+            justJoined: true,
+            members: data.team.members || [{id: player.id, name: displayName, isCaptain: false}] 
+          };
+          setTeams((prev) => [...prev, newTeam]);
+          setActiveTeamId(newTeam.id);
+        } else {
+          setActiveTeamId(existing.id);
+        }
+        setJoinCodeInput("");
+      }
     } catch (err) {
       console.error(err);
       setJoinCodeError("Something went wrong.");
@@ -343,6 +420,7 @@ export default function TeamsPage({
       if (activeTeamId === team.id) setActiveTeamId(null);
     } catch (err) { console.error(err); }
   }
+
   async function handleLeaveTeam(team) {
     if (!window.confirm(`Leave ${team.name}?`)) return;
     try {
@@ -406,6 +484,8 @@ export default function TeamsPage({
   }, [visibleTeams, activeTeamId]);
 
   const activeTeam = visibleTeams.find(t => t.id === activeTeamId);
+
+  const missingLabel = missingGame === "VALORANT" ? "VALORANT" : missingGame === "HOK" ? "Honor of Kings" : "in-game";
 
   return (
     <div className={styles.shell}>
@@ -546,16 +626,32 @@ export default function TeamsPage({
           </div>
         </div>
       )}
+
+      {/* --- MISSING PROFILE MODAL --- */}
+      {showMissingProfileModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowMissingProfileModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowMissingProfileModal(false)} className={styles.closeModal}>&times;</button>
+            <h2 className={styles.modalTitle}>IGN Required</h2>
+            <p className={styles.modalText} style={{ color: "#94a3b8", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              You don't have your <strong>{missingLabel}</strong> name set yet. Please update your profile before continuing.
+            </p>
+            <div style={{display:'flex', gap:'10px'}}>
+              <button onClick={() => setShowMissingProfileModal(false)} className={styles.createBtn} style={{background:'#333', color:'#fff'}}>Close</button>
+              <button onClick={() => router.push('/profile')} className={styles.createBtn}>Go to Profile</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------- TEAM CARD (Dashboard Version) ----------
 function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, actions }) {
-  // Local state for active members (Start/Bench logic)
   const [activeIds, setActiveIds] = useState(() => team.members.slice(0, 5).map(m => m.id));
 
-  // Sync activeIds only when team ID changes
+  // Fix: Only reset on team ID change, prevents optimistic bench bug
   useEffect(() => { setActiveIds(team.members.slice(0, 5).map(m => m.id)); }, [team.id]);
 
   const activeMembers = team.members.filter(m => activeIds.includes(m.id));
@@ -563,7 +659,6 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
   const maxSize = team.maxSize || 7;
-  
   const rankColor = GAME_META[team.game]?.color || '#3b82f6';
 
   function getDisplayName(name) {
@@ -615,7 +710,7 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
           </div>
         </div>
 
-        {/* ROSTER VISUALIZER (Distinct Slots) */}
+        {/* ROSTER VISUALIZER (Image Frames) */}
         <div className={styles.slotsContainer}>
           {slots.map((slot, idx) => {
             const isCenter = idx === 2;
@@ -624,7 +719,7 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
 
             let slotClass = styles.slot;
             if (isCenter) slotClass += ` ${styles.slotCaptain}`;
-            if (isFilled) slotClass += ` ${styles.slotFilled}`;
+            if (isFilled && !isCenter) slotClass += ` ${styles.slotFilled}`;
             if (isMe) slotClass += ` ${styles.slotMe}`;
 
             return (
@@ -633,7 +728,8 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
                   <div className={styles.captainStar}>★</div>
                 )}
                 <span className={styles.slotName}>
-                  {slot ? getDisplayName(slot.name) : "EMPTY"}
+                  {/* Tag | Name format */}
+                  {slot ? `${team.tag} | ${getDisplayName(slot.name)}` : "EMPTY"}
                 </span>
               </div>
             );
