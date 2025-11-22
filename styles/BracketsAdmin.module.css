@@ -1,5 +1,7 @@
 /* Modern Gaming Dashboard Theme */
-:root {
+
+/* FIX: Changed :root to .admin-container to satisfy CSS Module purity rules */
+.admin-container {
   --bg-dark: #0f172a;
   --bg-card: #1e293b;
   --bg-input: #334155;
@@ -16,10 +18,8 @@
   --danger-hover: #dc2626;
   --warning-bg: #451a03;
   --warning-text: #fed7aa;
-}
 
-/* --- Layout --- */
-.admin-container {
+  /* Layout styles */
   padding: 40px 20px;
   max-width: 1200px;
   margin: 0 auto;
