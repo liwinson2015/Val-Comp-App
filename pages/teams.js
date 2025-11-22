@@ -566,7 +566,9 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
 
   const activeMembers = team.members.filter(m => activeIds.includes(m.id));
   const slots = buildMemberSlots(activeMembers);
+  // Identify substitutes correctly
   const benchMembers = team.members.filter((m) => !activeIds.includes(m.id));
+  
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
   const maxSize = team.maxSize || 7;
@@ -607,11 +609,11 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
                <div className={styles.metaItem}>STATUS: <strong style={{color: team.isPublic ? '#22c55e' : '#ef4444'}}>{team.isPublic ? 'ONLINE' : 'OFFLINE'}</strong></div>
                <div className={styles.metaItem}>RANK: <strong style={{color: rankColor}}>{team.rank || 'UNRANKED'}</strong></div>
             </div>
-
-            {/* RESERVES DISPLAY */}
+            
+            {/* SUBSTITUTES DISPLAY */}
             {benchMembers.length > 0 && (
               <div style={{ marginTop: '12px', fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
-                RESERVES: <span style={{ color: '#e2e8f0' }}>
+                SUBSTITUTES: <span style={{ color: '#e2e8f0' }}>
                   {benchMembers.map((m, i) => (
                     <span key={m.id}>
                       {i > 0 && ", "}
@@ -621,6 +623,7 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
                 </span>
               </div>
             )}
+
           </div>
 
           <div className={styles.headerRight}>
@@ -653,6 +656,7 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
                   <div className={styles.captainStar}>★</div>
                 )}
                 <span className={styles.slotName}>
+                  {/* Tag | Name format */}
                   {slot ? `${team.tag} | ${getDisplayName(slot.name)}` : "EMPTY"}
                 </span>
               </div>
@@ -750,7 +754,9 @@ function buildMemberSlots(members = []) {
   const captain = members.find((m) => m.isCaptain) || members[0] || null;
   const others = members.filter((m) => m !== captain);
   const positions = [2, 1, 3, 0, 4];
-  if (captain) slots[2] = captain;
+  if (captain) {
+    slots[2] = captain;
+  }
   let posIdx = 0;
   for (const m of others) {
     while (posIdx < positions.length && slots[positions[posIdx]] !== null) posIdx++;
