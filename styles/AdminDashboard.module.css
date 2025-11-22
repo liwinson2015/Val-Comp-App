@@ -1,50 +1,68 @@
+/* styles/AdminDashboard.module.css */
+
 .page {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 16px 64px;
-  color: #f5f5f5;
+  padding: 40px 20px 80px;
+  color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Optional: Add a subtle background gradient to the whole page area if your global css doesn't have one */
+  background-image: radial-gradient(circle at 50% 0%, #2a1b2e 0%, transparent 60%);
 }
+
+/* --- Header Section --- */
 
 .headerRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(to right, #fff, #cbd5e1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
 }
 
 .subtitle {
-  margin-top: 4px;
-  color: #b0b0b0;
-  font-size: 0.98rem;
+  margin-top: 8px;
+  color: #94a3b8;
+  font-size: 1rem;
 }
 
 .highlight {
-  color: #ff4f6b;
+  color: #ff4f6b; /* Kept your accent color */
   font-weight: 600;
+  text-shadow: 0 0 20px rgba(255, 79, 107, 0.4);
 }
 
 .badge {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid #ff4f6b;
-  font-size: 0.8rem;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #ff4f6b;
-  background: rgba(255, 79, 107, 0.08);
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff4f6b, #d93652);
+  box-shadow: 0 4px 15px rgba(255, 79, 107, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
+
+/* --- Layout Grid --- */
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -53,168 +71,187 @@
   }
 }
 
+/* --- Glass Cards --- */
+
 .card {
-  background: radial-gradient(circle at top left, #1f2933, #05070b);
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 20px 20px 22px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  /* The Glass Effect */
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 28px;
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .cardTitle {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  color: #f8fafc;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .cardText {
   font-size: 0.95rem;
-  color: #d1d5db;
-  margin-bottom: 16px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 20px;
 }
 
 .cardMeta {
-  font-size: 0.86rem;
-  color: #9ca3af;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ff4f6b;
+  font-size: 0.85em;
 }
 
 .bold {
   font-weight: 600;
+  color: white;
 }
 
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-/* Status list */
+/* --- Status List --- */
 
 .statusList {
-  margin-top: 16px;
-  margin-bottom: 18px;
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .statusItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.86rem;
-  color: #e5e7eb;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #cbd5e1;
 }
 
 .statusDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
 }
 
-.ok {
-  background: #22c55e;
-}
+.ok { background: #4ade80; color: #4ade80; }
+.warn { background: #facc15; color: #facc15; }
+.error { background: #f87171; color: #f87171; }
 
-.warn {
-  background: #facc15;
-}
-
-.error {
-  background: #ef4444;
-}
-
-/* Stats */
+/* --- Stat Boxes --- */
 
 .statsRow {
-  display: flex;
-  gap: 12px;
-  margin-top: 14px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
 }
 
 .statBox {
-  flex: 1;
-  min-width: 130px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
 }
 
 .statLabel {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9ca3af;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 8px;
 }
 
 .statValue {
-  margin-top: 4px;
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f1f5f9;
 }
 
-/* Buttons */
+/* --- Buttons --- */
 
 .buttonGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 12px 0 10px;
-}
-
-@media (max-width: 700px) {
-  .buttonGrid {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .primaryButton,
 .secondaryButton,
 .disabledButton {
-  border-radius: 10px;
-  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centered text */
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
   font-size: 0.95rem;
-  font-weight: 500;
-  border: none;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease;
-  text-align: left;
+  transition: all 0.2s ease;
+  border: none;
 }
 
 .primaryButton {
-  background: linear-gradient(135deg, #ff4f6b, #ff7a3c);
+  background: #ff4f6b;
   color: white;
-  box-shadow: 0 12px 30px rgba(248, 113, 113, 0.4);
+  box-shadow: 0 4px 20px rgba(255, 79, 107, 0.25);
 }
 
 .primaryButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 36px rgba(248, 113, 113, 0.6);
+  background: #ff637a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255, 79, 107, 0.4);
 }
 
 .secondaryButton {
-  background: rgba(15, 23, 42, 0.9);
-  color: #e5e7eb;
-  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .secondaryButton:hover {
-  background: rgba(30, 64, 175, 0.5);
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .disabledButton {
-  background: rgba(31, 41, 55, 0.8);
-  color: #6b7280;
-  border: 1px dashed rgba(75, 85, 99, 0.8);
+  background: rgba(0, 0, 0, 0.2);
+  color: #475569;
+  border: 1px solid rgba(255, 255, 255, 0.02);
   cursor: not-allowed;
 }
 
-/* Helper text */
-
 .helperText {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  color: #9ca3af;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.4;
 }
