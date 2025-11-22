@@ -7,11 +7,9 @@ import Player from "../models/Player";
 const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const MAX_SLOTS = 16;
 
-// Load current registration count for the featured bracket
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // Count players who are registered for this tournament
   const currentCount = await Player.countDocuments({
     "registeredFor.tournamentId": TOURNAMENT_ID,
   });
@@ -32,70 +30,69 @@ export default function HomePage({ featured }) {
   const maxSlots = featured?.maxSlots ?? MAX_SLOTS;
 
   const isFull = currentCount >= maxSlots;
-  const statusText = isFull ? "Full" : "Open for registration";
-  const slotsText = `${currentCount}/${maxSlots} filled`;
-  const playersText = `${currentCount} registered`;
+  const statusText = isFull ? "FULL / CLOSED" : "OPEN ENTRY";
+  const slotsText = `${currentCount} / ${maxSlots}`;
+  const playersText = `${currentCount} REGISTERED`;
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* HERO (top box) */}
+        
+        {/* HERO SECTION */}
         <section className={styles.hero}>
-          <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>COMMUNITY GAMING TOURNAMENTS</div>
+            <div className={styles.heroBadge}>COMPETITIVE BRACKETS</div>
             <h1 className={styles.heroTitle}>PLAY. COMPETE. CLIMB.</h1>
             <p className={styles.heroSubtitle}>
-              Brackets for multiple games, hosted by 5TQ.
-              <br />
-              Sign in, claim your slot, and battle through a live bracket for
-              skins, gift cards, and more.
+              Community tournaments hosted by 5TQ. <br />
+              Battle for skins, RP, and glory in a live bracket environment.
             </p>
 
-            {/* Centered stats, no buttons here */}
             <div className={styles.heroStats}>
               <div>
-                <span className={styles.heroStatLabel}>PLAYERS</span>
+                <span className={styles.heroStatLabel}>LIVE COUNT</span>
                 <span className={styles.heroStatValue}>{playersText}</span>
               </div>
               <div>
-                <span className={styles.heroStatLabel}>GAMES</span>
+                <span className={styles.heroStatLabel}>ACTIVE TITLES</span>
                 <span className={styles.heroStatValue}>
-                  VALORANT · TFT · more
+                  VALORANT // TFT
                 </span>
               </div>
               <div>
                 <span className={styles.heroStatLabel}>PRIZE POOL</span>
                 <span className={styles.heroStatValue}>
-                  Skins, RP / gift cards
+                  SKINS / GIFT CARDS
                 </span>
               </div>
             </div>
-          </div>
         </section>
 
-        {/* FEATURED + UPCOMING ROW */}
-        <section className={`${styles.card} ${styles.cardGrid}`}>
-          {/* Featured bracket box */}
+        {/* FEATURED + UPCOMING GRID */}
+        <section className={styles.cardGrid}>
+          
+          {/* LEFT: Featured Tournament */}
           <div className={styles.featuredColumn}>
             <div className={styles.cardHeaderRow}>
-              <h2 className={styles.cardTitle}>FEATURED BRACKET</h2>
-              <span className={styles.gamePill}>VALORANT · 1v1</span>
+              <h2 className={styles.cardTitle}>FEATURED EVENT</h2>
+              <span className={styles.gamePill}>VALORANT • 1v1</span>
             </div>
 
-            <h3 className={styles.featuredTitle}>Solo Skirmish #1</h3>
+            <h3 className={styles.featuredTitle}>SOLO SKIRMISH #1</h3>
             <p className={styles.featuredSubtitle}>
-              16-player 1v1 bracket. Fast matches, Double elimination.
-              Winner takes the skin prize.
+              Double elimination bracket. Winner takes all.
+              Screenshot score verification required.
             </p>
 
             <div className={styles.featuredMetaRow}>
               <div>
                 <div className={styles.metaLabel}>STATUS</div>
-                <div className={styles.metaValue}>{statusText}</div>
+                <div className={styles.metaValue} style={{ color: isFull ? '#ff4655' : '#4ade80' }}>
+                  {statusText}
+                </div>
               </div>
               <div>
                 <div className={styles.metaLabel}>START TIME</div>
-                <div className={styles.metaValue}>Nov 2 · 7:00 pm ET</div>
+                <div className={styles.metaValue}>NOV 2 • 7PM ET</div>
               </div>
               <div>
                 <div className={styles.metaLabel}>SLOTS</div>
@@ -109,101 +106,96 @@ export default function HomePage({ featured }) {
                   className={`${styles.heroPrimary} ${styles.heroPrimaryDisabled}`}
                   disabled
                 >
-                  Full
+                  <span>BRACKET FULL</span>
                 </button>
               ) : (
                 <a
                   href="/tournaments-hub/valorant-types/1v1"
                   className={styles.heroPrimary}
                 >
-                  Claim your spot
+                  <span>CLAIM YOUR SPOT</span>
                 </a>
               )}
             </div>
           </div>
 
-          {/* Upcoming events */}
+          {/* RIGHT: Upcoming List */}
           <div className={styles.upcomingColumn}>
             <div className={styles.cardHeaderRow}>
-              <h2 className={styles.cardTitle}>UPCOMING EVENTS</h2>
+              <h2 className={styles.cardTitle}>IN THE PIPELINE</h2>
             </div>
 
             <ul className={styles.eventList}>
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>TEAMFIGHT TACTICS</div>
-                <div className={styles.eventMain}>TFT event (Coming soon)</div>
-                <div className={styles.eventMeta}>Free for all</div>
+                <div className={styles.eventMain}>Weekly TFT Showdown</div>
+                <div className={styles.eventMeta}>Free for all • Date TBD</div>
               </li>
               <li className={styles.eventItem}>
-                <div className={styles.eventGame}>FUTURE TITLES</div>
+                <div className={styles.eventGame}>COMMUNITY VOTE</div>
                 <div className={styles.eventMain}>
-                  Next title chosen by Discord
+                  Next Title Selection
                 </div>
                 <div className={styles.eventMeta}>
-                  More games: coming soon
+                  Voting happens on Discord
                 </div>
               </li>
             </ul>
           </div>
         </section>
 
-        {/* HOW IT WORKS + GAMES WE RUN */}
+        {/* BOTTOM GRID */}
         <section className={styles.bottomGrid}>
-          <section className={`${styles.card} ${styles.howCard}`}>
+          <section className={styles.howCard}>
             <div className={styles.cardHeaderRow}>
-              <h2 className={styles.cardTitle}>HOW IT WORKS</h2>
+              <h2 className={styles.cardTitle}>PROTOCOL</h2>
             </div>
             <ul className={styles.rulesList}>
-              <li>Sign in with Discord so we can ping you easily.</li>
-              <li>Select a tournament and grab an open slot.</li>
-              <li>Check in on Discord at start time for lobby info.</li>
-              <li>Play your matches and report scores with a screenshot.</li>
-              <li>Top players win prizes and show up on the site.</li>
+              <li>Link your Discord account for match coordination.</li>
+              <li>Select an active tournament and register.</li>
+              <li>Check-in 15 minutes prior to match start.</li>
+              <li>Submit screenshot proof of victory.</li>
+              <li>Prizes distributed via Discord within 24h.</li>
             </ul>
           </section>
 
-          <section className={styles.card}>
+          <section className={styles.gamesCard}>
             <div className={styles.cardHeaderRow}>
-              <h2 className={styles.cardTitle}>GAMES WE RUN</h2>
+              <h2 className={styles.cardTitle}>ACTIVE GAMES</h2>
             </div>
             <div className={styles.gamesRow}>
               <div className={styles.gameTag}>
-                <div className={styles.gameBadge}>VALORANT</div>
-                <div className={styles.gameDesc}>Solo & team brackets</div>
+                <div className={styles.gameBadge}>VAL</div>
+                <div className={styles.gameDesc}>Solo & Team Brackets</div>
               </div>
               <div className={styles.gameTag}>
-                <div className={styles.gameBadge}>TEAMFIGHT TACTICS</div>
-                <div className={styles.gameDesc}>Free for all</div>
+                <div className={styles.gameBadge}>TFT</div>
+                <div className={styles.gameDesc}>FFA Lobbies</div>
               </div>
               <div className={styles.gameTag}>
-                <div className={styles.gameBadge}>FUTURE TITLES</div>
+                <div className={styles.gameBadge}>???</div>
                 <div className={styles.gameDesc}>
-                  More games: coming soon
+                  More Coming Soon
                 </div>
               </div>
             </div>
             <p className={styles.gamesFooter}>
-              Want a specific game? Drop it in{" "}
-              <span className={styles.highlight}>#tournament-ideas</span> on
-              Discord.
+              Suggest a game in <span className={styles.highlight}>#ideas</span> on Discord.
             </p>
           </section>
         </section>
 
         {/* FOOTER */}
         <footer className={styles.footer}>
-          <div className={styles.footerInner}>
             <div className={styles.footerBrand}>
-              Community-run gaming events by 5TQ
+              5TQ TOURNAMENTS
             </div>
             <div className={styles.footerSub}>
-              More brackets, paid prize pools, and cross-game leaderboards
-              coming soon.
+              Independent community events. Not affiliated with Riot Games.
             </div>
             <div className={styles.footerCopy}>
-              © 2025 — all tournaments run independently
+              © 2025 ALL RIGHTS RESERVED
             </div>
-          </div>
         </footer>
       </div>
     </div>
