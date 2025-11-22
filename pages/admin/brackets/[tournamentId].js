@@ -1,11 +1,13 @@
-// pages/admin/brackets/[tournamentId].js
 import React, { useEffect, useState } from "react";
+// Import the CSS Module from your styles folder
+import styles from "../../../styles/BracketsAdmin.module.css";
+
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 
-// ---------- SERVER SIDE ----------
+// ---------- SERVER SIDE (UNCHANGED) ----------
 export async function getServerSideProps({ req, params }) {
   const player = await getCurrentPlayerFromReq(req);
 
@@ -68,7 +70,7 @@ export async function getServerSideProps({ req, params }) {
   };
 }
 
-// ---------- HELPER FUNCTIONS ----------
+// ---------- HELPER FUNCTIONS (UNCHANGED) ----------
 function computeLosersFromMatches(matches) {
   const losers = [];
   (matches || []).forEach((m) => {
@@ -106,91 +108,60 @@ export default function BracketAdminPage({
   isPublished,
 }) {
   return (
-    <div style={{ padding: "30px 20px", maxWidth: 1100, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: 8, color: "#e5e7eb" }}>
-        Admin Bracket Editor — {tournamentId}
-      </h1>
+    <div className={styles["admin-container"]}>
+      {/* Header & Publish Actions */}
+      <header className={styles["header-section"]}>
+        <div className={styles["header-content"]}>
+          <h1>Bracket Editor</h1>
+          <div className={styles["header-description"]}>
+            Tournament ID: <strong>{tournamentId}</strong>
+            <br />
+            Adjust seeds, set winners, and build the losers bracket.
+            <br />
+            <span
+              className={`${styles["status-badge"]} ${
+                isPublished
+                  ? styles["status-published"]
+                  : styles["status-draft"]
+              }`}
+            >
+              {isPublished ? "● Live (Published)" : "○ Draft (Hidden)"}
+            </span>
+          </div>
+        </div>
 
-      <p style={{ color: "#9ca3af", marginBottom: 8 }}>
-        Only you (admin) can see this page. Adjust seeds, set winners, and
-        build the losers bracket. Then hit <strong>Save</strong>. When
-        you&apos;re happy, use the buttons below to publish or hide the
-        public bracket.
-      </p>
-
-      <p style={{ color: "#d1d5db", marginBottom: 10 }}>
-        Current publish status:{" "}
-        <span
-          style={{
-            padding: "2px 8px",
-            borderRadius: 9999,
-            background: isPublished ? "#22c55e33" : "#f59e0b33",
-            color: isPublished ? "#bbf7d0" : "#fed7aa",
-            fontSize: "0.85rem",
-          }}
-        >
-          {isPublished ? "Published (public bracket live)" : "Draft (not live)"}
-        </span>
-      </p>
-
-      {/* === PUBLISH / UNPUBLISH BUTTONS === */}
-      <div
-        style={{
-          marginBottom: 20,
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        {/* PUBLISH = state=publish */}
-        <form
-          method="POST"
-          action={`/api/admin/brackets/${encodeURIComponent(
-            tournamentId
-          )}/publish?state=publish`}
-        >
-          <button
-            type="submit"
-            style={{
-              background: "#10b981",
-              padding: "8px 14px",
-              borderRadius: 8,
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-            }}
+        <div className={styles["action-bar"]}>
+          {/* UNPUBLISH */}
+          <form
+            method="POST"
+            action={`/api/admin/brackets/${encodeURIComponent(
+              tournamentId
+            )}/publish?state=unpublish`}
           >
-            📢 Publish bracket (make live)
-          </button>
-        </form>
+            <button
+              type="submit"
+              className={`${styles["btn"]} ${styles["btn-danger"]}`}
+            >
+              Unpublish
+            </button>
+          </form>
 
-        {/* UNPUBLISH = state=unpublish */}
-        <form
-          method="POST"
-          action={`/api/admin/brackets/${encodeURIComponent(
-            tournamentId
-          )}/publish?state=unpublish`}
-        >
-          <button
-            type="submit"
-            style={{
-              background: "#ef4444",
-              padding: "8px 14px",
-              borderRadius: 8,
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-            }}
+          {/* PUBLISH */}
+          <form
+            method="POST"
+            action={`/api/admin/brackets/${encodeURIComponent(
+              tournamentId
+            )}/publish?state=publish`}
           >
-            ❌ Unpublish (hide)
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              className={`${styles["btn"]} ${styles["btn-success"]}`}
+            >
+              📢 Publish Bracket
+            </button>
+          </form>
+        </div>
+      </header>
 
       <BracketEditor tournamentId={tournamentId} players={players} />
     </div>
@@ -226,7 +197,7 @@ function BracketEditor({ tournamentId, players }) {
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
-  // label map (IGN (username))
+  // label map
   const idToLabel = {};
   for (const p of players || []) {
     const base = p.ign || p.username || "Unknown";
@@ -257,9 +228,8 @@ function BracketEditor({ tournamentId, players }) {
           const rounds = bracket.rounds || [];
 
           const r1 =
-            rounds.find(
-              (r) => r.roundNumber === 1 && r.type === "winners"
-            ) || rounds[0];
+            rounds.find((r) => r.roundNumber === 1 && r.type === "winners") ||
+            rounds[0];
           setMatches(
             (r1?.matches || []).map((m) => ({
               player1Id: m.player1Id || null,
@@ -296,9 +266,8 @@ function BracketEditor({ tournamentId, players }) {
           const lrs = bracket.losersRounds || [];
 
           const lb1 =
-            lrs.find(
-              (r) => r.roundNumber === 1 && r.type === "losers"
-            ) || lrs[0];
+            lrs.find((r) => r.roundNumber === 1 && r.type === "losers") ||
+            lrs[0];
           setLbMatches1(
             (lb1?.matches || []).map((m) => ({
               player1Id: m.player1Id || null,
@@ -358,7 +327,7 @@ function BracketEditor({ tournamentId, players }) {
           setLbMatches4([]);
         }
 
-        // winners final (WB Final)
+        // winners final
         if (bracket && bracket.winnersFinal) {
           const wf = bracket.winnersFinal;
           setWbFinalMatches([
@@ -372,7 +341,7 @@ function BracketEditor({ tournamentId, players }) {
           setWbFinalMatches([emptyFinalMatch]);
         }
 
-        // losers final (LB Final)
+        // losers final
         if (bracket && bracket.losersFinal) {
           const lf = bracket.losersFinal;
           setLbFinalMatches([
@@ -420,24 +389,20 @@ function BracketEditor({ tournamentId, players }) {
     loadBracket();
   }, [tournamentId]);
 
-  // ===== AUTO-BUILD: Winners Final from Winners Semifinals =====
+  // ===== AUTO-BUILD =====
   useEffect(() => {
     const winnersSF = computeWinnersFromMatches(sfMatches);
     if (winnersSF.length < 2) return;
 
     setWbFinalMatches((prev) => {
       const current = prev && prev[0] ? prev[0] : emptyFinalMatch;
-
-      // If admin already filled WB Final, don't overwrite
       if (current.player1Id || current.player2Id) {
         return prev;
       }
-
       return [
         {
           player1Id: winnersSF[0],
           player2Id: winnersSF[1],
-          // keep winner if still consistent, else clear
           winnerId:
             current.winnerId &&
             (current.winnerId === winnersSF[0] ||
@@ -449,13 +414,12 @@ function BracketEditor({ tournamentId, players }) {
     });
   }, [sfMatches]);
 
-  // ===== Shared helpers =====
   function labelFromId(id) {
     if (!id) return "TBD";
     return idToLabel[id] || "TBD";
   }
 
-  // ===== Round 1 (winners) =====
+  // ===== Round 1 Logic =====
   function handleChangeMatch(index, field, value) {
     setMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
@@ -534,7 +498,6 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-  // add player into next empty R1 slot
   function handleAddPlayerToBracket(playerId) {
     setMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
@@ -565,7 +528,7 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // used + duplicates (R1)
+  // used + duplicates
   const usedIds = new Set();
   const placedCount = {};
   matches.forEach((m) => {
@@ -588,7 +551,6 @@ function BracketEditor({ tournamentId, players }) {
 
   const losersR1 = computeLosersFromMatches(matches);
   const winnersChosenR1 = losersR1.length;
-  const winnersR1 = computeWinnersFromMatches(matches);
 
   // ===== LB Round 1 =====
   function handleRandomizeLB1() {
@@ -598,13 +560,11 @@ function BracketEditor({ tournamentId, players }) {
       );
       return;
     }
-
     const shuffled = [...losersR1];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-
     const pairs = buildPairsFromIds(shuffled);
     setLbMatches1(pairs);
     setSaveMessage(
@@ -617,7 +577,6 @@ function BracketEditor({ tournamentId, players }) {
       const copy = prev.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
       copy[index][slot] = value || null;
-
       const m = copy[index];
       if (
         m.winnerId &&
@@ -634,7 +593,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches1((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -646,18 +604,12 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // ===== Winners Round 2 (QF) – FIXED SLOTS =====
+  // ===== Winners Round 2 (QF) =====
   function handleBuildQF() {
     if (!matches.length) {
       setSaveMessage("You need Round 1 matches before building Quarterfinals.");
       return;
     }
-
-    // Fixed mapping by index:
-    // R1[0] + R1[1] → QF[0]
-    // R1[2] + R1[3] → QF[1]
-    // R1[4] + R1[5] → QF[2]
-    // R1[6] + R1[7] → QF[3]
     const totalR1 = matches.length;
     const numQF = Math.ceil(totalR1 / 2);
     const nextQF = [];
@@ -665,34 +617,25 @@ function BracketEditor({ tournamentId, players }) {
     for (let i = 0; i < numQF; i++) {
       const r1IndexA = i * 2;
       const r1IndexB = i * 2 + 1;
-
       const mA = matches[r1IndexA] || {};
       const mB = matches[r1IndexB] || {};
-
       const r1WinnerA = mA.winnerId || null;
       const r1WinnerB = mB.winnerId || null;
-
-      // Preserve any manual edits where possible
       const existing = qfMatches[i] || {
         player1Id: null,
         player2Id: null,
         winnerId: null,
       };
-
       const player1Id = r1WinnerA || existing.player1Id || null;
       const player2Id = r1WinnerB || existing.player2Id || null;
-
       let winnerId = existing.winnerId;
       if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
         winnerId = null;
       }
-
       nextQF.push({ player1Id, player2Id, winnerId });
     }
 
     setQfMatches(nextQF);
-
-    // Downstream depends on QF → clear it
     setSfMatches([]);
     setLbMatches2([]);
     setLbMatches3a([]);
@@ -701,9 +644,8 @@ function BracketEditor({ tournamentId, players }) {
     setWbFinalMatches([emptyFinalMatch]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-
     setSaveMessage(
-      "Quarterfinals built from Round 1 winners with fixed slots. Unfinished R1 matches leave empty QF slots."
+      "Quarterfinals built from Round 1 winners with fixed slots."
     );
   }
 
@@ -711,7 +653,6 @@ function BracketEditor({ tournamentId, players }) {
     setQfMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       copy[index] = { ...copy[index], [field]: value || null };
-
       const m = copy[index];
       if (
         (field === "player1Id" || field === "player2Id") &&
@@ -721,7 +662,6 @@ function BracketEditor({ tournamentId, players }) {
       ) {
         m.winnerId = null;
       }
-
       return copy;
     });
   }
@@ -730,7 +670,6 @@ function BracketEditor({ tournamentId, players }) {
     setQfMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -743,62 +682,47 @@ function BracketEditor({ tournamentId, players }) {
   }
 
   const losersR2 = computeLosersFromMatches(qfMatches);
-  const winnersR2 = computeWinnersFromMatches(qfMatches);
 
-  // ===== LB Round 2 (LB1 winners vs QF losers, FIXED BY INDEX) =====
+  // ===== LB Round 2 =====
   function handleBuildLB2() {
     const totalLB1 = lbMatches1.length;
     const totalQF = qfMatches.length;
     const numLB2 = Math.max(totalLB1, totalQF);
-
     if (!numLB2) {
       setSaveMessage(
         "You need LB Round 1 and Quarterfinals before building LB Round 2."
       );
       return;
     }
-
     const nextLB2 = [];
-
     for (let i = 0; i < numLB2; i++) {
       const lb1 = lbMatches1[i] || {};
       const qf = qfMatches[i] || {};
-
       const lbWinner = lb1.winnerId || null;
-
-      // Loser of this specific QF match (same index i)
       let qfLoser = null;
       if (qf.winnerId && qf.player1Id && qf.player2Id) {
         qfLoser = qf.winnerId === qf.player1Id ? qf.player2Id : qf.player1Id;
       }
-
       const existing = lbMatches2[i] || {
         player1Id: null,
         player2Id: null,
         winnerId: null,
       };
-
       const player1Id = lbWinner || existing.player1Id || null;
       const player2Id = qfLoser || existing.player2Id || null;
-
       let winnerId = existing.winnerId;
       if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
         winnerId = null;
       }
-
       nextLB2.push({ player1Id, player2Id, winnerId });
     }
-
     setLbMatches2(nextLB2);
     setLbMatches3a([]);
     setLbMatches3b([]);
     setLbMatches4([]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-
-    setSaveMessage(
-      "Losers Bracket Round 2 built: each LB1 winner faces the aligned QF loser (fixed slots)."
-    );
+    setSaveMessage("Losers Bracket Round 2 built.");
   }
 
   function handleChangeLbMatch2(index, slot, value) {
@@ -806,7 +730,6 @@ function BracketEditor({ tournamentId, players }) {
       const copy = prev.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
       copy[index][slot] = value || null;
-
       const m = copy[index];
       if (
         m.winnerId &&
@@ -823,7 +746,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches2((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -835,7 +757,7 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // ===== Winners Round 3 (SF) – FIXED SLOTS =====
+  // ===== Winners Round 3 (SF) =====
   function handleBuildSF() {
     if (!qfMatches.length) {
       setSaveMessage(
@@ -843,41 +765,29 @@ function BracketEditor({ tournamentId, players }) {
       );
       return;
     }
-
-    // Fixed mapping:
-    // QF[0] + QF[1] winners → SF[0]
-    // QF[2] + QF[3] winners → SF[1]
     const totalQF = qfMatches.length;
     const numSF = Math.ceil(totalQF / 2);
     const nextSF = [];
-
     for (let i = 0; i < numSF; i++) {
       const qfIndexA = i * 2;
       const qfIndexB = i * 2 + 1;
-
       const qa = qfMatches[qfIndexA] || {};
       const qb = qfMatches[qfIndexB] || {};
-
       const winnerA = qa.winnerId || null;
       const winnerB = qb.winnerId || null;
-
       const existing = sfMatches[i] || {
         player1Id: null,
         player2Id: null,
         winnerId: null,
       };
-
       const player1Id = winnerA || existing.player1Id || null;
       const player2Id = winnerB || existing.player2Id || null;
-
       let winnerId = existing.winnerId;
       if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
         winnerId = null;
       }
-
       nextSF.push({ player1Id, player2Id, winnerId });
     }
-
     setSfMatches(nextSF);
     setLbMatches3a([]);
     setLbMatches3b([]);
@@ -885,17 +795,13 @@ function BracketEditor({ tournamentId, players }) {
     setWbFinalMatches([emptyFinalMatch]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-
-    setSaveMessage(
-      "Semifinals built from Quarterfinal winners with fixed slots. Unfinished QF matches leave empty SF slots."
-    );
+    setSaveMessage("Semifinals built from Quarterfinal winners.");
   }
 
   function handleChangeSFMatch(index, field, value) {
     setSfMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       copy[index] = { ...copy[index], [field]: value || null };
-
       const m = copy[index];
       if (
         (field === "player1Id" || field === "player2Id") &&
@@ -913,7 +819,6 @@ function BracketEditor({ tournamentId, players }) {
     setSfMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -925,9 +830,7 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  const sfLosers = computeLosersFromMatches(sfMatches);
-
-  // ===== LB Round 3A (LB2 winners vs each other, FIXED BY INDEX) =====
+  // ===== LB Round 3A =====
   function handleBuildLB3A() {
     if (!lbMatches2.length) {
       setSaveMessage(
@@ -935,50 +838,35 @@ function BracketEditor({ tournamentId, players }) {
       );
       return;
     }
-
-    // Fixed mapping:
-    // LB2[0] + LB2[1] winners → LB3A[0]
-    // LB2[2] + LB2[3] winners → LB3A[1]
     const totalLB2 = lbMatches2.length;
     const numLB3A = Math.ceil(totalLB2 / 2);
     const nextLB3A = [];
-
     for (let i = 0; i < numLB3A; i++) {
       const lb2IndexA = i * 2;
       const lb2IndexB = i * 2 + 1;
-
       const mA = lbMatches2[lb2IndexA] || {};
       const mB = lbMatches2[lb2IndexB] || {};
-
       const winnerA = mA.winnerId || null;
       const winnerB = mB.winnerId || null;
-
       const existing = lbMatches3a[i] || {
         player1Id: null,
         player2Id: null,
         winnerId: null,
       };
-
       const player1Id = winnerA || existing.player1Id || null;
       const player2Id = winnerB || existing.player2Id || null;
-
       let winnerId = existing.winnerId;
       if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
         winnerId = null;
       }
-
       nextLB3A.push({ player1Id, player2Id, winnerId });
     }
-
     setLbMatches3a(nextLB3A);
     setLbMatches3b([]);
     setLbMatches4([]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-
-    setSaveMessage(
-      "Losers Bracket Round 3A built from LB Round 2 winners with fixed slots."
-    );
+    setSaveMessage("Losers Bracket Round 3A built.");
   }
 
   function handleChangeLbMatch3A(index, slot, value) {
@@ -986,7 +874,6 @@ function BracketEditor({ tournamentId, players }) {
       const copy = prev.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
       copy[index][slot] = value || null;
-
       const m = copy[index];
       if (
         m.winnerId &&
@@ -1003,7 +890,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -1017,7 +903,7 @@ function BracketEditor({ tournamentId, players }) {
 
   const lb3aWinners = computeWinnersFromMatches(lbMatches3a);
 
-  // ===== LB Round 3B (LB3A winners vs SF losers, FIXED BY INDEX) =====
+  // ===== LB Round 3B =====
   function handleBuildLB3B() {
     if (!lbMatches3a.length) {
       setSaveMessage(
@@ -1031,49 +917,34 @@ function BracketEditor({ tournamentId, players }) {
       );
       return;
     }
-
-    // Fixed mapping:
-    // LB3A[0] winner vs SF[0] loser → LB3B[0]
-    // LB3A[1] winner vs SF[1] loser → LB3B[1]
     const numLB3B = Math.max(lbMatches3a.length, sfMatches.length);
     const nextLB3B = [];
-
     for (let i = 0; i < numLB3B; i++) {
       const lb3A = lbMatches3a[i] || {};
       const sf = sfMatches[i] || {};
-
       const lb3AWinner = lb3A.winnerId || null;
-
       let sfLoser = null;
       if (sf.winnerId && sf.player1Id && sf.player2Id) {
         sfLoser = sf.winnerId === sf.player1Id ? sf.player2Id : sf.player1Id;
       }
-
       const existing = lbMatches3b[i] || {
         player1Id: null,
         player2Id: null,
         winnerId: null,
       };
-
       const player1Id = lb3AWinner || existing.player1Id || null;
       const player2Id = sfLoser || existing.player2Id || null;
-
       let winnerId = existing.winnerId;
       if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
         winnerId = null;
       }
-
       nextLB3B.push({ player1Id, player2Id, winnerId });
     }
-
     setLbMatches3b(nextLB3B);
     setLbMatches4([]);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-
-    setSaveMessage(
-      "Losers Bracket Round 3B built: each LB3A winner faces the aligned SF loser (fixed slots)."
-    );
+    setSaveMessage("Losers Bracket Round 3B built.");
   }
 
   function handleChangeLbMatch3B(index, slot, value) {
@@ -1081,7 +952,6 @@ function BracketEditor({ tournamentId, players }) {
       const copy = prev.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
       copy[index][slot] = value || null;
-
       const m = copy[index];
       if (
         m.winnerId &&
@@ -1098,7 +968,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3b((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -1112,7 +981,7 @@ function BracketEditor({ tournamentId, players }) {
 
   const lb3bWinners = computeWinnersFromMatches(lbMatches3b);
 
-  // ===== LB Round 4 (LB3B winners vs each other, FIXED BY INDEX) =====
+  // ===== LB Round 4 =====
   function handleBuildLB4() {
     if (!lbMatches3b.length) {
       setSaveMessage(
@@ -1120,47 +989,33 @@ function BracketEditor({ tournamentId, players }) {
       );
       return;
     }
-
-    // Fixed mapping:
-    // LB3B[0] + LB3B[1] winners → LB4[0]
     const totalLB3B = lbMatches3b.length;
     const numLB4 = Math.ceil(totalLB3B / 2);
     const nextLB4 = [];
-
     for (let i = 0; i < numLB4; i++) {
       const indexA = i * 2;
       const indexB = i * 2 + 1;
-
       const mA = lbMatches3b[indexA] || {};
       const mB = lbMatches3b[indexB] || {};
-
       const winnerA = mA.winnerId || null;
       const winnerB = mB.winnerId || null;
-
       const existing = lbMatches4[i] || {
         player1Id: null,
         player2Id: null,
         winnerId: null,
       };
-
       const player1Id = winnerA || existing.player1Id || null;
       const player2Id = winnerB || existing.player2Id || null;
-
       let winnerId = existing.winnerId;
       if (winnerId && winnerId !== player1Id && winnerId !== player2Id) {
         winnerId = null;
       }
-
       nextLB4.push({ player1Id, player2Id, winnerId });
     }
-
     setLbMatches4(nextLB4);
     setLbFinalMatches([emptyFinalMatch]);
     setGrandFinalMatches([emptyFinalMatch]);
-
-    setSaveMessage(
-      "Losers Bracket Round 4 built from LB3B winners with fixed slots."
-    );
+    setSaveMessage("Losers Bracket Round 4 built.");
   }
 
   function handleChangeLbMatch4(index, slot, value) {
@@ -1168,7 +1023,6 @@ function BracketEditor({ tournamentId, players }) {
       const copy = prev.map((m) => ({ ...m }));
       if (!copy[index]) return copy;
       copy[index][slot] = value || null;
-
       const m = copy[index];
       if (
         m.winnerId &&
@@ -1185,7 +1039,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches4((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -1197,12 +1050,11 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // ===== Winners Final (WB Final) =====
+  // ===== Winners Final =====
   function handleChangeWbFinal(index, field, value) {
     setWbFinalMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       copy[index] = { ...copy[index], [field]: value || null };
-
       const m = copy[index];
       if (
         (field === "player1Id" || field === "player2Id") &&
@@ -1235,12 +1087,10 @@ function BracketEditor({ tournamentId, players }) {
         loserId = winnerId === m.player1Id ? m.player2Id : m.player1Id;
       }
 
-      // Auto-fill Losers Final (LB Final) and Grand Final slot 1
+      // Auto-fill Losers Final and Grand Final slot 1
       if (winnerId || loserId) {
         const lb4Winners = computeWinnersFromMatches(lbMatches4);
         const lb4Winner = lb4Winners[0] || null;
-
-        // Auto-fill LB Final vs LB4 winner
         if (lb4Winner || loserId) {
           setLbFinalMatches((prevLB) => {
             const next = prevLB.map((mm) => ({ ...mm }));
@@ -1248,11 +1098,8 @@ function BracketEditor({ tournamentId, players }) {
               next[0] = { player1Id: null, player2Id: null, winnerId: null };
             }
             const lf = next[0];
-
-            // Only fill empty slots so admin can still override manually
             if (!lf.player1Id && lb4Winner) lf.player1Id = lb4Winner;
             if (!lf.player2Id && loserId) lf.player2Id = loserId;
-
             if (
               lf.winnerId &&
               lf.winnerId !== lf.player1Id &&
@@ -1263,8 +1110,6 @@ function BracketEditor({ tournamentId, players }) {
             return next;
           });
         }
-
-        // Auto-fill Grand Final slot 1 with Winners Final winner
         if (winnerId) {
           setGrandFinalMatches((prevGF) => {
             const next = prevGF.map((mm) => ({ ...mm }));
@@ -1272,11 +1117,9 @@ function BracketEditor({ tournamentId, players }) {
               next[0] = { player1Id: null, player2Id: null, winnerId: null };
             }
             const gf = next[0];
-
             if (!gf.player1Id) {
               gf.player1Id = winnerId;
             }
-
             if (
               gf.winnerId &&
               gf.winnerId !== gf.player1Id &&
@@ -1284,12 +1127,10 @@ function BracketEditor({ tournamentId, players }) {
             ) {
               gf.winnerId = null;
             }
-
             return next;
           });
         }
       }
-
       return copy;
     });
   }
@@ -1299,7 +1140,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbFinalMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       copy[index] = { ...copy[index], [field]: value || null };
-
       const m = copy[index];
       if (
         (field === "player1Id" || field === "player2Id") &&
@@ -1327,8 +1167,6 @@ function BracketEditor({ tournamentId, players }) {
       }
 
       const winnerId = m.winnerId || null;
-
-      // Auto-fill Grand Final slot 2 with Losers Final winner
       if (winnerId) {
         setGrandFinalMatches((prevGF) => {
           const next = prevGF.map((mm) => ({ ...mm }));
@@ -1336,11 +1174,9 @@ function BracketEditor({ tournamentId, players }) {
             next[0] = { player1Id: null, player2Id: null, winnerId: null };
           }
           const gf = next[0];
-
           if (!gf.player2Id) {
             gf.player2Id = winnerId;
           }
-
           if (
             gf.winnerId &&
             gf.winnerId !== gf.player1Id &&
@@ -1348,11 +1184,9 @@ function BracketEditor({ tournamentId, players }) {
           ) {
             gf.winnerId = null;
           }
-
           return next;
         });
       }
-
       return copy;
     });
   }
@@ -1362,7 +1196,6 @@ function BracketEditor({ tournamentId, players }) {
     setGrandFinalMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       copy[index] = { ...copy[index], [field]: value || null };
-
       const m = copy[index];
       if (
         (field === "player1Id" || field === "player2Id") &&
@@ -1380,7 +1213,6 @@ function BracketEditor({ tournamentId, players }) {
     setGrandFinalMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
       const m = copy[index];
-
       if (which === "p1") {
         if (!m.player1Id) return prev;
         m.winnerId = m.player1Id;
@@ -1391,7 +1223,8 @@ function BracketEditor({ tournamentId, players }) {
       return copy;
     });
   }
-  // ===== Ranking computation (1st–16th) =====
+
+  // ===== Ranking =====
   function computeRanking() {
     const ranking = {
       first: null,
@@ -1405,20 +1238,11 @@ function BracketEditor({ tournamentId, players }) {
     };
 
     const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
-
-    // 13–16: LB Round 1 losers
     ranking.thirteenToSixteen = uniq(computeLosersFromMatches(lbMatches1));
-
-    // 9–12: LB Round 2 losers
     ranking.nineToTwelve = uniq(computeLosersFromMatches(lbMatches2));
-
-    // 7–8: LB Round 3A losers
     ranking.sevenToEight = uniq(computeLosersFromMatches(lbMatches3a));
-
-    // 5–6: LB Round 3B losers
     ranking.fiveToSix = uniq(computeLosersFromMatches(lbMatches3b));
 
-    // 4th: loser of LB Round 4 (single match)
     if (lbMatches4 && lbMatches4[0]) {
       const m = lbMatches4[0];
       if (m.winnerId && m.player1Id && m.player2Id) {
@@ -1426,8 +1250,6 @@ function BracketEditor({ tournamentId, players }) {
           m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
       }
     }
-
-    // 3rd: loser of Losers Final (LB Final, single match)
     if (lbFinalMatches && lbFinalMatches[0]) {
       const m = lbFinalMatches[0];
       if (m.winnerId && m.player1Id && m.player2Id) {
@@ -1435,8 +1257,6 @@ function BracketEditor({ tournamentId, players }) {
           m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
       }
     }
-
-    // 1st / 2nd: Grand Final winner & loser (single match)
     if (grandFinalMatches && grandFinalMatches[0]) {
       const m = grandFinalMatches[0];
       if (m.winnerId && m.player1Id && m.player2Id) {
@@ -1445,35 +1265,33 @@ function BracketEditor({ tournamentId, players }) {
           m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
       }
     }
-
     return ranking;
   }
 
-  // ===== Save all =====
+  // ===== Save =====
   async function handleSave() {
     setSaving(true);
     setSaveMessage("");
     try {
       const ranking = computeRanking();
-
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            matches, // winners R1
-            matches2: qfMatches, // winners QF
-            matches3: sfMatches, // winners SF
-            lbMatches: lbMatches1, // LB R1
-            lbMatches2: lbMatches2, // LB R2
-            lbMatches3: lbMatches3a, // LB R3A
-            lbMatches4: lbMatches3b, // LB R3B
-            lbMatches5: lbMatches4, // LB R4
-            winnersFinal: wbFinalMatches, // WB Final
-            lbFinal: lbFinalMatches, // LB Final
-            grandFinal: grandFinalMatches, // Grand Final
-            ranking, // 1st–16th placements
+            matches,
+            matches2: qfMatches,
+            matches3: sfMatches,
+            lbMatches: lbMatches1,
+            lbMatches2: lbMatches2,
+            lbMatches3: lbMatches3a,
+            lbMatches4: lbMatches3b,
+            lbMatches5: lbMatches4,
+            winnersFinal: wbFinalMatches,
+            lbFinal: lbFinalMatches,
+            grandFinal: grandFinalMatches,
+            ranking,
           }),
         }
       );
@@ -1482,9 +1300,7 @@ function BracketEditor({ tournamentId, players }) {
         const err = await res.json().catch(() => ({}));
         setSaveMessage(err.error || "Failed to save bracket.");
       } else {
-        setSaveMessage(
-          "Saved: Winners R1/QF/SF, Losers R1–R4, Winners Final, Losers Final, Grand Final, and ranking 1st–16th."
-        );
+        setSaveMessage("Successfully saved all rounds and ranking.");
       }
     } catch (err) {
       console.error("Save error", err);
@@ -1494,16 +1310,15 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-  // ===== RESET all (use reset API) =====
+  // ===== Reset =====
   async function handleReset() {
     if (
       !window.confirm(
-        "Are you sure you want to RESET the entire bracket for this tournament? This will clear all rounds, finals, and results from the database. This cannot be undone."
+        "Are you sure you want to RESET the entire bracket? This cannot be undone."
       )
     ) {
       return;
     }
-
     setResetting(true);
     setSaveMessage("");
     try {
@@ -1519,7 +1334,6 @@ function BracketEditor({ tournamentId, players }) {
       if (!res.ok) {
         setSaveMessage(data.error || "Failed to reset bracket.");
       } else {
-        // Clear all local state back to fresh / empty
         setMatches([]);
         setQfMatches([]);
         setSfMatches([]);
@@ -1531,10 +1345,7 @@ function BracketEditor({ tournamentId, players }) {
         setWbFinalMatches([emptyFinalMatch]);
         setLbFinalMatches([emptyFinalMatch]);
         setGrandFinalMatches([emptyFinalMatch]);
-
-        setSaveMessage(
-          "Bracket has been reset. All winners/losers and rounds are cleared in the database."
-        );
+        setSaveMessage("Bracket has been reset.");
       }
     } catch (err) {
       console.error("Reset error", err);
@@ -1544,7 +1355,8 @@ function BracketEditor({ tournamentId, players }) {
     }
   }
 
-  if (loading) return <p style={{ color: "#e5e7eb" }}>Loading bracket…</p>;
+  if (loading)
+    return <div className={styles["admin-container"]}>Loading bracket…</div>;
 
   const losersR2Count = losersR2.length;
   const lb2WinnerCount = computeWinnersFromMatches(lbMatches2).length;
@@ -1553,138 +1365,65 @@ function BracketEditor({ tournamentId, players }) {
   const lb3bWinnerCount = lb3bWinners.length;
 
   return (
-    <div style={{ marginTop: 10 }}>
-      {/* Top stats / actions */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
+    <div className={styles["bracket-editor-wrapper"]}>
+      {/* TOP TOOLBAR */}
+      <div className={styles["toolbar"]}>
         <button
           type="button"
           onClick={handleRandomizeR1}
           disabled={randomizing || players.length < 2}
-          style={{
-            background: randomizing ? "#1d4ed8" : "#2563eb",
-            padding: "8px 14px",
-            borderRadius: 8,
-            border: "none",
-            color: "white",
-            cursor:
-              randomizing || players.length < 2 ? "not-allowed" : "pointer",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-          }}
+          className={`${styles["btn"]} ${styles["btn-primary"]}`}
         >
-          {randomizing
-            ? "Randomizing..."
-            : "🔀 Randomize Round 1 from registrations"}
+          {randomizing ? "Randomizing..." : "🔀 Randomize R1"}
         </button>
 
         <button
           type="button"
           onClick={handleReset}
           disabled={resetting}
-          style={{
-            background: resetting ? "#7f1d1d" : "#b91c1c",
-            padding: "8px 14px",
-            borderRadius: 8,
-            border: "none",
-            color: "white",
-            cursor: resetting ? "wait" : "pointer",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-          }}
+          className={`${styles["btn"]} ${styles["btn-danger"]}`}
         >
-          {resetting ? "Resetting..." : "🧹 Reset entire bracket"}
+          {resetting ? "Resetting..." : "🧹 Reset Bracket"}
         </button>
 
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          Placed in R1: {usedCount} / {totalCount}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          R1 winners: {winnersChosenR1}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          QF losers: {losersR2Count}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          LB2 winners: {lb2WinnerCount}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          SF winners: {sfWinnerCount}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          LB3A winners: {lb3aWinnerCount}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          LB3B winners: {lb3bWinnerCount}
-        </span>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className={`${styles["btn"]} ${styles["btn-success"]}`}
+        >
+          {saving ? "Saving..." : "💾 Save Changes"}
+        </button>
+
+        <div className={styles["stats-grid"]}>
+          <div className={styles["stat-pill"]}>
+            Placed: {usedCount}/{totalCount}
+          </div>
+          <div className={styles["stat-pill"]}>
+            R1 Winners: {winnersChosenR1}
+          </div>
+          <div className={styles["stat-pill"]}>
+            LB2 Winners: {lb2WinnerCount}
+          </div>
+        </div>
       </div>
 
-      {/* Unplaced + duplicates */}
-      <div
-        style={{
-          marginBottom: 10,
-          padding: "10px 12px",
-          borderRadius: 8,
-          background: "#020617",
-          border: "1px solid #1f2937",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            color: "#e5e7eb",
-            marginBottom: 6,
-          }}
-        >
-          Players not placed in Round 1:
-        </div>
+      {/* UNPLACED PLAYERS */}
+      <div className={styles["player-pool"]}>
+        <div className={styles["pool-title"]}>Unplaced Players (Round 1)</div>
         {unusedPlayers.length === 0 ? (
-          <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-            All registered players are placed in Round 1.
-          </div>
+          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+            All players placed.
+          </span>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className={styles["tag-cloud"]}>
             {unusedPlayers.map((p) => (
-              <div
-                key={p._id}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "4px 8px",
-                  borderRadius: 9999,
-                  background: "#0f172a",
-                  border: "1px solid #1f2937",
-                  fontSize: "0.8rem",
-                  color: "#e5e7eb",
-                }}
-              >
+              <div key={p._id} className={styles["player-tag"]}>
                 <span>{p.ign || p.username || "Unknown"}</span>
                 <button
                   type="button"
                   onClick={() => handleAddPlayerToBracket(p._id)}
-                  style={{
-                    border: "none",
-                    borderRadius: "9999px",
-                    width: 20,
-                    height: 20,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.9rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    background: "#22c55e",
-                    color: "#0b1120",
-                  }}
+                  className={styles["add-btn"]}
                 >
                   +
                 </button>
@@ -1694,59 +1433,18 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
-      <div
-        style={{
-          marginBottom: 16,
-          padding: "10px 12px",
-          borderRadius: 8,
-          background: "#111827",
-          border: duplicatePlayers.length
-            ? "1px solid #f97373"
-            : "1px solid #1f2937",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            color: duplicatePlayers.length ? "#fecaca" : "#e5e7eb",
-            marginBottom: 6,
-          }}
-        >
-          Players placed more than once in Round 1:
+      {/* DUPLICATES ALERT */}
+      {duplicatePlayers.length > 0 && (
+        <div className={`${styles["alert-box"]} ${styles["alert-danger"]}`}>
+          <strong>Warning:</strong> The following players are placed multiple
+          times:{" "}
+          {duplicatePlayers.map(
+            (p) => `${p.ign || p.username} (x${placedCount[p._id]}), `
+          )}
         </div>
-        {duplicatePlayers.length === 0 ? (
-          <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-            No duplicates detected.
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {duplicatePlayers.map((p) => (
-              <div
-                key={p._id}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "4px 8px",
-                  borderRadius: 9999,
-                  background: "#7f1d1d",
-                  border: "1px solid #fecaca",
-                  fontSize: "0.8rem",
-                  color: "#fee2e2",
-                }}
-              >
-                <span>{p.ign || p.username || "Unknown"}</span>
-                <span style={{ fontSize: "0.75rem" }}>
-                  ×{placedCount[p._id] || 0}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* ===== R1 Winners UI ===== */}
+      {/* WINNERS BRACKET */}
       <RoundBlock
         title="Winners Round 1"
         matches={matches}
@@ -1758,24 +1456,12 @@ function BracketEditor({ tournamentId, players }) {
         placedCount={placedCount}
       />
 
-      {/* ===== QF (Winners R2) ===== */}
       <button
         type="button"
         onClick={handleBuildQF}
-        style={{
-          marginTop: 16,
-          marginBottom: 8,
-          background: "#0ea5e9",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
       >
-        Build Quarterfinals from R1 winners
+        ▼ Build Quarterfinals from R1 winners
       </button>
       <RoundBlock
         title="Winners Quarterfinals"
@@ -1786,80 +1472,12 @@ function BracketEditor({ tournamentId, players }) {
         labelFromId={labelFromId}
       />
 
-      {/* ===== LB R1 ===== */}
-      <button
-        type="button"
-        onClick={handleRandomizeLB1}
-        style={{
-          marginTop: 18,
-          marginBottom: 8,
-          background: "#10b981",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
-      >
-        Build LB Round 1 from R1 losers
-      </button>
-      <RoundBlock
-        title="Losers Bracket — Round 1"
-        matches={lbMatches1}
-        onChange={handleChangeLbMatch1}
-        onSetWinner={handleSetWinnerLB1}
-        allOptions={allOptions}
-        labelFromId={labelFromId}
-      />
-
-      {/* ===== LB R2 ===== */}
-      <button
-        type="button"
-        onClick={handleBuildLB2}
-        style={{
-          marginTop: 18,
-          marginBottom: 8,
-          background: "#0ea5e9",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
-      >
-        Build LB Round 2 (LB1 winners vs QF losers)
-      </button>
-      <RoundBlock
-        title="Losers Bracket — Round 2"
-        matches={lbMatches2}
-        onChange={handleChangeLbMatch2}
-        onSetWinner={handleSetWinnerLB2}
-        allOptions={allOptions}
-        labelFromId={labelFromId}
-      />
-
-      {/* ===== SF (Winners R3) ===== */}
       <button
         type="button"
         onClick={handleBuildSF}
-        style={{
-          marginTop: 18,
-          marginBottom: 8,
-          background: "#6366f1",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
       >
-        Build Semifinals from QF winners
+        ▼ Build Semifinals from QF winners
       </button>
       <RoundBlock
         title="Winners Semifinals"
@@ -1870,27 +1488,73 @@ function BracketEditor({ tournamentId, players }) {
         labelFromId={labelFromId}
       />
 
-      {/* ===== LB R3A ===== */}
+      <RoundBlock
+        title="Winners Final"
+        matches={wbFinalMatches}
+        onChange={handleChangeWbFinal}
+        onSetWinner={handleSetWinnerWbFinal}
+        allOptions={allOptions}
+        labelFromId={labelFromId}
+      />
+
+      {/* LOSERS BRACKET */}
+      <div
+        style={{
+          margin: "60px 0 20px 0",
+          borderBottom: "1px solid var(--border)",
+        }}
+      ></div>
+      <h2
+        style={{
+          fontSize: "1.5rem",
+          marginBottom: "20px",
+          color: "#94a3b8",
+        }}
+      >
+        Losers Bracket
+      </h2>
+
+      <button
+        type="button"
+        onClick={handleRandomizeLB1}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+      >
+        ▼ Build LB Round 1 from R1 losers
+      </button>
+      <RoundBlock
+        title="Losers Round 1"
+        matches={lbMatches1}
+        onChange={handleChangeLbMatch1}
+        onSetWinner={handleSetWinnerLB1}
+        allOptions={allOptions}
+        labelFromId={labelFromId}
+      />
+
+      <button
+        type="button"
+        onClick={handleBuildLB2}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+      >
+        ▼ Build LB Round 2 (LB1 winners vs QF losers)
+      </button>
+      <RoundBlock
+        title="Losers Round 2"
+        matches={lbMatches2}
+        onChange={handleChangeLbMatch2}
+        onSetWinner={handleSetWinnerLB2}
+        allOptions={allOptions}
+        labelFromId={labelFromId}
+      />
+
       <button
         type="button"
         onClick={handleBuildLB3A}
-        style={{
-          marginTop: 18,
-          marginBottom: 8,
-          background: "#22c55e",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
       >
-        Build LB Round 3A from LB2 winners
+        ▼ Build LB Round 3A (LB2 winners vs LB2 winners)
       </button>
       <RoundBlock
-        title="Losers Bracket — Round 3A"
+        title="Losers Round 3A"
         matches={lbMatches3a}
         onChange={handleChangeLbMatch3A}
         onSetWinner={handleSetWinnerLB3A}
@@ -1898,27 +1562,15 @@ function BracketEditor({ tournamentId, players }) {
         labelFromId={labelFromId}
       />
 
-      {/* ===== LB R3B ===== */}
       <button
         type="button"
         onClick={handleBuildLB3B}
-        style={{
-          marginTop: 18,
-          marginBottom: 8,
-          background: "#22c55e",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
       >
-        Build LB Round 3B (LB3A winners vs SF losers)
+        ▼ Build LB Round 3B (LB3A winners vs SF losers)
       </button>
       <RoundBlock
-        title="Losers Bracket — Round 3B"
+        title="Losers Round 3B"
         matches={lbMatches3b}
         onChange={handleChangeLbMatch3B}
         onSetWinner={handleSetWinnerLB3B}
@@ -1926,27 +1578,15 @@ function BracketEditor({ tournamentId, players }) {
         labelFromId={labelFromId}
       />
 
-      {/* ===== LB R4 ===== */}
       <button
         type="button"
         onClick={handleBuildLB4}
-        style={{
-          marginTop: 18,
-          marginBottom: 8,
-          background: "#ec4899",
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "none",
-          color: "white",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
+        className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
       >
-        Build LB Round 4 from LB3B winners
+        ▼ Build LB Round 4 (LB3B winners vs LB3B winners)
       </button>
       <RoundBlock
-        title="Losers Bracket — Round 4"
+        title="Losers Round 4"
         matches={lbMatches4}
         onChange={handleChangeLbMatch4}
         onSetWinner={handleSetWinnerLB4}
@@ -1954,104 +1594,53 @@ function BracketEditor({ tournamentId, players }) {
         labelFromId={labelFromId}
       />
 
-      {/* ===== Winners Final ===== */}
-      <div style={{ marginTop: 18 }}>
-        <h3
-          style={{
-            fontSize: "1.05rem",
-            marginBottom: 6,
-            color: "#e5e7eb",
-          }}
-        >
-          Winners Bracket Final
-        </h3>
-        <RoundBlock
-          title="Winners Final"
-          matches={wbFinalMatches}
-          onChange={handleChangeWbFinal}
-          onSetWinner={handleSetWinnerWbFinal}
-          allOptions={allOptions}
-          labelFromId={labelFromId}
-        />
-      </div>
+      <RoundBlock
+        title="Losers Final"
+        matches={lbFinalMatches}
+        onChange={handleChangeLbFinal}
+        onSetWinner={handleSetWinnerLbFinal}
+        allOptions={allOptions}
+        labelFromId={labelFromId}
+      />
 
-      {/* ===== Losers Final ===== */}
-      <div style={{ marginTop: 18 }}>
-        <h3
-          style={{
-            fontSize: "1.05rem",
-            marginBottom: 6,
-            color: "#e5e7eb",
-          }}
-        >
-          Losers Bracket Final
-        </h3>
-        <RoundBlock
-          title="Losers Final"
-          matches={lbFinalMatches}
-          onChange={handleChangeLbFinal}
-          onSetWinner={handleSetWinnerLbFinal}
-          allOptions={allOptions}
-          labelFromId={labelFromId}
-        />
-      </div>
+      {/* GRAND FINAL */}
+      <div
+        style={{
+          margin: "60px 0 20px 0",
+          borderBottom: "1px solid var(--border)",
+        }}
+      ></div>
+      <h2
+        style={{
+          fontSize: "1.5rem",
+          marginBottom: "20px",
+          color: "#fbbf24",
+        }}
+      >
+        Championship
+      </h2>
 
-      {/* ===== Grand Final ===== */}
-      <div style={{ marginTop: 18 }}>
-        <h3
-          style={{
-            fontSize: "1.05rem",
-            marginBottom: 6,
-            color: "#e5e7eb",
-          }}
-        >
-          Grand Final
-        </h3>
-        <RoundBlock
-          title="Grand Final"
-          matches={grandFinalMatches}
-          onChange={handleChangeGrandFinal}
-          onSetWinner={handleSetWinnerGrandFinal}
-          allOptions={allOptions}
-          labelFromId={labelFromId}
-        />
-      </div>
+      <RoundBlock
+        title="Grand Final"
+        matches={grandFinalMatches}
+        onChange={handleChangeGrandFinal}
+        onSetWinner={handleSetWinnerGrandFinal}
+        allOptions={allOptions}
+        labelFromId={labelFromId}
+      />
 
-      {/* Save + status */}
-      <div style={{ marginTop: 24 }}>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            background: saving ? "#6b7280" : "#16a34a",
-            padding: "10px 16px",
-            borderRadius: 8,
-            border: "none",
-            color: "white",
-            cursor: saving ? "wait" : "pointer",
-            fontSize: "0.95rem",
-            fontWeight: 700,
-          }}
-        >
-          {saving ? "Saving..." : "💾 Save bracket to database"}
-        </button>
-        {saveMessage && (
-          <div
-            style={{
-              marginTop: 8,
-              fontSize: "0.85rem",
-              color: "#e5e7eb",
-            }}
-          >
-            {saveMessage}
-          </div>
-        )}
-      </div>
+      {/* FLOATING SAVE BAR (If message exists or saving) */}
+      {(saveMessage || saving) && (
+        <div className={styles["save-bar"]}>
+          <span className={styles["save-msg"]}>{saveMessage}</span>
+          {saving && <span>Processing...</span>}
+        </div>
+      )}
     </div>
   );
 }
-// ---------- Small reusable block for each round ----------
+
+// ---------- REUSABLE COMPONENT ----------
 function RoundBlock({
   title,
   matches,
@@ -2062,176 +1651,90 @@ function RoundBlock({
   showDupWarning = false,
   placedCount = {},
 }) {
-  return (
-    <div style={{ marginTop: 16 }}>
-      <h3
-        style={{
-          fontSize: "1.05rem",
-          marginBottom: 6,
-          color: "#e5e7eb",
-        }}
-      >
-        {title}
-      </h3>
-      {(!matches || matches.length === 0) && (
-        <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-          No matches in this round yet.
-        </div>
-      )}
+  if (!matches || matches.length === 0) return null;
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+  return (
+    <div className={styles["round-section"]}>
+      <h3 className={styles["round-title"]}>{title}</h3>
+      <div className={styles["match-list"]}>
         {matches.map((m, i) => {
           const isWinnerP1 = m.winnerId === m.player1Id && !!m.player1Id;
           const isWinnerP2 = m.winnerId === m.player2Id && !!m.player2Id;
-
           const p1Dup =
             showDupWarning &&
             m.player1Id &&
             placedCount[m.player1Id] > 1;
-
           const p2Dup =
             showDupWarning &&
             m.player2Id &&
             placedCount[m.player2Id] > 1;
 
           return (
-            <div
-              key={i}
-              style={{
-                border: "1px solid #374151",
-                borderRadius: 8,
-                padding: "8px 10px",
-                background: "#020617",
-              }}
-            >
-              {/* Match header */}
-              <div
-                style={{
-                  marginBottom: 4,
-                  fontSize: "0.85rem",
-                  color: "#9ca3af",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
+            <div key={i} className={styles["match-card"]}>
+              <div className={styles["match-header"]}>
                 <span>Match {i + 1}</span>
                 {(p1Dup || p2Dup) && (
-                  <span style={{ color: "#fecaca", fontSize: "0.8rem" }}>
-                    ⚠ Duplicate player in this match
-                  </span>
+                  <span className={styles["dup-warning"]}>⚠ Duplicate</span>
                 )}
               </div>
 
-              {/* Player selectors */}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  alignItems: "center",
-                  marginBottom: 6,
-                }}
-              >
-                {/* Player 1 */}
+              {/* Player 1 Row */}
+              <div className={styles["match-row"]}>
                 <select
                   value={m.player1Id || ""}
                   onChange={(e) =>
                     onChange(i, "player1Id", e.target.value || null)
                   }
-                  style={{
-                    flex: "1 1 200px",
-                    background: "#020617",
-                    color: "white",
-                    borderRadius: 6,
-                    border: p1Dup
-                      ? "1px solid #f97373"
-                      : "1px solid #374151",
-                    padding: "6px 8px",
-                    fontSize: "0.9rem",
-                  }}
+                  className={`${styles["form-select"]} ${
+                    p1Dup ? styles["error"] : ""
+                  }`}
                 >
-                  <option value="">(empty slot)</option>
+                  <option value="">-- Empty --</option>
                   {allOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => onSetWinner(i, "p1")}
+                  disabled={!m.player1Id}
+                  className={`${styles["winner-btn"]} ${
+                    isWinnerP1 ? styles["active"] : ""
+                  }`}
+                >
+                  Win
+                </button>
+              </div>
 
-                <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                  vs
-                </span>
-
-                {/* Player 2 */}
+              {/* Player 2 Row */}
+              <div className={styles["match-row"]}>
                 <select
                   value={m.player2Id || ""}
                   onChange={(e) =>
                     onChange(i, "player2Id", e.target.value || null)
                   }
-                  style={{
-                    flex: "1 1 200px",
-                    background: "#020617",
-                    color: "white",
-                    borderRadius: 6,
-                    border: p2Dup
-                      ? "1px solid #f97373"
-                      : "1px solid #374151",
-                    padding: "6px 8px",
-                    fontSize: "0.9rem",
-                  }}
+                  className={`${styles["form-select"]} ${
+                    p2Dup ? styles["error"] : ""
+                  }`}
                 >
-                  <option value="">(empty slot)</option>
+                  <option value="">-- Empty --</option>
                   {allOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Winner buttons */}
-              <div
-                style={{
-                  marginTop: 4,
-                  display: "flex",
-                  gap: 8,
-                  fontSize: "0.8rem",
-                }}
-              >
-                <span style={{ color: "#9ca3af" }}>Winner:</span>
-
-                {/* Winner P1 */}
-                <button
-                  type="button"
-                  onClick={() => onSetWinner(i, "p1")}
-                  disabled={!m.player1Id}
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: 9999,
-                    border: "none",
-                    cursor: m.player1Id ? "pointer" : "not-allowed",
-                    background: isWinnerP1 ? "#22c55e" : "#1f2937",
-                    color: isWinnerP1 ? "#0b1120" : "#e5e7eb",
-                  }}
-                >
-                  {m.player1Id ? labelFromId(m.player1Id) : "Player 1"}
-                </button>
-
-                {/* Winner P2 */}
                 <button
                   type="button"
                   onClick={() => onSetWinner(i, "p2")}
                   disabled={!m.player2Id}
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: 9999,
-                    border: "none",
-                    cursor: m.player2Id ? "pointer" : "not-allowed",
-                    background: isWinnerP2 ? "#22c55e" : "#1f2937",
-                    color: isWinnerP2 ? "#0b1120" : "#e5e7eb",
-                  }}
+                  className={`${styles["winner-btn"]} ${
+                    isWinnerP2 ? styles["active"] : ""
+                  }`}
                 >
-                  {m.player2Id ? labelFromId(m.player2Id) : "Player 2"}
+                  Win
                 </button>
               </div>
             </div>
