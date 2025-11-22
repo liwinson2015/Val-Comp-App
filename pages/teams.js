@@ -10,40 +10,19 @@ import styles from "../styles/Teams.module.css";
 const GAME_META = {
   VALORANT: {
     label: "VALORANT",
-    ranks: [
-      "Unranked",
-      "Iron",
-      "Bronze",
-      "Silver",
-      "Gold",
-      "Platinum",
-      "Diamond",
-      "Ascendant",
-      "Immortal",
-      "Radiant",
-    ],
+    ranks: ["Unranked", "Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"],
     roles: ["Duelist", "Initiator", "Controller", "Sentinel", "Flex"],
+    color: "#ff4655" // Valorant Red
   },
   HOK: {
     label: "Honor of Kings",
-    ranks: [
-      "Unranked",
-      "Bronze",
-      "Silver",
-      "Gold",
-      "Platinum",
-      "Diamond",
-      "Master",
-      "Grandmaster",
-    ],
+    ranks: ["Unranked", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"],
     roles: ["Clash Lane", "Farm Lane", "Mid Lane", "Jungle", "Roamer"],
-  },
+    color: "#eab308" // HoK Gold
+  }
 };
 
-const SUPPORTED_GAMES = Object.keys(GAME_META).map((code) => ({
-  code,
-  label: GAME_META[code].label,
-}));
+const SUPPORTED_GAMES = Object.keys(GAME_META).map(code => ({ code, label: GAME_META[code].label }));
 
 function parseCookies(cookieHeader = "") {
   return Object.fromEntries(
@@ -94,7 +73,7 @@ export async function getServerSideProps({ req, query }) {
     .sort({ createdAt: 1 })
     .lean();
 
-  // Pending requests for teams where I'm captain
+  // Pending requests
   const captainTeamIds = myTeamsRaw
     .filter((t) => String(t.captain) === String(playerDoc._id))
     .map((t) => t._id);
@@ -107,11 +86,8 @@ export async function getServerSideProps({ req, query }) {
     }).lean();
   }
 
-  // Collect all member ids
   const memberIdSet = new Set();
-  function addId(id) {
-    if (id) memberIdSet.add(String(id));
-  }
+  function addId(id) { if (id) memberIdSet.add(String(id)); }
 
   myTeamsRaw.forEach((t) => {
     addId(t.captain);
@@ -131,31 +107,23 @@ export async function getServerSideProps({ req, query }) {
 
   function getDisplayNameForGame(playerObj, gameCode) {
     if (!playerObj) return "Player";
-    const base =
-      playerObj.username || playerObj.discordUsername || "Player";
-
+    const base = playerObj.username || playerObj.discordUsername || "Player";
     if (gameCode === "VALORANT") {
-      const ign =
-        playerObj.gameProfiles?.VALORANT?.ign &&
-        playerObj.gameProfiles.VALORANT.ign.trim();
+      const ign = playerObj.gameProfiles?.VALORANT?.ign && playerObj.gameProfiles.VALORANT.ign.trim();
       if (ign) return ign;
     } else if (gameCode === "HOK") {
-      const ign =
-        playerObj.gameProfiles?.HOK?.ign &&
-        playerObj.gameProfiles.HOK.ign.trim();
+      const ign = playerObj.gameProfiles?.HOK?.ign && playerObj.gameProfiles.HOK.ign.trim();
       if (ign) return ign;
     }
-
     return base;
   }
 
   const pendingForCaptainByTeam = {};
   pendingForCaptainRaw.forEach((r) => {
     const teamKey = String(r.teamId);
-    if (!pendingForCaptainByTeam[teamKey])
-      pendingForCaptainByTeam[teamKey] = [];
+    if (!pendingForCaptainByTeam[teamKey]) pendingForCaptainByTeam[teamKey] = [];
     const pDoc = playerById[String(r.playerId)];
-    const name = getDisplayNameForGame(pDoc, "VALORANT"); // default; game not critical for request list
+    const name = getDisplayNameForGame(pDoc, "VALORANT");
     pendingForCaptainByTeam[teamKey].push({
       id: String(r._id),
       playerId: String(r.playerId),
@@ -168,9 +136,8 @@ export async function getServerSideProps({ req, query }) {
     const captainId = String(t.captain);
     let memberIds = (t.members || []).map((m) => String(m));
 
-    // Ensure captain at front
     if (memberIds.indexOf(captainId) > 0) {
-      memberIds = memberIds.filter((id) => id !== captainId);
+      memberIds = memberIds.filter(id => id !== captainId);
       memberIds.unshift(captainId);
     } else if (!memberIds.includes(captainId)) {
       memberIds.unshift(captainId);
@@ -209,14 +176,6 @@ export async function getServerSideProps({ req, query }) {
       player: {
         id: playerDoc._id.toString(),
         username: playerDoc.username || playerDoc.discordUsername || "Player",
-        gameProfiles: {
-          VALORANT: {
-            ign: playerDoc.gameProfiles?.VALORANT?.ign || "",
-          },
-          HOK: {
-            ign: playerDoc.gameProfiles?.HOK?.ign || "",
-          },
-        },
       },
       initialTeams: formattedMyTeams,
       initialSelectedGame,
@@ -234,59 +193,24 @@ export default function TeamsPage({
 }) {
   const router = useRouter();
   const [teams, setTeams] = useState(initialTeams || []);
-  const [selectedGame, setSelectedGame] = useState(
-    initialSelectedGame || "ALL"
-  );
+  const [selectedGame, setSelectedGame] = useState(initialSelectedGame || "ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
-
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [joinCodeError, setJoinCodeError] = useState("");
   const [joiningByCode, setJoiningByCode] = useState(false);
-
-  // Create Modal State
+  
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
-  const [game, setGame] = useState(
-    initialSelectedGame !== "ALL"
-      ? initialSelectedGame
-      : supportedGames[0]?.code || "VALORANT"
-  );
+  const [game, setGame] = useState(initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code || "VALORANT");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  // Active Team Tab
   const [activeTeamId, setActiveTeamId] = useState(null);
 
-  // "Go Public" Modal State
   const [showPublicModal, setShowPublicModal] = useState(false);
   const [pendingPublicTeam, setPendingPublicTeam] = useState(null);
   const [publicRank, setPublicRank] = useState("Unranked");
   const [publicRoles, setPublicRoles] = useState([]);
-
-  // IGN Required Modal
-  const [showMissingProfileModal, setShowMissingProfileModal] =
-    useState(false);
-  const [missingGame, setMissingGame] = useState(null);
-
-  const valorantIgn =
-    player?.gameProfiles?.VALORANT?.ign &&
-    player.gameProfiles.VALORANT.ign.trim();
-  const hokIgn =
-    player?.gameProfiles?.HOK?.ign &&
-    player.gameProfiles.HOK.ign.trim();
-
-  function hasIgnForGame(gameCode) {
-    if (gameCode === "VALORANT") return !!valorantIgn;
-    if (gameCode === "HOK") return !!hokIgn;
-    return true; // other games have no requirement yet
-  }
-
-  function getMyDisplayNameForGame(gameCode) {
-    if (gameCode === "VALORANT" && valorantIgn) return valorantIgn;
-    if (gameCode === "HOK" && hokIgn) return hokIgn;
-    return player.username;
-  }
 
   function handleGameSelect(e) {
     const newGame = e.target.value;
@@ -297,26 +221,10 @@ export default function TeamsPage({
     else setGame(newGame);
   }
 
-  function handleRoleSelect(e) {
-    setRoleFilter(e.target.value);
-  }
-
-  function openModal() {
-    setError("");
-    setShowModal(true);
-  }
-
-  function closeModal() {
-    if (submitting) return;
-    setShowModal(false);
-    setName("");
-    setTag("");
-  }
-
-  function handleNameChange(e) {
-    setName((e.target.value || "").toUpperCase());
-  }
-
+  function handleRoleSelect(e) { setRoleFilter(e.target.value); }
+  function openModal() { setError(""); setShowModal(true); }
+  function closeModal() { if (submitting) return; setShowModal(false); setName(""); setTag(""); }
+  function handleNameChange(e) { setName((e.target.value || "").toUpperCase()); }
   function handleTagChange(e) {
     const raw = e.target.value || "";
     const lettersOnly = raw.replace(/[^a-zA-Z]/g, "");
@@ -326,57 +234,23 @@ export default function TeamsPage({
   async function handleCreate(e) {
     e.preventDefault();
     setError("");
-
     if (!name.trim()) return setError("Team name is required.");
     if (!tag.trim()) return setError("Team tag is required.");
     if (tag.trim().length > 4) return setError("Tag too long.");
     if (!game) return setError("Select a game.");
-
-    // IGN requirement for VALORANT / HOK
-    if (!hasIgnForGame(game)) {
-      setMissingGame(game);
-      setShowMissingProfileModal(true);
-      return;
-    }
 
     setSubmitting(true);
     try {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          tag: tag.trim(),
-          game,
-        }),
+        body: JSON.stringify({ name: name.trim(), tag: tag.trim(), game }),
       });
       const data = await res.json();
       if (!data.ok) {
         setError(data.error || "Failed to create team.");
       } else {
-        // FIX: USE CORRECT IGN FOR OPTIMISTIC UPDATE
-        const displayName = getMyDisplayNameForGame(game);
-        
-        const newTeam = {
-          id: data.team.id,
-          name: data.team.name,
-          tag: data.team.tag || "",
-          game: data.team.game,
-          rank: "Unranked",
-          rolesNeeded: [],
-          memberCount: 1,
-          isCaptain: true,
-          isPublic: false,
-          maxSize: 7,
-          joinCode: data.team.joinCode || null,
-          members: [
-            { id: player.id, name: displayName, isCaptain: true },
-          ],
-          joinRequests: [],
-        };
-        setTeams((prev) => [...prev, newTeam]);
-        setActiveTeamId(newTeam.id);
-        closeModal();
+        router.reload(); 
       }
     } catch (err) {
       console.error(err);
@@ -386,20 +260,12 @@ export default function TeamsPage({
     }
   }
 
-  // --- Visibility Logic ---
-
   function handleToggleVisibility(team, nextIsPublic) {
     if (nextIsPublic) {
       setPendingPublicTeam(team);
-
       const gameMeta = GAME_META[team.game];
-      setPublicRank(
-        team.rank && team.rank !== "Unranked"
-          ? team.rank
-          : gameMeta?.ranks[0] || "Unranked"
-      );
+      setPublicRank(team.rank && team.rank !== "Unranked" ? team.rank : (gameMeta?.ranks[0] || "Unranked"));
       setPublicRoles(team.rolesNeeded || []);
-
       setShowPublicModal(true);
     } else {
       confirmVisibilityChange(team, false, null, []);
@@ -409,12 +275,10 @@ export default function TeamsPage({
   async function confirmVisibilityChange(team, isPublic, rank, rolesNeeded) {
     try {
       const body = { action: "setVisibility", isPublic };
-
       if (isPublic) {
         body.rank = rank;
         body.rolesNeeded = rolesNeeded;
       }
-
       const res = await fetch(`/api/teams/${team.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -422,53 +286,34 @@ export default function TeamsPage({
       });
       const data = await res.json();
       if (data.ok) {
-        setTeams((prev) =>
-          prev.map((t) =>
-            t.id === team.id
-              ? {
-                  ...t,
-                  isPublic: !!data.isPublic,
-                  rank: data.rank || t.rank,
-                  rolesNeeded: data.rolesNeeded || t.rolesNeeded,
-                }
-              : t
-          )
-        );
+        setTeams((prev) => prev.map((t) => 
+          t.id === team.id 
+          ? { ...t, isPublic: !!data.isPublic, rank: data.rank || t.rank, rolesNeeded: data.rolesNeeded || t.rolesNeeded } 
+          : t
+        ));
       }
       setShowPublicModal(false);
       setPendingPublicTeam(null);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   function submitPublicModal() {
     if (!pendingPublicTeam) return;
-    confirmVisibilityChange(
-      pendingPublicTeam,
-      true,
-      publicRank,
-      publicRoles
-    );
+    confirmVisibilityChange(pendingPublicTeam, true, publicRank, publicRoles);
   }
 
   function togglePublicRole(role) {
-    setPublicRoles((prev) => {
-      if (prev.includes(role)) return prev.filter((r) => r !== role);
+    setPublicRoles(prev => {
+      if (prev.includes(role)) return prev.filter(r => r !== role);
       return [...prev, role];
     });
   }
 
-  // --- Join by Code logic ---
   async function handleJoinByCode(e) {
     e.preventDefault();
     setJoinCodeError("");
-
     const code = (joinCodeInput || "").trim().toUpperCase();
-    if (!code || code.length !== 6) {
-      return setJoinCodeError("Invite code must be 6 characters.");
-    }
-
+    if (!code || code.length !== 6) return setJoinCodeError("Invite code must be 6 characters.");
     setJoiningByCode(true);
     try {
       const res = await fetch("/api/teams/join", {
@@ -477,43 +322,11 @@ export default function TeamsPage({
         body: JSON.stringify({ joinCode: code }),
       });
       const data = await res.json();
-
-      // profile gate (VALORANT or HOK)
-      if (data.requiresProfile && data.game) {
-        setMissingGame(data.game); // "VALORANT" or "HOK"
-        setShowMissingProfileModal(true);
-        setJoinCodeError(data.error || "");
-        return;
-      }
-
       if (!data.ok) {
         setJoinCodeError(data.error || "Failed to join.");
         return;
       }
-
-      if (data.joined && data.team) {
-        const existing = teams.find((t) => t.id === data.team.id);
-        if (!existing) {
-          // For joining, use correct name too
-          const displayName = getMyDisplayNameForGame(data.team.game);
-          
-          const newTeam = {
-            ...data.team,
-            memberCount: data.team.memberCount,
-            isCaptain: false,
-            maxSize: data.team.maxSize || 7,
-            joinRequests: [],
-            justJoined: true,
-            // Ensure members list is populated if returned empty, or updated
-            members: data.team.members || [{id: player.id, name: displayName, isCaptain: false}] 
-          };
-          setTeams((prev) => [...prev, newTeam]);
-          setActiveTeamId(newTeam.id);
-        } else {
-          setActiveTeamId(existing.id);
-        }
-        setJoinCodeInput("");
-      }
+      router.reload();
     } catch (err) {
       console.error(err);
       setJoinCodeError("Something went wrong.");
@@ -522,43 +335,15 @@ export default function TeamsPage({
     }
   }
 
-  // --- Standard Actions ---
   async function handleDeleteTeam(team) {
-    if (
-      !window.confirm(`Delete ${team.name}? This cannot be undone.`)
-    )
-      return;
+    if (!window.confirm(`Delete ${team.name}? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/teams/${team.id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!data.ok) return alert(data.error);
+      await fetch(`/api/teams/${team.id}`, { method: "DELETE" });
       setTeams((prev) => prev.filter((t) => t.id !== team.id));
       if (activeTeamId === team.id) setActiveTeamId(null);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
-
   async function handleLeaveTeam(team) {
-    const otherMembers = team.members.filter((m) => !m.isCaptain);
-    if (team.isCaptain) {
-      if (otherMembers.length > 0) {
-        alert(
-          "You are the Captain. Please promote another member to Captain before leaving."
-        );
-        return;
-      } else {
-        if (
-          !window.confirm(
-            "You are the last member. Leaving will delete the team. Continue?"
-          )
-        )
-          return;
-        return handleDeleteTeam(team);
-      }
-    }
     if (!window.confirm(`Leave ${team.name}?`)) return;
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
@@ -566,301 +351,90 @@ export default function TeamsPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "leave" }),
       });
-      const data = await res.json();
-      if (!data.ok) return alert(data.error);
-      setTeams((prev) => prev.filter((t) => t.id !== team.id));
-      if (activeTeamId === team.id) setActiveTeamId(null);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function handlePromote(team, member) {
-    if (!window.confirm(`Promote ${member.name} to captain?`)) return;
-    try {
-      const res = await fetch(`/api/teams/${team.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "promote",
-          targetPlayerId: member.id,
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) return alert(data.error);
-      setTeams((prev) =>
-        prev.map((t) => {
-          if (t.id !== team.id) return t;
-          const newMembers = t.members.map((m) => ({
-            ...m,
-            isCaptain: m.id === data.newCaptainId,
-          }));
-          return {
-            ...t,
-            members: newMembers,
-            isCaptain: data.newCaptainId === player.id,
-          };
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function handleKick(team, member) {
-    if (!window.confirm(`Kick ${member.name}?`)) return;
-    try {
-      const res = await fetch(`/api/teams/${team.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "kick",
-          targetPlayerId: member.id,
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) return alert(data.error);
-      setTeams((prev) =>
-        prev.map((t) => {
-          if (t.id !== team.id) return t;
-          const newMembers = t.members.filter(
-            (m) => m.id !== member.id
-          );
-          return {
-            ...t,
-            members: newMembers,
-            memberCount: newMembers.length,
-          };
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function handleRegenJoinCode(team) {
-    if (!window.confirm("Regenerate code?")) return;
-    try {
-      const res = await fetch(`/api/teams/${team.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "regenJoinCode" }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setTeams((prev) =>
-          prev.map((t) =>
-            t.id === team.id ? { ...t, joinCode: data.joinCode } : t
-          )
-        );
+      if (res.ok) {
+        setTeams((prev) => prev.filter((t) => t.id !== team.id));
+        if (activeTeamId === team.id) setActiveTeamId(null);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
-
-  async function handleApproveRequest(team, req) {
-    try {
-      const res = await fetch(`/api/teams/requests/${req.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
-      });
-      const data = await res.json();
-      if (!data.ok) return alert(data.error);
-      setTeams((prev) =>
-        prev.map((t) => {
-          if (t.id !== team.id) return t;
-          const newMembers = [
-            ...t.members,
-            { id: req.playerId, name: req.playerName, isCaptain: false },
-          ];
-          return {
-            ...t,
-            members: newMembers,
-            memberCount: newMembers.length,
-            joinRequests: t.joinRequests.filter(
-              (r) => r.id !== req.id
-            ),
-          };
-        })
-      );
-    } catch (err) {
-      console.error(err);
+  
+  const actions = {
+    handlePromote: async (team, member) => {
+        if (!window.confirm(`Promote ${member.name}?`)) return;
+        await fetch(`/api/teams/${team.id}`, { method: "POST", body: JSON.stringify({ action: "promote", targetPlayerId: member.id }), headers:{"Content-Type":"application/json"}});
+        router.reload();
+    },
+    handleKick: async (team, member) => {
+        if (!window.confirm(`Kick ${member.name}?`)) return;
+        await fetch(`/api/teams/${team.id}`, { method: "POST", body: JSON.stringify({ action: "kick", targetPlayerId: member.id }), headers:{"Content-Type":"application/json"}});
+        router.reload(); 
+    },
+    handleRegenJoinCode: async (team) => {
+        const res = await fetch(`/api/teams/${team.id}`, { method: "POST", body: JSON.stringify({ action: "regenJoinCode" }), headers:{"Content-Type":"application/json"}});
+        const data = await res.json();
+        if(data.ok) setTeams(prev => prev.map(t => t.id === team.id ? {...t, joinCode: data.joinCode} : t));
+    },
+    handleApprove: async (team, req) => {
+        await fetch(`/api/teams/requests/${req.id}`, { method: "POST", body: JSON.stringify({ action: "approve" }), headers:{"Content-Type":"application/json"}});
+        router.reload();
+    },
+    handleReject: async (team, req) => {
+        await fetch(`/api/teams/requests/${req.id}`, { method: "POST", body: JSON.stringify({ action: "reject" }), headers:{"Content-Type":"application/json"}});
+        router.reload();
+    },
+    handleRosterSwap: async (team, memberId, toActive) => {
+        const teamClone = { ...team };
+        const memberIndex = teamClone.members.findIndex(m => m.id === memberId);
+        if (memberIndex === -1) return;
+        const member = teamClone.members[memberIndex];
+        const newMembers = [...teamClone.members];
+        newMembers.splice(memberIndex, 1);
+        if (toActive) newMembers.splice(1, 0, member);
+        else newMembers.push(member);
+        
+        setTeams(prev => prev.map(t => t.id === team.id ? {...t, members: newMembers} : t));
+        await fetch("/api/teams/roster", { method: "POST", body: JSON.stringify({ teamId: team.id, newMemberOrder: newMembers.map(m => m.id) }), headers:{"Content-Type":"application/json"}});
     }
-  }
+  };
 
-  async function handleRejectRequest(team, req) {
-    try {
-      const res = await fetch(`/api/teams/requests/${req.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reject" }),
-      });
-      const data = await res.json();
-      if (!data.ok) return alert(data.error);
-      setTeams((prev) =>
-        prev.map((t) =>
-          t.id === team.id
-            ? {
-                ...t,
-                joinRequests: t.joinRequests.filter(
-                  (r) => r.id !== req.id
-                ),
-              }
-            : t
-        )
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function handleRosterSwap(team, memberId, toActive) {
-    const teamClone = { ...team };
-    const memberIndex = teamClone.members.findIndex(
-      (m) => m.id === memberId
-    );
-    if (memberIndex === -1) return;
-    const member = teamClone.members[memberIndex];
-    const newMembers = [...teamClone.members];
-    newMembers.splice(memberIndex, 1);
-    if (toActive) {
-      newMembers.splice(1, 0, member);
-    } else {
-      newMembers.push(member);
-    }
-    setTeams((prev) =>
-      prev.map((t) =>
-        t.id === team.id ? { ...t, members: newMembers } : t
-      )
-    );
-    try {
-      const res = await fetch("/api/teams/roster", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: team.id,
-          newMemberOrder: newMembers.map((m) => m.id),
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        alert("Failed to save roster: " + data.error);
-        setTeams((prev) =>
-          prev.map((t) => (t.id === team.id ? team : t))
-        );
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save roster.");
-    }
-  }
-
-  const byGame =
-    selectedGame === "ALL"
-      ? teams
-      : teams.filter((t) => t.game === selectedGame);
-  const visibleTeams =
-    roleFilter === "ALL"
-      ? byGame
-      : roleFilter === "CAPTAIN"
-      ? byGame.filter((t) => t.isCaptain)
-      : byGame.filter((t) => !t.isCaptain);
+  const byGame = selectedGame === "ALL" ? teams : teams.filter((t) => t.game === selectedGame);
+  const visibleTeams = roleFilter === "ALL" ? byGame : roleFilter === "CAPTAIN" ? byGame.filter((t) => t.isCaptain) : byGame.filter((t) => !t.isCaptain);
 
   useEffect(() => {
-    if (!activeTeamId && visibleTeams.length > 0) {
-      setActiveTeamId(visibleTeams[0].id);
-    } else if (
-      visibleTeams.length > 0 &&
-      !visibleTeams.find((t) => t.id === activeTeamId)
-    ) {
-      setActiveTeamId(visibleTeams[0].id);
-    }
+    if (!activeTeamId && visibleTeams.length > 0) setActiveTeamId(visibleTeams[0].id);
+    else if (visibleTeams.length > 0 && !visibleTeams.find(t => t.id === activeTeamId)) setActiveTeamId(visibleTeams[0].id);
   }, [visibleTeams, activeTeamId]);
 
-  const activeTeam = visibleTeams.find((t) => t.id === activeTeamId);
-
-  const missingLabel =
-    missingGame === "VALORANT"
-      ? "VALORANT"
-      : missingGame === "HOK"
-      ? "Honor of Kings"
-      : "in-game";
+  const activeTeam = visibleTeams.find(t => t.id === activeTeamId);
 
   return (
     <div className={styles.shell}>
       <div className={styles.wrap}>
         <div className={styles.header}>
-          <span className={styles.userBadge}>
-            Logged in as {player.username}
-          </span>
           <h1 className={styles.title}>My Teams</h1>
-          <p className={styles.subtitle}>
-            Manage your squads, create new teams, or join existing ones.
-          </p>
+          <p className={styles.subtitle}>// COMMAND CENTER</p>
         </div>
 
         <div className={styles.controlBar}>
           <div className={styles.glassPanel}>
-            <form
-              onSubmit={handleJoinByCode}
-              className={styles.inputGroup}
-            >
+            <form onSubmit={handleJoinByCode} className={styles.inputGroup}>
               <span className={styles.label}>Join by code</span>
               <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  value={joinCodeInput}
-                  onChange={(e) =>
-                    setJoinCodeInput(
-                      (e.target.value || "").toUpperCase()
-                    )
-                  }
-                  placeholder="ABC123"
-                  maxLength={6}
-                  className={styles.input}
-                  style={{
-                    width: "120px",
-                    textAlign: "center",
-                    letterSpacing: "2px",
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={joiningByCode}
-                  className={styles.joinBtn}
-                >
-                  {joiningByCode ? "..." : "Join"}
-                </button>
+                <input value={joinCodeInput} onChange={(e) => setJoinCodeInput((e.target.value || "").toUpperCase())} placeholder="ABC123" maxLength={6} className={styles.input} style={{ width: "120px", textAlign: "center", letterSpacing: "2px" }} />
+                <button type="submit" disabled={joiningByCode} className={styles.joinBtn}>{joiningByCode ? "..." : "Join"}</button>
               </div>
-              {joinCodeError && (
-                <span className={styles.errorText}>
-                  {joinCodeError}
-                </span>
-              )}
+              {joinCodeError && <span className={styles.errorText}>{joinCodeError}</span>}
             </form>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Filter Game</label>
-              <select
-                value={selectedGame}
-                onChange={handleGameSelect}
-                className={styles.select}
-              >
+              <select value={selectedGame} onChange={handleGameSelect} className={styles.select}>
                 <option value="ALL">All games</option>
-                {supportedGames.map((g) => (
-                  <option key={g.code} value={g.code}>
-                    {g.label}
-                  </option>
-                ))}
+                {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
               </select>
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Filter Role</label>
-              <select
-                value={roleFilter}
-                onChange={handleRoleSelect}
-                className={styles.select}
-              >
+              <select value={roleFilter} onChange={handleRoleSelect} className={styles.select}>
                 <option value="ALL">All roles</option>
                 <option value="CAPTAIN">Captain teams</option>
                 <option value="MEMBER">Joined teams</option>
@@ -868,56 +442,34 @@ export default function TeamsPage({
             </div>
           </div>
           <div className={styles.actionGroup}>
-            <button
-              onClick={() => router.push("/teams/join")}
-              className={styles.primaryBtn}
-            >
-              Find a Team
-            </button>
-            <button
-              onClick={openModal}
-              className={styles.createBtn}
-            >
-              + Create
-            </button>
+            <button onClick={() => router.push("/teams/join")} className={styles.primaryBtn}>Find a Team</button>
+            <button onClick={openModal} className={styles.createBtn}>+ Create</button>
           </div>
         </div>
 
+        {/* --- TABS --- */}
         {visibleTeams.length > 0 && (
           <div className={styles.tabsContainer}>
-            {visibleTeams.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTeamId(t.id)}
-                className={
-                  activeTeamId === t.id
-                    ? styles.tabBtnActive
-                    : styles.tabBtn
-                }
-              >
-                <span className={styles.tabTag}>
-                  {t.tag ? `${t.tag} | ` : ""}
-                </span>{" "}
-                {t.name}
-              </button>
-            ))}
+            {visibleTeams.map(t => {
+              const rankColor = GAME_META[t.game]?.color || '#fff';
+              return (
+                <button 
+                  key={t.id}
+                  onClick={() => setActiveTeamId(t.id)}
+                  className={activeTeamId === t.id ? styles.tabBtnActive : styles.tabBtn}
+                  style={{'--rank-color': rankColor}}
+                >
+                  <span className={styles.tabTag}>{t.tag} |</span> {t.name}
+                </button>
+              )
+            })}
           </div>
         )}
 
         {!activeTeam && visibleTeams.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>∅</div>
-            <h3
-              style={{
-                color: "#fff",
-                margin: "0 0 0.5rem",
-              }}
-            >
-              No teams found
-            </h3>
-            <p style={{ margin: 0 }}>
-              Adjust your filters or create a new team to get started.
-            </p>
+            <h3 style={{ color: "#fff", margin: "0 0 0.5rem" }}>NO TEAMS DETECTED</h3>
+            <p style={{ margin: 0 }}>Initialize a new squad or join existing protocols.</p>
           </div>
         ) : (
           activeTeam && (
@@ -927,262 +479,69 @@ export default function TeamsPage({
               currentUser={player}
               onDelete={handleDeleteTeam}
               onLeave={handleLeaveTeam}
-              onPromote={handlePromote}
-              onKick={handleKick}
               onToggleVisibility={handleToggleVisibility}
-              onRegenJoinCode={handleRegenJoinCode}
-              onApproveRequest={handleApproveRequest}
-              onRejectRequest={handleRejectRequest}
-              onRosterSwap={handleRosterSwap}
+              actions={actions}
             />
           )
         )}
       </div>
 
-      {/* --- CREATE TEAM MODAL --- */}
+      {/* --- CREATE MODAL --- */}
       {showModal && (
-        <div
-          className={styles.modalOverlay}
-          onClick={closeModal}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={closeModal}
-              className={styles.closeModal}
-            >
-              &times;
-            </button>
+        <div className={styles.modalOverlay} onClick={closeModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={closeModal} className={styles.closeModal}>&times;</button>
             <h2 className={styles.modalTitle}>Create a new Team</h2>
-            <p
-              style={{
-                color: "#94a3b8",
-                fontSize: "0.9rem",
-                marginBottom: "1.5rem",
-              }}
-            >
-              Assemble your squad. You will be assigned as the Captain.
-            </p>
             <form onSubmit={handleCreate}>
-              <div
-                className={styles.inputGroup}
-                style={{ marginBottom: "1rem" }}
-              >
+              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
                 <label className={styles.label}>Game</label>
-                <select
-                  value={game}
-                  onChange={(e) => setGame(e.target.value)}
-                  className={styles.select}
-                  style={{ width: "100%" }}
-                >
-                  {supportedGames.map((g) => (
-                    <option key={g.code} value={g.code}>
-                      {g.label}
-                    </option>
-                  ))}
+                <select value={game} onChange={(e) => setGame(e.target.value)} className={styles.select} style={{ width: "100%" }}>
+                  {supportedGames.map((g) => (<option key={g.code} value={g.code}>{g.label}</option>))}
                 </select>
               </div>
-              <div
-                className={styles.inputGroup}
-                style={{ marginBottom: "1rem" }}
-              >
+              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
                 <label className={styles.label}>Team Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={handleNameChange}
-                  placeholder="e.g. EDWARD GAMING"
-                  className={styles.input}
-                  style={{ width: "100%" }}
-                />
+                <input type="text" value={name} onChange={handleNameChange} placeholder="e.g. EDWARD GAMING" className={styles.input} style={{ width: "100%" }} />
               </div>
-              <div
-                className={styles.inputGroup}
-                style={{ marginBottom: "1rem" }}
-              >
-                <label className={styles.label}>
-                  Tag (Max 4 chars)
-                </label>
-                <input
-                  type="text"
-                  value={tag}
-                  onChange={handleTagChange}
-                  placeholder="EDG"
-                  maxLength={4}
-                  className={styles.input}
-                  style={{ width: "100%" }}
-                />
+              <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+                <label className={styles.label}>Tag (Max 4 chars)</label>
+                <input type="text" value={tag} onChange={handleTagChange} placeholder="EDG" maxLength={4} className={styles.input} style={{ width: "100%" }} />
               </div>
-              {error && (
-                <p className={styles.errorText}>{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={submitting}
-                className={styles.createBtn}
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  marginTop: "1rem",
-                }}
-              >
-                {submitting ? "Creating..." : "Confirm Creation"}
-              </button>
+              {error && <p className={styles.errorText}>{error}</p>}
+              <button type="submit" disabled={submitting} className={styles.createBtn} style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>{submitting ? "Creating..." : "Confirm Creation"}</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* --- GO PUBLIC MODAL --- */}
+      {/* --- PUBLIC MODAL --- */}
       {showPublicModal && pendingPublicTeam && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setShowPublicModal(false)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setShowPublicModal(false)}
-              className={styles.closeModal}
-            >
-              &times;
-            </button>
-            <h2 className={styles.modalTitle}>Make Team Public?</h2>
-            <p
-              style={{
-                color: "#94a3b8",
-                fontSize: "0.9rem",
-                marginBottom: "1.5rem",
-              }}
-            >
-              This will list{" "}
-              <strong>{pendingPublicTeam.name}</strong> on the
-              "Find a Team" page. Please help players find you by
-              providing more details.
-            </p>
-
-            {/* Rank Selection */}
-            <div
-              className={styles.inputGroup}
-              style={{ marginBottom: "1rem" }}
-            >
+        <div className={styles.modalOverlay} onClick={() => setShowPublicModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 className={styles.modalTitle}>PUBLIC RECRUITMENT</h2>
+            <p className={styles.modalText}>Configure recruitment parameters for {pendingPublicTeam.name}.</p>
+            <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
               <label className={styles.label}>Average Rank</label>
-              <select
-                value={publicRank}
-                onChange={(e) => setPublicRank(e.target.value)}
-                className={styles.select}
-                style={{ width: "100%" }}
-              >
-                {GAME_META[pendingPublicTeam.game]?.ranks.map(
-                  (r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  )
-                ) || (
-                  <option value="Unranked">Unranked</option>
-                )}
+              <select value={publicRank} onChange={(e) => setPublicRank(e.target.value)} className={styles.select} style={{ width: "100%" }}>
+                {GAME_META[pendingPublicTeam.game]?.ranks.map((r) => (<option key={r} value={r}>{r}</option>))}
               </select>
             </div>
-
-            {/* Roles Selection */}
-            <div
-              className={styles.inputGroup}
-              style={{ marginBottom: "1rem" }}
-            >
-              <span className={styles.label}>
-                Roles Needed (Optional)
-              </span>
+            <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
+              <span className={styles.label}>Roles Needed</span>
               <div className={styles.roleContainer}>
-                {GAME_META[pendingPublicTeam.game]?.roles.map(
-                  (r) => {
-                    const isActive = publicRoles.includes(r);
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => togglePublicRole(r)}
-                        className={`${styles.roleBadge} ${
-                          isActive
-                            ? styles.roleBadgeActive
-                            : ""
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    );
-                  }
-                )}
+                {GAME_META[pendingPublicTeam.game]?.roles.map((r) => {
+                  const isActive = publicRoles.includes(r);
+                  return (
+                    <button type="button" key={r} onClick={() => togglePublicRole(r)} className={`${styles.roleBadge} ${isActive ? styles.roleBadgeActive : ''}`}>
+                      {r}
+                    </button>
+                  )
+                })}
               </div>
             </div>
-
-            <div className={styles.modalActions}>
-              <button
-                onClick={() => setShowPublicModal(false)}
-                className={styles.cancelBtn}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitPublicModal}
-                className={styles.confirmBtn}
-              >
-                Confirm &amp; Publish
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MISSING PROFILE MODAL (NO IGN) --- */}
-      {showMissingProfileModal && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setShowMissingProfileModal(false)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setShowMissingProfileModal(false)}
-              className={styles.closeModal}
-            >
-              &times;
-            </button>
-            <h2 className={styles.modalTitle}>IGN Required</h2>
-            <p
-              className={styles.modalText}
-              style={{
-                color: "#94a3b8",
-                fontSize: "0.9rem",
-                marginBottom: "1.5rem",
-              }}
-            >
-              You don't have your{" "}
-              <strong>{missingLabel}</strong> name set yet. Please
-              update your profile before continuing.
-            </p>
-            <div className={styles.modalActions}>
-              <button
-                onClick={() => setShowMissingProfileModal(false)}
-                className={styles.cancelBtn}
-              >
-                Close
-              </button>
-              <button
-                onClick={() => router.push("/profile")}
-                className={styles.confirmBtn}
-              >
-                Go to Profile
-              </button>
+            <div style={{display:'flex', gap:'10px'}}>
+              <button onClick={() => setShowPublicModal(false)} className={styles.createBtn} style={{background:'#333', color:'#fff'}}>CANCEL</button>
+              <button onClick={submitPublicModal} className={styles.createBtn}>CONFIRM</button>
             </div>
           </div>
         </div>
@@ -1191,416 +550,173 @@ export default function TeamsPage({
   );
 }
 
-// ---------- SUBCOMPONENT: TEAM CARD ----------
-function TeamCard({
-  team,
-  currentUser,
-  onDelete,
-  onLeave,
-  onPromote,
-  onKick,
-  onToggleVisibility,
-  onRegenJoinCode,
-  onApproveRequest,
-  onRejectRequest,
-  onRosterSwap,
-}) {
-  const [activeIds, setActiveIds] = useState(() =>
-    team.members.slice(0, 5).map((m) => m.id)
-  );
+// ---------- TEAM CARD (Dashboard Version) ----------
+function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, actions }) {
+  // Local state for active members (Start/Bench logic)
+  const [activeIds, setActiveIds] = useState(() => team.members.slice(0, 5).map(m => m.id));
 
-  // --- FIX APPLIED HERE ---
-  // Only sync/reset activeIds when the team ID changes.
-  // This prevents automatic roster refilling when the member array changes order.
-  useEffect(() => {
-    setActiveIds(team.members.slice(0, 5).map((m) => m.id));
-  }, [team.id]); 
-  // -------------------------
+  // Sync activeIds only when team ID changes
+  useEffect(() => { setActiveIds(team.members.slice(0, 5).map(m => m.id)); }, [team.id]);
 
-  const activeMembers = team.members.filter((m) =>
-    activeIds.includes(m.id)
-  );
-  const benchMembers = team.members.filter(
-    (m) => !activeIds.includes(m.id)
-  );
+  const activeMembers = team.members.filter(m => activeIds.includes(m.id));
   const slots = buildMemberSlots(activeMembers);
   const otherMembers = team.members.filter((m) => !m.isCaptain);
   const hasRequests = (team.joinRequests || []).length > 0;
   const maxSize = team.maxSize || 7;
-  const visibilityLabel = team.isPublic ? "Public" : "Private";
-  const amIWaitlisted =
-    currentUser &&
-    benchMembers.some((m) => m.id === currentUser.id);
+  
+  const rankColor = GAME_META[team.game]?.color || '#3b82f6';
 
-  // --- HELPER TO REMOVE #TAG ---
   function getDisplayName(name) {
     if (!name) return "";
-    return name.split("#")[0]; // "Name#123" -> "Name"
+    return name.split("#")[0]; 
   }
 
   function handleToggleActive(memberId) {
     const isActive = activeIds.includes(memberId);
     if (isActive) {
-      // 1. Update local state instantly (bench)
-      setActiveIds((prev) => prev.filter((id) => id !== memberId));
-      // 2. Call API to update the order in the database
-      onRosterSwap(team, memberId, false);
+      setActiveIds(prev => prev.filter(id => id !== memberId));
+      actions.handleRosterSwap(team, memberId, false);
     } else {
-      if (activeIds.length >= 5) {
-        alert("Active roster is full (5/5). Bench someone first.");
-        return;
-      }
-      // 1. Update local state instantly (start)
-      setActiveIds((prev) => [...prev, memberId]);
-      // 2. Call API to update the order in the database
-      onRosterSwap(team, memberId, true);
+      if (activeIds.length >= 5) return alert("Active roster is full.");
+      setActiveIds(prev => [...prev, memberId]);
+      actions.handleRosterSwap(team, memberId, true);
     }
   }
 
   function handleCopyCode() {
     if (!team.joinCode) return;
-    navigator.clipboard
-      .writeText(team.joinCode)
-      .catch((err) => console.error("Copy failed", err));
-  }
-
-  function handleRegen() {
-    onRegenJoinCode(team);
+    navigator.clipboard.writeText(team.joinCode).catch((err) => console.error(err));
   }
 
   return (
-    <div className={styles.teamCard}>
-      <div className={styles.cardHeader}>
-        <div className={styles.headerLeft}>
-          <h3 className={styles.teamName}>
-            <span className={styles.teamTag}>
-              {team.tag ? `${team.tag} | ` : ""}
-            </span>{" "}
-            {team.name}
-          </h3>
-
-          {team.isPublic && (
-            <div
-              style={{
-                marginTop: "4px",
-                display: "flex",
-                gap: "10px",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.8rem",
-                  color: "#94a3b8",
-                }}
-              >
-                Rank:{" "}
-                <strong style={{ color: "#e2e8f0" }}>
-                  {team.rank || "Unranked"}
-                </strong>
-              </span>
-
-              {team.rolesNeeded && team.rolesNeeded.length > 0 && (
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#94a3b8",
-                  }}
-                >
-                  Looking for:{" "}
-                  {team.rolesNeeded.map((r) => (
-                    <span
-                      key={r}
-                      style={{
-                        marginLeft: "6px",
-                        color: "#60a5fa",
-                        background: "rgba(30,41,59,0.5)",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      {r}
-                    </span>
-                  ))}
-                </span>
-              )}
+    <div className={styles.teamCard} style={{'--rank-color': rankColor}}>
+      <div className={styles.rankStrip}></div>
+      <div className={styles.cardContent}>
+        <div className={styles.cardHeader}>
+          <div className={styles.headerLeft}>
+            <h3 className={styles.teamName}>
+              <span className={styles.teamTag}>{team.tag} |</span> {team.name}
+            </h3>
+            <div className={styles.metaRow}>
+               <div className={styles.metaItem}>STATUS: <strong style={{color: team.isPublic ? '#22c55e' : '#ef4444'}}>{team.isPublic ? 'ONLINE' : 'OFFLINE'}</strong></div>
+               <div className={styles.metaItem}>RANK: <strong style={{color: rankColor}}>{team.rank || 'UNRANKED'}</strong></div>
             </div>
-          )}
-
-          {benchMembers.length > 0 && (
-            <span
-              className={styles.subText}
-              style={{ marginTop: "6px" }}
-            >
-              Substitutes:{" "}
-              {benchMembers.map((m, i) => (
-                <span
-                  key={m.id}
-                  className={
-                    m.id === currentUser?.id ? styles.slotMe : ""
-                  }
-                  style={{
-                    color:
-                      m.id === currentUser?.id
-                        ? "#4ade80"
-                        : "inherit",
-                    fontWeight:
-                      m.id === currentUser?.id ? "bold" : "normal",
-                  }}
-                >
-                  {i > 0 && ", "}
-                  {getDisplayName(m.name)}
-                </span>
-              ))}
-            </span>
-          )}
-        </div>
-
-        <div className={styles.headerRight}>
-          {team.isCaptain && (
-            <div className={styles.compactCode}>
-              <span className={styles.codeText}>
-                {team.joinCode || "----"}
-              </span>
-              <button
-                onClick={handleCopyCode}
-                className={styles.iconBtn}
-                title="Copy"
-              >
-                ❐
-              </button>
-              <button
-                onClick={handleRegen}
-                className={styles.iconBtn}
-                title="Regenerate"
-              >
-                ↻
-              </button>
-            </div>
-          )}
-          <span className={styles.gameBadge}>{team.game}</span>
-        </div>
-      </div>
-
-      <div className={styles.slotsContainer}>
-        {slots.map((slot, idx) => {
-          let slotClass = styles.slot;
-          if (idx === 2) slotClass += ` ${styles.slotCaptain}`;
-          if (slot) slotClass += ` ${styles.slotFilled}`;
-          if (
-            slot &&
-            currentUser &&
-            slot.id === currentUser.id
-          )
-            slotClass += ` ${styles.slotMe}`;
-
-          return (
-            <div
-              key={idx}
-              className={slotClass}
-              title={slot?.name || "Open"}
-            >
-              {idx === 2 && (
-                <div className={styles.captainStar}>★</div>
-              )}
-              <div className={styles.slotName}>
-                {slot
-                  ? `${
-                      team.tag ? `${team.tag} | ` : ""
-                    }${getDisplayName(slot.name)}`
-                  : "-"}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {team.isCaptain && (
-        <div style={{ marginBottom: "1rem" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: "0.75rem",
-              color: "#64748b",
-              marginBottom: "8px",
-            }}
-          >
-            <span>Visibility</span>
-            <select
-              value={team.isPublic ? "public" : "private"}
-              onChange={(e) =>
-                onToggleVisibility(team, e.target.value === "public")
-              }
-              style={{
-                background: "none",
-                border: "none",
-                color: team.isPublic ? "#22c55e" : "#f59e0b",
-                fontSize: "0.75rem",
-                cursor: "pointer",
-                outline: "none",
-              }}
-            >
-              <option value="private">Private</option>
-              <option value="public">Public</option>
-            </select>
           </div>
 
-          {otherMembers.length > 0 && (
-            <div className={styles.rosterBox}>
-              <div className={styles.rosterHeader}>
-                Manage Roster
+          <div className={styles.headerRight}>
+            {team.isCaptain && (
+              <div className={styles.compactCode}>
+                <span className={styles.codeText}>{team.joinCode || "----"}</span>
+                <button onClick={handleCopyCode} className={styles.iconBtn}>❐</button>
+                <button onClick={() => actions.handleRegenJoinCode(team)} className={styles.iconBtn}>↻</button>
               </div>
-              {otherMembers.map((m) => {
-                const isActive = activeIds.includes(m.id);
-                return (
-                  <div
-                    key={m.id}
-                    className={styles.rosterRow}
-                  >
-                    <span
-                      className={styles.rosterName}
-                      style={{
-                        opacity: isActive ? 1 : 0.5,
-                      }}
-                    >
-                      {getDisplayName(m.name)}{" "}
-                      {isActive ? "" : "(Sub)"}
-                    </span>
-                    <div className={styles.rosterActions}>
-                      <button
-                        onClick={() => handleToggleActive(m.id)}
-                        className={styles.miniBtn}
-                        style={{
-                          color: isActive ? "#fbbf24" : "#4ade80",
-                          borderColor: isActive
-                            ? "#fbbf24"
-                            : "#4ade80",
-                        }}
-                      >
-                        {isActive ? "Bench" : "Start"}
-                      </button>
-                      <button
-                        onClick={() => onPromote(team, m)}
-                        className={styles.miniBtn}
-                        style={{
-                          color: "#60a5fa",
-                          borderColor: "#1e40af",
-                        }}
-                      >
-                        Promote
-                      </button>
-                      <button
-                        onClick={() => onKick(team, m)}
-                        className={styles.miniBtn}
-                        style={{
-                          color: "#f87171",
-                          borderColor: "#7f1d1d",
-                        }}
-                      >
-                        Kick
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+            )}
+            <span className={styles.gameBadge}>{team.game}</span>
+          </div>
+        </div>
 
-          {team.isPublic && hasRequests && (
-            <div className={styles.requestsBox}>
-              <div
-                style={{
-                  color: "#60a5fa",
-                  fontWeight: "bold",
-                }}
+        {/* ROSTER VISUALIZER (Distinct Slots) */}
+        <div className={styles.slotsContainer}>
+          {slots.map((slot, idx) => {
+            const isCenter = idx === 2;
+            const isFilled = !!slot;
+            const isMe = slot && currentUser && slot.id === currentUser.id;
+
+            let slotClass = styles.slot;
+            if (isCenter) slotClass += ` ${styles.slotCaptain}`;
+            if (isFilled) slotClass += ` ${styles.slotFilled}`;
+            if (isMe) slotClass += ` ${styles.slotMe}`;
+
+            return (
+              <div key={idx} className={slotClass}>
+                {isCenter && slot && slot.isCaptain && (
+                  <div className={styles.captainStar}>★</div>
+                )}
+                <span className={styles.slotName}>
+                  {slot ? getDisplayName(slot.name) : "EMPTY"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{textAlign:'center', marginTop:'-10px', marginBottom:'20px', fontSize:'0.7rem', color:'#666'}}>
+          ACTIVE ROSTER: {activeMembers.length}/5
+        </div>
+
+        {/* TEAM ACTIONS */}
+        {team.isCaptain && (
+          <div style={{ marginBottom: "2rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
+              <span className={styles.label}>RECRUITMENT STATUS</span>
+              <button 
+                onClick={() => onToggleVisibility(team, !team.isPublic)} 
+                className={styles.visToggle}
+                style={{color: team.isPublic ? '#22c55e' : '#ef4444'}}
               >
-                Join Requests ({team.joinRequests.length})
-              </div>
-              {team.joinRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className={styles.reqRow}
-                >
-                  <span className={styles.reqName}>
-                    {getDisplayName(req.playerName)}
-                  </span>
-                  <div>
-                    <button
-                      onClick={() =>
-                        onApproveRequest(team, req)
-                      }
-                      className={styles.miniBtn}
-                      style={{
-                        color: "#22c55e",
-                        borderColor: "#22c55e",
-                      }}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() =>
-                        onRejectRequest(team, req)
-                      }
-                      className={styles.miniBtn}
-                      style={{
-                        color: "#ef4444",
-                        borderColor: "#ef4444",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ))}
+                {team.isPublic ? '● PUBLIC RECRUITMENT ON' : '○ PRIVATE'}
+              </button>
             </div>
-          )}
-        </div>
-      )}
 
-      <div className={styles.cardFooter}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          <span>
-            Members: <strong>{team.memberCount}</strong> /{" "}
-            {maxSize} · {visibilityLabel}
-          </span>
-          {!team.isCaptain && amIWaitlisted && (
-            <span
-              style={{
-                fontSize: "0.7rem",
-                color: "#fbbf24",
-                border: "1px solid #fbbf24",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                fontWeight: "bold",
-              }}
-            >
-              ⚠ WAITLISTED
-            </span>
-          )}
-        </div>
-        <div className={styles.footerBtns}>
-          {team.isCaptain ? (
-            <button
-              onClick={() => onDelete(team)}
-              className={styles.btnDanger}
-            >
-              Disband
-            </button>
-          ) : (
-            <button
-              onClick={() => onLeave(team)}
-              className={styles.btnNeutral}
-            >
-              Leave
-            </button>
-          )}
+            {/* Roster Management */}
+            {otherMembers.length > 0 && (
+              <div className={styles.rosterBox}>
+                <div className={styles.rosterHeader}>ROSTER MANAGEMENT</div>
+                {otherMembers.map((m) => {
+                  const isActive = activeIds.includes(m.id);
+                  return (
+                    <div key={m.id} className={styles.rosterRow}>
+                      <div className={styles.memberName}>
+                        <div className={styles.statusDot} style={{background: isActive ? '#22c55e' : '#444'}}></div>
+                        <span style={{color: isActive ? '#fff' : '#ccc', fontWeight: isActive ? 'bold' : 'normal'}}>{getDisplayName(m.name)}</span>
+                      </div>
+                      <div className={styles.rosterActions}>
+                        <button 
+                          onClick={() => handleToggleActive(m.id)}
+                          className={`${styles.actionBtn} ${isActive ? styles.btnBench : styles.btnStart}`}
+                        >
+                          {isActive ? "BENCH" : "START"}
+                        </button>
+                        <button onClick={() => actions.handlePromote(team, m)} className={`${styles.actionBtn} ${styles.btnPromote}`}>PROMOTE</button>
+                        <button onClick={() => actions.handleKick(team, m)} className={`${styles.actionBtn} ${styles.btnKick}`}>KICK</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Join Requests */}
+            {team.isPublic && hasRequests && (
+              <div className={styles.rosterBox} style={{borderColor: '#06b6d4'}}>
+                <div className={styles.rosterHeader} style={{color:'#06b6d4'}}>INCOMING REQUESTS ({team.joinRequests.length})</div>
+                <div className={styles.rosterList} style={{borderColor:'#06b6d4'}}>
+                  {team.joinRequests.map((req) => (
+                    <div key={req.id} className={styles.rosterRow}>
+                      <span className={styles.rosterName}>{getDisplayName(req.playerName)}</span>
+                      <div className={styles.rosterActions}>
+                        <button onClick={() => actions.handleApprove(team, req)} className={`${styles.actionBtn} ${styles.btnApprove}`}>ACCEPT</button>
+                        <button onClick={() => actions.handleReject(team, req)} className={`${styles.actionBtn} ${styles.btnReject}`}>DENY</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={styles.cardFooter}>
+          <div className={styles.statusIndicator}>
+            <div style={{width:'8px', height:'8px', background: team.isPublic ? '#22c55e' : '#444', borderRadius:'50%'}}></div>
+            <span>{team.memberCount} / {maxSize} OPERATIVES ASSIGNED</span>
+          </div>
+          <div>
+            {team.isCaptain ? (
+              <button onClick={() => onDelete(team)} className={styles.btnDanger}>DISBAND UNIT</button>
+            ) : (
+              <button onClick={() => onLeave(team)} className={styles.btnNeutral}>LEAVE UNIT</button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1611,21 +727,13 @@ function buildMemberSlots(members = []) {
   const MAX = 5;
   const slots = new Array(MAX).fill(null);
   if (!members.length) return slots;
-  const captain =
-    members.find((m) => m.isCaptain) || members[0] || null;
+  const captain = members.find((m) => m.isCaptain) || members[0] || null;
   const others = members.filter((m) => m !== captain);
   const positions = [2, 1, 3, 0, 4];
-  if (captain) {
-    slots[2] = captain;
-  }
+  if (captain) slots[2] = captain;
   let posIdx = 0;
   for (const m of others) {
-    while (
-      posIdx < positions.length &&
-      slots[positions[posIdx]] !== null
-    ) {
-      posIdx++;
-    }
+    while (posIdx < positions.length && slots[positions[posIdx]] !== null) posIdx++;
     if (posIdx >= positions.length) break;
     slots[positions[posIdx]] = m;
     posIdx++;
