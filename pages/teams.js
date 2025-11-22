@@ -12,13 +12,13 @@ const GAME_META = {
     label: "VALORANT",
     ranks: ["Unranked", "Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"],
     roles: ["Duelist", "Initiator", "Controller", "Sentinel", "Flex"],
-    color: "#ff4655" // Valorant Red
+    color: "#ff4655" 
   },
   HOK: {
     label: "Honor of Kings",
     ranks: ["Unranked", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"],
     roles: ["Clash Lane", "Farm Lane", "Mid Lane", "Jungle", "Roamer"],
-    color: "#eab308" // HoK Gold
+    color: "#eab308"
   }
 };
 
@@ -205,7 +205,6 @@ export default function TeamsPage({
   const [game, setGame] = useState(initialSelectedGame !== "ALL" ? initialSelectedGame : supportedGames[0]?.code || "VALORANT");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  
   const [activeTeamId, setActiveTeamId] = useState(null);
 
   // Public Modal
@@ -621,26 +620,32 @@ function TeamCard({ team, currentUser, onDelete, onLeave, onToggleVisibility, ac
           </div>
         </div>
 
-        {/* ROSTER VISUALIZER */}
+        {/* ROSTER VISUALIZER (Distinct Slots) */}
         <div className={styles.slotsContainer}>
-          <div className={styles.capacityBar}>
-            {slots.map((slot, idx) => {
-              const isFilled = !!slot;
-              const isCap = slot && slot.isCaptain;
-              const isMe = slot && currentUser && slot.id === currentUser.id;
-              let slotClass = isCap ? styles.slotCaptain : isFilled ? styles.slotFilled : '';
-              if(isMe) slotClass += ' ' + styles.slotMe;
+          {slots.map((slot, idx) => {
+            const isCenter = idx === 2;
+            const isFilled = !!slot;
+            const isMe = slot && currentUser && slot.id === currentUser.id;
 
-              return (
-                <div key={idx} className={`${styles.capacitySegment} ${slotClass}`}>
-                  {slot && <span>{getDisplayName(slot.name)}</span>}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{textAlign:'right', marginTop:'4px', fontSize:'0.7rem', color:'#666'}}>
-            ACTIVE ROSTER: {activeMembers.length}/5
-          </div>
+            let slotClass = styles.slot;
+            if (isCenter) slotClass += ` ${styles.slotCaptain}`;
+            if (isFilled) slotClass += ` ${styles.slotFilled}`;
+            if (isMe) slotClass += ` ${styles.slotMe}`;
+
+            return (
+              <div key={idx} className={slotClass}>
+                {isCenter && slot && slot.isCaptain && (
+                  <div className={styles.captainStar}>★</div>
+                )}
+                <span className={styles.slotName}>
+                  {slot ? getDisplayName(slot.name) : "EMPTY"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{textAlign:'center', marginTop:'-10px', marginBottom:'20px', fontSize:'0.7rem', color:'#666'}}>
+          ACTIVE ROSTER: {activeMembers.length}/5
         </div>
 
         {/* TEAM ACTIONS */}
