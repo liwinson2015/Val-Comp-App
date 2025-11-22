@@ -1,8 +1,7 @@
-// /pages/account/registrations.js
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-// CHANGE: Pointing to the NEW specific CSS module
+// Ensure this points to the new CSS module we just made
 import styles from "../../styles/Registrations.module.css";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
@@ -48,16 +47,15 @@ export async function getServerSideProps({ req }) {
 
   const rawRegs = Array.isArray(player.registeredFor) ? player.registeredFor : [];
 
-  // Enrich with catalog metadata for display
   const registrations = rawRegs.map((r) => {
     const id = r.tournamentId || r.id || "";
     const meta = catalog[id] || {};
     return {
       id,
       name: meta.name || r.name || "Tournament",
-      game: meta.game || r.game || "—",
-      mode: meta.mode || r.mode || "—",
-      status: meta.status || r.status || "—",
+      game: meta.game || r.game || "Valorant",
+      mode: meta.mode || r.mode || "5v5",
+      status: meta.status || r.status || "Active",
       start: meta.start || r.start || null,
       detailsUrl: meta.detailsUrl || r.detailsUrl || "#",
       bracketUrl: meta.bracketUrl || r.bracketUrl || "#",
@@ -73,144 +71,87 @@ export default function MyRegistrations({ registrations }) {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Hero */}
+        {/* Hero Section */}
         <section className={styles.hero}>
-          <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>Account</div>
-            <h1 className={styles.heroTitle}>My Registrations</h1>
-            <p className={styles.heroSubtitle}>
-              These are the tournaments you're currently registered for.
-            </p>
-          </div>
+          <div className={styles.heroBadge}>// PLAYER_DASHBOARD</div>
+          <h1 className={styles.heroTitle}>My Events</h1>
+          <p className={styles.heroSubtitle}>
+            Manage your active tournament registrations and view brackets.
+          </p>
         </section>
 
-        {/* Section header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 10,
-            color: "#9aa2b2",
-            fontSize: 13,
-            textTransform: "uppercase",
-            letterSpacing: ".08em",
-            fontWeight: 700,
-          }}
-        >
-          <span>Current / Active</span>
-          <span
-            style={{
-              marginLeft: 8,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 18,
-              height: 18,
-              borderRadius: 999,
-              background: "#2a1013",
-              color: "#ff8da0",
-              border: "1px solid #511620",
-              fontSize: 12,
-              fontWeight: 800,
-            }}
-          >
-            {count}
-          </span>
+        {/* Dashboard Header */}
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>
+            Active Tournaments
+            <span className={styles.countBadge}>{count}</span>
+          </div>
+          {/* Optional: Add filters here later */}
         </div>
 
-        {/* List */}
+        {/* Tournament Grid */}
         {count === 0 ? (
-          <section className={styles.card}>
-            <p style={{ color: "#cbd5e1", margin: 0 }}>
-              You haven’t registered for any tournaments yet.
-            </p>
-          </section>
+          <div className={styles.emptyState}>
+            <h2>No active registrations</h2>
+            <p>Join a tournament to see it appear here.</p>
+          </div>
         ) : (
-          registrations.map((r) => (
-            <section key={r.id} className={styles.card}>
-              <div className={styles.cardHeaderRow}>
-                <h2 className={styles.cardTitle}>{r.name}</h2>
-              </div>
-
-              {/* Chips */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-                {r.game && <span className="chip">{r.game}</span>}
-                {r.mode && <span className="chip">{r.mode}</span>}
-                {r.status && (
-                  <span
-                    className="chip"
-                    style={{
-                      background: "#12331a",
-                      borderColor: "#1e7f3a",
-                      color: "#b6f3c8",
-                    }}
-                  >
+          <div className={styles.grid}>
+            {registrations.map((r) => (
+              <div key={r.id} className={styles.card}>
+                {/* Card Top: Status & Metadata */}
+                <div className={styles.cardStatusRow}>
+                  <div className={styles.statusIndicator}>
+                    <span className={styles.statusDot}></span>
                     {r.status}
-                  </span>
-                )}
-              </div>
-
-              {/* Info grid */}
-              <div className={styles.detailGrid} style={{ marginTop: 8 }}>
-                <div className={styles.detailLabel}>Tournament ID</div>
-                <div className={styles.detailValue}>#{r.id}</div>
-
-                <div className={styles.detailLabel}>Starts</div>
-                <div className={styles.detailValue}>
-                  {r.start
-                    ? new Date(r.start).toLocaleString("en-US", {
-                        timeZone: "America/New_York",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })
-                    : "TBD"}
+                  </div>
+                  <div className={styles.gameIcon}>{r.game}</div>
                 </div>
 
-                <div className={styles.detailLabel}>Links</div>
-                <div className={styles.detailValue} style={{ display: "flex", gap: 14 }}>
-                  <a href={r.detailsUrl} className={styles.linkAccent}>
-                    View details →
+                {/* Card Body: Title & Stats */}
+                <div className={styles.cardBody}>
+                  <h2 className={styles.cardTitle}>{r.name}</h2>
+                  <span className={styles.cardId}>ID: {r.id}</span>
+
+                  <div className={styles.cardStats}>
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Format</span>
+                      <span className={styles.statValue}>{r.mode}</span>
+                    </div>
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Start Time</span>
+                      <span className={styles.statValue}>
+                        {r.start
+                          ? new Date(r.start).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "TBD"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Footer: Actions */}
+                <div className={styles.cardActions}>
+                  <a href={r.bracketUrl} className={styles.btnPrimary}>
+                    Bracket
                   </a>
-                  <a href={r.bracketUrl} className={styles.linkAccent}>
-                    View bracket →
+                  <a href={r.detailsUrl} className={styles.btnSecondary}>
+                    Details
                   </a>
                 </div>
               </div>
-            </section>
-          ))
+            ))}
+          </div>
         )}
 
         {/* Footer */}
         <footer className={styles.footer}>
-          <div className={styles.footerInner}>
-            <div className={styles.footerBrand}>VALCOMP — community-run Valorant events</div>
-            <div className={styles.footerSub}>
-              Brackets, paid prize pools, and leaderboards coming soon.
-            </div>
-            <div className={styles.footerCopy}>© 2025 valcomp</div>
-          </div>
+          <div>VALCOMP // COMPETITIVE PLATFORM</div>
+          <div style={{ opacity: 0.5, marginTop: 5 }}>© 2025 ALL RIGHTS RESERVED</div>
         </footer>
       </div>
-
-      {/* Tiny chip helper - kept global for simplicity as in original */}
-      <style jsx global>{`
-        .chip {
-          display: inline-block;
-          padding: 4px 8px;
-          border: 1px solid #2b2f37;
-          border-radius: 999px;
-          background: #1a1a1f;
-          color: #e6e7eb;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.02em;
-        }
-      `}</style>
     </div>
   );
 }
