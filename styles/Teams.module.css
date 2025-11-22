@@ -1,428 +1,402 @@
 /* styles/Teams.module.css */
 
+/* --- Global / Layout --- */
 .shell {
   min-height: 100vh;
-  background: #0b0d12;
+  background: #050505;
   color: #fff;
   display: flex;
   justify-content: center;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
 }
 
 .wrap {
   width: 100%;
   max-width: 1200px;
-  padding: 28px 16px 64px;
+  padding: 40px 20px;
 }
 
-/* --- Header / Hero --- */
+/* --- Header --- */
 .header {
   margin-bottom: 2rem;
-  padding: 2rem;
-  border-radius: 20px;
-  background: radial-gradient(
-      800px 400px at 50% -40%,
-      rgba(59, 130, 246, 0.15),
-      rgba(0, 0, 0, 0)
-    ),
-    linear-gradient(180deg, #13151b, #0f1117);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
 }
 
 .title {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
-  background: linear-gradient(to bottom right, #ffffff, #94a3b8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  margin: 0;
+  line-height: 0.9;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255,255,255,0.1);
 }
 
 .subtitle {
+  color: #666;
+  font-size: 0.9rem;
   margin: 0;
-  color: #9ca3af;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  max-width: 600px;
+  font-family: monospace;
+  text-transform: uppercase;
 }
 
 .userBadge {
   display: inline-block;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   padding: 4px 10px;
-  border-radius: 99px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-  font-size: 0.75rem;
+  border: 1px solid #333;
+  color: #06b6d4;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  background: rgba(6, 182, 212, 0.1);
 }
 
-/* --- Control Bar --- */
+/* --- Controls --- */
 .controlBar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
   margin-bottom: 2rem;
-  align-items: center;
-}
-
-@media (max-width: 900px) {
-  .controlBar {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
 }
 
 .glassPanel {
-  padding: 1rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
+  gap: 20px;
+  background: #0a0a0a;
+  padding: 15px;
+  border: 1px solid #222;
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .label {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-weight: 600;
-  margin-left: 2px;
+  font-size: 0.6rem;
+  color: #444;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 4px;
 }
 
-.input,
-.select {
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #2d3442;
-  background: #020617;
+.input, .select {
+  background: #000;
+  border: 1px solid #333;
   color: #fff;
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s;
+  padding: 10px;
+  border-radius: 0;
+  font-family: monospace;
   min-width: 160px;
 }
-
-.input:focus,
-.select:focus {
-  border-color: #60a5fa;
-}
-
-.joinBtn {
-  height: 42px;
-  padding: 0 1.2rem;
-  border-radius: 10px;
-  border: none;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.joinBtn:hover { opacity: 0.9; }
-.joinBtn:disabled { opacity: 0.5; cursor: default; }
-
-.errorText {
-  font-size: 0.75rem;
-  color: #f87171;
-  margin-top: 4px;
-}
+.input:focus, .select:focus { border-color: #fff; outline: 1px solid #fff; }
 
 .actionGroup {
   display: flex;
   gap: 10px;
 }
 
-.primaryBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  font-weight: 600;
-  font-size: 0.9rem;
+.primaryBtn, .createBtn, .joinBtn {
+  background: #fff;
+  color: #000;
   border: none;
+  padding: 12px 24px;
+  font-family: monospace;
+  font-weight: 700;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.1s;
-  white-space: nowrap;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  /* Cyber Shape */
+  clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
 }
-.primaryBtn:hover { transform: translateY(-1px); }
-.primaryBtn:active { transform: translateY(0); }
 
 .createBtn {
-  composes: primaryBtn;
-  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+  background: #22c55e; /* Neon Green */
 }
 
-/* --- TABS --- */
+.primaryBtn:hover, .createBtn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+}
+
+.joinBtn {
+  height: 40px;
+  padding: 0 16px;
+  background: #3b82f6;
+  color: #fff;
+  clip-path: none; /* Standard button for inline join */
+  border-radius: 0;
+}
+
+.errorText { color: #ef4444; font-size: 0.7rem; margin-top: 4px; }
+
+/* --- TABS (Data Chips) --- */
 .tabsContainer {
   display: flex;
-  gap: 8px;
-  margin-bottom: 1.5rem;
+  gap: 4px;
+  margin-bottom: -1px; /* Connect to card */
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-right: 20px;
+  z-index: 5;
+  position: relative;
 }
 
 .tabBtn {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid #334155;
-  padding: 10px 20px;
-  border-radius: 12px;
-  color: #94a3b8;
-  font-weight: 600;
+  background: #111;
+  border: 1px solid #333;
+  border-bottom: none;
+  color: #666;
+  padding: 12px 24px;
+  font-family: monospace;
+  font-weight: 700;
+  text-transform: uppercase;
   cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  min-width: 120px;
+  text-align: center;
+  position: relative;
+  clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%, 0 15px);
+  transition: 0.2s;
 }
 
 .tabBtn:hover {
-  background: rgba(59, 130, 246, 0.1);
   color: #fff;
+  background: #1a1a1a;
 }
 
 .tabBtnActive {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border: 1px solid #60a5fa;
+  background: #0a0a0a; /* Matches card bg */
+  border: 1px solid #333; /* Matches card border */
+  border-bottom: 1px solid #0a0a0a; /* Hide bottom border to merge */
+  border-top: 2px solid var(--rank-color, #fff); /* Colored Top indicator */
   color: #fff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-  padding: 10px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.tabTag {
-  font-size: 0.75rem;
-  opacity: 0.7;
+  padding: 12px 24px;
   font-family: monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-width: 140px;
+  z-index: 10;
+  clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%, 0 15px);
 }
 
-/* --- Team Card --- */
+/* --- CYBER CARD (Dashboard Version) --- */
 .teamCard {
-  background: #0f1219;
-  border: 1px solid #222636;
-  border-radius: 24px;
-  padding: 2rem;
+  background: #0a0a0a;
+  border: 1px solid #333;
   position: relative;
-  overflow: hidden;
-  max-width: 100%; 
+  /* Cut corners on bottom-left and bottom-right */
+  clip-path: polygon(
+    0 0, 
+    100% 0, 
+    100% calc(100% - 20px), 
+    calc(100% - 20px) 100%, 
+    20px 100%,
+    0 calc(100% - 20px)
+  );
+  padding: 0;
 }
 
+.teamCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(45deg, #ffffff03 25%, transparent 25%, transparent 50%, #ffffff03 50%, #ffffff03 75%, transparent 75%, transparent);
+  background-size: 4px 4px;
+  pointer-events: none;
+}
+
+/* Left Rank Strip */
+.rankStrip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--rank-color, #333);
+  z-index: 1;
+}
+
+.cardContent {
+  padding: 2rem 2rem 2rem 2.5rem; /* Extra left pad */
+  position: relative;
+  z-index: 2;
+}
+
+/* Header Area */
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
-  gap: 1rem;
-}
-
-.headerLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 1rem;
 }
 
 .teamName {
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin: 0;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 
 .teamTag {
-  color: #60a5fa;
-  margin-right: 8px;
+  color: var(--rank-color, #60a5fa);
+  margin-right: 10px;
 }
 
-.subText {
-  font-size: 0.85rem;
-  color: #64748b;
-  line-height: 1.4;
+.metaRow {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  gap: 15px;
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #888;
 }
 
-.gameBadge {
-  font-size: 0.9rem; 
-  padding: 6px 14px;
-  border-radius: 99px;
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
+.metaItem strong { color: #fff; }
+
+.headerRight {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 
+/* Invite Code Box */
 .compactCode {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px dashed #334155;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #cbd5e1;
+  background: #111;
+  border: 1px dashed #333;
+  padding: 4px 8px;
+  width: fit-content;
 }
 
 .codeText {
+  color: #fff;
   font-family: monospace;
   letter-spacing: 0.1em;
   font-weight: 700;
-  color: #fff;
   font-size: 1rem;
 }
 
 .iconBtn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: #666;
   cursor: pointer;
-  font-size: 1rem;
-  padding: 0;
-  display: flex;
-  align-items: center;
+  font-size: 1.2rem;
   transition: color 0.2s;
 }
-.iconBtn:hover { color: #60a5fa; }
+.iconBtn:hover { color: #fff; }
 
-/* --- SLOTS VISUALIZER --- */
-.slotsContainer {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 1.5rem;
-  align-items: center;
-  height: 90px;
+.gameBadge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #444;
+  border: 1px solid #222;
+  padding: 2px 8px;
+  text-transform: uppercase;
 }
 
-.slot {
-  flex: 1;
-  height: 54px;
+/* --- ROSTER VISUALIZER (Segmented Bar) --- */
+.slotsContainer {
   display: flex;
   flex-direction: column;
+  margin-bottom: 2rem;
+}
+
+.capacityBar {
+  display: flex;
+  gap: 4px;
+  height: 24px; /* Taller for impact */
+  background: #111;
+  padding: 4px;
+  border: 1px solid #333;
+}
+
+.capacitySegment {
+  flex: 1;
+  height: 100%;
+  background: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+  /* Internal angled cut */
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  background: #020617;
-  border: 1px solid #1e293b;
-  color: #64748b;
-  border-radius: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  position: relative;
-  transition: all 0.2s ease;
+}
+
+.capacitySegment span {
+  position: absolute;
+  z-index: 2;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
 .slotFilled {
-  background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
-  border: none;
-  color: #e2e8f0;
-  box-shadow: none;
+  background: var(--rank-color, #3b82f6);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
 .slotCaptain {
-  height: 84px;
-  flex: 1.4;
-  z-index: 2;
-  background: url('/images/team-slot-bg.png') center center / 100% 100% no-repeat;
-  border: none;
-  color: #e2e8f0;
-  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+  background: #fbbf24 !important; /* Always Gold */
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
 .slotMe {
-  color: #4ade80 !important; 
-  font-weight: 800;
-  text-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
-  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.5));
-  z-index: 3;
+  border-bottom: 3px solid #fff; /* Highlight "Me" */
 }
 
-.slotName {
-  font-weight: 800;
-  margin-top: 0;
-  padding: 0 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 98%;
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.9);
-}
-
-.captainStar {
-  font-size: 11px;
-  color: #fbbf24;
-  margin-bottom: 3px;
-  text-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
-}
-
-/* --- Roster Management --- */
+/* --- TERMINAL ROSTER LIST (The Colorful Part) --- */
 .rosterBox {
-  margin-top: 1.2rem;
-  background: rgba(2, 6, 23, 0.6);
-  border: 1px solid #1e293b;
-  border-radius: 12px;
-  padding: 1rem;
+  margin-top: 1rem;
+  background: #0d0d0d;
+  border: 1px solid #222;
+  padding: 0;
 }
 
 .rosterHeader {
+  background: #161616;
+  padding: 8px 16px;
   font-size: 0.7rem;
+  color: #666;
   text-transform: uppercase;
-  color: #64748b;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #222;
 }
 
 .rosterRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 12px 16px;
+  border-bottom: 1px solid #1a1a1a;
+  transition: background 0.2s;
 }
-
-.rosterRow:last-child {
-  border-bottom: none;
-}
+.rosterRow:hover { background: #111; }
+.rosterRow:last-child { border-bottom: none; }
 
 .rosterName {
+  font-family: monospace;
   font-size: 0.9rem;
-  color: #cbd5e1;
-  font-weight: 500;
+  color: #ccc;
 }
 
 .rosterActions {
@@ -430,201 +404,138 @@
   gap: 8px;
 }
 
-.miniBtn {
-  font-size: 0.7rem;
+/* -- COLORFUL ACTION BUTTONS -- */
+.actionBtn {
   background: transparent;
-  border: 1px solid #475569;
-  color: #94a3b8;
-  padding: 2px 8px;
-  border-radius: 6px;
+  border: 1px solid;
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: all 0.2s;
 }
-.miniBtn:hover { background: #1e293b; color: #fff; }
 
-/* Footer Actions */
+.btnStart {
+  border-color: #15803d;
+  color: #22c55e; /* Neon Green */
+}
+.btnStart:hover { background: #22c55e; color: #000; }
+
+.btnBench {
+  border-color: #b45309;
+  color: #f59e0b; /* Amber/Orange */
+}
+.btnBench:hover { background: #f59e0b; color: #000; }
+
+.btnPromote {
+  border-color: #0e7490;
+  color: #06b6d4; /* Cyan */
+}
+.btnPromote:hover { background: #06b6d4; color: #000; }
+
+.btnKick {
+  border-color: #991b1b;
+  color: #ef4444; /* Red */
+}
+.btnKick:hover { background: #ef4444; color: #fff; }
+
+.btnApprove { border-color: #22c55e; color: #22c55e; }
+.btnApprove:hover { background: #22c55e; color: #000; }
+
+.btnReject { border-color: #ef4444; color: #ef4444; }
+.btnReject:hover { background: #ef4444; color: #fff; }
+
+/* Footer */
 .cardFooter {
-  margin-top: auto;
-  padding-top: 1.2rem;
-  border-top: 1px solid #1e293b;
+  margin-top: 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
-  color: #64748b;
+  border-top: 1px solid #222;
+  padding-top: 1.5rem;
 }
 
-.footerBtns {
+.statusIndicator {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.visToggle {
+  background: none;
+  border: none;
+  font-family: monospace;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .btnDanger {
-  color: #ef4444;
   background: transparent;
-  border: 1px solid #7f1d1d;
-  padding: 4px 10px;
-  border-radius: 8px;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 8px 16px;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.8rem;
   cursor: pointer;
-  font-size: 0.75rem;
-  transition: all 0.2s;
 }
-.btnDanger:hover { background: #450a0a; color: #fff; }
+.btnDanger:hover { background: #ef4444; color: #fff; }
 
 .btnNeutral {
-  color: #cbd5e1;
   background: transparent;
-  border: 1px solid #475569;
-  padding: 4px 10px;
-  border-radius: 8px;
+  border: 1px solid #666;
+  color: #888;
+  padding: 8px 16px;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.8rem;
   cursor: pointer;
-  font-size: 0.75rem;
-  transition: all 0.2s;
 }
-.btnNeutral:hover { background: #1e293b; color: #fff; }
+.btnNeutral:hover { border-color: #fff; color: #fff; }
 
-/* --- Empty State --- */
-.emptyState {
-  text-align: center;
-  padding: 4rem 2rem;
-  border: 2px dashed #1e293b;
-  border-radius: 20px;
-  color: #64748b;
-}
-
-.emptyIcon {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-/* --- Modal General --- */
+/* --- Create Modal (Cyber) --- */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.9);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 100;
+  backdrop-filter: blur(5px);
 }
 
 .modalContent {
+  background: #0a0a0a;
+  border: 1px solid #333;
+  padding: 40px;
   width: 100%;
-  max-width: 440px;
-  background: #0f1219;
-  border: 1px solid #334155;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  animation: popIn 0.2s ease-out;
+  max-width: 500px;
+  position: relative;
+}
+.modalContent::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 20px; height: 20px;
+  background: linear-gradient(135deg, transparent 50%, #fff 50%);
 }
 
-.modalTitle {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
-  color: #fff;
-}
+.modalTitle { color: #fff; text-transform: uppercase; font-weight: 900; font-size: 2rem; margin: 0 0 1rem 0; }
+.closeModal { float: right; background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; }
 
-.closeModal {
-  float: right;
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 1.5rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-@keyframes popIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.requestsBox {
-  margin-top: 0.75rem;
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 8px;
-  padding: 8px;
-  font-size: 0.8rem;
-}
-.reqRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 4px;
-}
-.reqName { color: #cbd5e1; }
-
-/* --- New Inputs for Create/Publish Modals --- */
-.roleContainer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
+.roleContainer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .roleBadge {
-  font-size: 0.75rem;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: all 0.2s;
+  background: #111; border: 1px solid #333; color: #666; padding: 6px 12px; font-family: monospace; cursor: pointer;
 }
+.roleBadgeActive { border-color: #06b6d4; color: #06b6d4; background: rgba(6,182,212,0.1); }
 
-.roleBadge:hover {
-  border-color: #64748b;
-  color: #cbd5e1;
-}
-
-.roleBadgeActive {
-  background: rgba(37, 99, 235, 0.2);
-  border-color: #3b82f6;
-  color: #60a5fa;
-  font-weight: 600;
-}
-
-/* --- NEW MODAL ACTIONS (UPDATED ROUNDED BUTTONS) --- */
-.modalActions {
-  display: flex;
-  gap: 16px;
-  margin-top: 2rem;
-}
-
-.cancelBtn, .confirmBtn {
-  flex: 1;
-  padding: 14px 24px;
-  border-radius: 12px; /* Rounded corners */
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.cancelBtn {
-  background: transparent;
-  border: 2px solid #334155;
-  color: #94a3b8;
-}
-
-.cancelBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #cbd5e1;
-  color: #fff;
-}
-
-.confirmBtn {
-  border: none;
-  color: white;
-  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-}
-
-.confirmBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.5);
+.emptyState {
+  text-align: center; padding: 4rem; border: 1px dashed #333; color: #444;
 }
