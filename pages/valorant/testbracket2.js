@@ -9,14 +9,16 @@ const MATCHES = {
 
 const Match = ({ d, final }) => (
   <div className={`${styles.matchBox} ${final ? styles.finalBox : ''}`}>
-    <div className={`${styles.teamRow} ${d.p1.w ? styles.winner : styles.loser}`}><span>{d.p1.n}</span><span className={styles.score}>{d.p1.s}</span></div>
-    <div style={{height:'1px',background:'rgba(0,255,255,0.2)',margin:'4px 0'}}></div>
-    <div className={`${styles.teamRow} ${d.p2.w ? styles.winner : styles.loser}`}><span>{d.p2.n}</span><span className={styles.score}>{d.p2.s}</span></div>
+    <div className={styles.innerContent}>
+      <div className={`${styles.teamRow} ${d.p1.w ? styles.winner : styles.loser}`}><span>{d.p1.n}</span><span className={styles.score}>{d.p1.s}</span></div>
+      <div style={{height:'1px',background:'#30363d',margin:'2px 0'}}></div>
+      <div className={`${styles.teamRow} ${d.p2.w ? styles.winner : styles.loser}`}><span>{d.p2.n}</span><span className={styles.score}>{d.p2.s}</span></div>
+    </div>
   </div>
 );
 
 const Column = ({ rounds, side }) => (
-  <div className={`${styles.side} ${styles[side + 'Side']}`} style={{display:'flex', flexDirection: side==='right'?'row-reverse':'row', gap:'50px'}}>
+  <div className={`${styles.side} ${styles[side + 'Side']}`} style={{display:'flex', flexDirection: side==='right'?'row-reverse':'row', gap:'40px'}}>
     {rounds.map((r, i) => (
       <div key={i} className={styles.column}>{r.map((m, j) => {
         const pos = i < rounds.length-1 ? (j%2===0 ? 'top':'bottom') : 'mid';
@@ -26,10 +28,10 @@ const Column = ({ rounds, side }) => (
   </div>
 );
 
-export default function BracketV4() {
+export default function BracketV5() {
   return (
     <>
-      <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap'); body { margin: 0; background: #02040a; }`}</style>
+      <style jsx global>{`body { margin: 0; background: #0d1117; }`}</style>
       <div className={styles.container}>
         <div className={styles.bracketBoard}>
           <Column rounds={MATCHES.left} side="left" />
