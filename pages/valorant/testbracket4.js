@@ -104,14 +104,12 @@ export default function TestBracket4() {
         {/* --- MIDDLE (CLASH THEME) --- */}
         
         <div className={`${styles.column} ${styles.columnMid}`}>
-          <div style={{textAlign: 'center', marginBottom: '20px'}}>
+          <div style={{textAlign: 'center', marginBottom: '10px'}}>
              <h2 className={styles.winnerText}>WINNER</h2>
           </div>
           {/* The Finals Card gets the special 'clash' theme */}
           <MatchCard match={tournamentData.finals} theme="clash" />
-          <div style={{textAlign: 'center', marginTop: '20px', color: 'var(--clash-primary)', letterSpacing: '3px', fontWeight: 'bold'}}>
-            GRAND FINAL CHAMPION
-          </div>
+          {/* Deleted Grand Final Text */}
         </div>
 
         {/* --- RIGHT SIDE (FIRE THEME) --- */}
