@@ -1,20 +1,18 @@
-.container { --bg-dark: #0a0a0a; --matte: #151515; --gold: #d4af37; --text: #888; font-family: 'Times New Roman', serif; background-color: var(--bg-dark); height: 100vh; display: flex; justify-content: center; align-items: center; }
-.board { display: flex; gap: 50px; }
-.col { display: flex; flex-direction: column; justify-content: center; gap: 30px; }
+.container { --neon-bg: #050011; --cyan: #0ff; --pink: #f0f; font-family: 'Courier New', monospace; background-color: var(--neon-bg); background-image: linear-gradient(rgba(255, 0, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 0, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; height: 100vh; display: flex; justify-content: center; align-items: center; }
+.board { display: flex; gap: 40px; }
+.col { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
 .matchWrapper { position: relative; display: flex; align-items: center; }
-.matchBox { width: 180px; background: var(--matte); border: 1px solid #333; padding: 15px; position: relative; z-index: 2; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-.matchBox::before { content:''; position:absolute; top:0; left:0; width:100%; height:2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
-.team { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--text); }
+.matchBox { width: 160px; background: rgba(0,0,0,0.8); border: 2px solid var(--cyan); box-shadow: 4px 4px 0 var(--pink); padding: 10px; position: relative; z-index: 2; color: var(--cyan); transition: 0.1s; }
+.matchBox:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--pink); }
+.team { display: flex; justify-content: space-between; font-weight: bold; text-shadow: 2px 2px 0 var(--pink); }
 .winner { color: #fff; }
-.winner .score { color: var(--gold); }
-.score { font-family: sans-serif; }
-.divider { height: 1px; background: #222; margin: 8px 0; }
-.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: #333; }
-.left .matchWrapper::after { height: 1px; width: 25px; right: -25px; top: 50%; }
-.left .matchWrapper[data-pos="top"]::before { width: 1px; height: 50%; right: -25px; top: 50%; transform:translateY(50%); }
-.left .matchWrapper[data-pos="bot"]::before { width: 1px; height: 50%; right: -25px; bottom: 50%; transform:translateY(-50%); }
-.right .matchWrapper::after { height: 1px; width: 25px; left: -25px; top: 50%; }
-.right .matchWrapper[data-pos="top"]::before { width: 1px; height: 50%; left: -25px; top: 50%; transform:translateY(50%); }
-.right .matchWrapper[data-pos="bot"]::before { width: 1px; height: 50%; left: -25px; bottom: 50%; transform:translateY(-50%); }
-.finalBox { border: 1px solid var(--gold); }
-.trophy { text-align: center; color: var(--gold); font-size: 20px; margin-bottom: 10px; }
+.divider { height: 2px; background: var(--pink); margin: 5px 0; }
+.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: var(--pink); }
+.left .matchWrapper::after { height: 2px; width: 20px; right: -20px; top: 50%; }
+.left .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; right: -20px; top: 50%; transform:translateY(50%); }
+.left .matchWrapper[data-pos="bot"]::before { width: 2px; height: 50%; right: -20px; bottom: 50%; transform:translateY(-50%); }
+.right .matchWrapper::after { height: 2px; width: 20px; left: -20px; top: 50%; }
+.right .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; left: -20px; top: 50%; transform:translateY(50%); }
+.right .matchWrapper[data-pos="bot"]::before { width: 2px; height: 50%; left: -20px; bottom: 50%; transform:translateY(-50%); }
+.finalBox { border-color: var(--pink); box-shadow: 4px 4px 0 var(--cyan); }
+.trophy { text-align: center; color: #fff; margin-bottom: 5px; font-weight: bold; }
