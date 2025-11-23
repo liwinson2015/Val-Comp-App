@@ -3,8 +3,7 @@ import s from "../styles/Bracket16.module.css";
 
 /**
  * Pixel-precise 16-team bracket using absolute boxes + SVG wires.
- * QF → SF connectors are now single polylines from EACH QF box
- * directly to the SF box edge (no gaps, no AA seams).
+ * Updated with Esports UI skinning.
  */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
@@ -12,17 +11,17 @@ export default function Bracket16({ data }) {
   // ---------- Geometry ----------
   const G = useMemo(() => {
     const colW  = 150;
-    const gap   = 34;
+    const gap   = 40; // Slightly wider gap for breathing room
     const slotH = 38;
     const wire  = 2;
 
     const innerGapR16 = 12;
-    const innerGapQF  = 30; // widened for nicer spacing
+    const innerGapQF  = 30; 
     const innerGapSF  = 22;
 
     const X = (i) => i * (colW + gap);
 
-    const titleBand = 28;
+    const titleBand = 30;
     const headerPad = 64;
     const topPad    = titleBand + headerPad;
 
@@ -43,10 +42,11 @@ export default function Bracket16({ data }) {
 
     const finalW      = 84;
     const finalMidGap = 22;
+    // Used for winner label centering logic if needed
     const centerX     = X(3) + colW / 2;
 
-    const champOffset = 52;  // winner chip offset below headline
-    const winnerAbove = 36;  // headline above chip
+    const champOffset = 60;  
+    const winnerAbove = 30;  
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
 
@@ -60,11 +60,11 @@ export default function Bracket16({ data }) {
     };
   }, []);
 
-  // helpers to get slot top/bot and centers
-  const slotTop     = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
-  const slotBot     = (pairY, innerGap) => pairY + (innerGap / 2);
-  const centerTop   = (pairY, innerGap) => pairY - (innerGap / 2) - (G.slotH / 2);
-  const centerBot   = (pairY, innerGap) => pairY + (innerGap / 2) + (G.slotH / 2);
+  // helpers
+  const slotTop = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
+  const slotBot = (pairY, innerGap) => pairY + (innerGap / 2);
+  const centerTop = (pairY, innerGap) => pairY - (innerGap / 2) - (G.slotH / 2);
+  const centerBot = (pairY, innerGap) => pairY + (innerGap / 2) + (G.slotH / 2);
 
   // ---------- Boxes ----------
   const boxes = [];
@@ -81,7 +81,7 @@ export default function Bracket16({ data }) {
     boxes.push(slotBox(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
     boxes.push(slotBox(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
-  // Left SF (two semifinalist slots)
+  // Left SF
   boxes.push(slotBox(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
   boxes.push(slotBox(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
@@ -108,25 +108,20 @@ export default function Bracket16({ data }) {
   const finalLeft   = finalBox(finalLeftX,  finalTop, D.final.left);
   const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
 
-  // ---------- Wires (single paths so no gaps) ----------
+  // ---------- Wires ----------
   const P = [];
-
-  // tiny helper path makers
   const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`;
   const V = (x,y1,y2) => `M ${x} ${y1} V ${y2}`;
   const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`;
 
-  // collector rails for R16 → QF (these already looked right/connected)
   function r16ToQf_L(pairY, targetPairY){
     const xR16 = G.X(0)+G.colW;
     const xQF  = G.X(1);
     const yTopSrc = centerTop(pairY, G.innerGapR16);
     const yBotSrc = centerBot(pairY, G.innerGapR16);
-
     const yTopDst = centerTop(targetPairY, G.innerGapQF);
     const yBotDst = centerBot(targetPairY, G.innerGapQF);
     const xm = (xR16 + xQF) / 2;
-
     P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
     P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
@@ -140,11 +135,9 @@ export default function Bracket16({ data }) {
     const xQF  = G.X(5)+G.colW;
     const yTopSrc = centerTop(pairY, G.innerGapR16);
     const yBotSrc = centerBot(pairY, G.innerGapR16);
-
     const yTopDst = centerTop(targetPairY, G.innerGapQF);
     const yBotDst = centerBot(targetPairY, G.innerGapQF);
     const xm = (xR16 + xQF) / 2;
-
     P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
     P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
@@ -153,23 +146,18 @@ export default function Bracket16({ data }) {
   r16ToQf_R(G.r16Centers[2], G.qfCenters[1]);
   r16ToQf_R(G.r16Centers[3], G.qfCenters[1]);
 
-  // *** NEW: QF → SF — ONE PATH PER QF BOX to the SF box edge ***
-  // Left side: two QF boxes feed SF top; two feed SF bottom.
+  // QF -> SF (Polyline method)
   (function qfToSfLeft(){
     const xQFRight = G.X(1) + G.colW;
     const xSFLeft  = G.X(2);
-    const xmTop    = (xQFRight + xSFLeft) / 2 - 4; // slight stagger feels nicer
+    const xmTop    = (xQFRight + xSFLeft) / 2 - 4;
     const xmBot    = (xQFRight + xSFLeft) / 2 + 4;
-
-    // QF #1 -> SF top (two lines: from each QF box)
     const qf1 = G.qfCenters[0];
     const yQf1Top = centerTop(qf1, G.innerGapQF);
     const yQf1Bot = centerBot(qf1, G.innerGapQF);
     const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
     P.push(polyH_V_H(xQFRight, yQf1Top, xmTop, ySfTop, xSFLeft));
     P.push(polyH_V_H(xQFRight, yQf1Bot, xmTop, ySfTop, xSFLeft));
-
-    // QF #2 -> SF bottom (two lines)
     const qf2 = G.qfCenters[1];
     const yQf2Top = centerTop(qf2, G.innerGapQF);
     const yQf2Bot = centerBot(qf2, G.innerGapQF);
@@ -178,22 +166,17 @@ export default function Bracket16({ data }) {
     P.push(polyH_V_H(xQFRight, yQf2Bot, xmBot, ySfBot, xSFLeft));
   })();
 
-  // Right side mirrored (QF left edge → SF right edge)
   (function qfToSfRight(){
     const xQFLeft   = G.X(5);
     const xSFRight  = G.X(4) + G.colW;
     const xmTop     = (xQFLeft + xSFRight) / 2 + 4;
     const xmBot     = (xQFLeft + xSFRight) / 2 - 4;
-
-    // QF #1 -> SF top (two lines)
     const qf1 = G.qfCenters[0];
     const yQf1Top = centerTop(qf1, G.innerGapQF);
     const yQf1Bot = centerBot(qf1, G.innerGapQF);
     const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
     P.push(polyH_V_H(xQFLeft, yQf1Top, xmTop, ySfTop, xSFRight));
     P.push(polyH_V_H(xQFLeft, yQf1Bot, xmTop, ySfTop, xSFRight));
-
-    // QF #2 -> SF bottom (two lines)
     const qf2 = G.qfCenters[1];
     const yQf2Top = centerTop(qf2, G.innerGapQF);
     const yQf2Bot = centerBot(qf2, G.innerGapQF);
@@ -202,10 +185,8 @@ export default function Bracket16({ data }) {
     P.push(polyH_V_H(xQFLeft, yQf2Bot, xmBot, ySfBot, xSFRight));
   })();
 
-  // SF → Final (center)
   P.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
   P.push(H(G.X(4),        G.sfCenter, finalRightX + G.finalW));
-  // finalists middle bar
   P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
 
   // ---------- Render ----------
@@ -223,19 +204,19 @@ export default function Bracket16({ data }) {
         }}
       >
         <div className={s.titles}>
-          <span className={s.title}>Round of 16</span>
-          <span className={s.title}>Quarterfinals</span>
-          <span className={s.title}>Semifinals</span>
-          <span className={s.title}>Final</span>
-          <span className={s.title}>Semifinals</span>
-          <span className={s.title}>Quarterfinals</span>
-          <span className={s.title}>Round of 16</span>
+          <span className={s.title} style={{left:G.X(0)}}>Round of 16</span>
+          <span className={s.title} style={{left:G.X(1)}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(2)}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(3), width: G.colW}}>Final</span>
+          <span className={s.title} style={{left:G.X(4)}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(5)}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(6)}}>Round of 16</span>
         </div>
 
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
 
-        {/* wires behind boxes */}
+        {/* wires */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
           <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none">
             {P.map((d, i) => <path key={i} d={d} />)}
@@ -249,12 +230,12 @@ export default function Bracket16({ data }) {
     </div>
   );
 
-  // ---------- Box helpers ----------
   function slotBox(x,y,text){
     return <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left:x, top:y }}>{text}</div>;
   }
   function finalBox(x,y,text){
-    return <div key={`f-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left:x, top:y }}>{text}</div>;
+    // finalSlot class adds gold accent
+    return <div key={`f-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left:x, top:y, width: G.finalW }}>{text}</div>;
   }
 }
 
@@ -264,23 +245,13 @@ function normalizeData(data) {
   const F = data?.final ?? {};
   return {
     left: {
-      R16: L.R16 ?? [
-        ["Seed 1","Seed 2"],
-        ["Seed 3","Seed 4"],
-        ["Seed 5","Seed 6"],
-        ["Seed 7","Seed 8"],
-      ],
-      QF: L.QF ?? [["TBD","TBD"],["TBD","TBD"]],
+      R16: L.R16 ?? Array(4).fill(["TBD","TBD"]),
+      QF: L.QF ?? Array(2).fill(["TBD","TBD"]),
       SF: L.SF ?? ["TBD","TBD"],
     },
     right: {
-      R16: R.R16 ?? [
-        ["Seed 9","Seed 10"],
-        ["Seed 11","Seed 12"],
-        ["Seed 13","Seed 14"],
-        ["Seed 15","Seed 16"],
-      ],
-      QF: R.QF ?? [["TBD","TBD"],["TBD","TBD"]],
+      R16: R.R16 ?? Array(4).fill(["TBD","TBD"]),
+      QF: R.QF ?? Array(2).fill(["TBD","TBD"]),
       SF: R.SF ?? ["TBD","TBD"],
     },
     final: {
