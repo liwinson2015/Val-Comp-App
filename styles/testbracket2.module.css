@@ -1,52 +1,57 @@
-/* --- STYLE 2: RETRO ARCADE --- */
+/* --- STYLE 3: ELEGANT PAPER --- */
 .container {
-  --bg-color: #000000;
-  --card-bg: #111;
-  --neon-green: #39ff14;
-  --neon-pink: #ff00ff;
-  --line-color: #333;
+  --bg-color: #f3f4f6;
+  --card-bg: #ffffff;
+  --text-main: #1f2937;
+  --text-dim: #9ca3af;
+  --accent: #3b82f6; /* Soft Blue */
+  --line: #e5e7eb;
   
-  font-family: 'Press Start 2P', cursive; /* PIXEL FONT */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-color);
-  color: #fff;
+  color: var(--text-main);
   height: 100vh; width: 100%;
   display: flex; justify-content: center; align-items: center; overflow: hidden;
-  font-size: 10px; /* Pixel font needs to be small */
 }
 
 .bracketBoard { display: flex; align-items: center; gap: 40px; }
-.column { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+.column { display: flex; flex-direction: column; justify-content: center; gap: 30px; }
 
-/* CARD - BLOCKY BORDERS */
+/* CARD - SOFT SHADOWS & ROUNDED */
 .matchWrapper { position: relative; display: flex; align-items: center; }
 .matchBox {
-  width: 170px; height: 60px;
+  width: 160px; height: 70px;
   background: var(--card-bg);
-  border: 4px solid var(--line-color);
-  display: flex; flex-direction: column; justify-content: center;
+  border-radius: 12px;
+  display: flex; flex-direction: column; justify-content: center; padding: 0 16px;
   position: relative; z-index: 2;
-  box-shadow: 4px 4px 0px #222; /* Hard Shadow */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: 0.2s ease;
+  border: 1px solid transparent;
 }
 
-.matchBox:hover { border-color: var(--neon-green); box-shadow: 4px 4px 0px var(--neon-green); transform: translate(-2px, -2px); }
+.matchBox:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: var(--accent); }
 
 /* TEAMS */
-.teamRow { display: flex; justify-content: space-between; padding: 4px 8px; }
-.winner { color: var(--neon-green); text-shadow: 2px 2px 0px #000; }
-.loser { color: #555; }
-.score { color: #fff; }
+.teamRow { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; padding: 2px 0; }
+.winner { color: var(--text-main); }
+.loser { color: var(--text-dim); font-weight: 400; }
+.score { font-weight: 700; color: var(--text-dim); }
+.winner .score { color: var(--accent); }
 
-/* LINES - THICK AND BLOCKY */
-.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: var(--line-color); }
-.matchWrapper:hover::after, .matchWrapper:hover::before { background: var(--neon-pink); }
+/* LINES - ROUNDED CORNERS */
+.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: transparent; border: 2px solid var(--line); }
+/* We use border-radius for smooth lines */
 
-.leftSide .matchWrapper::after { height: 4px; width: 40px; right: -40px; top: 50%; margin-top: -2px;}
-.leftSide .matchWrapper[data-pos="top"]::before { width: 4px; height: 50%; right: -40px; top: 50%; }
-.leftSide .matchWrapper[data-pos="bottom"]::before { width: 4px; height: 54%; right: -40px; bottom: 50%; } /* Slight overlap for pixel perfect join */
+/* Left Side Logic */
+.leftSide .matchWrapper::after { border:none; background: var(--line); height: 2px; width: 40px; right: -40px; top: 50%; }
+.leftSide .matchWrapper[data-pos="top"]::before { width: 20px; height: 50%; right: -20px; top: 50%; border-left:none; border-top:none; border-radius: 0 0 12px 0; }
+.leftSide .matchWrapper[data-pos="bottom"]::before { width: 20px; height: 50%; right: -20px; bottom: 50%; border-left:none; border-bottom:none; border-radius: 0 12px 0 0; }
 
-.rightSide .matchWrapper::after { height: 4px; width: 40px; left: -40px; top: 50%; margin-top: -2px;}
-.rightSide .matchWrapper[data-pos="top"]::before { width: 4px; height: 50%; left: -40px; top: 50%; }
-.rightSide .matchWrapper[data-pos="bottom"]::before { width: 4px; height: 54%; left: -40px; bottom: 50%; }
+/* Right Side Logic */
+.rightSide .matchWrapper::after { border:none; background: var(--line); height: 2px; width: 40px; left: -40px; top: 50%; }
+.rightSide .matchWrapper[data-pos="top"]::before { width: 20px; height: 50%; left: -20px; top: 50%; border-right:none; border-top:none; border-radius: 0 0 0 12px; }
+.rightSide .matchWrapper[data-pos="bottom"]::before { width: 20px; height: 50%; left: -20px; bottom: 50%; border-right:none; border-bottom:none; border-radius: 12px 0 0 0; }
 
-.finalBox { border-color: var(--neon-pink); box-shadow: 6px 6px 0px var(--neon-pink); width: 200px; }
-.trophy { color: gold; font-size: 20px; margin-bottom: 10px; text-align: center; }
+.finalBox { border: 2px solid var(--accent); width: 200px; height: 80px; }
+.trophy { color: var(--accent); font-size: 18px; margin-bottom: 8px; text-align: center; }
