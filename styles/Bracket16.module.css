@@ -1,6 +1,6 @@
 /* styles/Bracket16.module.css */
 
-/* --- Theme Variables + Container --- */
+/* --- Theme Variables --- */
 .container {
   /* Ice Palette */
   --ice-primary: #00c6ff;
@@ -17,28 +17,24 @@
   /* Clash/Gold Palette */
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.5);
+}
 
-  /* Centered block that can grow wide */
-  width: 100%;
+.container {
+  /* You can drop min-height if it feels too tall in the layout */
   min-height: 100vh;
   background-color: #050505;
-  background-image:
+  /* A subtle split background gradient from cold to hot */
+  background-image: 
     radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
-    linear-gradient(
-      90deg,
-      rgba(0, 20, 40, 1) 0%,
-      rgba(5, 5, 10, 1) 45%,
-      rgba(5, 5, 10, 1) 55%,
-      rgba(40, 10, 0, 1) 100%
-    );
+    linear-gradient(90deg, rgba(0, 20, 40, 1) 0%, rgba(5, 5, 10, 1) 45%, rgba(5, 5, 10, 1) 55%, rgba(40, 10, 0, 1) 100%);
   color: #fff;
-  font-family: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Rajdhani', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   flex-direction: column;
-  align-items: center;   /* center header + bracket */
+  align-items: center;
   justify-content: center;
   overflow-x: auto;
-  padding: 40px 20px;
+  padding: 20px;
 }
 
 .header {
@@ -51,6 +47,7 @@
 .title {
   font-size: 3rem;
   margin: 0;
+  /* Gradient Text spanning ice to fire */
   background: linear-gradient(90deg, var(--ice-primary), #fff, var(--fire-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -70,8 +67,7 @@
   align-items: stretch;
   gap: 30px;
   width: 100%;
-  max-width: 1600px;   /* keeps it nicely centered */
-  margin: 0 auto;
+  max-width: 1600px;
 }
 
 /* Columns */
@@ -92,7 +88,7 @@
 
 /* Connector Lines Logic - Simple Guides */
 .column::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 50%;
   width: 30px;
@@ -110,7 +106,7 @@
   background: linear-gradient(270deg, var(--fire-primary), transparent);
 }
 
-/* hooks for JSX */
+/* Just to have hooks for JS/JSX */
 .columnLeft {}
 .columnRight {}
 
@@ -128,14 +124,8 @@
   width: 100%;
   padding: 12px;
   position: relative;
-  clip-path: polygon(
-    15px 0,
-    100% 0,
-    100% calc(100% - 15px),
-    calc(100% - 15px) 100%,
-    0 100%,
-    0 15px
-  );
+  /* Futuristic angular cut */
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
   transition: all 0.3s ease;
   border: 1px solid transparent;
 }
@@ -143,7 +133,7 @@
 /* --- ICE THEME CARDS (Left Side) --- */
 .cardIce {
   border-color: rgba(0, 198, 255, 0.3);
-  box-shadow: 0 0 10px var(--ice-glow), inset 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 10px var(--ice-glow), inset 0 0 10px rgba(0,0,0,0.5);
 }
 .cardIce:hover {
   border-color: var(--ice-primary);
@@ -159,7 +149,7 @@
 /* --- FIRE THEME CARDS (Right Side) --- */
 .cardFire {
   border-color: rgba(255, 75, 31, 0.3);
-  box-shadow: 0 0 10px var(--fire-glow), inset 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 10px var(--fire-glow), inset 0 0 10px rgba(0,0,0,0.5);
 }
 .cardFire:hover {
   border-color: var(--fire-primary);
@@ -177,26 +167,18 @@
   border-color: var(--clash-primary);
   box-shadow: 0 0 30px var(--clash-glow);
   transform: scale(1.15);
-  background: linear-gradient(
-    135deg,
-    rgba(30, 10, 0, 0.9),
-    rgba(0, 10, 30, 0.9)
-  );
+  background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
 }
 .cardClash .winnerRow {
   color: var(--clash-primary);
   text-shadow: 0 0 10px var(--clash-glow);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 215, 0, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.2), transparent);
 }
 
 /* Team Rows Generic */
 .team {
   display: flex;
-  justify-content: center;
+  justify-content: center; /* centers the text */
   align-items: center;
   padding: 8px 12px;
   font-size: 0.9rem;
@@ -212,12 +194,12 @@
 
 /* Winner Text Styling (Subtle) */
 .winnerText {
-  font-size: 1.5rem;
+  font-size: 1.5rem; 
   font-weight: 600;
   letter-spacing: 3px;
   color: var(--clash-primary);
   opacity: 0.9;
-  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 5px rgba(0,0,0,0.5); 
   margin: 0;
   line-height: 1;
 }
@@ -239,9 +221,7 @@
   .matchWrapper {
     width: 45%; /* Two wide on mobile */
   }
-  .column::before {
-    display: none;
-  }
+  .column::before { display: none; }
 }
 
 @media (max-width: 600px) {

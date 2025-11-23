@@ -37,12 +37,12 @@ function pairsToMatches(pairs, prefix) {
     id: `${prefix}-${idx}`,
     p1: pair?.[0] || "TBD",
     p2: pair?.[1] || "TBD",
-    winner: 0, // unknown from this data structure
+    winner: 0, // we don't know winners per match from bracketData yet
   }));
 }
 
 export default function Bracket16({ data }) {
-  // ✅ keep your original data contract: left.R16/QF/SF, right.R16/QF/SF, final.left/right/champion
+  // 🔒 keep your old data contract: left.R16/QF/SF, right.R16/QF/SF, final.left/right/champion
   const D = normalizeData(data);
 
   const leftSide = {
@@ -71,7 +71,7 @@ export default function Bracket16({ data }) {
     ],
   };
 
-  // Finals: highlight champion row if it matches left/right
+  // Finals card: highlight champion row if it matches
   let finalWinner = 0;
   if (D.final.champion && D.final.champion === D.final.left) finalWinner = 1;
   else if (D.final.champion && D.final.champion === D.final.right) finalWinner = 2;
@@ -150,7 +150,7 @@ export default function Bracket16({ data }) {
   );
 }
 
-// ✅ Same normalizeData helper as your original file
+// 🔒 Same normalizeData helper as before: keeps your data contract identical
 function normalizeData(data) {
   const L = data?.left ?? {};
   const R = data?.right ?? {};
