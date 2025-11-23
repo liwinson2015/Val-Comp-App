@@ -5,34 +5,42 @@ export default function Bracket16({ data }) {
   const D = normalizeData(data);
   const containerRef = useRef(null);
   
-  // State to track container width for responsive resizing
-  const [width, setWidth] = useState(1200); // Default start width
+  // Track the width of the container to fill it
+  const [width, setWidth] = useState(1200);
 
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
-        // Clamp width: Don't go smaller than 1000px (scroll instead), don't go infinitely wide
-        const w = Math.max(1000, Math.min(containerRef.current.offsetWidth, 1600));
-        setWidth(w);
+        // Get width minus padding (20px left + 20px right = 40px)
+        const available = containerRef.current.clientWidth - 40;
+        // Ensure we don't break if it's super small
+        setWidth(Math.max(1000, available));
       }
     };
+    
     window.addEventListener("resize", handleResize);
-    handleResize(); // Init
+    handleResize(); // Call once on mount to set initial width
+    
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ---------- Geometry (Responsive) ----------
+  // ---------- Geometry (Responsive Fit) ----------
   const G = useMemo(() => {
-    // Dynamic column width based on container width
-    // We have 7 "columns" effectively (4 rounds left + right + center space)
-    // Formula: (TotalWidth - Margins) / 7 columns (roughly)
-    const rawColW = (width - 100) / 7.5; 
-    const colW = Math.floor(Math.max(110, Math.min(rawColW, 180))); // Clamp between 110px and 180px
+    // We have 7 distinct columns:
+    // L-R16, L-QF, L-SF, [Finals Center], R-SF, R-QF, R-R16
+    // Plus gaps between them (6 gaps total)
     
-    // Calculate gap based on remaining space
-    const totalColsWidth = colW * 7;
-    const remainingSpace = width - totalColsWidth;
-    const gap = Math.floor(remainingSpace / 8); // Distribute gaps evenly
+    // Let's target a specific column width range
+    // Min colW: 130px, Max colW: 180px
+    let targetColW = Math.floor(width / 8.5); // Heuristic divisor
+    const colW = Math.max(130, Math.min(targetColW, 180));
+    
+    // The rest of the space is distributed as gaps
+    // 7 columns * colW + 6 gaps = width
+    // 6 gaps = width - (7 * colW)
+    const totalColsW = colW * 7;
+    const remainingForGaps = Math.max(0, width - totalColsW);
+    const gap = Math.floor(remainingForGaps / 6);
 
     const slotH = 38;
     const wire  = 2;
@@ -41,7 +49,10 @@ export default function Bracket16({ data }) {
     const innerGapQF  = 30;
     const innerGapSF  = 22;
 
-    const X = (i) => (colW + gap) * i + (gap/2); // Start with half-gap offset
+    // X calculation: Sum of columns + gaps before index i
+    // i=0: 0
+    // i=1: colW + gap
+    const X = (i) => i * (colW + gap);
 
     const titleBand = 30;
     const headerPad = 50;
@@ -58,14 +69,14 @@ export default function Bracket16({ data }) {
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
     const finalY    = sfCenter;
 
-    // Absolute Center of the stage
-    const absoluteCenter = width / 2;
+    // Absolute Center X (Middle of the "Final" column at index 3)
+    const absoluteCenter = X(3) + colW / 2;
 
-    const stageW    = width; // Full container width
+    const stageW    = width; 
     const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
     const stageH    = Math.ceil(lastBot + 100);
 
-    const finalW      = Math.min(colW * 0.8, 100); // Slightly smaller final box
+    const finalW      = Math.min(colW * 0.8, 100);
     const finalMidGap = 16;
 
     const champOffset = 55;  
@@ -92,7 +103,7 @@ export default function Bracket16({ data }) {
   // ---------- Boxes ----------
   const boxes = [];
 
-  // Left Side
+  // Left Side (Indices 0, 1, 2)
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
     boxes.push(slotBox(G.X(0), slotTop(y, G.innerGapR16),  D.left.R16[i][0]));
@@ -106,24 +117,21 @@ export default function Bracket16({ data }) {
   boxes.push(slotBox(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
   boxes.push(slotBox(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
-  // Right Side (Mirrored X positions)
-  // We map indices 6,5,4 to mirror 0,1,2 from the right side
-  const XR = (i) => G.stageW - G.X(i) - G.colW; 
-
+  // Right Side (Indices 6, 5, 4)
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
-    boxes.push(slotBox(XR(0), slotTop(y, G.innerGapR16),  D.right.R16[i][0]));
-    boxes.push(slotBox(XR(0), slotBot(y, G.innerGapR16),  D.right.R16[i][1]));
+    boxes.push(slotBox(G.X(6), slotTop(y, G.innerGapR16),  D.right.R16[i][0]));
+    boxes.push(slotBox(G.X(6), slotBot(y, G.innerGapR16),  D.right.R16[i][1]));
   }
   for (let i=0;i<2;i++){
     const y = G.qfCenters[i];
-    boxes.push(slotBox(XR(1), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
-    boxes.push(slotBox(XR(1), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
+    boxes.push(slotBox(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
+    boxes.push(slotBox(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
   }
-  boxes.push(slotBox(XR(2), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
-  boxes.push(slotBox(XR(2), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
+  boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
+  boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // Finalists (Centered precisely)
+  // Finalists (Centered)
   const finalLeftX  = G.absoluteCenter - G.finalMidGap/2 - G.finalW;
   const finalRightX = G.absoluteCenter + G.finalMidGap/2;
   const finalTop    = G.finalY - G.slotH/2;
@@ -149,8 +157,8 @@ export default function Bracket16({ data }) {
   function qfToSf_L(){
     const xQF = G.X(1)+G.colW;
     const xSF = G.X(2);
-    const xmTop = (xQF + xSF) / 2 - 4;
-    const xmBot = (xQF + xSF) / 2 + 4;
+    const xmTop = (xQF + xSF) / 2 - 6;
+    const xmBot = (xQF + xSF) / 2 + 6;
     
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
@@ -159,22 +167,21 @@ export default function Bracket16({ data }) {
   }
   qfToSf_L();
 
-  // Right Wires (Mirrored Logic)
+  // Right Wires
   function r16ToQf_R(pairY, targetPairY){
-    const xR16 = XR(0);
-    const xQF  = XR(1)+G.colW;
+    const xR16 = G.X(6);
+    const xQF  = G.X(5)+G.colW;
     const xm   = (xR16 + xQF) / 2;
-    // Note direction: xR16 is visually on right, xQF on left
     P.push(polyH_V_H(xR16, centerTop(pairY, G.innerGapR16), xm, centerTop(targetPairY, G.innerGapQF), xQF));
     P.push(polyH_V_H(xR16, centerBot(pairY, G.innerGapR16), xm, centerBot(targetPairY, G.innerGapQF), xQF));
   }
   [0,1,2,3].forEach(i => r16ToQf_R(G.r16Centers[i], G.qfCenters[Math.floor(i/2)]));
 
   function qfToSf_R(){
-    const xQF = XR(1);
-    const xSF = XR(2)+G.colW;
-    const xmTop = (xQF + xSF) / 2 + 4;
-    const xmBot = (xQF + xSF) / 2 - 4;
+    const xQF = G.X(5);
+    const xSF = G.X(4)+G.colW;
+    const xmTop = (xQF + xSF) / 2 + 6;
+    const xmBot = (xQF + xSF) / 2 - 6;
 
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
@@ -183,12 +190,13 @@ export default function Bracket16({ data }) {
   }
   qfToSf_R();
 
-  // SF -> Final Connectors
+  // SF -> Final
   P.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
-  P.push(H(XR(2), G.sfCenter, finalRightX + G.finalW));
+  P.push(H(G.X(4), G.sfCenter, finalRightX + G.finalW));
   
-  // Final Bridge & Winner Line
+  // Final Bridge
   P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
+  // Winner Vertical
   P.push(V(G.absoluteCenter, G.finalY, G.champTop + G.slotH + 4));
 
   return (
@@ -205,13 +213,13 @@ export default function Bracket16({ data }) {
         }}
       >
         <div className={s.titles}>
-          <span className={s.title}>R16</span>
-          <span className={s.title}>QF</span>
-          <span className={s.title}>SF</span>
-          <span className={s.title}>Final</span>
-          <span className={s.title}>SF</span>
-          <span className={s.title}>QF</span>
-          <span className={s.title}>R16</span>
+          <span className={s.title} style={{left:G.X(0), width:G.colW}}>Round of 16</span>
+          <span className={s.title} style={{left:G.X(1), width:G.colW}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(2), width:G.colW}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(3), width:G.colW}}>Final</span>
+          <span className={s.title} style={{left:G.X(4), width:G.colW}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(5), width:G.colW}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(6), width:G.colW}}>Round of 16</span>
         </div>
 
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>

@@ -5,20 +5,22 @@
 
 .viewport {
   width: 100%;
-  /* Center vertically, but let horizontal stretch */
+  /* Center vertically, allow horizontal stretch */
   display: flex;
   justify-content: center;
-  /* Remove side padding so it touches edges */
-  padding: 40px 0;
-  overflow-x: hidden; /* Hide scrollbar if it fits, auto if not */
+  align-items: center;
+  /* Remove side padding so it touches edges if needed */
+  padding: 40px 20px; /* minimal side padding */
+  overflow-x: auto; 
   background: transparent;
+  min-height: 600px; /* Ensure enough height */
 }
 
 .stage {
   position: relative;
-  /* Ensure the stage tries to fill width comfortably */
-  min-width: 1000px; /* Minimum readable width */
-  max-width: 1600px; /* Maximum stretch */
+  /* Allow stage to be wide */
+  min-width: 1000px; 
+  max-width: 1800px; /* Increased max width */
   width: 100%;
   margin: 0 auto;
   
@@ -32,11 +34,12 @@
 /* Round headings */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
-  display: flex; /* Changed to flex for distribution */
-  justify-content: space-between; /* Spread titles evenly */
+  display: flex; 
+  justify-content: space-between; 
   pointer-events: none;
   z-index: 2;
-  padding: 0 10px; /* Slight buffer from edge */
+  /* Align titles with columns perfectly */
+  padding: 0; 
 }
 
 .title {
@@ -50,8 +53,7 @@
   color: #556679;
   user-select: none;
   white-space: nowrap;
-  /* Width will be controlled by JS or Flex */
-  width: 14%; /* Rough approx for 7 columns */
+  /* Width controlled by JS inline style */
 }
 
 /* Wires */
@@ -71,7 +73,6 @@
 /* Boxes */
 .slot {
   position: absolute;
-  /* Width comes from variable set in JS */
   width: var(--colw); 
   height: var(--slotH);
   
@@ -102,7 +103,6 @@
 
 /* Small finalists boxes */
 .finalSlot { 
-  /* Width is dynamic in JS based on finalW var */
   border-left: 3px solid #ffdf58;
   background: #161b22;
 }
