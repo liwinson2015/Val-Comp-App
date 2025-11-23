@@ -10,7 +10,6 @@ export default function Bracket16({ data }) {
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
-        // Use full available width minus padding
         const available = containerRef.current.clientWidth - 40;
         setWidth(Math.max(1000, available));
       }
@@ -22,30 +21,17 @@ export default function Bracket16({ data }) {
 
   // ---------- Geometry ----------
   const G = useMemo(() => {
-    // Configuration
-    const slotH = 48;  // Match CSS
-    const finalW = 220; // Hero size for finals
+    const slotH = 48;
+    // Increase the center "Champion" zone width significantly to prevent side overlap
+    const finalW = 220; 
     const finalMidGap = 24;
-    
-    // Width Calculation
-    // We have: 3 cols Left + 3 cols Right + Finals Area
-    // Finals Area width = (finalW * 2) + finalMidGap + (2 * gap)
-    // Total Width = (6 * colW) + (2 * finalW) + (6 * gap) + finalMidGap
-    
-    // Let's reverse engineer: 
-    // 1. Reserve space for Finals Center
-    const centerReserved = (finalW * 2) + finalMidGap;
+    // Reserve generous space for the center column
+    const centerReserved = (finalW * 2) + finalMidGap + 100; // +100 extra buffer
+
     const remainingForCols = width - centerReserved;
-    
-    // 2. Divide remainder among 6 columns and 8 gaps (approx)
-    // Rough ratio: ColW = 4x Gap
     const unit = remainingForCols / (6 * 4 + 8); 
-    
-    // Calculate expansive dimensions
-    // Don't let columns get smaller than 140, but let them grow to 280
     const colW = Math.max(140, Math.min(Math.floor(unit * 4), 280));
     
-    // Recalculate Gap to fill the rest exactly
     const usedByCols = (colW * 6) + centerReserved;
     const gap = Math.floor((width - usedByCols) / 6);
 
@@ -54,24 +40,8 @@ export default function Bracket16({ data }) {
     const innerGapQF  = 44;
     const innerGapSF  = 32;
 
-    // Helper to place columns relative to center
-    // Center X is width / 2
-    const centerX = width / 2;
-    
-    // X positions outward from center
-    // Center -> Final -> SF -> QF -> R16
-    const finalLeftX = centerX - (finalMidGap/2) - finalW;
-    const finalRightX = centerX + (finalMidGap/2);
-    
-    const xSF_L = finalLeftX - gap - colW;
-    const xQF_L = xSF_L - gap - colW;
-    const xR16_L = xQF_L - gap - colW;
-    
-    const xSF_R = finalRightX + gap;
-    const xQF_R = xSF_R + gap + colW;
-    const xR16_R = xQF_R + gap + colW;
+    const X = (i) => (colW + gap) * i + (gap);
 
-    // Vertical spacing
     const titleBand = 40;
     const headerPad = 60;
     const topPad = titleBand + headerPad;
@@ -85,14 +55,32 @@ export default function Bracket16({ data }) {
 
     const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
-    const finalY    = sfCenter;
+    
+    // FIX: Push the Final Match DOWN. 
+    // Previously it was at sfCenter (same height as Semis). 
+    // Let's push it down by 40px to clear the wires.
+    const finalY = sfCenter + 40;
+
+    const centerX = width / 2;
+    
+    const finalLeftX = centerX - (finalMidGap/2) - finalW;
+    const finalRightX = centerX + (finalMidGap/2);
+    
+    const xSF_L = finalLeftX - gap - colW;
+    const xQF_L = xSF_L - gap - colW;
+    const xR16_L = xQF_L - gap - colW;
+    
+    const xSF_R = finalRightX + gap;
+    const xQF_R = xSF_R + gap + colW;
+    const xR16_R = xQF_R + gap + colW;
 
     const stageW = width;
     const lastBot = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH = Math.ceil(lastBot + 120);
+    const stageH = Math.ceil(lastBot + 150);
 
-    const champOffset = 90;  
-    const winnerAbove = 30;  
+    // FIX: Increase space between Champion Box and Final Match
+    const champOffset = 100; // Was 80
+    const winnerAbove = 40;  // Was 30
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
 
@@ -155,6 +143,7 @@ export default function Bracket16({ data }) {
   const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`;
   const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`;
   const V = (x, y1, y2) => `M ${x} ${y1} V ${y2}`;
+  const polyV_H_V = (x1, y1, ym, x2, y2) => `M ${x1} ${y1} V ${ym} H ${x2} V ${y2}`; // Vertical connector
 
   // Left Wires
   function r16ToQf_L(pairY, targetPairY){
@@ -171,7 +160,6 @@ export default function Bracket16({ data }) {
     const xSF = G.xSF_L;
     const xmTop = (xQF + xSF) / 2 - 8;
     const xmBot = (xQF + xSF) / 2 + 8;
-    
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
@@ -194,7 +182,6 @@ export default function Bracket16({ data }) {
     const xSF = G.xSF_R + G.colW;
     const xmTop = (xQF + xSF) / 2 + 8;
     const xmBot = (xQF + xSF) / 2 - 8;
-
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
@@ -202,12 +189,22 @@ export default function Bracket16({ data }) {
   }
   qfToSf_R();
 
-  // SF -> Final Connectors
-  P.push(H(G.xSF_L + G.colW, G.sfCenter, G.finalLeftX));
-  P.push(H(G.xSF_R, G.sfCenter, G.finalRightX + G.finalW));
+  // SF -> Final Connectors (Elbow down to new lower Final Y)
+  // We use a polyline to go: SF Edge -> Horizontal -> Vertical Down -> Horizontal -> Final Box
+  const sfLeftX = G.xSF_L + G.colW;
+  const sfRightX = G.xSF_R;
+  // Midpoint for the drop
+  const dropMidL = (sfLeftX + G.finalLeftX) / 2;
+  const dropMidR = (sfRightX + (G.finalRightX + G.finalW)) / 2;
+
+  // Left SF to Final
+  P.push(`M ${sfLeftX} ${G.sfCenter} H ${dropMidL} V ${G.finalY} H ${G.finalLeftX}`);
+  // Right SF to Final
+  P.push(`M ${sfRightX} ${G.sfCenter} H ${dropMidR} V ${G.finalY} H ${G.finalRightX + G.finalW}`);
   
-  // Final Bridge & Winner
+  // Final Bridge
   P.push(H(G.finalLeftX + G.finalW, G.finalY, G.finalRightX));
+  // Winner Vertical (Up to Champion)
   P.push(V(G.centerX, G.finalY, G.champTop + G.slotH + 20));
 
   return (
@@ -227,15 +224,13 @@ export default function Bracket16({ data }) {
           <span className={s.title} style={{left:G.xR16_L, width:G.colW}}>R16</span>
           <span className={s.title} style={{left:G.xQF_L, width:G.colW}}>QF</span>
           <span className={s.title} style={{left:G.xSF_L, width:G.colW}}>SF</span>
-          
           <span className={s.title} style={{left:G.centerX - 50, width:100}}>FINAL</span>
-          
           <span className={s.title} style={{left:G.xSF_R, width:G.colW}}>SF</span>
           <span className={s.title} style={{left:G.xQF_R, width:G.colW}}>QF</span>
           <span className={s.title} style={{left:G.xR16_R, width:G.colW}}>R16</span>
         </div>
 
-        <div className={s.winnerLabel} style={{ top: G.winnerTop }}>CHAMPION</div>
+        <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
 
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
