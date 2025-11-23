@@ -5,37 +5,53 @@
 
 .viewport {
   width: 100%;
+  /* Use the same dark theme background or transparent to let page show through */
+  background: transparent; 
+  color: #ece8e1;
+  overflow-x: auto;
   display: flex;
   justify-content: center;
-  padding: 40px;
-  background: #f0f2f5; /* Page background */
-  min-height: 100vh;
+  padding: 40px 0;
+  /* Custom scrollbar for the bracket view */
+  scrollbar-width: thin;
+  scrollbar-color: #ff4655 #1b2733;
 }
 
-/* The Main White Card */
 .stage {
   position: relative;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: 1px solid #e2e8f0;
-  padding: 60px 40px; /* Inner padding */
-  
-  /* Ensure it fits the content */
-  min-width: 1200px; 
-  margin: 0 auto;
-  
-  /* Defaults */
-  --slotH: 40px;
-  --colw: 140px;
-  --gap: 40px;
+  /* overridden from JSX */
+  --slotH: 38px;
+  --colw: 150px;
+  --gap: 34px;
   --joinW: 2px;
+  margin: 0 auto;
 }
 
-/* Hide Titles for this specific clean look (optional) */
-.titles { display: none; }
+/* Round headings */
+.titles {
+  position: absolute; left: 0; right: 0; top: 0;
+  display: grid;
+  grid-template-columns: repeat(7, var(--colw));
+  column-gap: var(--gap);
+  justify-content: start;
+  pointer-events: none;
+  z-index: 2;
+}
 
-/* Wires */
+.title {
+  text-align: center;
+  font-family: 'DIN Next W01', 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 18px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #556679; /* Muted blue-grey */
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Wires (SVG Lines) */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
@@ -43,63 +59,106 @@
 }
 
 .wires g {
-  stroke: #475569; /* Slate-600 for lines */
-  stroke-width: 2px;
-  fill: none;
+  stroke: #2c3846; /* Dark tech slate */
+  transition: stroke 0.3s ease;
 }
 
-/* --- The Nodes --- */
+/* Boxes (The Teams) */
 .slot {
   position: absolute;
-  width: var(--colw); 
+  width: var(--colw);
   height: var(--slotH);
   
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
+  /* NEW VISUALS: Dark Card Style */
+  background: linear-gradient(90deg, #1b2733 0%, #151e27 100%);
+  border: 1px solid #2c3846;
+  border-left: 3px solid #485363; /* Default grey accent */
+  color: #ece8e1;
   
+  display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
-  font-weight: 500; 
+  font-weight: 600; 
   font-size: 13px;
-  color: #334155;
+  border-radius: 2px; /* Sharp corners */
   
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 12px;
-  
-  /* Default Blue Style */
-  background: #eef2ff; /* Light Indigo */
-  border: 2px solid #818cf8; /* Indigo-400 */
-  border-radius: 4px;
+  padding: 0 8px;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
-/* Alternating Red/Pink Style (Logic handled in JS or nth-child) */
-.slot.pink {
-  background: #fdf2f2; /* Light Rose */
-  border-color: #f87171; /* Red-400 */
-  color: #7f1d1d;
+.slot:hover {
+  transform: translateY(-2px);
+  border-color: #ff4655; /* Valorant Red hover */
+  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
+  z-index: 10;
 }
 
-/* --- Center Root (Champion) --- */
+/* Small finalists boxes */
+.finalSlot { 
+  width: 84px; 
+  border-left: 3px solid #ffdf58; /* Gold accent for finals */
+  background: #161b22;
+}
+
+/* Champion pill + label */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
   
-  /* Dark Navy Box */
-  background: #1e293b; /* Slate-800 */
+  /* Big Gold Champion Style */
+  background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
   color: #ffffff;
-  border: 2px solid #0f172a;
+  border: 1px solid #ffdf58;
+  padding: 10px 24px;
   
-  padding: 14px 30px;
-  min-width: 180px;
-  text-align: center;
-  
-  font-family: 'Inter', sans-serif;
-  font-weight: 700; 
+  font-family: 'DIN Next W01', 'Oswald', sans-serif;
+  font-weight: 800; 
   font-size: 16px;
-  border-radius: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-radius: 4px;
+  box-shadow: 0 0 30px rgba(255, 223, 88, 0.2);
   z-index: 3; 
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(255,223,88,0.5);
 }
 
-.winnerLabel { display: none; } /* Hide label for clean look */
+.winnerLabel {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-family: 'DIN Next W01', sans-serif;
+  font-weight: 900; 
+  font-size: 10px; 
+  letter-spacing: 0.25em; 
+  text-transform: uppercase;
+  color: #ffdf58; /* Gold text */
+  opacity: 1; 
+  white-space: nowrap; 
+  z-index: 3;
+}
+
+/* Specific overrides if you use them in JS classes */
+.sfLeftTop::before,
+.sfLeftBot::before {
+  content: "";
+  position: absolute;
+  left: -12px;                 
+  top: 50%;
+  width: 12px;                 
+  height: var(--joinW);
+  background: #2c3846;
+  transform: translateY(-50%);
+}
+
+.sfRightTop::before,
+.sfRightBot::before {
+  content: "";
+  position: absolute;
+  right: -12px;                
+  top: 50%;
+  width: 12px;                 
+  height: var(--joinW);
+  background: #2c3846;
+  transform: translateY(-50%);
+}

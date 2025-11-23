@@ -1,190 +1,242 @@
 import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
+/**
+ * Pixel-precise 16-team bracket using absolute boxes + SVG wires.
+ * Updated with Esports UI skinning.
+ */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
   // ---------- Geometry ----------
   const G = useMemo(() => {
-    const colW  = 140; 
-    const gap   = 50;  // Wider gaps for the clean tree look
-    const slotH = 42;
-    
-    // Horizontal Positions
-    // Left Side: 0, 1, 2, 3(Root)
-    const X = (i) => 40 + i * (colW + gap); // Add left padding
+    const colW  = 150;
+    const gap   = 40; // Slightly wider gap for breathing room
+    const slotH = 38;
+    const wire  = 2;
 
-    const pairBlockR16 = slotH * 2 + 20; // 20px gap between pair
-    const r16Space     = 30; // 30px gap between matches
+    const innerGapR16 = 12;
+    const innerGapQF  = 30; 
+    const innerGapSF  = 22;
 
-    const topPad = 60;
+    const X = (i) => i * (colW + gap);
 
-    // R16 Centers
+    const titleBand = 30;
+    const headerPad = 64;
+    const topPad    = titleBand + headerPad;
+
+    const pairBlockR16 = slotH * 2 + innerGapR16;
+    const r16Space     = 26;
+
     const r16Centers = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
     );
 
-    // Recursive midpoints
     const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
-    const rootY     = sfCenter;
+    const finalY    = sfCenter;
 
-    // Stage Dimensions
-    const totalCols = 7; // L-R16, L-QF, L-SF, ROOT, R-SF, R-QF, R-R16
-    const stageW    = 40 * 2 + (colW * 7) + (gap * 6);
+    const stageW    = X(6) + colW;
     const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH    = Math.ceil(lastBot + 60);
+    const stageH    = Math.ceil(lastBot + 120);
 
-    const centerX   = stageW / 2;
+    const finalW      = 84;
+    const finalMidGap = 22;
+    // Used for winner label centering logic if needed
+    const centerX     = X(3) + colW / 2;
 
-    // X Coordinates for Columns
-    const xL_R16 = X(0);
-    const xL_QF  = X(1);
-    const xL_SF  = X(2);
-    const xRoot  = centerX;
-    
-    // Mirrored Right Side
-    const xR_SF  = stageW - X(2) - colW;
-    const xR_QF  = stageW - X(1) - colW;
-    const xR_R16 = stageW - X(0) - colW;
+    const champOffset = 60;  
+    const winnerAbove = 30;  
+    const champTop    = finalY - slotH - champOffset;
+    const winnerTop   = champTop - winnerAbove;
 
     return {
-      colW, gap, slotH,
-      r16Centers, qfCenters, sfCenter, rootY,
-      xL_R16, xL_QF, xL_SF,
-      xR_R16, xR_QF, xR_SF,
-      stageW, stageH, centerX
+      colW, gap, slotH, wire,
+      innerGapR16, innerGapQF, innerGapSF,
+      X, r16Centers, qfCenters, sfCenter, finalY,
+      stageW, stageH,
+      finalW, finalMidGap, centerX,
+      champTop, winnerTop,
     };
   }, []);
 
   // helpers
-  const slotTop = (cy) => cy - G.slotH/2;
-  // Inner gap for pairs
-  const pairGap = 20; 
-  
-  // Boxes
+  const slotTop = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
+  const slotBot = (pairY, innerGap) => pairY + (innerGap / 2);
+  const centerTop = (pairY, innerGap) => pairY - (innerGap / 2) - (G.slotH / 2);
+  const centerBot = (pairY, innerGap) => pairY + (innerGap / 2) + (G.slotH / 2);
+
+  // ---------- Boxes ----------
   const boxes = [];
-  const P = []; // Paths
 
-  // --- LEFT SIDE ---
-  // R16
-  for(let i=0; i<4; i++) {
-    const cy = G.r16Centers[i];
-    // Top seed (Blue)
-    boxes.push(slotBox(G.xL_R16, cy - G.slotH/2 - pairGap/2, D.left.R16[i][0], false));
-    // Bot seed (Pink)
-    boxes.push(slotBox(G.xL_R16, cy + G.slotH/2 + pairGap/2, D.left.R16[i][1], true));
-    
-    // Wire to QF
-    const targetY = G.qfCenters[Math.floor(i/2)];
-    // Connector: Fork style
-    // From R16 Top Right -> Mid -> QF Target
-    P.push(drawForkLeft(G.xL_R16 + G.colW, cy - pairGap/2 - G.slotH/2, cy + pairGap/2 + G.slotH/2, G.xL_QF, targetY));
+  // Left R16
+  for (let i=0;i<4;i++){
+    const y = G.r16Centers[i];
+    boxes.push(slotBox(G.X(0), slotTop(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[0] ?? D.left.R16[i][0]));
+    boxes.push(slotBox(G.X(0), slotBot(y, G.innerGapR16),  (data?.left?.R16 ?? [])[i]?.[1] ?? D.left.R16[i][1]));
   }
-
-  // QF
-  for(let i=0; i<2; i++) {
-    const cy = G.qfCenters[i];
-    // For intermediate nodes, we usually stick to Blue unless specified. 
-    // Let's alternate pairs for visual variety.
-    const isPink = i % 2 !== 0; 
-    boxes.push(slotBox(G.xL_QF, cy, D.left.QF[i][0] || "Winner", isPink));
-    
-    // Wire to SF
-    const targetY = G.sfCenter; // Only 1 SF on left
-    // Only draw if it's the correct pair feeding it
-    // QF0 and QF1 feed SF0
-    if (i === 0) {
-       P.push(drawForkLeft(G.xL_QF + G.colW, G.qfCenters[0], G.qfCenters[1], G.xL_SF, targetY));
-    }
+  // Left QF
+  for (let i=0;i<2;i++){
+    const y = G.qfCenters[i];
+    boxes.push(slotBox(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
+    boxes.push(slotBox(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
+  // Left SF
+  boxes.push(slotBox(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
+  boxes.push(slotBox(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
-  // SF
-  boxes.push(slotBox(G.xL_SF, G.sfCenter, D.left.SF[0] || "L-Finalist", false));
-  // Wire SF -> Root
-  P.push(`M ${G.xL_SF + G.colW} ${G.sfCenter} H ${G.centerX - 90}`); // 90 = half root width
-
-  // --- RIGHT SIDE ---
-  // R16
-  for(let i=0; i<4; i++) {
-    const cy = G.r16Centers[i];
-    boxes.push(slotBox(G.xR_R16, cy - G.slotH/2 - pairGap/2, D.right.R16[i][0], false));
-    boxes.push(slotBox(G.xR_R16, cy + G.slotH/2 + pairGap/2, D.right.R16[i][1], true));
-    
-    // Wire to QF (Mirrored)
-    const targetY = G.qfCenters[Math.floor(i/2)];
-    P.push(drawForkRight(G.xR_R16, cy - pairGap/2 - G.slotH/2, cy + pairGap/2 + G.slotH/2, G.xR_QF + G.colW, targetY));
+  // Right R16
+  for (let i=0;i<4;i++){
+    const y = G.r16Centers[i];
+    boxes.push(slotBox(G.X(6), slotTop(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[0] ?? D.right.R16[i][0]));
+    boxes.push(slotBox(G.X(6), slotBot(y, G.innerGapR16),  (data?.right?.R16 ?? [])[i]?.[1] ?? D.right.R16[i][1]));
   }
-
-  // QF
-  for(let i=0; i<2; i++) {
-    const cy = G.qfCenters[i];
-    const isPink = i % 2 !== 0;
-    boxes.push(slotBox(G.xR_QF, cy, D.right.QF[i][0] || "Winner", isPink));
-    
-    if (i === 0) {
-       P.push(drawForkRight(G.xR_QF, G.qfCenters[0], G.qfCenters[1], G.xR_SF + G.colW, G.sfCenter));
-    }
+  // Right QF
+  for (let i=0;i<2;i++){
+    const y = G.qfCenters[i];
+    boxes.push(slotBox(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
+    boxes.push(slotBox(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
   }
+  // Right SF
+  boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
+  boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // SF
-  boxes.push(slotBox(G.xR_SF, G.sfCenter, D.right.SF[0] || "R-Finalist", true));
-  // Wire SF -> Root
-  P.push(`M ${G.xR_SF} ${G.sfCenter} H ${G.centerX + 90}`);
+  // Finalists (center)
+  const finalLeftX  = G.X(3) + G.colW/2 - G.finalMidGap/2 - G.finalW;
+  const finalRightX = G.X(3) + G.colW/2 + G.finalMidGap/2;
+  const finalTop    = G.finalY - G.slotH/2;
+  const finalLeft   = finalBox(finalLeftX,  finalTop, D.final.left);
+  const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
 
-  // --- Helpers ---
-  function slotBox(x, y, text, isPink) {
-    // Center Y to Top Y
-    const top = y - G.slotH/2;
-    return (
-      <div 
-        key={`${x}-${y}`} 
-        className={`${s.slot} ${isPink ? s.pink : ''}`} 
-        style={{ left: x, top: top }}
-      >
-        {text}
-      </div>
-    );
+  // ---------- Wires ----------
+  const P = [];
+  const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`;
+  const V = (x,y1,y2) => `M ${x} ${y1} V ${y2}`;
+  const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`;
+
+  function r16ToQf_L(pairY, targetPairY){
+    const xR16 = G.X(0)+G.colW;
+    const xQF  = G.X(1);
+    const yTopSrc = centerTop(pairY, G.innerGapR16);
+    const yBotSrc = centerBot(pairY, G.innerGapR16);
+    const yTopDst = centerTop(targetPairY, G.innerGapQF);
+    const yBotDst = centerBot(targetPairY, G.innerGapQF);
+    const xm = (xR16 + xQF) / 2;
+    P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
+    P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
+  r16ToQf_L(G.r16Centers[0], G.qfCenters[0]);
+  r16ToQf_L(G.r16Centers[1], G.qfCenters[0]);
+  r16ToQf_L(G.r16Centers[2], G.qfCenters[1]);
+  r16ToQf_L(G.r16Centers[3], G.qfCenters[1]);
 
-  // Fork Path: Connects two source Ys (y1, y2) at xSrc to one target Y (yT) at xDst
-  //      |
-  // -----|
-  //      |-----
-  // -----|
-  //      |
-  function drawForkLeft(xSrc, y1, y2, xDst, yT) {
-    const xMid = (xSrc + xDst) / 2;
-    return `
-      M ${xSrc} ${y1} H ${xMid} V ${y2} H ${xSrc}
-      M ${xMid} ${yT} H ${xDst}
-    `;
+  function r16ToQf_R(pairY, targetPairY){
+    const xR16 = G.X(6);
+    const xQF  = G.X(5)+G.colW;
+    const yTopSrc = centerTop(pairY, G.innerGapR16);
+    const yBotSrc = centerBot(pairY, G.innerGapR16);
+    const yTopDst = centerTop(targetPairY, G.innerGapQF);
+    const yBotDst = centerBot(targetPairY, G.innerGapQF);
+    const xm = (xR16 + xQF) / 2;
+    P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
+    P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
+  r16ToQf_R(G.r16Centers[0], G.qfCenters[0]);
+  r16ToQf_R(G.r16Centers[1], G.qfCenters[0]);
+  r16ToQf_R(G.r16Centers[2], G.qfCenters[1]);
+  r16ToQf_R(G.r16Centers[3], G.qfCenters[1]);
 
-  function drawForkRight(xSrcRightEdge, y1, y2, xDstLeftEdge, yT) {
-    const xMid = (xSrcRightEdge + xDstLeftEdge) / 2;
-    return `
-      M ${xSrcRightEdge} ${y1} H ${xMid} V ${y2} H ${xSrcRightEdge}
-      M ${xMid} ${yT} H ${xDstLeftEdge}
-    `;
-  }
+  // QF -> SF (Polyline method)
+  (function qfToSfLeft(){
+    const xQFRight = G.X(1) + G.colW;
+    const xSFLeft  = G.X(2);
+    const xmTop    = (xQFRight + xSFLeft) / 2 - 4;
+    const xmBot    = (xQFRight + xSFLeft) / 2 + 4;
+    const qf1 = G.qfCenters[0];
+    const yQf1Top = centerTop(qf1, G.innerGapQF);
+    const yQf1Bot = centerBot(qf1, G.innerGapQF);
+    const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFRight, yQf1Top, xmTop, ySfTop, xSFLeft));
+    P.push(polyH_V_H(xQFRight, yQf1Bot, xmTop, ySfTop, xSFLeft));
+    const qf2 = G.qfCenters[1];
+    const yQf2Top = centerTop(qf2, G.innerGapQF);
+    const yQf2Bot = centerBot(qf2, G.innerGapQF);
+    const ySfBot  = centerBot(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFRight, yQf2Top, xmBot, ySfBot, xSFLeft));
+    P.push(polyH_V_H(xQFRight, yQf2Bot, xmBot, ySfBot, xSFLeft));
+  })();
 
+  (function qfToSfRight(){
+    const xQFLeft   = G.X(5);
+    const xSFRight  = G.X(4) + G.colW;
+    const xmTop     = (xQFLeft + xSFRight) / 2 + 4;
+    const xmBot     = (xQFLeft + xSFRight) / 2 - 4;
+    const qf1 = G.qfCenters[0];
+    const yQf1Top = centerTop(qf1, G.innerGapQF);
+    const yQf1Bot = centerBot(qf1, G.innerGapQF);
+    const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFLeft, yQf1Top, xmTop, ySfTop, xSFRight));
+    P.push(polyH_V_H(xQFLeft, yQf1Bot, xmTop, ySfTop, xSFRight));
+    const qf2 = G.qfCenters[1];
+    const yQf2Top = centerTop(qf2, G.innerGapQF);
+    const yQf2Bot = centerBot(qf2, G.innerGapQF);
+    const ySfBot  = centerBot(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFLeft, yQf2Top, xmBot, ySfBot, xSFRight));
+    P.push(polyH_V_H(xQFLeft, yQf2Bot, xmBot, ySfBot, xSFRight));
+  })();
+
+  P.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
+  P.push(H(G.X(4),        G.sfCenter, finalRightX + G.finalW));
+  P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
+
+  // ---------- Render ----------
   return (
     <div className={s.viewport}>
-      <div className={s.stage} style={{ width: G.stageW, height: G.stageH }}>
-        {/* Root Node */}
-        <div className={s.champ} style={{ top: G.rootY - 25 }}>
-          {D.final.champion || "Grand Champion"}
+      <div
+        className={s.stage}
+        style={{
+          width: `${G.stageW}px`,
+          height: `${G.stageH}px`,
+          "--slotH": `${G.slotH}px`,
+          "--colw": `${G.colW}px`,
+          "--gap": `${G.gap}px`,
+          "--joinW": `${G.wire}px`,
+        }}
+      >
+        <div className={s.titles}>
+          <span className={s.title} style={{left:G.X(0)}}>Round of 16</span>
+          <span className={s.title} style={{left:G.X(1)}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(2)}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(3), width: G.colW}}>Final</span>
+          <span className={s.title} style={{left:G.X(4)}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(5)}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(6)}}>Round of 16</span>
         </div>
 
+        <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
+        <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
+
+        {/* wires */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
-          <g>{P.map((d, i) => <path key={i} d={d} />)}</g>
+          <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none">
+            {P.map((d, i) => <path key={i} d={d} />)}
+          </g>
         </svg>
 
         {boxes}
+        {finalLeft}
+        {finalRight}
       </div>
     </div>
   );
+
+  function slotBox(x,y,text){
+    return <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left:x, top:y }}>{text}</div>;
+  }
+  function finalBox(x,y,text){
+    // finalSlot class adds gold accent
+    return <div key={`f-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left:x, top:y, width: G.finalW }}>{text}</div>;
+  }
 }
 
 function normalizeData(data) {
@@ -193,17 +245,19 @@ function normalizeData(data) {
   const F = data?.final ?? {};
   return {
     left: {
-      R16: L.R16 ?? Array(4).fill(["Sample text","Sample text"]),
-      QF: L.QF ?? Array(2).fill(["Sample text"]), // 1 winner per match
-      SF: L.SF ?? ["Sample text"],
+      R16: L.R16 ?? Array(4).fill(["TBD","TBD"]),
+      QF: L.QF ?? Array(2).fill(["TBD","TBD"]),
+      SF: L.SF ?? ["TBD","TBD"],
     },
     right: {
-      R16: R.R16 ?? Array(4).fill(["Sample text","Sample text"]),
-      QF: R.QF ?? Array(2).fill(["Sample text"]),
-      SF: R.SF ?? ["Sample text"],
+      R16: R.R16 ?? Array(4).fill(["TBD","TBD"]),
+      QF: R.QF ?? Array(2).fill(["TBD","TBD"]),
+      SF: R.SF ?? ["TBD","TBD"],
     },
     final: {
-      champion: F.champion || "Sample text",
+      left: F.left ?? "TBD",
+      right: F.right ?? "TBD",
+      champion: F.champion ?? "TBD",
     },
   };
 }
