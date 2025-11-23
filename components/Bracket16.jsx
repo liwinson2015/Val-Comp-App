@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import s from "./Bracket16.module.css"; // Make sure path matches your project structure
+import s from "../Bracket16.module.css"; // Make sure path matches your project structure
 
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
