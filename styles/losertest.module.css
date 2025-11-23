@@ -10,9 +10,8 @@
 }
 
 .container {
-  min-height: 100vh;
+  height: 100vh; /* Force full height, no scroll on body */
   background-color: #050505;
-  /* Darker, moodier background for Losers Bracket */
   background-image: 
     radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.9) 100%),
     linear-gradient(135deg, #0a0a0a 0%, #1a0b2e 100%);
@@ -21,18 +20,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px;
+  justify-content: flex-start;
+  padding: 10px; /* Reduced padding */
+  overflow: hidden; /* Hide scrollbars on main container */
 }
 
 .header {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 20px; /* Reduced margin */
   text-transform: uppercase;
   letter-spacing: 4px;
+  flex-shrink: 0;
 }
 
 .title {
-  font-size: 3rem;
+  font-size: 2rem; /* Smaller Title */
   margin: 0;
   background: linear-gradient(90deg, var(--void-secondary), #fff, var(--void-primary));
   -webkit-background-clip: text;
@@ -44,23 +46,19 @@
   color: var(--void-primary);
   opacity: 0.8;
   font-weight: 300;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
 }
 
 /* --- BRACKET LAYOUT --- */
 .bracketContainer {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start; /* Aligns to left so it flows correctly */
+  justify-content: center; /* Center the whole bracket block */
   align-items: stretch;
-  gap: 60px; /* Space between rounds */
+  gap: 15px; /* Tighter gap between columns */
   width: 100%;
-  overflow-x: auto; /* Allow horizontal scrolling for deep bracket */
-  padding-bottom: 40px; /* Space for scrollbar */
-  
-  /* Scrollbar Styling */
-  scrollbar-width: thin;
-  scrollbar-color: var(--void-primary) #0a0a0a;
+  height: 100%; /* Fill remaining height */
+  max-width: 1400px;
 }
 
 /* Round Columns */
@@ -68,78 +66,83 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 240px; /* Fixed width to prevent squishing */
+  flex: 1; /* Distribute space evenly */
   position: relative;
+  height: 100%; /* Use full height to distribute matches */
 }
 
 .roundTitle {
   color: var(--void-glow);
-  margin-bottom: 20px;
-  font-size: 1.2rem;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
   letter-spacing: 2px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .matchList {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  flex-grow: 1;
+  justify-content: space-around; /* Spreads matches evenly vertically */
+  height: 100%;
   width: 100%;
-  gap: 20px;
 }
 
 /* Connector Lines (Left to Right) */
 .roundColumn:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: 50%;
-  right: -30px; /* Half of gap */
-  width: 30px;
-  height: 2px;
+  top: 55%; /* Adjusted slightly for visual balance */
+  right: -10px; /* Tighter connector */
+  width: 10px;
+  height: 1px;
   background: linear-gradient(90deg, var(--void-primary), transparent);
   opacity: 0.3;
 }
 
 
-/* --- CARD STYLING --- */
+/* --- COMPACT CARD STYLING --- */
 .matchWrapper {
   width: 100%;
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .matchCard {
   background: rgba(20, 15, 30, 0.9);
   backdrop-filter: blur(5px);
   width: 100%;
-  padding: 12px;
+  padding: 5px 8px; /* VERY COMPACT PADDING */
   position: relative;
   /* Angular Cut */
-  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   transition: all 0.3s ease;
   border: 1px solid rgba(168, 85, 247, 0.2);
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
 }
 
 .matchCard:hover {
   border-color: var(--void-primary);
-  box-shadow: 0 0 25px var(--void-glow), inset 0 0 10px var(--void-glow);
+  box-shadow: 0 0 15px var(--void-glow), inset 0 0 5px var(--void-glow);
   background: rgba(40, 20, 60, 1);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* Team Text */
 .team {
   display: flex;
-  justify-content: center; /* Centered as requested */
+  justify-content: center; 
   align-items: center;
-  padding: 8px 0;
-  font-size: 0.95rem;
+  padding: 2px 0; /* Minimal padding inside the box */
+  font-size: 0.8rem; /* Smaller font */
   font-weight: 600;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   letter-spacing: 1px;
+  white-space: nowrap; /* Prevent names wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .team:last-child {
@@ -149,16 +152,12 @@
 /* Winner Styling */
 .winnerRow {
   color: var(--void-secondary);
-  text-shadow: 0 0 8px var(--void-primary);
+  text-shadow: 0 0 5px var(--void-primary);
   background: var(--void-bg-win);
 }
 
-/* Responsive adjustment */
-@media (max-width: 768px) {
-  .bracketContainer {
-    gap: 30px;
-  }
-  .roundColumn {
-    min-width: 200px;
-  }
+/* Responsive: If screen is TOO small, it might still need to stack, but this covers most laptops/desktops */
+@media (max-width: 1024px) {
+  .team { font-size: 0.7rem; }
+  .bracketContainer { gap: 5px; }
 }
