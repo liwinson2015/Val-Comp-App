@@ -4,8 +4,8 @@ import styles from '../../styles/testbracket4.module.css';
 const tournamentData = {
   leftSide: {
     round1: [
-      { id: 1, p1: "Sentinels", s1: 2, p2: "100T", s2: 1, winner: 1 },
-      { id: 2, p1: "C9", s1: 0, p2: "NRG", s2: 2, winner: 2 },
+      { id: 1, p1: "Sentinels", s1: 2, p2: "100 Thieves", s2: 1, winner: 1 },
+      { id: 2, p1: "Cloud9", s1: 0, p2: "NRG", s2: 2, winner: 2 },
       { id: 3, p1: "Leviatán", s1: 2, p2: "KRÜ", s2: 0, winner: 1 },
       { id: 4, p1: "LOUD", s1: 1, p2: "FURIA", s2: 2, winner: 2 },
     ],
@@ -22,18 +22,18 @@ const tournamentData = {
       { id: 8, p1: "Fnatic", s1: 2, p2: "Liquid", s2: 0, winner: 1 },
       { id: 9, p1: "Navi", s1: 1, p2: "Vitality", s2: 2, winner: 2 },
       { id: 10, p1: "DRX", s1: 2, p2: "T1", s2: 0, winner: 1 },
-      { id: 11, p1: "PRX", s1: 2, p2: "ZETA", s2: 1, winner: 1 },
+      { id: 11, p1: "Paper Rex", s1: 2, p2: "ZETA", s2: 1, winner: 1 },
     ],
     round2: [
       { id: 12, p1: "Fnatic", s1: 2, p2: "Vitality", s2: 0, winner: 1 },
-      { id: 13, p1: "DRX", s1: 1, p2: "PRX", s2: 2, winner: 2 },
+      { id: 13, p1: "DRX", s1: 1, p2: "Paper Rex", s2: 2, winner: 2 },
     ],
     semis: [
-      { id: 14, p1: "Fnatic", s1: 1, p2: "PRX", s2: 2, winner: 2 },
+      { id: 14, p1: "Fnatic", s1: 1, p2: "Paper Rex", s2: 2, winner: 2 },
     ]
   },
   finals: {
-    id: 15, p1: "Sentinels", s1: 3, p2: "PRX", s2: 1, winner: 1
+    id: 15, p1: "Sentinels", s1: 3, p2: "Paper Rex", s2: 1, winner: 1
   }
 };
 
@@ -73,50 +73,51 @@ export default function TestBracket4() {
         
         {/* --- LEFT SIDE (ICE) --- */}
         
-        {/* Left Round 1 */}
+        {/* Round 1: Output Lines Only */}
         <div className={`${styles.column} ${styles.columnLeft} ${styles.round1}`}>
           {tournamentData.leftSide.round1.map((m) => (
             <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* Left Round 2 */}
+        {/* Round 2: Input Bracket + Output Line */}
         <div className={`${styles.column} ${styles.columnLeft} ${styles.round2}`}>
           {tournamentData.leftSide.round2.map((m) => (
             <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* Left Semis */}
+        {/* Semis: Input Bracket + Output Line */}
         <div className={`${styles.column} ${styles.columnLeft} ${styles.semis}`}>
            {tournamentData.leftSide.semis.map((m) => (
             <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* --- MIDDLE (FINAL) --- */}
+        {/* --- MIDDLE (WINNER) --- */}
         <div className={`${styles.column} ${styles.columnMid}`}>
           <div className={styles.winnerText}>WINNER</div>
+          {/* Finals: No Output Lines, Input handled by Semis extending lines */}
           <MatchCard match={tournamentData.finals} theme="clash" />
         </div>
 
         {/* --- RIGHT SIDE (FIRE) --- */}
 
-        {/* Right Semis */}
+        {/* Semis */}
         <div className={`${styles.column} ${styles.columnRight} ${styles.semis}`}>
            {tournamentData.rightSide.semis.map((m) => (
             <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
-        {/* Right Round 2 */}
+        {/* Round 2 */}
         <div className={`${styles.column} ${styles.columnRight} ${styles.round2}`}>
           {tournamentData.rightSide.round2.map((m) => (
             <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
-        {/* Right Round 1 */}
+        {/* Round 1 */}
         <div className={`${styles.column} ${styles.columnRight} ${styles.round1}`}>
           {tournamentData.rightSide.round1.map((m) => (
             <MatchCard key={m.id} match={m} theme="fire" />
