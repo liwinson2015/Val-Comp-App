@@ -1,202 +1,218 @@
 .container {
-  /* --- VCT REIMAGINED PALETTE --- */
-  --bg-color: #111;
-  --card-bg: #1f2326;
-  --card-border: #333;
-  --accent-color: #ff4655; /* Valorant Red */
-  --text-main: #eee;
-  --text-dim: #666;
-  --line-color: #444;
+  /* --- CYBER-ARENA PALETTE --- */
+  --bg-deep: #05050a;
+  --card-bg: rgba(20, 20, 35, 0.9);
+  --neon-cyan: #00f3ff;
+  --neon-purple: #bc13fe;
+  --text-main: #fff;
+  --text-dim: #5c5c70;
+  --line-inactive: #2a2a35;
   
-  /* BALANCED DIMENSIONS */
-  --card-w: 160px;   /* Readable width */
-  --card-h: 64px;    /* Height for 2 lines of text */
-  --col-gap: 35px;   /* Tight but not cramping */
-  --row-gap: 20px;   /* Space between matches */
+  /* SIZE VARIABLES (Kept Compact) */
+  --card-w: 160px;
+  --card-h: 60px;
+  --gap-x: 30px;
+  --gap-y: 15px;
 
-  font-family: sans-serif; /* Use your preferred font */
-  background-color: var(--bg-color);
-  color: var(--text-main);
+  font-family: 'Rajdhani', sans-serif; /* We will load this font in the JS */
+  background-color: var(--bg-deep);
+  /* Futuristic Grid Background */
+  background-image: 
+    linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  
   height: 100vh;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Hide scrollbars if possible */
+  overflow: hidden;
+  color: var(--text-main);
 }
 
-/* The Main Grid */
 .bracketBoard {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: var(--col-gap);
-  transform: scale(0.95); /* subtle zoom out to ensure fit on laptops */
+  gap: var(--gap-x);
+  /* Slight perspective for 3D feel */
+  perspective: 1000px;
 }
 
-/* --- Columns --- */
+/* --- COLUMNS --- */
 .column {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--row-gap);
+  gap: var(--gap-y);
 }
 
-/* --- The Card Styling --- */
-.matchBox {
+/* --- THE CARD (HUD ELEMENT) --- */
+.matchWrapper {
   position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+}
+
+.matchBox {
   width: var(--card-w);
   height: var(--card-h);
   background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 4px; /* Slight rounded corners */
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  position: relative;
   z-index: 2;
-  transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  
+  /* THE FUTURISTIC SHAPE: Chamfered Corners */
+  clip-path: polygon(
+    10px 0, 100% 0, 
+    100% calc(100% - 10px), calc(100% - 10px) 100%, 
+    0 100%, 0 10px
+  );
+  
+  /* Border effect achieved via box-shadow or inset border not possible with clip-path, 
+     so we use a pseudo-element gradient border below */
+  transition: all 0.3s ease;
 }
 
+/* The Glowing Border */
+.matchBox::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px; /* Border width */
+  background: linear-gradient(135deg, var(--line-inactive), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Hover Effect */
 .matchBox:hover {
-  transform: translateY(-2px);
-  border-color: #666;
+  background: rgba(30, 30, 50, 1);
+  transform: scale(1.02);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+}
+.matchBox:hover::before {
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
 }
 
-/* Team Rows */
+/* --- CONTENT STYLING --- */
 .teamRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 12px;
   height: 50%;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
-.teamRow:first-child {
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+.winner {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.1), transparent);
 }
 
-/* Status Colors */
-.winner { color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.2); }
-.loser { color: var(--text-dim); }
+.loser {
+  color: var(--text-dim);
+}
 
 .score {
-  font-family: monospace;
+  font-family: monospace; /* Tech numbers */
   font-size: 14px;
 }
 
-.winner .score { color: var(--accent-color); }
-
-/* --- ACCENT BARS (The "Bracket" look) --- */
-/* Left side gets red bar on left */
-.leftSide .matchBox { border-left: 3px solid var(--accent-color); }
-/* Right side gets red bar on right */
-.rightSide .matchBox { border-right: 3px solid var(--accent-color); }
-
-/* --- CONNECTING LINES --- */
-.matchWrapper {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-/* The lines are pseudo-elements */
+/* --- CONNECTING LINES (Glowing Circuitry) --- */
 .matchWrapper::after, .matchWrapper::before {
   content: '';
   position: absolute;
-  background-color: var(--line-color);
+  background: var(--line-inactive);
+  transition: background 0.3s;
 }
 
-/* == LEFT SIDE LINES == */
-/* Horizontal stub pointing right */
+/* Hovering lights up the path */
+.matchWrapper:hover::after, 
+.matchWrapper:hover::before {
+  background: var(--neon-cyan);
+  box-shadow: 0 0 5px var(--neon-cyan);
+}
+
+/* == LEFT SIDE CONNECTORS == */
 .leftSide .matchWrapper::after {
-  height: 2px;
-  width: var(--col-gap); /* Span the gap */
-  right: calc(var(--col-gap) * -0.6); /* Pull it out */
-  top: 50%;
-  z-index: 0;
+  height: 1px; width: var(--gap-x);
+  right: calc(var(--gap-x) * -0.6); top: 50%;
 }
-
-/* Vertical Connector (The Bracket Arm) */
 .leftSide .matchWrapper[data-pos="top"]::before {
-  width: 2px;
-  height: 50%; /* Go down to join next match */
-  right: calc(var(--col-gap) * -0.6);
-  top: 50%;
-  transform: translateY(50%); /* Shift down */
-}
-
-.leftSide .matchWrapper[data-pos="bottom"]::before {
-  width: 2px;
-  height: 50%;
-  right: calc(var(--col-gap) * -0.6);
-  bottom: 50%;
-  transform: translateY(-50%); /* Shift up */
-}
-
-
-/* == RIGHT SIDE LINES (Mirrored) == */
-/* Horizontal stub pointing left */
-.rightSide .matchWrapper::after {
-  height: 2px;
-  width: var(--col-gap);
-  left: calc(var(--col-gap) * -0.6);
-  top: 50%;
-  z-index: 0;
-}
-
-.rightSide .matchWrapper[data-pos="top"]::before {
-  width: 2px;
-  height: 50%;
-  left: calc(var(--col-gap) * -0.6);
-  top: 50%;
+  width: 1px; height: 50%;
+  right: calc(var(--gap-x) * -0.6); top: 50%;
   transform: translateY(50%);
 }
-
-.rightSide .matchWrapper[data-pos="bottom"]::before {
-  width: 2px;
-  height: 50%;
-  left: calc(var(--col-gap) * -0.6);
-  bottom: 50%;
+.leftSide .matchWrapper[data-pos="bottom"]::before {
+  width: 1px; height: 50%;
+  right: calc(var(--gap-x) * -0.6); bottom: 50%;
   transform: translateY(-50%);
 }
 
+/* == RIGHT SIDE CONNECTORS == */
+.rightSide .matchWrapper::after {
+  height: 1px; width: var(--gap-x);
+  left: calc(var(--gap-x) * -0.6); top: 50%;
+}
+.rightSide .matchWrapper[data-pos="top"]::before {
+  width: 1px; height: 50%;
+  left: calc(var(--gap-x) * -0.6); top: 50%;
+  transform: translateY(50%);
+}
+.rightSide .matchWrapper[data-pos="bottom"]::before {
+  width: 1px; height: 50%;
+  left: calc(var(--gap-x) * -0.6); bottom: 50%;
+  transform: translateY(-50%);
+}
 
-/* --- CENTER / FINAL --- */
+/* --- GRAND FINAL (Center Piece) --- */
 .finalColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 0 10px;
-}
-
-.logo {
-  font-size: 20px;
-  margin-bottom: 10px;
-  filter: grayscale(1);
-  opacity: 0.5;
+  margin: 0 20px;
 }
 
 .finalBox {
   width: 200px;
   height: 80px;
-  border: 1px solid var(--accent-color);
-  box-shadow: 0 0 20px rgba(255, 70, 85, 0.15);
+  border: none;
+  background: rgba(0,0,0,0.8);
+  /* Fancy Double Cut */
+  clip-path: polygon(
+    20px 0, 100% 0, 
+    100% calc(100% - 20px), calc(100% - 20px) 100%, 
+    0 100%, 0 20px
+  );
+  box-shadow: 0 0 30px rgba(188, 19, 254, 0.2);
 }
 
-.champLabel {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-color);
-  padding: 0 10px;
-  font-size: 10px;
-  color: var(--accent-color);
-  font-weight: bold;
+/* Grand Final Gradient Border Override */
+.finalBox::before {
+  background: linear-gradient(45deg, var(--neon-cyan), var(--neon-purple));
+  padding: 2px;
+}
+
+.trophy {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: var(--neon-purple);
+  filter: drop-shadow(0 0 5px var(--neon-purple));
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.8; transform: scale(1); }
 }
