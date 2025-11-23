@@ -1,164 +1,146 @@
-/* local reset */
-.viewport *,
-.viewport *::before,
-.viewport *::after { box-sizing: border-box; }
+/* Bracket16.module.css */
 
+/* --- 1. Container & Scroll --- */
 .viewport {
   width: 100%;
-  /* Use the same dark theme background or transparent to let page show through */
-  background: transparent; 
+  /* Subtle tech grid background pattern */
+  background-color: #0f1923;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  
   color: #ece8e1;
   overflow-x: auto;
   display: flex;
   justify-content: center;
-  padding: 40px 0;
-  /* Custom scrollbar for the bracket view */
+  padding: 60px 20px; /* Added side padding */
   scrollbar-width: thin;
-  scrollbar-color: #ff4655 #1b2733;
+  scrollbar-color: #ff4655 #0f1923;
 }
 
 .stage {
   position: relative;
-  /* overridden from JSX */
+  margin: 0 auto;
+  /* Variables */
   --slotH: 38px;
   --colw: 150px;
   --gap: 34px;
-  --joinW: 2px;
-  margin: 0 auto;
+  --wire-color: #4a5a6a;
+  --accent-color: #ff4655; /* Valorant Red */
+  --gold-color: #ffdf58;
 }
 
-/* Round headings */
+/* --- 2. Headers --- */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
   display: grid;
   grid-template-columns: repeat(7, var(--colw));
   column-gap: var(--gap);
-  justify-content: start;
   pointer-events: none;
   z-index: 2;
 }
 
 .title {
   text-align: center;
-  font-family: 'DIN Next W01', 'Oswald', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  line-height: 18px;
-  letter-spacing: 0.15em;
+  font-family: 'Oswald', sans-serif; /* Ensure you import this font */
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #556679; /* Muted blue-grey */
-  user-select: none;
-  white-space: nowrap;
+  color: #8b9bb4;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
-/* Wires (SVG Lines) */
+/* --- 3. Wires (The Circuitry) --- */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
   pointer-events: none;
+  /* Glow effect on the lines */
+  filter: drop-shadow(0 0 2px rgba(74, 90, 106, 0.5));
 }
 
-.wires g {
-  stroke: #2c3846; /* Dark tech slate */
-  transition: stroke 0.3s ease;
-}
-
-/* Boxes (The Teams) */
+/* --- 4. Team Slots --- */
 .slot {
   position: absolute;
   width: var(--colw);
   height: var(--slotH);
   
-  /* NEW VISUALS: Dark Card Style */
-  background: linear-gradient(90deg, #1b2733 0%, #151e27 100%);
-  border: 1px solid #2c3846;
-  border-left: 3px solid #485363; /* Default grey accent */
+  /* Glassmorphism Dark */
+  background: rgba(22, 27, 34, 0.95);
+  border: 1px solid #364250;
+  border-left: 3px solid #5a6b7c; 
   color: #ece8e1;
   
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
-  font-weight: 600; 
+  font-weight: 500; 
   font-size: 13px;
-  border-radius: 2px; /* Sharp corners */
+  letter-spacing: 0.02em;
   
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 8px;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  padding: 0 10px;
+  
+  transition: all 0.2s ease;
+  cursor: default;
 }
 
-.slot:hover {
-  transform: translateY(-2px);
-  border-color: #ff4655; /* Valorant Red hover */
-  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
+/* State: TBD / Empty */
+.slotEmpty {
+  background: rgba(22, 27, 34, 0.4);
+  color: #5a6b7c;
+  border-color: #252e38;
+  font-style: italic;
+}
+
+/* State: Hover */
+.slot:not(.slotEmpty):hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--accent-color);
+  border-left-color: var(--accent-color);
+  box-shadow: 0 0 15px rgba(255, 70, 85, 0.4);
   z-index: 10;
+  background: #1f2731;
 }
 
-/* Small finalists boxes */
+/* --- 5. Finalists & Champion --- */
 .finalSlot { 
-  width: 84px; 
-  border-left: 3px solid #ffdf58; /* Gold accent for finals */
-  background: #161b22;
+  border-left: 3px solid var(--gold-color);
+  background: linear-gradient(90deg, #161b22 0%, #242116 100%);
 }
 
-/* Champion pill + label */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
   
-  /* Big Gold Champion Style */
-  background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
-  color: #ffffff;
-  border: 1px solid #ffdf58;
-  padding: 10px 24px;
+  /* Gold Gradient */
+  background: radial-gradient(circle at center, rgba(255,223,88,0.1) 0%, #0f1923 100%);
+  color: #fff;
+  border: 1px solid var(--gold-color);
+  padding: 0 24px;
+  height: 50px; /* Taller than normal slots */
+  display: flex; align-items: center; justify-content: center;
   
-  font-family: 'DIN Next W01', 'Oswald', sans-serif;
-  font-weight: 800; 
-  font-size: 16px;
-  letter-spacing: 0.05em;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700; 
+  font-size: 18px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   
-  border-radius: 4px;
-  box-shadow: 0 0 30px rgba(255, 223, 88, 0.2);
+  box-shadow: 0 0 30px rgba(255, 223, 88, 0.15);
   z-index: 3; 
-  white-space: nowrap;
-  text-shadow: 0 0 10px rgba(255,223,88,0.5);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .winnerLabel {
   position: absolute; left: 50%; transform: translateX(-50%);
-  font-family: 'DIN Next W01', sans-serif;
-  font-weight: 900; 
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700; 
   font-size: 10px; 
-  letter-spacing: 0.25em; 
+  letter-spacing: 0.3em; 
   text-transform: uppercase;
-  color: #ffdf58; /* Gold text */
-  opacity: 1; 
-  white-space: nowrap; 
+  color: var(--gold-color);
   z-index: 3;
-}
-
-/* Specific overrides if you use them in JS classes */
-.sfLeftTop::before,
-.sfLeftBot::before {
-  content: "";
-  position: absolute;
-  left: -12px;                 
-  top: 50%;
-  width: 12px;                 
-  height: var(--joinW);
-  background: #2c3846;
-  transform: translateY(-50%);
-}
-
-.sfRightTop::before,
-.sfRightBot::before {
-  content: "";
-  position: absolute;
-  right: -12px;                
-  top: 50%;
-  width: 12px;                 
-  height: var(--joinW);
-  background: #2c3846;
-  transform: translateY(-50%);
 }
