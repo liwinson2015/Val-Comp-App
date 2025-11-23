@@ -10,17 +10,16 @@
   justify-content: center; /* Centers the bracket horizontally */
   align-items: center;     /* Centers the bracket vertically */
   padding: 20px;
-  overflow-x: auto;        /* Scroll only if screen is tiny (<1000px) */
+  overflow-x: auto;        
   background: transparent;
 }
 
 .stage {
   position: relative;
-  /* Remove huge min-width so it can center */
   width: auto;
+  min-width: 1000px; /* Ensure it doesn't shrink too small */
   margin: 0 auto;
   
-  /* Tighter Defaults */
   --slotH: 34px;
   --colw: 125px;
   --gap: 20px;
@@ -40,7 +39,7 @@
   text-align: center;
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 700;
-  font-size: 10px; /* Smaller font */
+  font-size: 10px; 
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #556679;
@@ -75,7 +74,7 @@
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-weight: 600; 
-  font-size: 11px; /* Smaller font for compact cards */
+  font-size: 11px; 
   border-radius: 2px;
   
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
