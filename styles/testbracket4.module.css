@@ -1,18 +1,171 @@
-.container { --tac-bg: #1a1c18; --tac-card: #2b3026; --tac-green: #8fa876; --tac-light: #dcebd3; font-family: 'Courier', monospace; background-color: var(--tac-bg); height: 100vh; display: flex; justify-content: center; align-items: center; text-transform: uppercase; }
-.board { display: flex; gap: 40px; }
-.col { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
-.matchWrapper { position: relative; display: flex; align-items: center; }
-.matchBox { width: 160px; background: var(--tac-card); border: 1px dashed #596e4d; padding: 8px; position: relative; z-index: 2; }
-.team { display: flex; justify-content: space-between; color: var(--tac-green); font-size: 12px; letter-spacing: 1px; }
-.winner { color: var(--tac-bg); background: var(--tac-green); padding: 0 4px; font-weight: bold; }
-.score { color: inherit; }
-.divider { height: 1px; background: #444; margin: 4px 0; }
-.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: #454d3f; }
-.left .matchWrapper::after { height: 1px; width: 20px; right: -20px; top: 50%; }
-.left .matchWrapper[data-pos="top"]::before { width: 1px; height: 50%; right: -20px; top: 50%; transform:translateY(50%); }
-.left .matchWrapper[data-pos="bot"]::before { width: 1px; height: 50%; right: -20px; bottom: 50%; transform:translateY(-50%); }
-.right .matchWrapper::after { height: 1px; width: 20px; left: -20px; top: 50%; }
-.right .matchWrapper[data-pos="top"]::before { width: 1px; height: 50%; left: -20px; top: 50%; transform:translateY(50%); }
-.right .matchWrapper[data-pos="bot"]::before { width: 1px; height: 50%; left: -20px; bottom: 50%; transform:translateY(-50%); }
-.finalBox { border-style: solid; border-color: var(--tac-light); }
-.trophy { text-align: center; color: var(--tac-green); margin-bottom: 5px; }
+/* styles/testbracket4.module.css */
+
+.container {
+  min-height: 100vh;
+  background-color: #050505;
+  background-image: 
+    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Ideally use a font like Rajdhani or Orbitron */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 20px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.title {
+  font-size: 2.5rem;
+  background: linear-gradient(90deg, #00f2ff, #fff, #00f2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+  margin: 0;
+}
+
+/* The Main Bracket Layout */
+.bracketWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  width: 100%;
+  max-width: 1600px;
+}
+
+/* Columns */
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 20px;
+  position: relative;
+}
+
+.columnMid {
+  flex: 0 0 250px; /* Fixed width for the finals */
+  justify-content: center;
+}
+
+/* Connector Lines Logic */
+.matchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* The Card Styling */
+.matchCard {
+  background: rgba(16, 20, 30, 0.9);
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  width: 100%;
+  padding: 10px;
+  position: relative;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.matchCard:hover {
+  border-color: #00f2ff;
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+  background: rgba(20, 25, 40, 1);
+}
+
+.finalCard {
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  transform: scale(1.1);
+}
+
+/* Team Rows */
+.team {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.team:last-child {
+  border-bottom: none;
+}
+
+.winner {
+  color: #00f2ff;
+  text-shadow: 0 0 5px rgba(0, 242, 255, 0.6);
+  background: linear-gradient(90deg, rgba(0, 242, 255, 0.1), transparent);
+}
+
+.score {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+/* Connecting Lines (Pseudo elements) */
+/* Note: Creating perfect connector lines in pure CSS flexbox is complex. 
+   This adds simple guides. */
+
+.connectorLeft, .connectorRight {
+  position: absolute;
+  height: 1px;
+  background: #00f2ff;
+  opacity: 0.3;
+  width: 20px;
+  top: 50%;
+}
+
+/* Lines originating from the Left Side */
+.columnLeft .matchWrapper::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: #333;
+}
+
+/* Trophy Icon Area */
+.trophyContainer {
+  text-align: center;
+  color: #ffd700;
+  font-size: 3rem;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Mobile Response */
+@media (max-width: 1024px) {
+  .bracketWrapper {
+    flex-direction: column;
+  }
+  .column {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .matchWrapper {
+    width: 300px;
+    margin: 10px auto;
+  }
+}
