@@ -1,6 +1,6 @@
 /* styles/Bracket16.module.css */
 
-/* --- Theme Variables --- */
+/* --- Theme Variables + Full-width Container --- */
 .container {
   /* Ice Palette */
   --ice-primary: #00c6ff;
@@ -17,13 +17,13 @@
   /* Clash/Gold Palette */
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.5);
-}
 
-.container {
-  /* You can drop min-height if it feels too tall in the layout */
-  min-height: 100vh;
+  /* 🔥 FULL-SCREEN / FULL-WIDTH LAYOUT 🔥 */
+  width: 100vw;                       /* span whole viewport width */
+  margin-left: calc(50% - 50vw);      /* break out of centered column */
+  min-height: 100vh;                  /* fill screen vertically */
   background-color: #050505;
-  /* A subtle split background gradient from cold to hot */
+  /* subtle split background gradient from cold to hot */
   background-image: 
     radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
     linear-gradient(90deg, rgba(0, 20, 40, 1) 0%, rgba(5, 5, 10, 1) 45%, rgba(5, 5, 10, 1) 55%, rgba(40, 10, 0, 1) 100%);
@@ -34,7 +34,7 @@
   align-items: center;
   justify-content: center;
   overflow-x: auto;
-  padding: 20px;
+  padding: 40px 20px;
 }
 
 .header {
@@ -106,7 +106,7 @@
   background: linear-gradient(270deg, var(--fire-primary), transparent);
 }
 
-/* Just to have hooks for JS/JSX */
+/* just hooks for JSX */
 .columnLeft {}
 .columnRight {}
 
