@@ -1,0 +1,159 @@
+/* --- Global Shell --- */
+.shell {
+  min-height: 100vh;
+  background-color: #0f1923;
+  background-image: 
+    linear-gradient(180deg, rgba(15, 25, 35, 0.95) 0%, #0f1923 100%),
+    repeating-linear-gradient(45deg, #18232e 0, #18232e 1px, transparent 0, transparent 50%);
+  background-size: 100% 100%, 20px 20px;
+  color: #ece8e1;
+  font-family: 'DIN Next W01', 'Oswald', system-ui, sans-serif;
+}
+
+.contentWrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+/* --- Header Grid --- */
+.headerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 50/50 split */
+  gap: 30px;
+  margin-bottom: 60px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .headerGrid {
+    grid-template-columns: 1fr; /* Stack on mobile */
+  }
+}
+
+/* --- Left Column: Info Card --- */
+.infoCard {
+  background: linear-gradient(145deg, #1b2733 0%, #151e27 100%);
+  border: 1px solid #2c3846;
+  padding: 30px;
+  position: relative;
+  border-left: 4px solid #ff4655; /* Red accent bar */
+}
+
+.tournamentTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: white;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.02em;
+}
+
+.tournamentSubtitle {
+  color: #8b9bb4;
+  font-size: 0.9rem;
+  margin: 0 0 24px 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* Data Readout Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  border-top: 1px solid #2c3846;
+  padding-top: 20px;
+}
+
+.statBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #556679;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 1.1rem;
+  color: #ece8e1;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.statValueHighlight {
+  color: #ff4655;
+}
+
+/* --- Right Column: Rankings --- */
+.rankingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rankingHeader {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #8b9bb4;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #2c3846;
+  padding-bottom: 10px;
+}
+
+.rankRow {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  padding: 8px 12px;
+  transition: all 0.2s;
+}
+
+.rankRow:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.rankBadge {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f1923;
+  background: #485363; /* Default grey */
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%, 0% 100%);
+}
+
+.gold { background: #ffdf58; }    /* 1st */
+.silver { background: #d1d5db; }  /* 2nd */
+.bronze { background: #eab386; }  /* 3rd */
+
+.rankName {
+  color: #ece8e1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Utilities --- */
+.fullBleed {
+  width: 100%; 
+}
