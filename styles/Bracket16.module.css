@@ -3,157 +3,162 @@
 .viewport *::before,
 .viewport *::after { box-sizing: border-box; }
 
-/* --- 1. Container & Scroll --- */
 .viewport {
   width: 100%;
-  /* CLEANED BACKGROUND: Solid dark color, no grid */
-  background: #0f1923;
-  
+  /* Use the same dark theme background or transparent to let page show through */
+  background: transparent; 
   color: #ece8e1;
   overflow-x: auto;
   display: flex;
   justify-content: center;
-  padding: 60px 40px;
-  /* Custom scrollbar */
+  padding: 40px 0;
+  /* Custom scrollbar for the bracket view */
   scrollbar-width: thin;
-  scrollbar-color: #ff4655 #0f1923;
+  scrollbar-color: #ff4655 #1b2733;
 }
-
-/* Track */
-.viewport::-webkit-scrollbar { width: 8px; height: 8px; }
-.viewport::-webkit-scrollbar-track { background: #0f1923; }
-/* Handle */
-.viewport::-webkit-scrollbar-thumb { background: #ff4655; border-radius: 4px; }
 
 .stage {
   position: relative;
-  margin: 0 auto;
-  /* Variables derived from JS props */
+  /* overridden from JSX */
   --slotH: 38px;
   --colw: 150px;
   --gap: 34px;
-  --wire-color: #4a5a6a;
-  --accent-color: #ff4655; /* Valorant Red */
-  --gold-color: #ffdf58;
+  --joinW: 2px;
+  margin: 0 auto;
 }
 
-/* --- 2. Headers --- */
+/* Round headings */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
   display: grid;
   grid-template-columns: repeat(7, var(--colw));
   column-gap: var(--gap);
+  justify-content: start;
   pointer-events: none;
   z-index: 2;
 }
 
 .title {
   text-align: center;
-  /* Make sure you have Oswald imported in your project, or fall back to sans-serif */
-  font-family: 'Oswald', sans-serif; 
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.2em;
+  font-family: 'DIN Next W01', 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 18px;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #8b9bb4;
-  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+  color: #556679; /* Muted blue-grey */
+  user-select: none;
+  white-space: nowrap;
 }
 
-/* --- 3. Wires (The Circuitry) --- */
+/* Wires (SVG Lines) */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
   pointer-events: none;
-  /* Subtle glow on wires */
-  filter: drop-shadow(0 0 2px rgba(74, 90, 106, 0.5));
 }
 
-/* --- 4. Team Slots --- */
+.wires g {
+  stroke: #2c3846; /* Dark tech slate */
+  transition: stroke 0.3s ease;
+}
+
+/* Boxes (The Teams) */
 .slot {
   position: absolute;
   width: var(--colw);
   height: var(--slotH);
   
-  /* Glassmorphism Dark Card */
-  background: rgba(22, 27, 34, 0.95);
-  border: 1px solid #364250;
-  border-left: 3px solid #5a6b7c; 
+  /* NEW VISUALS: Dark Card Style */
+  background: linear-gradient(90deg, #1b2733 0%, #151e27 100%);
+  border: 1px solid #2c3846;
+  border-left: 3px solid #485363; /* Default grey accent */
   color: #ece8e1;
   
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
-  font-weight: 500; 
+  font-weight: 600; 
   font-size: 13px;
-  letter-spacing: 0.02em;
+  border-radius: 2px; /* Sharp corners */
   
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 10px;
-  
-  transition: all 0.2s ease;
-  cursor: default;
-  border-radius: 1px;
+  padding: 0 8px;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
-/* State: TBD / Empty slots look faded */
-.slotEmpty {
-  background: rgba(22, 27, 34, 0.3);
-  color: #5a6b7c;
-  border-color: #252e38;
-  font-style: italic;
-}
-
-/* State: Hover */
-.slot:not(.slotEmpty):hover {
-  transform: translateY(-2px) scale(1.02);
-  border-color: var(--accent-color);
-  border-left-color: var(--accent-color);
-  box-shadow: 0 0 20px rgba(255, 70, 85, 0.3);
+.slot:hover {
+  transform: translateY(-2px);
+  border-color: #ff4655; /* Valorant Red hover */
+  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
   z-index: 10;
-  background: #1f2731;
 }
 
-/* --- 5. Finalists & Champion --- */
-/* The two small boxes in the center */
+/* Small finalists boxes */
 .finalSlot { 
-  border-left: 3px solid var(--gold-color);
-  background: linear-gradient(90deg, #161b22 0%, #242116 100%);
-  font-size: 11px; /* Slightly smaller font for smaller boxes */
+  width: 84px; 
+  border-left: 3px solid #ffdf58; /* Gold accent for finals */
+  background: #161b22;
 }
 
-/* The big Winner box */
+/* Champion pill + label */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
   
-  /* Gold Gradient Style */
+  /* Big Gold Champion Style */
   background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
-  color: #fff;
-  border: 1px solid var(--gold-color);
-  padding: 0 30px;
-  height: 54px; /* Taller than normal slots */
-  display: flex; align-items: center; justify-content: center;
+  color: #ffffff;
+  border: 1px solid #ffdf58;
+  padding: 10px 24px;
   
-  font-family: 'Oswald', sans-serif;
-  font-weight: 700; 
-  font-size: 20px;
-  letter-spacing: 0.1em;
+  font-family: 'DIN Next W01', 'Oswald', sans-serif;
+  font-weight: 800; 
+  font-size: 16px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   
-  box-shadow: 0 0 40px rgba(255, 223, 88, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 0 30px rgba(255, 223, 88, 0.2);
   z-index: 3; 
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-  border-radius: 2px;
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(255,223,88,0.5);
 }
 
 .winnerLabel {
   position: absolute; left: 50%; transform: translateX(-50%);
-  font-family: 'Oswald', sans-serif;
-  font-weight: 700; 
-  font-size: 11px; 
-  letter-spacing: 0.3em; 
+  font-family: 'DIN Next W01', sans-serif;
+  font-weight: 900; 
+  font-size: 10px; 
+  letter-spacing: 0.25em; 
   text-transform: uppercase;
-  color: var(--gold-color);
+  color: #ffdf58; /* Gold text */
+  opacity: 1; 
+  white-space: nowrap; 
   z-index: 3;
-  text-shadow: 0 0 10px rgba(255, 223, 88, 0.3);
+}
+
+/* Specific overrides if you use them in JS classes */
+.sfLeftTop::before,
+.sfLeftBot::before {
+  content: "";
+  position: absolute;
+  left: -12px;                 
+  top: 50%;
+  width: 12px;                 
+  height: var(--joinW);
+  background: #2c3846;
+  transform: translateY(-50%);
+}
+
+.sfRightTop::before,
+.sfRightBot::before {
+  content: "";
+  position: absolute;
+  right: -12px;                
+  top: 50%;
+  width: 12px;                 
+  height: var(--joinW);
+  background: #2c3846;
+  transform: translateY(-50%);
 }
