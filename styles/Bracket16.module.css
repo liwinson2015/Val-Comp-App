@@ -5,30 +5,32 @@
 
 .viewport {
   width: 100%;
-  /* Center the stage if it fits; scroll if it doesn't */
+  min-height: 80vh; /* Ensure vertical center if needed */
   display: flex;
-  justify-content: center;
-  padding: 40px 0;
-  overflow-x: auto; 
+  justify-content: center; /* Centers the bracket horizontally */
+  align-items: center;     /* Centers the bracket vertically */
+  padding: 20px;
+  overflow-x: auto;        /* Scroll only if screen is tiny (<1000px) */
   background: transparent;
 }
 
 .stage {
   position: relative;
-  /* Defaults */
-  --slotH: 38px;
-  --colw: 150px;
-  --gap: 40px;
-  --joinW: 2px;
+  /* Remove huge min-width so it can center */
+  width: auto;
   margin: 0 auto;
+  
+  /* Tighter Defaults */
+  --slotH: 34px;
+  --colw: 125px;
+  --gap: 20px;
+  --joinW: 2px;
 }
 
 /* Titles */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
-  display: flex;
-  /* We rely on JS positioning for titles in the fixed version */
-  justify-content: flex-start; 
+  display: block;
   pointer-events: none;
   z-index: 2;
 }
@@ -38,12 +40,13 @@
   text-align: center;
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.15em;
+  font-size: 10px; /* Smaller font */
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #556679;
   user-select: none;
   white-space: nowrap;
+  line-height: 14px;
 }
 
 /* Wires */
@@ -64,8 +67,7 @@
   width: var(--colw);
   height: var(--slotH);
   
-  /* Visual Style */
-  background: linear-gradient(90deg, #1b2733 0%, #151e27 100%);
+  background: rgba(18, 24, 31, 0.95);
   border: 1px solid #2c3846;
   border-left: 3px solid #485363;
   color: #ece8e1;
@@ -73,26 +75,28 @@
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-weight: 600; 
-  font-size: 13px;
+  font-size: 11px; /* Smaller font for compact cards */
   border-radius: 2px;
   
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 8px;
+  padding: 0 6px;
   transition: all 0.2s;
 }
 
 .slot:hover {
   transform: translateY(-2px);
   border-color: #ff4655;
-  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
+  box-shadow: 0 0 10px rgba(255, 70, 85, 0.2);
   z-index: 10;
 }
 
 .finalSlot { 
   border-left: 3px solid #ffdf58;
   background: #161b22;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* Champion */
@@ -101,16 +105,16 @@
   background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
   color: #ffffff;
   border: 1px solid #ffdf58;
-  padding: 10px 24px;
+  padding: 8px 20px;
   
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 800; 
-  font-size: 16px;
+  font-size: 14px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   
   border-radius: 4px;
-  box-shadow: 0 0 30px rgba(255, 223, 88, 0.2);
+  box-shadow: 0 0 20px rgba(255, 223, 88, 0.2);
   z-index: 3; 
   white-space: nowrap;
 }
@@ -119,8 +123,8 @@
   position: absolute; left: 50%; transform: translateX(-50%);
   font-family: 'DIN Next W01', sans-serif;
   font-weight: 900; 
-  font-size: 10px; 
-  letter-spacing: 0.25em; 
+  font-size: 9px; 
+  letter-spacing: 0.2em; 
   text-transform: uppercase;
   color: #ffdf58;
   opacity: 1; 
