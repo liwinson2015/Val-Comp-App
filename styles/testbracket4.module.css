@@ -8,7 +8,7 @@
   --fire-dim: rgba(255, 75, 31, 0.5);
   --gold-primary: #ffd700;
   --gold-glow: rgba(255, 215, 0, 0.5);
-  --line-reach: 20px; /* How far lines extend sideways */
+  --line-reach: 20px; /* Length of the horizontal pointers */
 }
 
 .container {
@@ -58,7 +58,7 @@
   justify-content: space-around;
   flex: 1;
   position: relative;
-  padding: 0 30px; /* Give space for the lines */
+  padding: 0 30px;
 }
 
 .columnMid {
@@ -148,105 +148,63 @@
 .score { font-family: monospace; opacity: 0.8; }
 
 
-/* --- CONNECTOR LINES (The "Fork" Logic) --- */
-/* We create a pseudo-element that extends out and up/down.
-   It works by drawing a border on the side and top/bottom.
-*/
+/* --- HORIZONTAL FLOW LINES ONLY --- */
+/* We use ::before/::after to draw small horizontal lines pointing inwards/outwards */
 
-/* LEFT SIDE CONNECTORS (Blue) */
-/* Top matches in a pair go DOWN */
-.columnLeft .matchWrapper[data-position="top"]::after {
-  content: '';
-  position: absolute;
-  right: -20px; /* Extend 20px right */
-  top: 50%;
-  width: 20px;
-  height: 100%; /* Go down 100% of card height (approx) to meet the middle */
-  border-top: 2px solid var(--ice-primary);
-  border-right: 2px solid var(--ice-primary);
-  /* We rely on flexbox centering so height usually reaches the neighbor */
-  height: calc(50% + 20px); /* Extend down slightly */
-  /* For perfect spacing, we'd need fixed heights, but this gives the visual link */
-  bottom: 0; 
+/* LEFT SIDE LINES */
+/* 1. Output Line (Pointing Right towards center) */
+.columnLeft .matchWrapper::after {
+    content: '';
+    position: absolute;
+    right: -30px; /* Stick out to the right */
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--ice-primary), transparent);
+    opacity: 0.6;
 }
 
-/* Bottom matches in a pair go UP */
-.columnLeft .matchWrapper[data-position="bottom"]::after {
-  content: '';
-  position: absolute;
-  right: -20px;
-  bottom: 50%;
-  width: 20px;
-  height: calc(50% + 20px);
-  border-bottom: 2px solid var(--ice-primary);
-  border-right: 2px solid var(--ice-primary);
+/* 2. Input Line (Pointing Left to receive previous round) */
+/* Only for Rounds 2, Semis, and Final */
+.columnLeft:not(.round1) .matchWrapper::before {
+    content: '';
+    position: absolute;
+    left: -30px; /* Stick out to the left */
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(270deg, var(--ice-primary), transparent);
+    opacity: 0.6;
 }
 
-/* Special: Connector lines need to actually bridge the gap vertically. 
-   Since flex 'justify-content: space-around' handles the spacing, 
-   we make the lines very tall to ensure they meet. */
 
-.columnLeft .matchWrapper[data-position="top"]::after { height: 100%; transform: translateY(50%); border-bottom: none; }
-.columnLeft .matchWrapper[data-position="bottom"]::after { height: 100%; transform: translateY(-50%); border-top: none; }
+/* RIGHT SIDE LINES */
+/* 1. Output Line (Pointing Left towards center) */
+.columnRight .matchWrapper::after {
+    content: '';
+    position: absolute;
+    left: -30px; 
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(270deg, var(--fire-primary), transparent);
+    opacity: 0.6;
+}
 
-/* REVISED CONNECTOR STRATEGY FOR FLEXBOX:
-   Instead of precise pixels, we simply draw a horizontal line on EVERY match.
-   Then we draw the vertical bracket on the *target* (next round) match.
-*/
-
-/* 1. Horizontal Line Out (All Matches except Final) */
-.columnLeft .matchWrapper::before {
+/* 2. Input Line (Pointing Right to receive previous round) */
+.columnRight:not(.round1) .matchWrapper::before {
     content: '';
     position: absolute;
     right: -30px;
     top: 50%;
     width: 30px;
     height: 2px;
-    background: var(--ice-primary);
-    opacity: 0.5;
-}
-
-.columnRight .matchWrapper::before {
-    content: '';
-    position: absolute;
-    left: -30px;
-    top: 50%;
-    width: 30px;
-    height: 2px;
-    background: var(--fire-primary);
-    opacity: 0.5;
-}
-
-/* 2. Vertical "Joiner" Bar on the Next Round's Input */
-
-/* Left Side Vertical Bar */
-/* We add this to Round 2 and Semis only */
-.columnLeft.round2 .matchCard::before,
-.columnLeft.semis .matchCard::before {
-    content: '';
-    position: absolute;
-    left: -30px; /* Matches the width of horizontal line above */
-    top: -50%; /* Start high */
-    height: 200%; /* Span enough to catch the top and bottom neighbors */
-    width: 2px;
-    background: linear-gradient(to bottom, transparent 5%, var(--ice-primary) 20%, var(--ice-primary) 80%, transparent 95%);
+    background: linear-gradient(90deg, var(--fire-primary), transparent);
     opacity: 0.6;
 }
 
-/* Right Side Vertical Bar */
-.columnRight.round2 .matchCard::before,
-.columnRight.semis .matchCard::before {
-    content: '';
-    position: absolute;
-    right: -30px;
-    top: -50%;
-    height: 200%;
-    width: 2px;
-    background: linear-gradient(to bottom, transparent 5%, var(--fire-primary) 20%, var(--fire-primary) 80%, transparent 95%);
-    opacity: 0.6;
-}
-
-/* Disable connectors for the middle/final column */
+/* Hide lines for the middle/final column where not needed */
+.columnMid .matchWrapper::after, 
 .columnMid .matchWrapper::before { display: none; }
 
 
@@ -256,6 +214,6 @@
   .column { flex-direction: row; flex-wrap: wrap; padding: 10px; gap: 10px; }
   .columnMid { order: -1; margin-bottom: 20px; }
   /* Hide lines on mobile */
-  .matchWrapper::before, .matchCard::before, .matchWrapper::after { display: none !important; }
+  .matchWrapper::before, .matchWrapper::after { display: none !important; }
   .matchWrapper { width: 48%; margin: 5px; }
 }

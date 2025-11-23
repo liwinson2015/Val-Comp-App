@@ -73,21 +73,18 @@ export default function TestBracket4() {
         
         {/* --- LEFT SIDE (ICE) --- */}
         
-        {/* Round 1: Output Lines Only */}
         <div className={`${styles.column} ${styles.columnLeft} ${styles.round1}`}>
           {tournamentData.leftSide.round1.map((m) => (
             <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* Round 2: Input Bracket + Output Line */}
         <div className={`${styles.column} ${styles.columnLeft} ${styles.round2}`}>
           {tournamentData.leftSide.round2.map((m) => (
             <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* Semis: Input Bracket + Output Line */}
         <div className={`${styles.column} ${styles.columnLeft} ${styles.semis}`}>
            {tournamentData.leftSide.semis.map((m) => (
             <MatchCard key={m.id} match={m} theme="ice" />
@@ -97,27 +94,23 @@ export default function TestBracket4() {
         {/* --- MIDDLE (WINNER) --- */}
         <div className={`${styles.column} ${styles.columnMid}`}>
           <div className={styles.winnerText}>WINNER</div>
-          {/* Finals: No Output Lines, Input handled by Semis extending lines */}
           <MatchCard match={tournamentData.finals} theme="clash" />
         </div>
 
         {/* --- RIGHT SIDE (FIRE) --- */}
 
-        {/* Semis */}
         <div className={`${styles.column} ${styles.columnRight} ${styles.semis}`}>
            {tournamentData.rightSide.semis.map((m) => (
             <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
-        {/* Round 2 */}
         <div className={`${styles.column} ${styles.columnRight} ${styles.round2}`}>
           {tournamentData.rightSide.round2.map((m) => (
             <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
-        {/* Round 1 */}
         <div className={`${styles.column} ${styles.columnRight} ${styles.round1}`}>
           {tournamentData.rightSide.round1.map((m) => (
             <MatchCard key={m.id} match={m} theme="fire" />
