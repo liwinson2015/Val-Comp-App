@@ -1,0 +1,161 @@
+/* styles/testbracket2.module.css */
+
+.container {
+  --val-dark: #0f1923;
+  --val-dark-2: #1b2733;
+  --val-red: #ff4655;
+  --val-white: #ece8e1;
+  --line-color: #444c55;
+  
+  --card-width: 180px; /* Slightly smaller to fit width */
+  --card-height: 70px;
+  
+  font-family: 'Oswald', sans-serif;
+  background-color: var(--val-dark);
+  color: var(--val-white);
+  min-height: 100vh;
+  padding: 40px;
+  display: flex;
+  justify-content: center; /* Center the whole thing */
+  align-items: center;
+  overflow-x: auto;
+}
+
+/* The Main 3-Column Layout */
+.layoutGrid {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 40px;
+}
+
+/* --- Round Columns --- */
+.sideBracket {
+  display: flex;
+  gap: 40px;
+}
+
+/* Reverse the right side so Round 1 is on the far right */
+.sideBracket.rightSide {
+  flex-direction: row-reverse;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-height: 600px; /* Ensure vertical spacing is consistent */
+}
+
+/* --- The Card --- */
+.matchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.card {
+  width: var(--card-width);
+  height: var(--card-height);
+  background: var(--val-dark-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--line-color);
+  transition: all 0.2s;
+  position: relative;
+  z-index: 2;
+}
+
+/* Left Side Styling (Standard) */
+.leftSide .card {
+  border-left: 4px solid var(--val-red);
+  /* Cut Top-Right, Bottom-Left */
+  clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+}
+
+/* Right Side Styling (Mirrored) */
+.rightSide .card {
+  border-right: 4px solid var(--val-red);
+  /* Cut Top-Left, Bottom-Right */
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+}
+
+/* Grand Final Styling (Center) */
+.finalWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: scale(1.2); /* Make it bigger */
+}
+
+.trophyIcon {
+  color: #ffd700;
+  font-size: 24px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.finalCard {
+  width: 220px;
+  height: 90px;
+  background: black;
+  border: 2px solid var(--val-red);
+  box-shadow: 0 0 30px rgba(255, 70, 85, 0.2);
+}
+
+/* --- Text Styling --- */
+.player {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.winner { color: var(--val-white); font-weight: bold; background: linear-gradient(90deg, rgba(255,70,85,0.2), transparent); }
+.loser { color: #666; }
+
+/* --- CONNECTING LINES --- */
+
+.matchWrapper::after, .matchWrapper::before {
+  content: '';
+  position: absolute;
+  background-color: var(--line-color);
+  transition: 0.2s;
+}
+
+.matchWrapper:hover::after, .matchWrapper:hover::before {
+  background-color: var(--val-red);
+}
+
+/* === LEFT SIDE LINES (Points Right) === */
+.leftSide .matchWrapper::after {
+  height: 2px; width: 20px;
+  right: -20px; top: 50%;
+}
+.leftSide .matchWrapper[data-even="true"]::before {
+  width: 2px; height: calc(50% + 2px);
+  right: -20px; top: 50%;
+}
+.leftSide .matchWrapper[data-even="false"]::before {
+  width: 2px; height: calc(50% + 2px);
+  right: -20px; bottom: 50%;
+}
+
+/* === RIGHT SIDE LINES (Points Left) === */
+.rightSide .matchWrapper::after {
+  height: 2px; width: 20px;
+  left: -20px; top: 50%; /* Position on Left */
+}
+.rightSide .matchWrapper[data-even="true"]::before {
+  width: 2px; height: calc(50% + 2px);
+  left: -20px; top: 50%; /* Position on Left */
+}
+.rightSide .matchWrapper[data-even="false"]::before {
+  width: 2px; height: calc(50% + 2px);
+  left: -20px; bottom: 50%; /* Position on Left */
+}
