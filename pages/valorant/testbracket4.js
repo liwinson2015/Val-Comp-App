@@ -50,15 +50,13 @@ const MatchCard = ({ match, theme = 'ice' }) => {
   return (
     <div className={styles.matchWrapper}>
       <div className={`${styles.matchCard} ${themeClass}`}>
-        {/* Player 1 Row */}
+        {/* Player 1 Row - Scores removed, Name Centered */}
         <div className={`${styles.team} ${match.winner === 1 ? styles.winnerRow : ''}`}>
           <span>{match.p1}</span>
-          <span className={styles.score}>{match.s1}</span>
         </div>
-        {/* Player 2 Row */}
+        {/* Player 2 Row - Scores removed, Name Centered */}
         <div className={`${styles.team} ${match.winner === 2 ? styles.winnerRow : ''}`}>
           <span>{match.p2}</span>
-          <span className={styles.score}>{match.s2}</span>
         </div>
       </div>
     </div>
@@ -109,7 +107,6 @@ export default function TestBracket4() {
           </div>
           {/* The Finals Card gets the special 'clash' theme */}
           <MatchCard match={tournamentData.finals} theme="clash" />
-          {/* Deleted Grand Final Text */}
         </div>
 
         {/* --- RIGHT SIDE (FIRE THEME) --- */}

@@ -177,35 +177,30 @@
 /* Team Rows Generic */
 .team {
   display: flex;
-  justify-content: space-between;
+  justify-content: center; /* UPDATED: Centers the text */
+  align-items: center;
   padding: 8px 12px;
   font-size: 0.9rem;
   font-weight: 600;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   letter-spacing: 1px;
+  text-align: center;
 }
 
 .team:last-child {
   border-bottom: none;
 }
 
-.score {
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-/* --- UPDATED: Winner Text Styling (Subtle) --- */
+/* Winner Text Styling (Subtle) */
 .winnerText {
-  font-size: 1.5rem; /* Reduced size */
+  font-size: 1.5rem; 
   font-weight: 600;
   letter-spacing: 3px;
   color: var(--clash-primary);
   opacity: 0.9;
-  text-shadow: 0 0 5px rgba(0,0,0,0.5); /* Minimal shadow, no glow */
+  text-shadow: 0 0 5px rgba(0,0,0,0.5); 
   margin: 0;
   line-height: 1;
-  /* Animation removed */
 }
 
 /* Mobile Response */
