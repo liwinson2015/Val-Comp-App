@@ -6,20 +6,18 @@ export default function Bracket16({ data }) {
 
   // ---------- Geometry (Fixed & Stable) ----------
   const G = useMemo(() => {
-    // Fixed dimensions that guarantee text fits
-    const colW  = 160; // Wide enough for names
-    const gap   = 40;  // Generous gap
-    const slotH = 44;  // Taller cards
+    // FIXED DIMENSIONS - No dynamic resizing
+    const colW  = 170; // Generous width for names
+    const gap   = 40;  // Safe gap between columns
+    const slotH = 44;  // Height of cards
     const wire  = 2;
 
     const innerGapR16 = 14;
     const innerGapQF  = 44;
     const innerGapSF  = 32;
 
-    // Calculate X positions manually
-    // X(0) = 0
-    // X(1) = 200
-    // ...
+    // Simple X position calculation
+    // 0: L-R16, 1: L-QF, 2: L-SF, ...
     const X = (i) => i * (colW + gap);
 
     const titleBand = 40;
@@ -36,25 +34,31 @@ export default function Bracket16({ data }) {
     const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
     
-    // Push Finals down slightly to clear wires
+    // Push Finals down to clear SF wires clearly
     const finalY    = sfCenter + 20; 
 
-    // Total Stage Width = 7 columns (0-6)
-    // 0: L-R16, 1: L-QF, 2: L-SF, 3: Finals Center, 4: R-SF, 5: R-QF, 6: R-R16
-    // Note: Index 3 is technically "Center Gap" area in this logic scheme
-    // Width = X(6) + colW
-    const stageW    = X(6) + colW;
-    const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH    = Math.ceil(lastBot + 150);
-
-    const finalW      = 180; // Fixed wide width for finals
-    const finalMidGap = 24;
+    // Total Width Calculation
+    // We use a 7-column grid logic:
+    // Left(3) + CenterGap(1) + Right(3)
+    // Center Gap is technically index 3 position
     
-    // Center X coordinate of the stage
-    const centerX     = X(3) + colW/2;
+    const centerX = X(3) + colW/2;
+
+    // Finals Box Configuration
+    const finalW      = 200; // Extra wide for finals
+    const finalMidGap = 40;  // Space between the two finalists
+    
+    const finalLeftX  = centerX - (finalMidGap/2) - finalW;
+    const finalRightX = centerX + (finalMidGap/2);
+
+    // Calculate Stage Width to cover everything
+    // The rightmost element is R-R16 at index 6
+    const stageW = X(6) + colW;
+    const lastBot = r16Centers[3] + (pairBlockR16 / 2);
+    const stageH  = Math.ceil(lastBot + 150);
 
     // Vertical positions for Champion
-    const champOffset = 80;  // Plenty of room above final match
+    const champOffset = 100; // Huge gap above final match
     const winnerAbove = 30;  
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
@@ -65,6 +69,7 @@ export default function Bracket16({ data }) {
       X, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
       finalW, finalMidGap, centerX,
+      finalLeftX, finalRightX,
       champTop, winnerTop,
     };
   }, []);
@@ -106,12 +111,10 @@ export default function Bracket16({ data }) {
   boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
   boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // Finalists (Centered based on X(3) which is the middle slot)
-  const finalLeftX  = G.centerX - G.finalMidGap/2 - G.finalW;
-  const finalRightX = G.centerX + G.finalMidGap/2;
+  // Finalists (Uses the manually calculated centered positions)
   const finalTop    = G.finalY - G.slotH/2;
-  const finalLeft   = finalBox(finalLeftX,  finalTop, D.final.left);
-  const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
+  const finalLeft   = finalBox(G.finalLeftX,  finalTop, D.final.left);
+  const finalRight  = finalBox(G.finalRightX, finalTop, D.final.right);
 
   // ---------- Wires ----------
   const P = [];
@@ -163,20 +166,19 @@ export default function Bracket16({ data }) {
   }
   qfToSf_R();
 
-  // SF -> Final Connectors
-  // Elbow down to G.finalY
+  // SF -> Final Connectors (Polyline down to Final Y)
   const sfLeftX  = G.X(2) + G.colW;
   const sfRightX = G.X(4);
   
-  // We need polyline: Start -> Horizontal Mid -> Vertical Down -> Horizontal End
-  const dropMidL = (sfLeftX + finalLeftX) / 2;
-  const dropMidR = (sfRightX + (finalRightX + G.finalW)) / 2;
+  // Midpoints for the drop
+  const dropMidL = (sfLeftX + G.finalLeftX) / 2;
+  const dropMidR = (sfRightX + (G.finalRightX + G.finalW)) / 2;
 
-  P.push(`M ${sfLeftX} ${G.sfCenter} H ${dropMidL} V ${G.finalY} H ${finalLeftX}`);
-  P.push(`M ${sfRightX} ${G.sfCenter} H ${dropMidR} V ${G.finalY} H ${finalRightX + G.finalW}`);
+  P.push(`M ${sfLeftX} ${G.sfCenter} H ${dropMidL} V ${G.finalY} H ${G.finalLeftX}`);
+  P.push(`M ${sfRightX} ${G.sfCenter} H ${dropMidR} V ${G.finalY} H ${G.finalRightX + G.finalW}`);
   
   // Final Bridge
-  P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
+  P.push(H(G.finalLeftX + G.finalW, G.finalY, G.finalRightX));
   // Winner Vertical
   P.push(V(G.centerX, G.finalY, G.champTop + G.slotH + 10));
 

@@ -6,19 +6,22 @@
 .viewport {
   width: 100%;
   display: flex;
-  justify-content: center; /* Centers if screen > bracket */
-  align-items: flex-start; /* Align top to avoid clipping */
-  padding: 40px 0;
-  overflow-x: auto; /* Allow scroll if bracket > screen */
+  justify-content: center; /* Center if wider than bracket */
+  align-items: flex-start; /* Align top so scrollbar is at bottom */
+  padding: 60px 20px;
+  overflow-x: auto; /* Critical: allows scroll instead of crush */
   background: transparent;
 }
 
 .stage {
   position: relative;
   margin: 0 auto;
-  /* These vars are defaults */
+  /* Fixed min-width logic handled in JS geometry, but CSS backup */
+  min-width: 1000px; 
+  
+  /* Vars defaults */
   --slotH: 44px;
-  --colw: 160px;
+  --colw: 170px;
   --gap: 40px;
   --joinW: 2px;
 }
@@ -26,7 +29,7 @@
 /* Titles */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
-  display: block; /* Positioned absolute in JS */
+  display: block;
   pointer-events: none;
   z-index: 2;
 }
@@ -91,6 +94,8 @@
 .finalSlot { 
   border-left: 3px solid #ffdf58;
   background: #161b22;
+  /* Font size slightly larger for finals */
+  font-size: 14px;
 }
 
 /* Champion */
