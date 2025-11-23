@@ -5,33 +5,31 @@
 
 .viewport {
   width: 100%;
-  min-height: 80vh; /* Ensure vertical center if needed */
   display: flex;
-  justify-content: center; /* Centers the bracket horizontally */
-  align-items: center;     /* Centers the bracket vertically */
-  padding: 20px;
-  overflow-x: auto;        
+  justify-content: center;
+  align-items: flex-start; /* Align top to prevent vertical centering issues */
+  padding: 40px 0 80px; /* Extra bottom padding for the dropped final */
+  overflow-x: auto; 
   background: transparent;
 }
 
 .stage {
   position: relative;
   width: auto;
-  min-width: 1000px; /* Ensure it doesn't shrink too small */
   margin: 0 auto;
-  
-  --slotH: 34px;
-  --colw: 125px;
-  --gap: 20px;
+  /* Tighter geometry vars */
+  --slotH: 36px;
+  --colw: 130px;
+  --gap: 24px;
   --joinW: 2px;
 }
 
-/* Titles */
+/* --- Round Titles --- */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
   display: block;
   pointer-events: none;
-  z-index: 2;
+  z-index: 0;
 }
 
 .title {
@@ -39,16 +37,16 @@
   text-align: center;
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 700;
-  font-size: 10px; 
+  font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #556679;
+  color: #4a5568;
   user-select: none;
   white-space: nowrap;
   line-height: 14px;
 }
 
-/* Wires */
+/* --- Connector Wires --- */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
@@ -56,55 +54,61 @@
 }
 
 .wires g {
-  stroke: #2c3846;
+  stroke: #2d3748; /* Dark slate */
   transition: stroke 0.3s ease;
 }
 
-/* Boxes */
+/* --- Match Cards --- */
 .slot {
   position: absolute;
   width: var(--colw);
   height: var(--slotH);
   
-  background: rgba(18, 24, 31, 0.95);
-  border: 1px solid #2c3846;
-  border-left: 3px solid #485363;
-  color: #ece8e1;
+  /* Clean Dark Theme */
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-left: 3px solid #4a5568; /* Neutral accent */
+  color: #e2e8f0;
   
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-weight: 600; 
-  font-size: 11px; 
-  border-radius: 2px;
+  font-size: 11px;
+  border-radius: 3px;
   
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  z-index: 2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 6px;
+  padding: 0 8px;
   transition: all 0.2s;
 }
 
 .slot:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: #ff4655;
-  box-shadow: 0 0 10px rgba(255, 70, 85, 0.2);
+  border-left-color: #ff4655;
+  background: #2d3748;
   z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
+/* Finals Cards */
 .finalSlot { 
-  border-left: 3px solid #ffdf58;
-  background: #161b22;
-  font-size: 12px;
-  font-weight: 700;
+  border-left: 3px solid #ecc94b; /* Gold */
+  background: #171923;
 }
 
-/* Champion */
+/* --- Champion Box --- */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
-  background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
-  color: #ffffff;
-  border: 1px solid #ffdf58;
-  padding: 8px 20px;
+  
+  background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+  color: #ecc94b; /* Gold text */
+  border: 1px solid #ecc94b;
+  
+  padding: 12px 30px;
+  min-width: 180px;
+  text-align: center;
   
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 800; 
@@ -113,8 +117,8 @@
   text-transform: uppercase;
   
   border-radius: 4px;
-  box-shadow: 0 0 20px rgba(255, 223, 88, 0.2);
-  z-index: 3; 
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  z-index: 5; 
   white-space: nowrap;
 }
 
@@ -125,7 +129,7 @@
   font-size: 9px; 
   letter-spacing: 0.2em; 
   text-transform: uppercase;
-  color: #ffdf58;
+  color: #718096;
   opacity: 1; 
   white-space: nowrap; 
   z-index: 3;

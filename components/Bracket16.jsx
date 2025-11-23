@@ -4,30 +4,28 @@ import s from "../styles/Bracket16.module.css";
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // ---------- Geometry (No Overlap Guarantee) ----------
+  // ---------- Geometry (Compact & V-Drop Layout) ----------
   const G = useMemo(() => {
-    // --- Horizontal Layout ---
-    const colW  = 160; 
-    const gap   = 40;
-    const slotH = 44; 
+    // 1. Compact Columns to fit 1000-1200px screens
+    const colW  = 130; 
+    const gap   = 24;
+    const slotH = 36;
     const wire  = 2;
 
-    const innerGapR16 = 14;
-    const innerGapQF  = 44;
-    const innerGapSF  = 32;
+    const innerGapR16 = 10;
+    const innerGapQF  = 30;
+    const innerGapSF  = 20; // Tight vertical spacing
 
+    // Horizontal Scale
     const X = (i) => i * (colW + gap);
 
-    // --- Vertical Layout ---
-    const titleBand = 40;
-    const headerPad = 60;
-    // Increase top padding so Champion box doesn't hit title
-    const topPad    = titleBand + headerPad + 40; 
+    const titleBand = 30;
+    const headerPad = 40;
+    const topPad    = titleBand + headerPad;
 
     const pairBlockR16 = slotH * 2 + innerGapR16;
-    const r16Space     = 24;
+    const r16Space     = 16;
 
-    // Calculate vertical centers for rounds
     const r16Centers = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
     );
@@ -35,26 +33,28 @@ export default function Bracket16({ data }) {
     const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
     
-    // FIX: Push Final Match box WAY down below the SF line
-    // This creates a "Valley" for the Champion box to sit in above it
-    const finalY    = sfCenter + 60; 
+    // --- THE FIX: V-Drop Layout ---
+    // Push the Final Match DOWN significantly to clear space for the Winner box
+    const finalY    = sfCenter + 70; 
 
-    // --- Center & Finals ---
+    // Center Calculations
     const centerX     = X(3) + colW/2;
-    const finalW      = 180; 
-    const finalMidGap = 30;
     
+    // Finals Match Box
+    const finalW      = 140; 
+    const finalMidGap = 20;
     const finalLeftX  = centerX - (finalMidGap/2) - finalW;
     const finalRightX = centerX + (finalMidGap/2);
 
     const stageW    = X(6) + colW;
     const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH    = Math.ceil(lastBot + 150);
+    // Add extra height for the dropped final
+    const stageH    = Math.ceil(lastBot + 140); 
 
-    // Champion Box Position
-    // Sit nicely between the SF line and the Final Match line
-    const champOffset = 90; 
-    const winnerAbove = 30;  
+    // Champion Position
+    // Place it well above the final match
+    const champOffset = 80;  
+    const winnerAbove = 25;  
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
 
@@ -106,7 +106,7 @@ export default function Bracket16({ data }) {
   boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
   boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // Finalists
+  // Finalists (Dropped Position)
   const finalTop    = G.finalY - G.slotH/2;
   const finalLeft   = finalBox(G.finalLeftX,  finalTop, D.final.left);
   const finalRight  = finalBox(G.finalRightX, finalTop, D.final.right);
@@ -130,8 +130,8 @@ export default function Bracket16({ data }) {
   function qfToSf_L(){
     const xQF = G.X(1)+G.colW;
     const xSF = G.X(2);
-    const xmTop = (xQF + xSF) / 2 - 8;
-    const xmBot = (xQF + xSF) / 2 + 8;
+    const xmTop = (xQF + xSF) / 2 - 6;
+    const xmBot = (xQF + xSF) / 2 + 6;
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
@@ -152,8 +152,8 @@ export default function Bracket16({ data }) {
   function qfToSf_R(){
     const xQF = G.X(5);
     const xSF = G.X(4)+G.colW;
-    const xmTop = (xQF + xSF) / 2 + 8;
-    const xmBot = (xQF + xSF) / 2 - 8;
+    const xmTop = (xQF + xSF) / 2 + 6;
+    const xmBot = (xQF + xSF) / 2 - 6;
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
     P.push(polyH_V_H(xQF, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
@@ -161,11 +161,10 @@ export default function Bracket16({ data }) {
   }
   qfToSf_R();
 
-  // SF -> Final Connectors (Elbow Down)
+  // SF -> Final Connectors (Elbow Down deep)
   const sfLeftX  = G.X(2) + G.colW;
   const sfRightX = G.X(4);
   
-  // Drop midpoint
   const dropMidL = (sfLeftX + G.finalLeftX) / 2;
   const dropMidR = (sfRightX + (G.finalRightX + G.finalW)) / 2;
 
@@ -174,8 +173,10 @@ export default function Bracket16({ data }) {
   
   // Final Bridge
   P.push(H(G.finalLeftX + G.finalW, G.finalY, G.finalRightX));
-  // Winner Vertical
-  P.push(V(G.centerX, G.finalY, G.champTop + G.slotH + 15));
+  
+  // Winner Vertical (Up to Champion, clearing the Final Match box)
+  // Starting from middle of final bridge, go UP to champ box bottom
+  P.push(V(G.centerX, G.finalY, G.champTop + G.slotH + 12)); // 12px pad into the champ box shadow
 
   return (
     <div className={s.viewport}>
@@ -194,7 +195,10 @@ export default function Bracket16({ data }) {
           <span className={s.title} style={{left:G.X(0), width:G.colW}}>R16</span>
           <span className={s.title} style={{left:G.X(1), width:G.colW}}>QF</span>
           <span className={s.title} style={{left:G.X(2), width:G.colW}}>SF</span>
+          
+          {/* Center "Final" Title logic: Center horizontally between SF columns */}
           <span className={s.title} style={{left:G.centerX - 50, width:100}}>FINAL</span>
+          
           <span className={s.title} style={{left:G.X(4), width:G.colW}}>SF</span>
           <span className={s.title} style={{left:G.X(5), width:G.colW}}>QF</span>
           <span className={s.title} style={{left:G.X(6), width:G.colW}}>R16</span>
