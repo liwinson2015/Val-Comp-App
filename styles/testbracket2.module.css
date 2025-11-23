@@ -1,246 +1,63 @@
-/* styles/testbracket2.module.css */
-
+/* --- STYLE 1: VCT OFFICIAL --- */
 .container {
-  /* --- PREMIUM ESPORTS PALETTE --- */
-  --bg-void: #050508;
-  --card-bg: #14141a;
-  --card-bg-hover: #1e1e26;
-  --text-primary: #ffffff;
-  --text-dim: #6e6e80;
+  --bg-color: #0f1923;
+  --card-bg: #1b2733;
+  --card-hover: #253240;
+  --accent: #ff4655; /* Valorant Red */
+  --text-main: #ece8e1;
+  --text-dim: #768079;
+  --line: #4a5a6a;
   
-  /* ACCENTS */
-  --gold: #d4af37;       /* Championship Gold */
-  --gold-dim: #8a701f;
-  --blue-accent: #3b82f6; /* Tech Blue */
-  --line-color: #333340;
-  
-  /* DIMENSIONS */
-  --card-w: 180px;
-  --card-h: 60px;
-  --gap-col: 50px;
-  --gap-row: 25px;
-
-  font-family: 'Rajdhani', sans-serif; /* Tech font */
-  background-color: var(--bg-void);
-  
-  /* Subtle Tech Grid Background */
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-  
+  font-family: 'Oswald', sans-serif; /* Condensed, strong */
+  background-color: var(--bg-color);
+  color: var(--text-main);
   height: 100vh;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  color: var(--text-primary);
+  text-transform: uppercase;
 }
 
-.bracketBoard {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--gap-col);
-}
+.bracketBoard { display: flex; align-items: center; gap: 50px; }
+.column { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
 
-.column {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--gap-row);
-}
-
-/* --- THE SHARD CARD --- */
-.matchWrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.matchCard {
-  width: var(--card-w);
-  height: var(--card-h);
+/* CARD */
+.matchWrapper { position: relative; display: flex; align-items: center; }
+.matchBox {
+  width: 180px; height: 60px;
   background: var(--card-bg);
-  position: relative;
-  z-index: 2;
-  
-  /* THE SKEW: Creates the "Speed" look */
-  transform: skewX(-15deg);
-  border-left: 3px solid var(--line-color);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  transition: all 0.3s ease;
-  overflow: hidden; /* For the sheen effect */
+  border-left: 4px solid var(--line);
+  display: flex; flex-direction: column; justify-content: center;
+  transition: 0.2s ease;
+  position: relative; z-index: 2;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
-/* Hover State */
-.matchCard:hover {
-  background: var(--card-bg-hover);
-  border-left-color: var(--blue-accent);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-  transform: skewX(-15deg) translateY(-2px);
-}
+.matchBox:hover { border-left-color: var(--accent); transform: translateX(4px); background: var(--card-hover); }
 
-/* --- CONTENT (Un-skewing) --- */
-/* Since the card is skewed -15deg, we must skew the content +15deg to make it straight */
-.cardContent {
-  transform: skewX(15deg);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
+/* TEAMS */
+.teamRow { display: flex; justify-content: space-between; padding: 0 12px; font-weight: 500; font-size: 14px; letter-spacing: 1px; }
+.winner { color: var(--text-main); font-weight: 700; }
+.loser { color: var(--text-dim); opacity: 0.7; }
+.score { font-family: monospace; }
+.winner .score { color: var(--accent); }
 
-.teamRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 15px;
-  height: 50%;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  position: relative;
-}
+/* LINES */
+.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: var(--line); transition: 0.2s; }
+.matchWrapper:hover::after, .matchWrapper:hover::before { background: var(--accent); }
 
-.teamRow:last-child {
-  border-bottom: none;
-}
+/* LEFT LINES */
+.leftSide .matchWrapper::after { height: 2px; width: 50px; right: -50px; top: 50%; }
+.leftSide .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; right: -50px; top: 50%; transform:translateY(50%); }
+.leftSide .matchWrapper[data-pos="bottom"]::before { width: 2px; height: 50%; right: -50px; bottom: 50%; transform:translateY(-50%); }
 
-/* WINNER STYLES */
-.winner {
-  color: var(--text-primary);
-  text-shadow: 0 0 10px rgba(255,255,255,0.2);
-}
+/* RIGHT LINES */
+.rightSide .matchWrapper::after { height: 2px; width: 50px; left: -50px; top: 50%; }
+.rightSide .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; left: -50px; top: 50%; transform:translateY(50%); }
+.rightSide .matchWrapper[data-pos="bottom"]::before { width: 2px; height: 50%; left: -50px; bottom: 50%; transform:translateY(-50%); }
 
-/* Golden Indicator for Winner */
-.winner::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--gold);
-  box-shadow: 0 0 8px var(--gold);
-}
-
-.loser {
-  color: var(--text-dim);
-}
-
-.score {
-  font-family: monospace;
-  font-size: 14px;
-  color: var(--text-dim);
-}
-
-.winner .score {
-  color: var(--gold);
-}
-
-/* --- ANIMATION: SHEEN --- */
-/* A light reflection passing over the card */
-.matchCard::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  transform: skewX(15deg); /* Match skew */
-  transition: 0.5s;
-}
-
-.matchCard:hover::after {
-  left: 150%;
-  transition: 0.5s ease-in-out;
-}
-
-/* --- CONNECTING LINES (Tech Circuitry) --- */
-.matchWrapper::after, .matchWrapper::before {
-  content: '';
-  position: absolute;
-  background-color: var(--line-color);
-  transition: 0.3s;
-}
-
-.matchWrapper:hover::after, 
-.matchWrapper:hover::before {
-  background-color: var(--blue-accent); /* Glow blue on hover */
-  box-shadow: 0 0 5px var(--blue-accent);
-}
-
-/* LEFT SIDE LINES */
-.leftSide .matchWrapper::after {
-  height: 2px; width: var(--gap-col);
-  right: calc(var(--gap-col) * -0.6); top: 50%;
-}
-.leftSide .matchWrapper[data-pos="top"]::before {
-  width: 2px; height: 50%;
-  right: calc(var(--gap-col) * -0.6); top: 50%;
-  transform: translateY(50%);
-}
-.leftSide .matchWrapper[data-pos="bottom"]::before {
-  width: 2px; height: 50%;
-  right: calc(var(--gap-col) * -0.6); bottom: 50%;
-  transform: translateY(-50%);
-}
-
-/* RIGHT SIDE LINES */
-.rightSide .matchWrapper::after {
-  height: 2px; width: var(--gap-col);
-  left: calc(var(--gap-col) * -0.6); top: 50%;
-}
-.rightSide .matchWrapper[data-pos="top"]::before {
-  width: 2px; height: 50%;
-  left: calc(var(--gap-col) * -0.6); top: 50%;
-  transform: translateY(50%);
-}
-.rightSide .matchWrapper[data-pos="bottom"]::before {
-  width: 2px; height: 50%;
-  left: calc(var(--gap-col) * -0.6); bottom: 50%;
-  transform: translateY(-50%);
-}
-
-
-/* --- GRAND FINAL (Center Prism) --- */
-.finalColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 10px;
-}
-
-.finalCard {
-  width: 220px;
-  height: 80px;
-  border-left: 4px solid var(--gold);
-  /* More intense shadow for the final */
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.15); 
-}
-
-.finalCard:hover {
-  border-left-color: #fff;
-  box-shadow: 0 0 35px rgba(212, 175, 55, 0.4);
-}
-
-.trophyIcon {
-  font-size: 24px;
-  margin-bottom: 10px;
-  color: var(--gold);
-  filter: drop-shadow(0 0 10px var(--gold));
-}
-
-.finalLabel {
-  color: var(--gold);
-  font-size: 11px;
-  letter-spacing: 3px;
-  margin-top: 10px;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
+/* FINAL */
+.finalBox { border: 2px solid var(--accent); height: 80px; width: 200px; }
+.trophy { color: var(--accent); font-size: 20px; margin-bottom: 5px; text-align: center; }
