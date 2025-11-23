@@ -1,63 +1,52 @@
-/* --- STYLE 1: VCT OFFICIAL --- */
+/* --- STYLE 2: RETRO ARCADE --- */
 .container {
-  --bg-color: #0f1923;
-  --card-bg: #1b2733;
-  --card-hover: #253240;
-  --accent: #ff4655; /* Valorant Red */
-  --text-main: #ece8e1;
-  --text-dim: #768079;
-  --line: #4a5a6a;
+  --bg-color: #000000;
+  --card-bg: #111;
+  --neon-green: #39ff14;
+  --neon-pink: #ff00ff;
+  --line-color: #333;
   
-  font-family: 'Oswald', sans-serif; /* Condensed, strong */
+  font-family: 'Press Start 2P', cursive; /* PIXEL FONT */
   background-color: var(--bg-color);
-  color: var(--text-main);
-  height: 100vh;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  text-transform: uppercase;
+  color: #fff;
+  height: 100vh; width: 100%;
+  display: flex; justify-content: center; align-items: center; overflow: hidden;
+  font-size: 10px; /* Pixel font needs to be small */
 }
 
-.bracketBoard { display: flex; align-items: center; gap: 50px; }
+.bracketBoard { display: flex; align-items: center; gap: 40px; }
 .column { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
 
-/* CARD */
+/* CARD - BLOCKY BORDERS */
 .matchWrapper { position: relative; display: flex; align-items: center; }
 .matchBox {
-  width: 180px; height: 60px;
+  width: 170px; height: 60px;
   background: var(--card-bg);
-  border-left: 4px solid var(--line);
+  border: 4px solid var(--line-color);
   display: flex; flex-direction: column; justify-content: center;
-  transition: 0.2s ease;
   position: relative; z-index: 2;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 4px 4px 0px #222; /* Hard Shadow */
 }
 
-.matchBox:hover { border-left-color: var(--accent); transform: translateX(4px); background: var(--card-hover); }
+.matchBox:hover { border-color: var(--neon-green); box-shadow: 4px 4px 0px var(--neon-green); transform: translate(-2px, -2px); }
 
 /* TEAMS */
-.teamRow { display: flex; justify-content: space-between; padding: 0 12px; font-weight: 500; font-size: 14px; letter-spacing: 1px; }
-.winner { color: var(--text-main); font-weight: 700; }
-.loser { color: var(--text-dim); opacity: 0.7; }
-.score { font-family: monospace; }
-.winner .score { color: var(--accent); }
+.teamRow { display: flex; justify-content: space-between; padding: 4px 8px; }
+.winner { color: var(--neon-green); text-shadow: 2px 2px 0px #000; }
+.loser { color: #555; }
+.score { color: #fff; }
 
-/* LINES */
-.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: var(--line); transition: 0.2s; }
-.matchWrapper:hover::after, .matchWrapper:hover::before { background: var(--accent); }
+/* LINES - THICK AND BLOCKY */
+.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: var(--line-color); }
+.matchWrapper:hover::after, .matchWrapper:hover::before { background: var(--neon-pink); }
 
-/* LEFT LINES */
-.leftSide .matchWrapper::after { height: 2px; width: 50px; right: -50px; top: 50%; }
-.leftSide .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; right: -50px; top: 50%; transform:translateY(50%); }
-.leftSide .matchWrapper[data-pos="bottom"]::before { width: 2px; height: 50%; right: -50px; bottom: 50%; transform:translateY(-50%); }
+.leftSide .matchWrapper::after { height: 4px; width: 40px; right: -40px; top: 50%; margin-top: -2px;}
+.leftSide .matchWrapper[data-pos="top"]::before { width: 4px; height: 50%; right: -40px; top: 50%; }
+.leftSide .matchWrapper[data-pos="bottom"]::before { width: 4px; height: 54%; right: -40px; bottom: 50%; } /* Slight overlap for pixel perfect join */
 
-/* RIGHT LINES */
-.rightSide .matchWrapper::after { height: 2px; width: 50px; left: -50px; top: 50%; }
-.rightSide .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; left: -50px; top: 50%; transform:translateY(50%); }
-.rightSide .matchWrapper[data-pos="bottom"]::before { width: 2px; height: 50%; left: -50px; bottom: 50%; transform:translateY(-50%); }
+.rightSide .matchWrapper::after { height: 4px; width: 40px; left: -40px; top: 50%; margin-top: -2px;}
+.rightSide .matchWrapper[data-pos="top"]::before { width: 4px; height: 50%; left: -40px; top: 50%; }
+.rightSide .matchWrapper[data-pos="bottom"]::before { width: 4px; height: 54%; left: -40px; bottom: 50%; }
 
-/* FINAL */
-.finalBox { border: 2px solid var(--accent); height: 80px; width: 200px; }
-.trophy { color: var(--accent); font-size: 20px; margin-bottom: 5px; text-align: center; }
+.finalBox { border-color: var(--neon-pink); box-shadow: 6px 6px 0px var(--neon-pink); width: 200px; }
+.trophy { color: gold; font-size: 20px; margin-bottom: 10px; text-align: center; }
