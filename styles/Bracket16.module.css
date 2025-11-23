@@ -6,67 +6,61 @@
 .viewport {
   width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 20px;
-  overflow-x: auto; 
-  background: radial-gradient(circle at 50% 40%, rgba(30, 40, 55, 0.6) 0%, transparent 80%);
+  justify-content: center; /* Centers if screen > bracket */
+  align-items: flex-start; /* Align top to avoid clipping */
+  padding: 40px 0;
+  overflow-x: auto; /* Allow scroll if bracket > screen */
+  background: transparent;
 }
 
 .stage {
   position: relative;
-  width: 100%;
-  /* Ensure it fills space but doesn't break layout */
-  min-width: 1200px; 
   margin: 0 auto;
-  
-  /* Defaults - JS will override these */
-  --slotH: 48px;
-  --colw: 200px;
+  /* These vars are defaults */
+  --slotH: 44px;
+  --colw: 160px;
   --gap: 40px;
   --joinW: 2px;
 }
 
-/* --- Headers --- */
+/* Titles */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
-  display: flex; 
-  justify-content: space-between; 
+  display: block; /* Positioned absolute in JS */
   pointer-events: none;
   z-index: 2;
 }
 
 .title {
+  position: absolute;
   text-align: center;
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.2em;
+  line-height: 18px;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #6b7a8f;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  color: #556679;
+  user-select: none;
+  white-space: nowrap;
 }
 
-/* --- Wires --- */
+/* Wires */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
   pointer-events: none;
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
 }
 
 .wires g {
-  stroke: #364252;
-  stroke-width: 2px;
+  stroke: #2c3846;
   transition: stroke 0.3s ease;
 }
 
-/* --- Standard Match Slot --- */
+/* Boxes */
 .slot {
   position: absolute;
-  width: var(--colw); 
+  width: var(--colw);
   height: var(--slotH);
   
   background: rgba(18, 24, 31, 0.95);
@@ -77,73 +71,57 @@
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-weight: 600; 
-  font-size: 14px; /* Larger text */
-  letter-spacing: 0.01em;
+  font-size: 13px;
+  border-radius: 2px;
   
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 16px;
-  
-  /* Clip layout for futuristic edge */
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
-  transition: all 0.2s ease;
+  padding: 0 8px;
+  transition: all 0.2s;
 }
 
 .slot:hover {
-  transform: scale(1.03);
+  transform: translateY(-2px);
   border-color: #ff4655;
-  border-left-color: #ff4655;
-  background: #1e252e;
+  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
   z-index: 10;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* --- The Grand Final Slots (HERO) --- */
 .finalSlot { 
-  border: 1px solid #ffdf58;
-  border-left-width: 4px;
-  background: linear-gradient(90deg, rgba(255, 223, 88, 0.05) 0%, rgba(18, 24, 31, 0.95) 30%);
-  font-size: 16px;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: #ffffff;
-  z-index: 5;
+  border-left: 3px solid #ffdf58;
+  background: #161b22;
 }
 
-/* --- Champion Badge --- */
+/* Champion */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
-  
-  /* Premium Look */
-  background: #0f1419;
-  color: #ffdf58;
+  background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
+  color: #ffffff;
   border: 1px solid #ffdf58;
-  padding: 14px 40px;
-  min-width: 240px;
+  padding: 12px 30px;
   
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
-  font-weight: 900; 
-  font-size: 22px;
+  font-weight: 800; 
+  font-size: 18px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  text-align: center;
   
-  box-shadow: 0 0 40px rgba(255, 223, 88, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 0 30px rgba(255, 223, 88, 0.2);
   z-index: 3; 
   white-space: nowrap;
-  
-  /* Hex shape */
-  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
 }
 
 .winnerLabel {
   position: absolute; left: 50%; transform: translateX(-50%);
   font-family: 'DIN Next W01', sans-serif;
-  font-weight: 700; 
-  font-size: 11px; 
-  letter-spacing: 0.3em; 
+  font-weight: 900; 
+  font-size: 10px; 
+  letter-spacing: 0.25em; 
   text-transform: uppercase;
-  color: #556679;
+  color: #ffdf58;
+  opacity: 1; 
+  white-space: nowrap; 
   z-index: 3;
 }
