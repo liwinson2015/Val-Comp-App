@@ -5,37 +5,38 @@
 
 .viewport {
   width: 100%;
-  /* Use the same dark theme background or transparent to let page show through */
-  background: transparent; 
-  color: #ece8e1;
-  overflow-x: auto;
+  /* Center vertically, but let horizontal stretch */
   display: flex;
   justify-content: center;
+  /* Remove side padding so it touches edges */
   padding: 40px 0;
-  /* Custom scrollbar for the bracket view */
-  scrollbar-width: thin;
-  scrollbar-color: #ff4655 #1b2733;
+  overflow-x: hidden; /* Hide scrollbar if it fits, auto if not */
+  background: transparent;
 }
 
 .stage {
   position: relative;
-  /* overridden from JSX */
+  /* Ensure the stage tries to fill width comfortably */
+  min-width: 1000px; /* Minimum readable width */
+  max-width: 1600px; /* Maximum stretch */
+  width: 100%;
+  margin: 0 auto;
+  
+  /* These vars are defaults, JS overrides them dynamically */
   --slotH: 38px;
   --colw: 150px;
   --gap: 34px;
   --joinW: 2px;
-  margin: 0 auto;
 }
 
 /* Round headings */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
-  display: grid;
-  grid-template-columns: repeat(7, var(--colw));
-  column-gap: var(--gap);
-  justify-content: start;
+  display: flex; /* Changed to flex for distribution */
+  justify-content: space-between; /* Spread titles evenly */
   pointer-events: none;
   z-index: 2;
+  padding: 0 10px; /* Slight buffer from edge */
 }
 
 .title {
@@ -46,67 +47,69 @@
   line-height: 18px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #556679; /* Muted blue-grey */
+  color: #556679;
   user-select: none;
   white-space: nowrap;
+  /* Width will be controlled by JS or Flex */
+  width: 14%; /* Rough approx for 7 columns */
 }
 
-/* Wires (SVG Lines) */
+/* Wires */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
   pointer-events: none;
+  width: 100%;
+  height: 100%;
 }
 
 .wires g {
-  stroke: #2c3846; /* Dark tech slate */
+  stroke: #2c3846;
   transition: stroke 0.3s ease;
 }
 
-/* Boxes (The Teams) */
+/* Boxes */
 .slot {
   position: absolute;
-  width: var(--colw);
+  /* Width comes from variable set in JS */
+  width: var(--colw); 
   height: var(--slotH);
   
-  /* NEW VISUALS: Dark Card Style */
   background: linear-gradient(90deg, #1b2733 0%, #151e27 100%);
   border: 1px solid #2c3846;
-  border-left: 3px solid #485363; /* Default grey accent */
+  border-left: 3px solid #485363;
   color: #ece8e1;
   
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-weight: 600; 
   font-size: 13px;
-  border-radius: 2px; /* Sharp corners */
+  border-radius: 2px;
   
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   padding: 0 8px;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
 
 .slot:hover {
   transform: translateY(-2px);
-  border-color: #ff4655; /* Valorant Red hover */
+  border-color: #ff4655;
   box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
   z-index: 10;
 }
 
 /* Small finalists boxes */
 .finalSlot { 
-  width: 84px; 
-  border-left: 3px solid #ffdf58; /* Gold accent for finals */
+  /* Width is dynamic in JS based on finalW var */
+  border-left: 3px solid #ffdf58;
   background: #161b22;
 }
 
 /* Champion pill + label */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
-  
-  /* Big Gold Champion Style */
   background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
   color: #ffffff;
   border: 1px solid #ffdf58;
@@ -132,33 +135,8 @@
   font-size: 10px; 
   letter-spacing: 0.25em; 
   text-transform: uppercase;
-  color: #ffdf58; /* Gold text */
+  color: #ffdf58;
   opacity: 1; 
   white-space: nowrap; 
   z-index: 3;
-}
-
-/* Specific overrides if you use them in JS classes */
-.sfLeftTop::before,
-.sfLeftBot::before {
-  content: "";
-  position: absolute;
-  left: -12px;                 
-  top: 50%;
-  width: 12px;                 
-  height: var(--joinW);
-  background: #2c3846;
-  transform: translateY(-50%);
-}
-
-.sfRightTop::before,
-.sfRightBot::before {
-  content: "";
-  position: absolute;
-  right: -12px;                
-  top: 50%;
-  width: 12px;                 
-  height: var(--joinW);
-  background: #2c3846;
-  transform: translateY(-50%);
 }
