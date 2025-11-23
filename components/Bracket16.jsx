@@ -1,51 +1,60 @@
 import React, { useMemo } from "react";
-import s from "../styles/Bracket16.module.css";
+import s from "./Bracket16.module.css"; // Make sure path matches your project structure
 
-/**
- * Pixel-precise 16-team bracket with "Esports" styling.
- */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
   // ---------- Geometry (Calculations) ----------
   const G = useMemo(() => {
+    // --- Horizontal Config ---
     const colW  = 150;
-    const gap   = 40; 
+    const gap   = 50; // Increased gap for better spacing
     const slotH = 38;
     const wire  = 2;
 
-    const innerGapR16 = 12;
-    const innerGapQF  = 30; 
-    const innerGapSF  = 22;
+    // --- Vertical Spacing Config ---
+    const innerGapR16 = 10;
+    const innerGapQF  = 34; 
+    const innerGapSF  = 34;
 
+    // X coordinate generator for columns 0 through 6
     const X = (i) => i * (colW + gap);
 
-    // Vertical Spacing Layout
-    const titleBand = 30;
-    const headerPad = 64;
+    // --- Vertical Layout Calculation ---
+    const titleBand = 40;
+    const headerPad = 50;
     const topPad    = titleBand + headerPad;
-    const pairBlockR16 = slotH * 2 + innerGapR16;
-    const r16Space     = 26;
 
+    // Height of one R16 matchup block (two slots + gap)
+    const pairBlockR16 = slotH * 2 + innerGapR16;
+    // Space between matchup blocks
+    const r16Space     = 30;
+
+    // Calculate center Y positions for the 4 left R16 matchups
     const r16Centers = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
     );
 
-    // Calculate subsequent round centers based on previous rounds
+    // Calculate subsequent round centers by averaging previous round centers
     const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
     const finalY    = sfCenter;
 
+    // Stage dimensions
     const stageW    = X(6) + colW;
     const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH    = Math.ceil(lastBot + 80);
+    const stageH    = Math.ceil(lastBot + 100);
 
-    const finalW      = 84;
-    const finalMidGap = 22;
+    // Final Center Geometry
+    const finalW      = 110; // Slightly wider final boxes for long names
+    const finalMidGap = 30;  // Gap between the two final boxes
     
-    // Winner Label positioning
-    const champOffset = 55;  
-    const winnerAbove = 25;  
+    // The exact horizontal center of the stage
+    const stageCenterX = stageW / 2;
+
+    // Winner Label & Champion Box positioning relative to the center line (finalY)
+    const champOffset = 65;  
+    const winnerAbove = 30;  
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
 
@@ -53,19 +62,22 @@ export default function Bracket16({ data }) {
       colW, gap, slotH, wire,
       innerGapR16, innerGapQF, innerGapSF,
       X, r16Centers, qfCenters, sfCenter, finalY,
-      stageW, stageH,
+      stageW, stageH, stageCenterX,
       finalW, finalMidGap,
       champTop, winnerTop,
     };
   }, []);
 
-  // ---------- Box Helpers ----------
+  // ---------- Box Positioning Helpers ----------
+  // Calculates the top edge Y position of a slot given its pair's center Y and the gap
   const slotTop = (pairY, innerGap) => pairY - (innerGap / 2) - G.slotH;
   const slotBot = (pairY, innerGap) => pairY + (innerGap / 2);
+  
+  // Calculates the vertical center Y position of a specific slot
   const centerTop = (pairY, innerGap) => pairY - (innerGap / 2) - (G.slotH / 2);
   const centerBot = (pairY, innerGap) => pairY + (innerGap / 2) + (G.slotH / 2);
 
-  // ---------- Boxes ----------
+  // ---------- Boxes Render ----------
   const boxes = [];
 
   // 1. LEFT SIDE
@@ -104,60 +116,34 @@ export default function Bracket16({ data }) {
   boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
   boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // 3. FINALS (Center)
-  const finalLeftX  = G.X(3) + G.colW/2 - G.finalMidGap/2 - G.finalW;
-  const finalRightX = G.X(3) + G.colW/2 + G.finalMidGap/2;
+  // 3. FINALS (Center - FIXED ALIGNMENT)
+  // We calculate positions relative to the exact stage center
+  const finalLeftX  = G.stageCenterX - (G.finalMidGap/2) - G.finalW;
+  const finalRightX = G.stageCenterX + (G.finalMidGap/2);
   const finalTop    = G.finalY - G.slotH/2;
+  
   const finalLeft   = finalBox(finalLeftX,  finalTop, D.final.left);
   const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
 
   // ---------- Wires (SVG Pathing) ----------
   const P = [];
-  const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`;
-  const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`;
+  // Helpers for SVG path strings
+  const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`; // Horizontal line
+  const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`; // Elbow connector
 
-  // Helper to generate wires for standard rounds
-  const generateWires = (sourceCenters, targetCenters, xSrc, xDst, innerGapSrc, innerGapDst) => {
-    sourceCenters.forEach((srcY, i) => {
-        const targetY = targetCenters[Math.floor(i/2)];
-        const yTopSrc = centerTop(srcY, innerGapSrc);
-        const yBotSrc = centerBot(srcY, innerGapSrc);
-        
-        // Logic: The target is always a pair, so we need to map Top Source to Top Target leg, etc.
-        // But in your bracket logic, R16 Top/Bot feed into QF Top/Bot.
-        // This specific logic connects the visual center of the slots.
-        
-        // Connect Source Top Slot to Mid
-        const xm = (xSrc + xDst) / 2;
-        // Connect Source Bot Slot to Mid
-        
-        // QF Target Top/Bot Y calculation:
-        const yDst = (i % 2 === 0) 
-          ? centerTop(targetY, innerGapDst) 
-          : centerBot(targetY, innerGapDst);
-
-        // Determine which slot of the source pair we are drawing (actually we draw both in the loop? 
-        // No, your loop iterates centers. A center contains 2 slots.
-        
-        // Re-implementing your specific logic cleanly:
-        P.push(polyH_V_H(xSrc, yTopSrc, xm, yDst, xDst));
-        P.push(polyH_V_H(xSrc, yBotSrc, xm, yDst, xDst));
-    });
-  }
-
-  // Manually keeping your robust wire logic to ensure no breakage:
+  // R16 -> QF Wires (Left)
   function r16ToQf_L(pairY, targetPairY){
     const xR16 = G.X(0)+G.colW, xQF = G.X(1);
-    const xm = (xR16 + xQF) / 2;
+    const xm = (xR16 + xQF) / 2; // Midpoint for the elbow
     P.push(polyH_V_H(xR16, centerTop(pairY, G.innerGapR16), xm, centerTop(targetPairY, G.innerGapQF), xQF));
     P.push(polyH_V_H(xR16, centerBot(pairY, G.innerGapR16), xm, centerBot(targetPairY, G.innerGapQF), xQF));
   }
-  // Loop execution for wires
   r16ToQf_L(G.r16Centers[0], G.qfCenters[0]);
   r16ToQf_L(G.r16Centers[1], G.qfCenters[0]);
   r16ToQf_L(G.r16Centers[2], G.qfCenters[1]);
   r16ToQf_L(G.r16Centers[3], G.qfCenters[1]);
 
+  // R16 -> QF Wires (Right)
   function r16ToQf_R(pairY, targetPairY){
     const xR16 = G.X(6), xQF = G.X(5)+G.colW;
     const xm = (xR16 + xQF) / 2;
@@ -169,32 +155,39 @@ export default function Bracket16({ data }) {
   r16ToQf_R(G.r16Centers[2], G.qfCenters[1]);
   r16ToQf_R(G.r16Centers[3], G.qfCenters[1]);
 
-  // QF -> SF (Polyline logic retained for pixel perfection)
+  // QF -> SF Wires
+  // Left side uses slightly offset midpoints to avoid wire overlap
   (function qfToSfLeft(){
     const xQFRight = G.X(1) + G.colW, xSFLeft = G.X(2);
-    const xmTop = (xQFRight + xSFLeft)/2 - 4, xmBot = (xQFRight + xSFLeft)/2 + 4;
-    const ySfTop = centerTop(G.sfCenter, G.innerGapSF), ySfBot = centerBot(G.sfCenter, G.innerGapSF);
+    const xmTop = (xQFRight + xSFLeft)/2 - 6;
+    const xmBot = (xQFRight + xSFLeft)/2 + 6;
     
-    [[0, xmTop, ySfTop], [1, xmBot, ySfBot]].forEach(([i, xm, yDst]) => {
-       P.push(polyH_V_H(xQFRight, centerTop(G.qfCenters[i], G.innerGapQF), xm, yDst, xSFLeft));
-       P.push(polyH_V_H(xQFRight, centerBot(G.qfCenters[i], G.innerGapQF), xm, yDst, xSFLeft));
-    });
+    // Top QF to Top SF leg
+    P.push(polyH_V_H(xQFRight, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSFLeft));
+    P.push(polyH_V_H(xQFRight, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSFLeft));
+    // Bot QF to Bot SF leg
+    P.push(polyH_V_H(xQFRight, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSFLeft));
+    P.push(polyH_V_H(xQFRight, centerBot(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSFLeft));
   })();
 
+  // Right side QF -> SF
   (function qfToSfRight(){
     const xQFLeft = G.X(5), xSFRight = G.X(4) + G.colW;
-    const xmTop = (xQFLeft + xSFRight)/2 + 4, xmBot = (xQFLeft + xSFRight)/2 - 4;
-    const ySfTop = centerTop(G.sfCenter, G.innerGapSF), ySfBot = centerBot(G.sfCenter, G.innerGapSF);
+    const xmTop = (xQFLeft + xSFRight)/2 + 6;
+    const xmBot = (xQFLeft + xSFRight)/2 - 6;
 
-    [[0, xmTop, ySfTop], [1, xmBot, ySfBot]].forEach(([i, xm, yDst]) => {
-      P.push(polyH_V_H(xQFLeft, centerTop(G.qfCenters[i], G.innerGapQF), xm, yDst, xSFRight));
-      P.push(polyH_V_H(xQFLeft, centerBot(G.qfCenters[i], G.innerGapQF), xm, yDst, xSFRight));
-   });
+    P.push(polyH_V_H(xQFLeft, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSFRight));
+    P.push(polyH_V_H(xQFLeft, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSFRight));
+    P.push(polyH_V_H(xQFLeft, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSFRight));
+    P.push(polyH_V_H(xQFLeft, centerBot(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSFRight));
   })();
 
-  // SF -> Final
+  // SF -> Final Wires (FIXED: Straight horizontal lines)
+  // Left SF to Left Final Box
   P.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
+  // Right SF to Right Final Box
   P.push(H(G.X(4),        G.sfCenter, finalRightX + G.finalW));
+  // Connector between Final boxes (under champion)
   P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
 
   // ---------- Render ----------
@@ -204,30 +197,37 @@ export default function Bracket16({ data }) {
         style={{
           width: `${G.stageW}px`,
           height: `${G.stageH}px`,
+          // Pass CSS variables for easier styling tweaks
           "--slotH": `${G.slotH}px`,
           "--colw": `${G.colW}px`,
           "--gap": `${G.gap}px`,
         }}
       >
+        {/* Round Titles */}
         <div className={s.titles}>
           <span className={s.title} style={{left:G.X(0)}}>Round of 16</span>
           <span className={s.title} style={{left:G.X(1)}}>Quarterfinals</span>
           <span className={s.title} style={{left:G.X(2)}}>Semifinals</span>
+          {/* Center title spans the gap */}
           <span className={s.title} style={{left:G.X(3), width: G.colW}}>Final</span>
           <span className={s.title} style={{left:G.X(4)}}>Semifinals</span>
           <span className={s.title} style={{left:G.X(5)}}>Quarterfinals</span>
           <span className={s.title} style={{left:G.X(6)}}>Round of 16</span>
         </div>
 
+        {/* Winner & Champion (Centered via CSS 50% left) */}
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
 
+        {/* SVG Wires Layer */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
+          {/* Using a group <g> to set common stroke properties */}
           <g stroke="#4a5a6a" strokeWidth={G.wire} strokeLinecap="square" fill="none">
             {P.map((d, i) => <path key={i} d={d} />)}
           </g>
         </svg>
 
+        {/* Render all calculated boxes */}
         {boxes}
         {finalLeft}
         {finalRight}
@@ -236,34 +236,40 @@ export default function Bracket16({ data }) {
   );
 
   // --- Rendering Helpers ---
+  // Renders standard 150px wide slots
   function slotBox(x, y, text){
-    const isTBD = text === "TBD";
+    const isTBD = text === "TBD" || !text;
+    // Add 'slotEmpty' class if TBD for different styling
     const classNames = `${s.slot} ${isTBD ? s.slotEmpty : ''}`;
     return <div key={`${x}-${y}-${text}`} className={classNames} style={{ left:x, top:y }}>{text}</div>;
   }
   
+  // Renders the two smaller center slots
   function finalBox(x, y, text){
-    const isTBD = text === "TBD";
+    const isTBD = text === "TBD" || !text;
+    // Add 'finalSlot' class for gold border accent
     const classNames = `${s.slot} ${s.finalSlot} ${isTBD ? s.slotEmpty : ''}`;
+    // Override width here since these are narrower than standard slots
     return <div key={`f-${x}-${y}-${text}`} className={classNames} style={{ left:x, top:y, width: G.finalW }}>{text}</div>;
   }
 }
 
-// (Data Normalize function remains exactly the same as your original code)
+// Ensure incoming data has a safe structure to prevent crashes
 function normalizeData(data) {
   const L = data?.left ?? {};
   const R = data?.right ?? {};
   const F = data?.final ?? {};
+  const filler = ["TBD","TBD"];
   return {
     left: {
-      R16: L.R16 ?? Array(4).fill(["TBD","TBD"]),
-      QF: L.QF ?? Array(2).fill(["TBD","TBD"]),
-      SF: L.SF ?? ["TBD","TBD"],
+      R16: L.R16 ?? Array(4).fill(filler),
+      QF: L.QF ?? Array(2).fill(filler),
+      SF: L.SF ?? filler,
     },
     right: {
-      R16: R.R16 ?? Array(4).fill(["TBD","TBD"]),
-      QF: R.QF ?? Array(2).fill(["TBD","TBD"]),
-      SF: R.SF ?? ["TBD","TBD"],
+      R16: R.R16 ?? Array(4).fill(filler),
+      QF: R.QF ?? Array(2).fill(filler),
+      SF: R.SF ?? filler,
     },
     final: {
       left: F.left ?? "TBD",
@@ -272,4 +278,6 @@ function normalizeData(data) {
     },
   };
 }
+
+// Math helper for averages
 const avg = (a,b)=> (a+b)/2;
