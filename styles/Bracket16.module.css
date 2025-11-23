@@ -5,138 +5,153 @@
 
 .viewport {
   width: 100%;
-  /* Center vertically, allow horizontal stretch */
   display: flex;
   justify-content: center;
   align-items: center;
-  /* Remove side padding so it touches edges if needed */
-  padding: 40px 20px; /* minimal side padding */
+  padding: 60px 0; /* More breathing room top/bottom */
   overflow-x: auto; 
-  background: transparent;
-  min-height: 600px; /* Ensure enough height */
+  background: radial-gradient(circle at 50% 30%, rgba(25, 35, 50, 0.4) 0%, transparent 70%); /* Subtle spotlight behind bracket */
 }
 
 .stage {
   position: relative;
-  /* Allow stage to be wide */
-  min-width: 1000px; 
-  max-width: 1800px; /* Increased max width */
+  min-width: 1200px; 
+  max-width: 1900px; /* Use that wide screen real estate */
   width: 100%;
   margin: 0 auto;
   
-  /* These vars are defaults, JS overrides them dynamically */
-  --slotH: 38px;
-  --colw: 150px;
-  --gap: 34px;
+  /* Defaults */
+  --slotH: 44px; /* Taller cards */
+  --colw: 180px; /* Wider cards */
+  --gap: 40px;
   --joinW: 2px;
 }
 
-/* Round headings */
+/* --- Headers --- */
 .titles {
   position: absolute; left: 0; right: 0; top: 0;
   display: flex; 
   justify-content: space-between; 
   pointer-events: none;
   z-index: 2;
-  /* Align titles with columns perfectly */
-  padding: 0; 
+  opacity: 0.6;
 }
 
 .title {
   text-align: center;
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  line-height: 18px;
-  letter-spacing: 0.15em;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #556679;
-  user-select: none;
-  white-space: nowrap;
-  /* Width controlled by JS inline style */
+  color: #8b9bb4;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
-/* Wires */
+/* --- Wires --- */
 .wires {
   position: absolute; inset: 0;
   z-index: 0; 
   pointer-events: none;
   width: 100%;
   height: 100%;
+  filter: drop-shadow(0 0 4px rgba(44, 56, 70, 0.5)); /* Glowing lines */
 }
 
 .wires g {
-  stroke: #2c3846;
+  stroke: #364252;
+  stroke-width: 2px;
   transition: stroke 0.3s ease;
 }
 
-/* Boxes */
+/* --- Team Slots (Glass Cards) --- */
 .slot {
   position: absolute;
   width: var(--colw); 
   height: var(--slotH);
   
-  background: linear-gradient(90deg, #1b2733 0%, #151e27 100%);
-  border: 1px solid #2c3846;
-  border-left: 3px solid #485363;
+  /* Glassmorphism */
+  background: rgba(15, 25, 35, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #3f4b5b; /* Default accent */
   color: #ece8e1;
   
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-weight: 600; 
   font-size: 13px;
-  border-radius: 2px;
+  letter-spacing: 0.02em;
   
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   z-index: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 0 8px;
-  transition: all 0.2s;
+  padding: 0 12px;
+  
+  /* Angular Cut Corner (Cyberpunk style) */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slot:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.02);
   border-color: #ff4655;
-  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
+  border-left-color: #ff4655;
+  background: rgba(25, 35, 45, 0.95);
+  box-shadow: 0 0 25px rgba(255, 70, 85, 0.2);
   z-index: 10;
 }
 
-/* Small finalists boxes */
+/* --- Final Match Slots --- */
 .finalSlot { 
-  border-left: 3px solid #ffdf58;
-  background: #161b22;
+  border-left: 3px solid #ffdf58; /* Gold accent */
+  background: rgba(20, 25, 30, 0.95);
+  font-size: 14px; /* Slightly larger text for finals */
+  font-weight: 700;
 }
 
-/* Champion pill + label */
+/* --- Champion Centerpiece --- */
 .champ {
   position: absolute; left: 50%; transform: translateX(-50%);
-  background: radial-gradient(circle at center, rgba(255,223,88,0.15) 0%, #0f1923 100%);
-  color: #ffffff;
-  border: 1px solid #ffdf58;
-  padding: 10px 24px;
+  
+  /* Premium Gold Card */
+  background: linear-gradient(180deg, #1f252e 0%, #0f1419 100%);
+  color: #ffdf58;
+  border: 1px solid rgba(255, 223, 88, 0.3);
+  border-bottom: 3px solid #ffdf58;
+  
+  padding: 16px 40px;
+  min-width: 200px;
+  text-align: center;
   
   font-family: 'DIN Next W01', 'Oswald', sans-serif;
   font-weight: 800; 
-  font-size: 16px;
+  font-size: 20px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   
-  border-radius: 4px;
-  box-shadow: 0 0 30px rgba(255, 223, 88, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 223, 88, 0.1);
   z-index: 3; 
   white-space: nowrap;
-  text-shadow: 0 0 10px rgba(255,223,88,0.5);
+  
+  /* Glow animation */
+  animation: champGlow 3s infinite alternate;
+}
+
+@keyframes champGlow {
+  from { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 223, 88, 0.05); }
+  to { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 223, 88, 0.2); }
 }
 
 .winnerLabel {
   position: absolute; left: 50%; transform: translateX(-50%);
   font-family: 'DIN Next W01', sans-serif;
   font-weight: 900; 
-  font-size: 10px; 
-  letter-spacing: 0.25em; 
+  font-size: 9px; 
+  letter-spacing: 0.4em; 
   text-transform: uppercase;
-  color: #ffdf58;
-  opacity: 1; 
-  white-space: nowrap; 
+  color: #556679;
+  margin-bottom: 8px;
   z-index: 3;
 }
