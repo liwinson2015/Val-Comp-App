@@ -1,0 +1,164 @@
+/* styles/losertest.module.css */
+
+/* --- Theme Variables (Void Palette) --- */
+.container {
+  --void-primary: #a855f7; /* Neon Purple */
+  --void-secondary: #d946ef; /* Magenta */
+  --void-dark: #1e1b2e;
+  --void-glow: rgba(168, 85, 247, 0.5);
+  --void-bg-win: linear-gradient(90deg, rgba(168, 85, 247, 0.2), transparent);
+}
+
+.container {
+  min-height: 100vh;
+  background-color: #050505;
+  /* Darker, moodier background for Losers Bracket */
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.9) 100%),
+    linear-gradient(135deg, #0a0a0a 0%, #1a0b2e 100%);
+  color: #fff;
+  font-family: 'Rajdhani', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 50px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.title {
+  font-size: 3rem;
+  margin: 0;
+  background: linear-gradient(90deg, var(--void-secondary), #fff, var(--void-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.subtitle {
+  color: var(--void-primary);
+  opacity: 0.8;
+  font-weight: 300;
+  font-size: 1.1rem;
+}
+
+/* --- BRACKET LAYOUT --- */
+.bracketContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start; /* Aligns to left so it flows correctly */
+  align-items: stretch;
+  gap: 60px; /* Space between rounds */
+  width: 100%;
+  overflow-x: auto; /* Allow horizontal scrolling for deep bracket */
+  padding-bottom: 40px; /* Space for scrollbar */
+  
+  /* Scrollbar Styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--void-primary) #0a0a0a;
+}
+
+/* Round Columns */
+.roundColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 240px; /* Fixed width to prevent squishing */
+  position: relative;
+}
+
+.roundTitle {
+  color: var(--void-glow);
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.matchList {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex-grow: 1;
+  width: 100%;
+  gap: 20px;
+}
+
+/* Connector Lines (Left to Right) */
+.roundColumn:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -30px; /* Half of gap */
+  width: 30px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--void-primary), transparent);
+  opacity: 0.3;
+}
+
+
+/* --- CARD STYLING --- */
+.matchWrapper {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.matchCard {
+  background: rgba(20, 15, 30, 0.9);
+  backdrop-filter: blur(5px);
+  width: 100%;
+  padding: 12px;
+  position: relative;
+  /* Angular Cut */
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.matchCard:hover {
+  border-color: var(--void-primary);
+  box-shadow: 0 0 25px var(--void-glow), inset 0 0 10px var(--void-glow);
+  background: rgba(40, 20, 60, 1);
+  transform: translateY(-2px);
+}
+
+/* Team Text */
+.team {
+  display: flex;
+  justify-content: center; /* Centered as requested */
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  letter-spacing: 1px;
+}
+
+.team:last-child {
+  border-bottom: none;
+}
+
+/* Winner Styling */
+.winnerRow {
+  color: var(--void-secondary);
+  text-shadow: 0 0 8px var(--void-primary);
+  background: var(--void-bg-win);
+}
+
+/* Responsive adjustment */
+@media (max-width: 768px) {
+  .bracketContainer {
+    gap: 30px;
+  }
+  .roundColumn {
+    min-width: 200px;
+  }
+}
