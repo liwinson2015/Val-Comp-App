@@ -1,0 +1,181 @@
+/* styles/testbracket3.module.css */
+
+.container {
+  --val-dark: #0f1923;
+  --val-dark-2: #1b2733;
+  --val-red: #ff4655;
+  --val-white: #ece8e1;
+  --line-color: #3a424a;
+  
+  /* COMPACT SIZES */
+  --card-width: 130px;
+  --card-height: 54px;
+  --column-gap: 15px;
+  --line-length: 15px;
+  
+  font-family: 'Oswald', sans-serif;
+  background-color: var(--val-dark);
+  color: var(--val-white);
+  height: 100vh; /* Force it to fit screen height */
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto; /* Scroll only if absolutely necessary on tiny screens */
+  box-sizing: border-box;
+}
+
+.layoutGrid {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--column-gap);
+  /* Ensure the grid doesn't exceed the container width if possible */
+  max-width: 100%;
+}
+
+/* --- Round Columns --- */
+.sideBracket {
+  display: flex;
+  gap: var(--column-gap);
+  flex-shrink: 1; /* Allow shrinking if needed */
+}
+
+.rightSide {
+  flex-direction: row-reverse;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  /* Remove fixed min-height so it compacts vertically */
+  height: auto; 
+  gap: 10px; /* Minimal vertical gaps */
+  padding: 20px 0; /* Add padding for the vertical connectors */
+}
+
+/* --- The Card --- */
+.matchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* This ensures the wrapper fills space for connectors to align */
+  flex-grow: 1; 
+}
+
+.card {
+  width: var(--card-width);
+  height: var(--card-height);
+  background: var(--val-dark-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--line-color);
+  position: relative;
+  z-index: 2;
+  font-size: 11px; /* Smaller font */
+}
+
+/* Left Side Accent */
+.leftSide .card {
+  border-left: 3px solid var(--val-red);
+}
+
+/* Right Side Accent */
+.rightSide .card {
+  border-right: 3px solid var(--val-red);
+}
+
+/* --- Grand Final Center --- */
+.finalWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 20px;
+}
+
+.finalTitle {
+  color: var(--val-red);
+  font-size: 14px;
+  margin-bottom: 5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.finalCard {
+  width: 160px; /* Slightly wider for final */
+  height: 70px;
+  background: black;
+  border: 2px solid var(--val-red);
+  font-size: 13px;
+}
+
+/* --- Player Rows --- */
+.player {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap; /* prevent wrapping */
+  overflow: hidden;
+}
+
+.winner { color: var(--val-white); font-weight: bold; background: rgba(255,70,85,0.15); }
+.loser { color: #777; }
+.score { font-weight: bold; margin-left: 5px;}
+
+/* --- COMPACT CONNECTING LINES --- */
+
+.matchWrapper::after, .matchWrapper::before {
+  content: '';
+  position: absolute;
+  background-color: var(--line-color);
+  /* Thinner lines */
+  height: 1px !important; 
+  width: 1px !important;
+}
+
+/* === LEFT SIDE LINES === */
+/* Horizontal line out */
+.leftSide .matchWrapper::after {
+  width: var(--line-length) !important;
+  right: calc(var(--line-length) * -1);
+  top: 50%;
+}
+/* Vertical Connector Up (Even) */
+.leftSide .matchWrapper[data-even="true"]::before {
+  height: calc(50% + 10px) !important; /* Adjust based on column gap/padding */
+  width: 1px !important;
+  right: calc(var(--line-length) * -1);
+  top: 50%;
+}
+/* Vertical Connector Down (Odd) */
+.leftSide .matchWrapper[data-even="false"]::before {
+  height: calc(50% + 10px) !important;
+  width: 1px !important;
+  right: calc(var(--line-length) * -1);
+  bottom: 50%;
+}
+
+/* === RIGHT SIDE LINES (Mirrored) === */
+.rightSide .matchWrapper::after {
+  width: var(--line-length) !important;
+  left: calc(var(--line-length) * -1);
+  top: 50%;
+}
+.rightSide .matchWrapper[data-even="true"]::before {
+  height: calc(50% + 10px) !important;
+  width: 1px !important;
+  left: calc(var(--line-length) * -1);
+  top: 50%;
+}
+.rightSide .matchWrapper[data-even="false"]::before {
+  height: calc(50% + 10px) !important;
+  width: 1px !important;
+  left: calc(var(--line-length) * -1);
+  bottom: 50%;
+}
