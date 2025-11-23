@@ -1,11 +1,11 @@
 import React from 'react';
 import styles from '../../styles/testbracket2.module.css';
 
-// Reuse data logic
+// --- DATA ---
 const LEFT_BRACKET = [
   [ // Round 1
-    { p1: { name: "SENTINELS", s: 2, w: true }, p2: { name: "100 THIEVES", s: 1 } },
-    { p1: { name: "CLOUD9", s: 0 }, p2: { name: "G2 ESPORTS", s: 2, w: true } },
+    { p1: { name: "SENTINELS", s: 2, w: true }, p2: { name: "100T", s: 1 } },
+    { p1: { name: "CLOUD9", s: 0 }, p2: { name: "G2", s: 2, w: true } },
     { p1: { name: "KRU", s: 1 }, p2: { name: "LEVIATAN", s: 2, w: true } },
     { p1: { name: "MIBR", s: 0 }, p2: { name: "FURIA", s: 2, w: true } },
   ],
@@ -37,7 +37,7 @@ const RIGHT_BRACKET = [
 const GRAND_FINAL = { p1: { name: "LEVIATAN", s: 3, w: true }, p2: { name: "PRX", s: 2 } };
 
 
-// Components
+// --- COMPONENTS ---
 
 const Team = ({ data }) => (
   <div className={`${styles.teamRow} ${data.w ? styles.winner : styles.loser}`}>
@@ -48,13 +48,16 @@ const Team = ({ data }) => (
 
 const Match = ({ data, isFinal }) => (
   <div className={`${styles.matchCard} ${isFinal ? styles.finalCard : ''}`}>
-    <Team data={data.p1} />
-    <Team data={data.p2} />
+    {/* Important: Content div un-skews the text so it isn't slanted */}
+    <div className={styles.cardContent}>
+      <Team data={data.p1} />
+      <Team data={data.p2} />
+    </div>
   </div>
 );
 
 const Conference = ({ rounds, side }) => (
-  <div className={`${styles.sideBracket} ${styles[side + 'Side']}`} style={{display:'flex', flexDirection: side === 'right' ? 'row-reverse' : 'row', gap: '40px'}}>
+  <div className={`${styles.conference} ${styles[side + 'Side']}`} style={{display:'flex', flexDirection: side === 'right' ? 'row-reverse' : 'row', gap: '50px'}}>
     {rounds.map((roundMatches, colIndex) => (
       <div key={colIndex} className={styles.column}>
         {roundMatches.map((match, matchIndex) => {
@@ -77,19 +80,20 @@ export default function TestBracket2() {
   return (
     <>
       <style jsx global>{`
-        /* Importing a bold, condensed font for that Magazine feel */
-        @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
-        body { margin: 0; background: #f0f0f0; }
+        /* Using Rajdhani for that crisp Tech/Sci-Fi look */
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+        body { margin: 0; background: #050508; }
       `}</style>
-
+      
       <div className={styles.container}>
-        <div className={styles.layoutGrid}>
+        <div className={styles.bracketBoard}>
           
           <Conference rounds={LEFT_BRACKET} side="left" />
 
           <div className={styles.finalColumn}>
-            <div className={styles.finalLabel}>CHAMPIONSHIP</div>
+            <div className={styles.trophyIcon}>🏆</div>
             <Match data={GRAND_FINAL} isFinal={true} />
+            <div className={styles.finalLabel}>World Champion</div>
           </div>
 
           <Conference rounds={RIGHT_BRACKET} side="right" />
