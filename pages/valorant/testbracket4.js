@@ -105,7 +105,7 @@ export default function TestBracket4() {
         
         <div className={`${styles.column} ${styles.columnMid}`}>
           <div style={{textAlign: 'center', marginBottom: '20px'}}>
-             <span className={styles.trophyIcon}>⚔️</span>
+             <h2 className={styles.winnerText}>WINNER</h2>
           </div>
           {/* The Finals Card gets the special 'clash' theme */}
           <MatchCard match={tournamentData.finals} theme="clash" />
