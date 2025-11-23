@@ -1,0 +1,150 @@
+/* styles/testbracket.module.css */
+
+.bracketContainer {
+  /* --- VCT Color Palette --- */
+  --val-dark: #0f1923;       /* Main Background */
+  --val-dark-2: #1b2733;     /* Card Background */
+  --val-red: #ff4655;        /* Accent Red */
+  --val-white: #ece8e1;      /* Off-white text */
+  --val-grey: #768079;       /* Muted details */
+  --line-color: #444c55;
+  
+  --match-width: 220px;
+  --match-height: 76px;
+  
+  /* Valorant UI uses condensed, geometric fonts. 
+     'Oswald' or 'Rajdhani' are good Google Font substitutes for Tungsten. */
+  font-family: 'Oswald', sans-serif; 
+  background-color: var(--val-dark);
+  color: var(--val-white);
+  min-height: 100vh;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  text-transform: uppercase;
+}
+
+.bracketGrid {
+  display: flex;
+  flex-direction: row;
+  gap: 50px;
+}
+
+.roundColumn {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex-grow: 1;
+}
+
+.roundTitle {
+  text-align: center;
+  letter-spacing: 3px;
+  color: var(--val-grey);
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  border-bottom: 2px solid var(--val-red);
+  display: inline-block;
+  align-self: center;
+  padding-bottom: 5px;
+}
+
+/* --- Match Card --- */
+.matchupWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.matchupCard {
+  width: var(--match-width);
+  height: var(--match-height);
+  background: var(--val-dark-2);
+  /* The signature Valorant "Cut Corner" - Top Right & Bottom Left */
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 15px) 0, 
+    100% 15px, 
+    100% 100%, 
+    15px 100%, 
+    0 calc(100% - 15px)
+  );
+  border-left: 4px solid var(--line-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.matchupCard:hover {
+  border-left-color: var(--val-red);
+  transform: translateX(5px); /* Slight pop effect */
+}
+
+/* --- Player Rows --- */
+.playerSlot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 15px;
+  flex: 1;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.winner {
+  color: var(--val-white);
+  background: linear-gradient(90deg, rgba(255, 70, 85, 0.1), transparent);
+  font-weight: bold;
+}
+
+.loser {
+  color: var(--val-grey);
+  opacity: 0.7;
+}
+
+.score {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* --- Connecting Lines --- */
+
+/* Base Line Style */
+.matchupWrapper::after,
+.matchupWrapper::before {
+  content: '';
+  position: absolute;
+  background-color: var(--line-color);
+  transition: background-color 0.2s ease;
+}
+
+.matchupWrapper:hover::after,
+.matchupWrapper:hover::before {
+  background-color: var(--val-red); /* Lines turn red on hover */
+}
+
+/* Horizontal Line (Connecting match to next round) */
+.bracketGrid .roundColumn:not(:last-child) .matchupWrapper::after {
+  height: 2px;
+  width: 25px; /* Half the gap */
+  right: -25px;
+  top: 50%;
+}
+
+/* Vertical Lines (The Forks) */
+.bracketGrid .roundColumn:not(:last-child) .matchupWrapper[data-even="true"]::before {
+  width: 2px;
+  height: calc(50% + 2px);
+  right: -25px;
+  top: 50%;
+}
+
+.bracketGrid .roundColumn:not(:last-child) .matchupWrapper[data-even="false"]::before {
+  width: 2px;
+  height: calc(50% + 2px);
+  right: -25px;
+  bottom: 50%;
+}
