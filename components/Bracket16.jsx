@@ -1,31 +1,32 @@
 import React, { useMemo } from "react";
 import s from "../styles/Bracket16.module.css";
 
+/**
+ * Pixel-precise 16-team bracket using absolute boxes + SVG wires.
+ * STABLE VERSION: Fixed widths, no dynamic resizing.
+ */
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // ---------- Geometry (Fixed & Stable) ----------
+  // ---------- Geometry (Fixed) ----------
   const G = useMemo(() => {
-    // FIXED DIMENSIONS - No dynamic resizing
-    const colW  = 170; // Generous width for names
-    const gap   = 40;  // Safe gap between columns
-    const slotH = 44;  // Height of cards
+    const colW  = 150;
+    const gap   = 40;
+    const slotH = 38;
     const wire  = 2;
 
-    const innerGapR16 = 14;
-    const innerGapQF  = 44;
-    const innerGapSF  = 32;
+    const innerGapR16 = 12;
+    const innerGapQF  = 30; 
+    const innerGapSF  = 22;
 
-    // Simple X position calculation
-    // 0: L-R16, 1: L-QF, 2: L-SF, ...
     const X = (i) => i * (colW + gap);
 
-    const titleBand = 40;
-    const headerPad = 60;
+    const titleBand = 30;
+    const headerPad = 64;
     const topPad    = titleBand + headerPad;
 
     const pairBlockR16 = slotH * 2 + innerGapR16;
-    const r16Space     = 24;
+    const r16Space     = 26;
 
     const r16Centers = Array.from({ length: 4 }, (_, i) =>
       topPad + (pairBlockR16 / 2) + i * (pairBlockR16 + r16Space)
@@ -33,32 +34,17 @@ export default function Bracket16({ data }) {
 
     const qfCenters = [0,1].map(i => avg(r16Centers[2*i], r16Centers[2*i+1]));
     const sfCenter  = avg(qfCenters[0], qfCenters[1]);
-    
-    // Push Finals down to clear SF wires clearly
-    const finalY    = sfCenter + 20; 
+    const finalY    = sfCenter;
 
-    // Total Width Calculation
-    // We use a 7-column grid logic:
-    // Left(3) + CenterGap(1) + Right(3)
-    // Center Gap is technically index 3 position
-    
-    const centerX = X(3) + colW/2;
+    const stageW    = X(6) + colW;
+    const lastBot   = r16Centers[3] + (pairBlockR16 / 2);
+    const stageH    = Math.ceil(lastBot + 120);
 
-    // Finals Box Configuration
-    const finalW      = 200; // Extra wide for finals
-    const finalMidGap = 40;  // Space between the two finalists
-    
-    const finalLeftX  = centerX - (finalMidGap/2) - finalW;
-    const finalRightX = centerX + (finalMidGap/2);
+    const finalW      = 100; // Fixed width for final box
+    const finalMidGap = 22;
+    const centerX     = X(3) + colW / 2;
 
-    // Calculate Stage Width to cover everything
-    // The rightmost element is R-R16 at index 6
-    const stageW = X(6) + colW;
-    const lastBot = r16Centers[3] + (pairBlockR16 / 2);
-    const stageH  = Math.ceil(lastBot + 150);
-
-    // Vertical positions for Champion
-    const champOffset = 100; // Huge gap above final match
+    const champOffset = 60;  
     const winnerAbove = 30;  
     const champTop    = finalY - slotH - champOffset;
     const winnerTop   = champTop - winnerAbove;
@@ -69,7 +55,6 @@ export default function Bracket16({ data }) {
       X, r16Centers, qfCenters, sfCenter, finalY,
       stageW, stageH,
       finalW, finalMidGap, centerX,
-      finalLeftX, finalRightX,
       champTop, winnerTop,
     };
   }, []);
@@ -83,105 +68,127 @@ export default function Bracket16({ data }) {
   // ---------- Boxes ----------
   const boxes = [];
 
-  // Left Side
+  // Left R16
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
     boxes.push(slotBox(G.X(0), slotTop(y, G.innerGapR16),  D.left.R16[i][0]));
     boxes.push(slotBox(G.X(0), slotBot(y, G.innerGapR16),  D.left.R16[i][1]));
   }
+  // Left QF
   for (let i=0;i<2;i++){
     const y = G.qfCenters[i];
     boxes.push(slotBox(G.X(1), slotTop(y, G.innerGapQF), D.left.QF[i][0]));
     boxes.push(slotBox(G.X(1), slotBot(y, G.innerGapQF), D.left.QF[i][1]));
   }
+  // Left SF
   boxes.push(slotBox(G.X(2), slotTop(G.sfCenter, G.innerGapSF), D.left.SF[0]));
   boxes.push(slotBox(G.X(2), slotBot(G.sfCenter, G.innerGapSF), D.left.SF[1]));
 
-  // Right Side
+  // Right R16
   for (let i=0;i<4;i++){
     const y = G.r16Centers[i];
     boxes.push(slotBox(G.X(6), slotTop(y, G.innerGapR16),  D.right.R16[i][0]));
     boxes.push(slotBox(G.X(6), slotBot(y, G.innerGapR16),  D.right.R16[i][1]));
   }
+  // Right QF
   for (let i=0;i<2;i++){
     const y = G.qfCenters[i];
     boxes.push(slotBox(G.X(5), slotTop(y, G.innerGapQF), D.right.QF[i][0]));
     boxes.push(slotBox(G.X(5), slotBot(y, G.innerGapQF), D.right.QF[i][1]));
   }
+  // Right SF
   boxes.push(slotBox(G.X(4), slotTop(G.sfCenter, G.innerGapSF), D.right.SF[0]));
   boxes.push(slotBox(G.X(4), slotBot(G.sfCenter, G.innerGapSF), D.right.SF[1]));
 
-  // Finalists (Uses the manually calculated centered positions)
+  // Finalists (center)
+  const finalLeftX  = G.X(3) + G.colW/2 - G.finalMidGap/2 - G.finalW;
+  const finalRightX = G.X(3) + G.colW/2 + G.finalMidGap/2;
   const finalTop    = G.finalY - G.slotH/2;
-  const finalLeft   = finalBox(G.finalLeftX,  finalTop, D.final.left);
-  const finalRight  = finalBox(G.finalRightX, finalTop, D.final.right);
+  const finalLeft   = finalBox(finalLeftX,  finalTop, D.final.left);
+  const finalRight  = finalBox(finalRightX, finalTop, D.final.right);
 
   // ---------- Wires ----------
   const P = [];
   const H = (x1,y,x2) => `M ${x1} ${y} H ${x2}`;
-  const V = (x, y1, y2) => `M ${x} ${y1} V ${y2}`;
+  const V = (x,y1,y2) => `M ${x} ${y1} V ${y2}`;
   const polyH_V_H = (x1, y1, xm, y2, x2) => `M ${x1} ${y1} H ${xm} V ${y2} H ${x2}`;
 
-  // Left Wires
   function r16ToQf_L(pairY, targetPairY){
     const xR16 = G.X(0)+G.colW;
     const xQF  = G.X(1);
-    const xm   = (xR16 + xQF) / 2;
-    P.push(polyH_V_H(xR16, centerTop(pairY, G.innerGapR16), xm, centerTop(targetPairY, G.innerGapQF), xQF));
-    P.push(polyH_V_H(xR16, centerBot(pairY, G.innerGapR16), xm, centerBot(targetPairY, G.innerGapQF), xQF));
+    const yTopSrc = centerTop(pairY, G.innerGapR16);
+    const yBotSrc = centerBot(pairY, G.innerGapR16);
+    const yTopDst = centerTop(targetPairY, G.innerGapQF);
+    const yBotDst = centerBot(targetPairY, G.innerGapQF);
+    const xm = (xR16 + xQF) / 2;
+    P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
+    P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
-  [0,1,2,3].forEach(i => r16ToQf_L(G.r16Centers[i], G.qfCenters[Math.floor(i/2)]));
+  r16ToQf_L(G.r16Centers[0], G.qfCenters[0]);
+  r16ToQf_L(G.r16Centers[1], G.qfCenters[0]);
+  r16ToQf_L(G.r16Centers[2], G.qfCenters[1]);
+  r16ToQf_L(G.r16Centers[3], G.qfCenters[1]);
 
-  function qfToSf_L(){
-    const xQF = G.X(1)+G.colW;
-    const xSF = G.X(2);
-    const xmTop = (xQF + xSF) / 2 - 8;
-    const xmBot = (xQF + xSF) / 2 + 8;
-    P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
-    P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
-    P.push(polyH_V_H(xQF, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
-    P.push(polyH_V_H(xQF, centerBot(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
-  }
-  qfToSf_L();
-
-  // Right Wires
   function r16ToQf_R(pairY, targetPairY){
     const xR16 = G.X(6);
     const xQF  = G.X(5)+G.colW;
-    const xm   = (xR16 + xQF) / 2;
-    P.push(polyH_V_H(xR16, centerTop(pairY, G.innerGapR16), xm, centerTop(targetPairY, G.innerGapQF), xQF));
-    P.push(polyH_V_H(xR16, centerBot(pairY, G.innerGapR16), xm, centerBot(targetPairY, G.innerGapQF), xQF));
+    const yTopSrc = centerTop(pairY, G.innerGapR16);
+    const yBotSrc = centerBot(pairY, G.innerGapR16);
+    const yTopDst = centerTop(targetPairY, G.innerGapQF);
+    const yBotDst = centerBot(targetPairY, G.innerGapQF);
+    const xm = (xR16 + xQF) / 2;
+    P.push(polyH_V_H(xR16, yTopSrc, xm, yTopDst, xQF));
+    P.push(polyH_V_H(xR16, yBotSrc, xm, yBotDst, xQF));
   }
-  [0,1,2,3].forEach(i => r16ToQf_R(G.r16Centers[i], G.qfCenters[Math.floor(i/2)]));
+  r16ToQf_R(G.r16Centers[0], G.qfCenters[0]);
+  r16ToQf_R(G.r16Centers[1], G.qfCenters[0]);
+  r16ToQf_R(G.r16Centers[2], G.qfCenters[1]);
+  r16ToQf_R(G.r16Centers[3], G.qfCenters[1]);
 
-  function qfToSf_R(){
-    const xQF = G.X(5);
-    const xSF = G.X(4)+G.colW;
-    const xmTop = (xQF + xSF) / 2 + 8;
-    const xmBot = (xQF + xSF) / 2 - 8;
-    P.push(polyH_V_H(xQF, centerTop(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
-    P.push(polyH_V_H(xQF, centerBot(G.qfCenters[0], G.innerGapQF), xmTop, centerTop(G.sfCenter, G.innerGapSF), xSF));
-    P.push(polyH_V_H(xQF, centerTop(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
-    P.push(polyH_V_H(xQF, centerBot(G.qfCenters[1], G.innerGapQF), xmBot, centerBot(G.sfCenter, G.innerGapSF), xSF));
-  }
-  qfToSf_R();
+  // QF -> SF
+  (function qfToSfLeft(){
+    const xQFRight = G.X(1) + G.colW;
+    const xSFLeft  = G.X(2);
+    const xmTop    = (xQFRight + xSFLeft) / 2 - 4;
+    const xmBot    = (xQFRight + xSFLeft) / 2 + 4;
+    const qf1 = G.qfCenters[0];
+    const yQf1Top = centerTop(qf1, G.innerGapQF);
+    const yQf1Bot = centerBot(qf1, G.innerGapQF);
+    const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFRight, yQf1Top, xmTop, ySfTop, xSFLeft));
+    P.push(polyH_V_H(xQFRight, yQf1Bot, xmTop, ySfTop, xSFLeft));
+    const qf2 = G.qfCenters[1];
+    const yQf2Top = centerTop(qf2, G.innerGapQF);
+    const yQf2Bot = centerBot(qf2, G.innerGapQF);
+    const ySfBot  = centerBot(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFRight, yQf2Top, xmBot, ySfBot, xSFLeft));
+    P.push(polyH_V_H(xQFRight, yQf2Bot, xmBot, ySfBot, xSFLeft));
+  })();
 
-  // SF -> Final Connectors (Polyline down to Final Y)
-  const sfLeftX  = G.X(2) + G.colW;
-  const sfRightX = G.X(4);
-  
-  // Midpoints for the drop
-  const dropMidL = (sfLeftX + G.finalLeftX) / 2;
-  const dropMidR = (sfRightX + (G.finalRightX + G.finalW)) / 2;
+  (function qfToSfRight(){
+    const xQFLeft   = G.X(5);
+    const xSFRight  = G.X(4) + G.colW;
+    const xmTop     = (xQFLeft + xSFRight) / 2 + 4;
+    const xmBot     = (xQFLeft + xSFRight) / 2 - 4;
+    const qf1 = G.qfCenters[0];
+    const yQf1Top = centerTop(qf1, G.innerGapQF);
+    const yQf1Bot = centerBot(qf1, G.innerGapQF);
+    const ySfTop  = centerTop(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFLeft, yQf1Top, xmTop, ySfTop, xSFRight));
+    P.push(polyH_V_H(xQFLeft, yQf1Bot, xmTop, ySfTop, xSFRight));
+    const qf2 = G.qfCenters[1];
+    const yQf2Top = centerTop(qf2, G.innerGapQF);
+    const yQf2Bot = centerBot(qf2, G.innerGapQF);
+    const ySfBot  = centerBot(G.sfCenter, G.innerGapSF);
+    P.push(polyH_V_H(xQFLeft, yQf2Top, xmBot, ySfBot, xSFRight));
+    P.push(polyH_V_H(xQFLeft, yQf2Bot, xmBot, ySfBot, xSFRight));
+  })();
 
-  P.push(`M ${sfLeftX} ${G.sfCenter} H ${dropMidL} V ${G.finalY} H ${G.finalLeftX}`);
-  P.push(`M ${sfRightX} ${G.sfCenter} H ${dropMidR} V ${G.finalY} H ${G.finalRightX + G.finalW}`);
-  
-  // Final Bridge
-  P.push(H(G.finalLeftX + G.finalW, G.finalY, G.finalRightX));
-  // Winner Vertical
-  P.push(V(G.centerX, G.finalY, G.champTop + G.slotH + 10));
+  P.push(H(G.X(2)+G.colW, G.sfCenter, finalLeftX));
+  P.push(H(G.X(4),        G.sfCenter, finalRightX + G.finalW));
+  P.push(H(finalLeftX + G.finalW, G.finalY, finalRightX));
 
+  // ---------- Render ----------
   return (
     <div className={s.viewport}>
       <div
@@ -196,18 +203,19 @@ export default function Bracket16({ data }) {
         }}
       >
         <div className={s.titles}>
-          <span className={s.title} style={{left:G.X(0), width:G.colW}}>R16</span>
-          <span className={s.title} style={{left:G.X(1), width:G.colW}}>QF</span>
-          <span className={s.title} style={{left:G.X(2), width:G.colW}}>SF</span>
-          <span className={s.title} style={{left:G.centerX - 50, width:100}}>FINAL</span>
-          <span className={s.title} style={{left:G.X(4), width:G.colW}}>SF</span>
-          <span className={s.title} style={{left:G.X(5), width:G.colW}}>QF</span>
-          <span className={s.title} style={{left:G.X(6), width:G.colW}}>R16</span>
+          <span className={s.title} style={{left:G.X(0)}}>Round of 16</span>
+          <span className={s.title} style={{left:G.X(1)}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(2)}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(3), width: G.colW}}>Final</span>
+          <span className={s.title} style={{left:G.X(4)}}>Semifinals</span>
+          <span className={s.title} style={{left:G.X(5)}}>Quarterfinals</span>
+          <span className={s.title} style={{left:G.X(6)}}>Round of 16</span>
         </div>
 
         <div className={s.winnerLabel} style={{ top: G.winnerTop }}>WINNER</div>
         <div className={s.champ} style={{ top: G.champTop }}>{D.final.champion}</div>
 
+        {/* wires */}
         <svg className={s.wires} width={G.stageW} height={G.stageH}>
           <g stroke="#2a2f36" strokeWidth={G.wire} strokeLinecap="square" fill="none">
             {P.map((d, i) => <path key={i} d={d} />)}
@@ -225,6 +233,7 @@ export default function Bracket16({ data }) {
     return <div key={`${x}-${y}-${text}`} className={s.slot} style={{ left:x, top:y }}>{text}</div>;
   }
   function finalBox(x,y,text){
+    // finalSlot class adds gold accent
     return <div key={`f-${x}-${y}-${text}`} className={`${s.slot} ${s.finalSlot}`} style={{ left:x, top:y, width: G.finalW }}>{text}</div>;
   }
 }
