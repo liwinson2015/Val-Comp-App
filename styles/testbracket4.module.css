@@ -2,124 +2,86 @@
 
 /* --- Theme Variables --- */
 .container {
-  /* Ice Palette */
   --ice-primary: #00c6ff;
-  --ice-secondary: #0072ff;
-  --ice-glow: rgba(0, 198, 255, 0.4);
-  --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.2), transparent);
-
-  /* Fire Palette */
+  --ice-dim: rgba(0, 198, 255, 0.3);
   --fire-primary: #ff4b1f;
-  --fire-secondary: #ffaa00;
-  --fire-glow: rgba(255, 75, 31, 0.4);
-  --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.2), transparent);
-
-  /* Gold/Winner Palette */
+  --fire-dim: rgba(255, 75, 31, 0.3);
   --gold-primary: #ffd700;
-  --gold-glow: rgba(255, 215, 0, 0.6);
+  --gold-glow: rgba(255, 215, 0, 0.5);
+  --line-width: 20px; /* Length of connector lines */
 }
 
 .container {
   min-height: 100vh;
   background-color: #050505;
-  /* Split gradient background */
   background-image: 
     radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.9) 100%),
     linear-gradient(90deg, rgba(0, 20, 40, 1) 0%, rgba(5, 5, 10, 1) 45%, rgba(5, 5, 10, 1) 55%, rgba(40, 10, 0, 1) 100%);
   color: #fff;
-  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow-x: auto;
+  overflow-x: hidden; /* Hide scrollbars for clean look */
   padding: 20px;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 30px;
   text-transform: uppercase;
   letter-spacing: 4px;
+  z-index: 10;
 }
 
 .title {
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin: 0;
   background: linear-gradient(90deg, var(--ice-primary), #fff, var(--fire-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
 }
 
-.subtitle {
-  color: #fff;
-  opacity: 0.6;
-  font-weight: 300;
-  font-size: 0.9rem;
-}
-
-/* Layout */
 .bracketWrapper {
   display: flex;
   justify-content: center;
-  align-items: stretch;
-  gap: 30px;
+  /* Stretch ensures columns are full height for spacing */
+  align-items: stretch; 
+  gap: 0; /* Gaps handled by padding/connectors now */
   width: 100%;
-  max-width: 1600px;
+  max-width: 1400px;
 }
 
+/* --- COLUMNS --- */
 .column {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: space-around; /* Key for alignment */
   flex: 1;
-  gap: 20px;
   position: relative;
+  padding: 0 20px; /* Space for lines */
 }
 
-/* Center Column Specifics */
+/* The Middle Column (Finals) */
 .columnMid {
-  flex: 0 0 300px;
+  flex: 0 0 220px; /* Much smaller width */
   justify-content: center;
   align-items: center;
-  z-index: 2;
+  z-index: 5;
 }
 
-/* The "WINNER" Text */
 .winnerText {
-  font-size: 3rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  margin: 0 0 20px 0;
-  text-transform: uppercase;
-  letter-spacing: 8px;
+  margin-bottom: 10px;
   color: var(--gold-primary);
-  text-shadow: 0 0 20px var(--gold-glow);
-  background: linear-gradient(180deg, #fff, var(--gold-primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 15px var(--gold-glow);
+  letter-spacing: 4px;
+  text-transform: uppercase;
 }
 
-/* Connector Guides */
-.column::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 30px;
-    height: 2px;
-    opacity: 0.5;
-}
-
-.columnLeft::before {
-    right: -15px;
-    background: linear-gradient(90deg, var(--ice-primary), transparent);
-}
-
-.columnRight::before {
-    left: -15px;
-    background: linear-gradient(270deg, var(--fire-primary), transparent);
-}
-
+/* --- MATCH WRAPPERS & LINES --- */
 .matchWrapper {
   position: relative;
   display: flex;
@@ -127,89 +89,159 @@
   width: 100%;
 }
 
-/* Base Card */
+/* CONNECTOR LOGIC 
+   We use ::after on the card to draw the horizontal line out.
+   We use ::before on the "next round" card to draw the vertical bracket.
+*/
+
+/* LEFT SIDE CONNECTORS (Blue) */
+.columnLeft .matchCard::after {
+  content: '';
+  position: absolute;
+  right: -20px; /* Extend out to right */
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--ice-dim);
+}
+
+/* Specifically targeting Round 2 and Semis on Left to handle the vertical bracket */
+.columnLeft.round2 .matchCard::before,
+.columnLeft.semis .matchCard::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: -50%; /* Start higher up */
+  height: 200%; /* Stretch down to cover the gap */
+  width: 20px;
+  border-left: 2px solid var(--ice-dim); /* The vertical line */
+  border-bottom: 2px solid transparent;
+}
+/* Small horizontal connector from vertical line to card */
+.columnLeft.round2 .matchWrapper::before,
+.columnLeft.semis .matchWrapper::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--ice-dim);
+}
+
+
+/* RIGHT SIDE CONNECTORS (Orange) */
+/* Line sticking out to the LEFT */
+.columnRight .matchCard::after {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--fire-dim);
+}
+
+/* Vertical Bracket on Right Side */
+.columnRight.round2 .matchCard::before,
+.columnRight.semis .matchCard::before {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -50%;
+  height: 200%;
+  width: 20px;
+  border-right: 2px solid var(--fire-dim);
+  border-bottom: 2px solid transparent;
+}
+
+.columnRight.round2 .matchWrapper::before,
+.columnRight.semis .matchWrapper::before {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--fire-dim);
+}
+
+/* Hide lines for Finals/Center */
+.columnMid .matchCard::after,
+.columnMid .matchCard::before {
+  display: none; 
+}
+
+/* --- CARD STYLING --- */
 .matchCard {
-  background: rgba(20, 25, 35, 0.95);
-  backdrop-filter: blur(5px);
+  background: rgba(15, 20, 25, 0.95);
+  backdrop-filter: blur(4px);
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   position: relative;
-  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   transition: all 0.3s ease;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  z-index: 2;
 }
 
 /* Ice Theme */
 .cardIce {
-    border-color: rgba(0, 198, 255, 0.3);
-    box-shadow: 0 0 10px var(--ice-glow), inset 0 0 10px rgba(0,0,0,0.5);
+  border-color: var(--ice-dim);
+  box-shadow: 0 0 5px var(--ice-dim);
 }
 .cardIce:hover {
-    border-color: var(--ice-primary);
-    box-shadow: 0 0 20px var(--ice-glow);
-    background: rgba(10, 30, 50, 1);
+  border-color: var(--ice-primary);
+  box-shadow: 0 0 15px var(--ice-glow);
 }
 .cardIce .winnerRow {
-    color: var(--ice-primary);
-    text-shadow: 0 0 8px var(--ice-glow);
-    background: var(--ice-bg-win);
+  color: var(--ice-primary);
+  background: linear-gradient(90deg, rgba(0, 198, 255, 0.15), transparent);
 }
 
 /* Fire Theme */
 .cardFire {
-    border-color: rgba(255, 75, 31, 0.3);
-    box-shadow: 0 0 10px var(--fire-glow), inset 0 0 10px rgba(0,0,0,0.5);
+  border-color: var(--fire-dim);
+  box-shadow: 0 0 5px var(--fire-dim);
 }
 .cardFire:hover {
-    border-color: var(--fire-primary);
-    box-shadow: 0 0 20px var(--fire-glow);
-    background: rgba(50, 20, 10, 1);
+  border-color: var(--fire-primary);
+  box-shadow: 0 0 15px var(--fire-glow);
 }
 .cardFire .winnerRow {
-    color: var(--fire-secondary);
-    text-shadow: 0 0 8px var(--fire-glow);
-    background: var(--fire-bg-win);
+  color: var(--fire-primary);
+  background: linear-gradient(90deg, rgba(255, 75, 31, 0.15), transparent);
 }
 
-/* Final Winner Card (Gold) */
+/* Clash/Finals Theme (Normal Size now) */
 .cardClash {
-    border-color: var(--gold-primary);
-    box-shadow: 0 0 40px var(--gold-glow);
-    transform: scale(1.2);
-    background: linear-gradient(135deg, rgba(40, 30, 10, 0.95), rgba(10, 10, 10, 0.95));
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 20px var(--gold-glow);
+  /* No scaling transform */
 }
 .cardClash .winnerRow {
-    color: var(--gold-primary);
-    text-shadow: 0 0 15px var(--gold-glow);
-    background: linear-gradient(90deg, rgba(255, 215, 0, 0.2), transparent);
+  color: var(--gold-primary);
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.2), transparent);
 }
 
+/* Team Row */
 .team {
   display: flex;
   justify-content: space-between;
-  padding: 8px 12px;
-  font-size: 0.9rem;
+  padding: 6px 10px;
+  font-size: 0.85rem;
   font-weight: 600;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  letter-spacing: 1px;
 }
-
 .team:last-child { border-bottom: none; }
+.score { font-family: monospace; opacity: 0.8; }
 
-.score {
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-/* Mobile Response */
+/* Mobile */
 @media (max-width: 1024px) {
   .bracketWrapper { flex-direction: column; }
-  .column { flex-direction: row; flex-wrap: wrap; gap: 10px; }
-  .columnMid { order: -1; margin-bottom: 40px; }
-  .matchWrapper { width: 45%; }
-  .column::before { display: none; }
-}
-@media (max-width: 600px) {
-    .matchWrapper { width: 100%; }
+  .column { flex-direction: row; flex-wrap: wrap; padding: 10px; }
+  .columnMid { order: -1; margin-bottom: 20px; }
+  /* Hide connectors on mobile because flow changes */
+  .matchCard::after, .matchCard::before, .matchWrapper::before { display: none !important; } 
+  .matchWrapper { width: 48%; margin: 5px; }
 }
