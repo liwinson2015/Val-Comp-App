@@ -1,18 +1,18 @@
-.container { --neon-bg: #050011; --cyan: #0ff; --pink: #f0f; font-family: 'Courier New', monospace; background-color: var(--neon-bg); background-image: linear-gradient(rgba(255, 0, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 0, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; height: 100vh; display: flex; justify-content: center; align-items: center; }
+.container { --tac-bg: #1a1c18; --tac-card: #2b3026; --tac-green: #8fa876; --tac-light: #dcebd3; font-family: 'Courier', monospace; background-color: var(--tac-bg); height: 100vh; display: flex; justify-content: center; align-items: center; text-transform: uppercase; }
 .board { display: flex; gap: 40px; }
 .col { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
 .matchWrapper { position: relative; display: flex; align-items: center; }
-.matchBox { width: 160px; background: rgba(0,0,0,0.8); border: 2px solid var(--cyan); box-shadow: 4px 4px 0 var(--pink); padding: 10px; position: relative; z-index: 2; color: var(--cyan); transition: 0.1s; }
-.matchBox:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--pink); }
-.team { display: flex; justify-content: space-between; font-weight: bold; text-shadow: 2px 2px 0 var(--pink); }
-.winner { color: #fff; }
-.divider { height: 2px; background: var(--pink); margin: 5px 0; }
-.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: var(--pink); }
-.left .matchWrapper::after { height: 2px; width: 20px; right: -20px; top: 50%; }
-.left .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; right: -20px; top: 50%; transform:translateY(50%); }
-.left .matchWrapper[data-pos="bot"]::before { width: 2px; height: 50%; right: -20px; bottom: 50%; transform:translateY(-50%); }
-.right .matchWrapper::after { height: 2px; width: 20px; left: -20px; top: 50%; }
-.right .matchWrapper[data-pos="top"]::before { width: 2px; height: 50%; left: -20px; top: 50%; transform:translateY(50%); }
-.right .matchWrapper[data-pos="bot"]::before { width: 2px; height: 50%; left: -20px; bottom: 50%; transform:translateY(-50%); }
-.finalBox { border-color: var(--pink); box-shadow: 4px 4px 0 var(--cyan); }
-.trophy { text-align: center; color: #fff; margin-bottom: 5px; font-weight: bold; }
+.matchBox { width: 160px; background: var(--tac-card); border: 1px dashed #596e4d; padding: 8px; position: relative; z-index: 2; }
+.team { display: flex; justify-content: space-between; color: var(--tac-green); font-size: 12px; letter-spacing: 1px; }
+.winner { color: var(--tac-bg); background: var(--tac-green); padding: 0 4px; font-weight: bold; }
+.score { color: inherit; }
+.divider { height: 1px; background: #444; margin: 4px 0; }
+.matchWrapper::after, .matchWrapper::before { content:''; position: absolute; background: #454d3f; }
+.left .matchWrapper::after { height: 1px; width: 20px; right: -20px; top: 50%; }
+.left .matchWrapper[data-pos="top"]::before { width: 1px; height: 50%; right: -20px; top: 50%; transform:translateY(50%); }
+.left .matchWrapper[data-pos="bot"]::before { width: 1px; height: 50%; right: -20px; bottom: 50%; transform:translateY(-50%); }
+.right .matchWrapper::after { height: 1px; width: 20px; left: -20px; top: 50%; }
+.right .matchWrapper[data-pos="top"]::before { width: 1px; height: 50%; left: -20px; top: 50%; transform:translateY(50%); }
+.right .matchWrapper[data-pos="bot"]::before { width: 1px; height: 50%; left: -20px; bottom: 50%; transform:translateY(-50%); }
+.finalBox { border-style: solid; border-color: var(--tac-light); }
+.trophy { text-align: center; color: var(--tac-green); margin-bottom: 5px; }
