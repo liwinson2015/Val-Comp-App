@@ -1,14 +1,33 @@
 /* styles/testbracket4.module.css */
 
+/* --- Theme Variables --- */
+.container {
+  /* Ice Palette */
+  --ice-primary: #00c6ff;
+  --ice-secondary: #0072ff;
+  --ice-glow: rgba(0, 198, 255, 0.4);
+  --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.2), transparent);
+
+  /* Fire Palette */
+  --fire-primary: #ff4b1f;
+  --fire-secondary: #ffaa00;
+  --fire-glow: rgba(255, 75, 31, 0.4);
+  --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.2), transparent);
+
+  /* Clash/Gold Palette */
+  --clash-primary: #ffd700;
+  --clash-glow: rgba(255, 215, 0, 0.5);
+}
+
 .container {
   min-height: 100vh;
   background-color: #050505;
+  /* A subtle split background gradient from cold to hot */
   background-image: 
-    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 30px 30px;
+    radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
+    linear-gradient(90deg, rgba(0, 20, 40, 1) 0%, rgba(5, 5, 10, 1) 45%, rgba(5, 5, 10, 1) 55%, rgba(40, 10, 0, 1) 100%);
   color: #fff;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Ideally use a font like Rajdhani or Orbitron */
+  font-family: 'rajdhani', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,18 +38,25 @@
 
 .header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 50px;
   text-transform: uppercase;
   letter-spacing: 4px;
 }
 
 .title {
-  font-size: 2.5rem;
-  background: linear-gradient(90deg, #00f2ff, #fff, #00f2ff);
+  font-size: 3rem;
+  margin: 0;
+  /* Gradient Text spanning ice to fire */
+  background: linear-gradient(90deg, var(--ice-primary), #fff, var(--fire-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
-  margin: 0;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+}
+
+.subtitle {
+  color: #fff;
+  opacity: 0.8;
+  font-weight: 300;
 }
 
 /* The Main Bracket Layout */
@@ -38,7 +64,7 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 20px;
+  gap: 30px;
   width: 100%;
   max-width: 1600px;
 }
@@ -54,11 +80,32 @@
 }
 
 .columnMid {
-  flex: 0 0 250px; /* Fixed width for the finals */
+  flex: 0 0 280px;
   justify-content: center;
+  z-index: 2; /* Ensure finals pop over connector lines */
 }
 
-/* Connector Lines Logic */
+/* Connector Lines Logic - Simple Guides */
+.column::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    opacity: 0.5;
+}
+
+.columnLeft::before {
+    right: -15px;
+    background: linear-gradient(90deg, var(--ice-primary), transparent);
+}
+
+.columnRight::before {
+    left: -15px;
+    background: linear-gradient(270deg, var(--fire-primary), transparent);
+}
+
+
 .matchWrapper {
   position: relative;
   display: flex;
@@ -66,93 +113,99 @@
   width: 100%;
 }
 
-/* The Card Styling */
+/* --- BASE CARD STYLING --- */
 .matchCard {
-  background: rgba(16, 20, 30, 0.9);
-  border: 1px solid rgba(0, 242, 255, 0.2);
+  background: rgba(20, 25, 35, 0.95);
+  backdrop-filter: blur(5px);
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   position: relative;
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  /* Futuristic angular cut */
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
   transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  border: 1px solid transparent;
 }
 
-.matchCard:hover {
-  border-color: #00f2ff;
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-  background: rgba(20, 25, 40, 1);
+/* --- ICE THEME CARDS (Left Side) --- */
+.cardIce {
+    border-color: rgba(0, 198, 255, 0.3);
+    box-shadow: 0 0 10px var(--ice-glow), inset 0 0 10px rgba(0,0,0,0.5);
+}
+.cardIce:hover {
+    border-color: var(--ice-primary);
+    box-shadow: 0 0 20px var(--ice-glow), inset 0 0 15px var(--ice-glow);
+    background: rgba(10, 30, 50, 1);
+}
+.cardIce .winnerRow {
+    color: var(--ice-primary);
+    text-shadow: 0 0 8px var(--ice-glow);
+    background: var(--ice-bg-win);
 }
 
-.finalCard {
-  border-color: #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-  transform: scale(1.1);
+
+/* --- FIRE THEME CARDS (Right Side) --- */
+.cardFire {
+    border-color: rgba(255, 75, 31, 0.3);
+    box-shadow: 0 0 10px var(--fire-glow), inset 0 0 10px rgba(0,0,0,0.5);
+}
+.cardFire:hover {
+    border-color: var(--fire-primary);
+    box-shadow: 0 0 20px var(--fire-glow), inset 0 0 15px var(--fire-glow);
+    background: rgba(50, 20, 10, 1);
+}
+.cardFire .winnerRow {
+    color: var(--fire-secondary);
+    text-shadow: 0 0 8px var(--fire-glow);
+    background: var(--fire-bg-win);
 }
 
-/* Team Rows */
+
+/* --- CLASH/FINALS CARD (Middle) --- */
+.cardClash {
+    border-color: var(--clash-primary);
+    box-shadow: 0 0 30px var(--clash-glow);
+    transform: scale(1.15);
+    background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
+}
+.cardClash .winnerRow {
+    color: var(--clash-primary);
+    text-shadow: 0 0 10px var(--clash-glow);
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.2), transparent);
+}
+
+
+/* Team Rows Generic */
 .team {
   display: flex;
   justify-content: space-between;
-  padding: 6px 10px;
-  font-size: 0.85rem;
+  padding: 8px 12px;
+  font-size: 0.9rem;
   font-weight: 600;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  letter-spacing: 1px;
 }
 
 .team:last-child {
   border-bottom: none;
 }
 
-.winner {
-  color: #00f2ff;
-  text-shadow: 0 0 5px rgba(0, 242, 255, 0.6);
-  background: linear-gradient(90deg, rgba(0, 242, 255, 0.1), transparent);
-}
-
 .score {
   font-family: 'Courier New', monospace;
   font-weight: bold;
-}
-
-/* Connecting Lines (Pseudo elements) */
-/* Note: Creating perfect connector lines in pure CSS flexbox is complex. 
-   This adds simple guides. */
-
-.connectorLeft, .connectorRight {
-  position: absolute;
-  height: 1px;
-  background: #00f2ff;
-  opacity: 0.3;
-  width: 20px;
-  top: 50%;
-}
-
-/* Lines originating from the Left Side */
-.columnLeft .matchWrapper::after {
-  content: '';
-  position: absolute;
-  right: -10px;
-  top: 50%;
-  width: 10px;
-  height: 1px;
-  background: #333;
+  font-size: 1.1rem;
 }
 
 /* Trophy Icon Area */
-.trophyContainer {
-  text-align: center;
-  color: #ffd700;
-  font-size: 3rem;
-  margin-bottom: 20px;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
-  animation: float 3s ease-in-out infinite;
+.trophyIcon {
+  font-size: 4rem;
+  filter: drop-shadow(0 0 15px var(--clash-primary));
+  animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+@keyframes pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 10px var(--clash-primary)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 25px var(--clash-primary)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--clash-primary)); }
 }
 
 /* Mobile Response */
@@ -163,9 +216,20 @@
   .column {
     flex-direction: row;
     flex-wrap: wrap;
+    gap: 10px;
+  }
+  .columnMid {
+      order: -1; /* Put finals at top on mobile */
+      margin-bottom: 30px;
   }
   .matchWrapper {
-    width: 300px;
-    margin: 10px auto;
+    width: 45%; /* Two wide on mobile */
   }
+  .column::before { display: none; }
+}
+
+@media (max-width: 600px) {
+    .matchWrapper {
+        width: 100%; /* Full width on small screens */
+    }
 }

@@ -1,8 +1,7 @@
 import React from 'react';
 import styles from '../../styles/testbracket4.module.css';
 
-// Dummy Data Structure for a 16-player Tournament
-// 8 Players on Left, 8 Players on Right
+// Dummy Data Structure holds the state of the tournament
 const tournamentData = {
   leftSide: {
     round1: [
@@ -39,17 +38,25 @@ const tournamentData = {
   }
 };
 
-const MatchCard = ({ match, isFinal = false }) => {
+// MatchCard Component accepts a 'theme' prop (ice, fire, or clash)
+const MatchCard = ({ match, theme = 'ice' }) => {
   if (!match) return <div className={styles.matchWrapper}></div>;
+
+  // Determine which CSS module class to apply based on theme prop
+  let themeClass = styles.cardIce; // default
+  if (theme === 'fire') themeClass = styles.cardFire;
+  if (theme === 'clash') themeClass = styles.cardClash;
 
   return (
     <div className={styles.matchWrapper}>
-      <div className={`${styles.matchCard} ${isFinal ? styles.finalCard : ''}`}>
-        <div className={`${styles.team} ${match.winner === 1 ? styles.winner : ''}`}>
+      <div className={`${styles.matchCard} ${themeClass}`}>
+        {/* Player 1 Row */}
+        <div className={`${styles.team} ${match.winner === 1 ? styles.winnerRow : ''}`}>
           <span>{match.p1}</span>
           <span className={styles.score}>{match.s1}</span>
         </div>
-        <div className={`${styles.team} ${match.winner === 2 ? styles.winner : ''}`}>
+        {/* Player 2 Row */}
+        <div className={`${styles.team} ${match.winner === 2 ? styles.winnerRow : ''}`}>
           <span>{match.p2}</span>
           <span className={styles.score}>{match.s2}</span>
         </div>
@@ -61,68 +68,72 @@ const MatchCard = ({ match, isFinal = false }) => {
 export default function TestBracket4() {
   return (
     <div className={styles.container}>
+       {/* Ideally load a futuristic font in your _document.js, like Rajdhani or Orbitron */}
+       <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+
       <header className={styles.header}>
-        <h1 className={styles.title}>VALORANT CHAMPIONS // 2025</h1>
-        <p style={{color: '#00f2ff', opacity: 0.7}}>ELIMINATION BRACKET</p>
+        <h1 className={styles.title}>FROSTFIRE CHAMPIONS</h1>
+        <p className={styles.subtitle}>GLOBAL ELIMINATION BRACKET // 2025</p>
       </header>
 
       <div className={styles.bracketWrapper}>
         
-        {/* --- LEFT SIDE --- */}
+        {/* --- LEFT SIDE (ICE THEME) --- */}
         
-        {/* Left Round of 16 (4 Matches) */}
+        {/* Left Round of 16 */}
         <div className={`${styles.column} ${styles.columnLeft}`}>
           {tournamentData.leftSide.round1.map((m) => (
-            <MatchCard key={m.id} match={m} />
+            <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* Left Quarter Finals (2 Matches) */}
+        {/* Left Quarters */}
         <div className={`${styles.column} ${styles.columnLeft}`}>
           {tournamentData.leftSide.round2.map((m) => (
-            <MatchCard key={m.id} match={m} />
+            <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* Left Semi Final (1 Match) */}
+        {/* Left Semis */}
         <div className={`${styles.column} ${styles.columnLeft}`}>
            {tournamentData.leftSide.semis.map((m) => (
-            <MatchCard key={m.id} match={m} />
+            <MatchCard key={m.id} match={m} theme="ice" />
           ))}
         </div>
 
-        {/* --- MIDDLE (GRAND FINALS) --- */}
+        {/* --- MIDDLE (CLASH THEME) --- */}
         
         <div className={`${styles.column} ${styles.columnMid}`}>
-          <div className={styles.trophyContainer}>
-             🏆
+          <div style={{textAlign: 'center', marginBottom: '20px'}}>
+             <span className={styles.trophyIcon}>⚔️</span>
           </div>
-          <MatchCard match={tournamentData.finals} isFinal={true} />
-          <div style={{textAlign: 'center', marginTop: '20px', color: '#ffd700', fontSize: '1.2rem', letterSpacing: '2px'}}>
-            CHAMPION
+          {/* The Finals Card gets the special 'clash' theme */}
+          <MatchCard match={tournamentData.finals} theme="clash" />
+          <div style={{textAlign: 'center', marginTop: '20px', color: 'var(--clash-primary)', letterSpacing: '3px', fontWeight: 'bold'}}>
+            GRAND FINAL CHAMPION
           </div>
         </div>
 
-        {/* --- RIGHT SIDE --- */}
+        {/* --- RIGHT SIDE (FIRE THEME) --- */}
 
-        {/* Right Semi Final (1 Match) */}
+        {/* Right Semis */}
         <div className={`${styles.column} ${styles.columnRight}`}>
            {tournamentData.rightSide.semis.map((m) => (
-            <MatchCard key={m.id} match={m} />
+            <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
-        {/* Right Quarter Finals (2 Matches) */}
+        {/* Right Quarters */}
         <div className={`${styles.column} ${styles.columnRight}`}>
           {tournamentData.rightSide.round2.map((m) => (
-            <MatchCard key={m.id} match={m} />
+            <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
-        {/* Right Round of 16 (4 Matches) */}
+        {/* Right Round of 16 */}
         <div className={`${styles.column} ${styles.columnRight}`}>
           {tournamentData.rightSide.round1.map((m) => (
-            <MatchCard key={m.id} match={m} />
+            <MatchCard key={m.id} match={m} theme="fire" />
           ))}
         </div>
 
