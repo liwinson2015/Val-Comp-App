@@ -1,129 +1,101 @@
-// pages/valorant/testbracket2.js
 import React from 'react';
 import styles from '../../styles/testbracket2.module.css';
 
-// --- DATA: Split into Left Conference and Right Conference ---
-
+// Reuse data logic
 const LEFT_BRACKET = [
-  {
-    name: "RO16 Left",
-    matches: [
-      { p1: { name: "Sentinels", score: 2, winner: true }, p2: { name: "100T", score: 1 } },
-      { p1: { name: "Cloud9", score: 0 }, p2: { name: "G2", score: 2, winner: true } },
-      { p1: { name: "KRU", score: 1 }, p2: { name: "Leviatan", score: 2, winner: true } },
-      { p1: { name: "MIBR", score: 0 }, p2: { name: "Furia", score: 2, winner: true } },
-    ]
-  },
-  {
-    name: "Quarters Left",
-    matches: [
-      { p1: { name: "Sentinels", score: 2, winner: true }, p2: { name: "G2", score: 1 } },
-      { p1: { name: "Leviatan", score: 2, winner: true }, p2: { name: "Furia", score: 0 } },
-    ]
-  },
-  {
-    name: "Semis Left",
-    matches: [
-      { p1: { name: "Sentinels", score: 1 }, p2: { name: "Leviatan", score: 2, winner: true } },
-    ]
-  }
+  [ // Round 1
+    { p1: { name: "SENTINELS", s: 2, w: true }, p2: { name: "100 THIEVES", s: 1 } },
+    { p1: { name: "CLOUD9", s: 0 }, p2: { name: "G2 ESPORTS", s: 2, w: true } },
+    { p1: { name: "KRU", s: 1 }, p2: { name: "LEVIATAN", s: 2, w: true } },
+    { p1: { name: "MIBR", s: 0 }, p2: { name: "FURIA", s: 2, w: true } },
+  ],
+  [ // Round 2
+    { p1: { name: "SENTINELS", s: 2, w: true }, p2: { name: "G2", s: 1 } },
+    { p1: { name: "LEVIATAN", s: 2, w: true }, p2: { name: "FURIA", s: 0 } },
+  ],
+  [ // Round 3
+    { p1: { name: "SENTINELS", s: 1 }, p2: { name: "LEVIATAN", s: 2, w: true } },
+  ]
 ];
 
 const RIGHT_BRACKET = [
-  {
-    name: "RO16 Right",
-    matches: [
-      { p1: { name: "Fnatic", score: 2, winner: true }, p2: { name: "Liquid", score: 0 } },
-      { p1: { name: "Navi", score: 1 }, p2: { name: "Vitality", score: 2, winner: true } },
-      { p1: { name: "DRX", score: 2, winner: true }, p2: { name: "ZETA", score: 0 } },
-      { p1: { name: "PRX", score: 2, winner: true }, p2: { name: "GenG", score: 1 } },
-    ]
-  },
-  {
-    name: "Quarters Right",
-    matches: [
-      { p1: { name: "Fnatic", score: 2, winner: true }, p2: { name: "Vitality", score: 1 } },
-      { p1: { name: "DRX", score: 1 }, p2: { name: "PRX", score: 2, winner: true } },
-    ]
-  },
-  {
-    name: "Semis Right",
-    matches: [
-      { p1: { name: "Fnatic", score: 1 }, p2: { name: "PRX", score: 2, winner: true } },
-    ]
-  }
+  [
+    { p1: { name: "FNATIC", s: 2, w: true }, p2: { name: "LIQUID", s: 0 } },
+    { p1: { name: "NAVI", s: 1 }, p2: { name: "VITALITY", s: 2, w: true } },
+    { p1: { name: "DRX", s: 2, w: true }, p2: { name: "ZETA", s: 0 } },
+    { p1: { name: "PRX", s: 2, w: true }, p2: { name: "GEN.G", s: 1 } },
+  ],
+  [
+    { p1: { name: "FNATIC", s: 2, w: true }, p2: { name: "VITALITY", s: 1 } },
+    { p1: { name: "DRX", s: 1 }, p2: { name: "PRX", s: 2, w: true } },
+  ],
+  [
+    { p1: { name: "FNATIC", s: 1 }, p2: { name: "PRX", s: 2, w: true } },
+  ]
 ];
 
-const FINAL_MATCH = {
-  p1: { name: "Leviatan", score: 3, winner: true }, 
-  p2: { name: "PRX", score: 2 } 
-};
+const GRAND_FINAL = { p1: { name: "LEVIATAN", s: 3, w: true }, p2: { name: "PRX", s: 2 } };
 
 
-// --- Sub-Components ---
+// Components
 
-const MatchCard = ({ p1, p2, final = false }) => (
-  <div className={`${styles.card} ${final ? styles.finalCard : ''}`}>
-    <div className={`${styles.player} ${p1.winner ? styles.winner : styles.loser}`}>
-      <span>{p1.name}</span>
-      <span>{p1.score}</span>
-    </div>
-    <div style={{height: '1px', background: '#333', margin: '4px 0'}}></div>
-    <div className={`${styles.player} ${p2.winner ? styles.winner : styles.loser}`}>
-      <span>{p2.name}</span>
-      <span>{p2.score}</span>
-    </div>
+const Team = ({ data }) => (
+  <div className={`${styles.teamRow} ${data.w ? styles.winner : styles.loser}`}>
+    <span>{data.name}</span>
+    <span className={styles.score}>{data.s}</span>
   </div>
 );
 
-const BracketSide = ({ rounds, side }) => {
-  return (
-    // 'leftSide' or 'rightSide' class controls the line direction and row-reverse
-    <div className={`${styles.sideBracket} ${styles[side + 'Side']}`}>
-      {rounds.map((round, rIndex) => (
-        <div key={rIndex} className={styles.column}>
-          {round.matches.map((match, mIndex) => {
-            // Determine Even/Odd for line connectors
-            const isEven = mIndex % 2 === 0;
-            return (
-              <div key={mIndex} className={styles.matchWrapper} data-even={isEven}>
-                <MatchCard p1={match.p1} p2={match.p2} />
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-};
+const Match = ({ data, isFinal }) => (
+  <div className={`${styles.matchCard} ${isFinal ? styles.finalCard : ''}`}>
+    <Team data={data.p1} />
+    <Team data={data.p2} />
+  </div>
+);
 
-const TestBracket2 = () => {
+const Conference = ({ rounds, side }) => (
+  <div className={`${styles.sideBracket} ${styles[side + 'Side']}`} style={{display:'flex', flexDirection: side === 'right' ? 'row-reverse' : 'row', gap: '40px'}}>
+    {rounds.map((roundMatches, colIndex) => (
+      <div key={colIndex} className={styles.column}>
+        {roundMatches.map((match, matchIndex) => {
+          let pos = null;
+          if (colIndex < rounds.length - 1) {
+            pos = matchIndex % 2 === 0 ? "top" : "bottom";
+          }
+          return (
+            <div key={matchIndex} className={styles.matchWrapper} data-pos={pos}>
+              <Match data={match} />
+            </div>
+          );
+        })}
+      </div>
+    ))}
+  </div>
+);
+
+export default function TestBracket2() {
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap');
+        /* Importing a bold, condensed font for that Magazine feel */
+        @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+        body { margin: 0; background: #f0f0f0; }
       `}</style>
 
       <div className={styles.container}>
         <div className={styles.layoutGrid}>
           
-          {/* 1. Left Bracket (Sentinels, Leviatan, etc) */}
-          <BracketSide rounds={LEFT_BRACKET} side="left" />
+          <Conference rounds={LEFT_BRACKET} side="left" />
 
-          {/* 2. Center Stage (Grand Final) */}
-          <div className={styles.finalWrapper}>
-            <div className={styles.trophyIcon}>🏆 VCT CHAMPIONS</div>
-            <MatchCard p1={FINAL_MATCH.p1} p2={FINAL_MATCH.p2} final={true} />
-            <div style={{color: '#666', fontSize: '12px', marginTop: '10px'}}>BO5 FINAL</div>
+          <div className={styles.finalColumn}>
+            <div className={styles.finalLabel}>CHAMPIONSHIP</div>
+            <Match data={GRAND_FINAL} isFinal={true} />
           </div>
 
-          {/* 3. Right Bracket (Fnatic, PRX, etc) */}
-          <BracketSide rounds={RIGHT_BRACKET} side="right" />
+          <Conference rounds={RIGHT_BRACKET} side="right" />
 
         </div>
       </div>
     </>
   );
-};
-
-export default TestBracket2;
+}

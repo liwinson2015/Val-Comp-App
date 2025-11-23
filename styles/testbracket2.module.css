@@ -1,161 +1,187 @@
 /* styles/testbracket2.module.css */
 
 .container {
-  --val-dark: #0f1923;
-  --val-dark-2: #1b2733;
-  --val-red: #ff4655;
-  --val-white: #ece8e1;
-  --line-color: #444c55;
+  /* --- PALETTE: NEO-BRUTALIST --- */
+  --bg-color: #f0f0f0;         /* Light Grey Background */
+  --card-bg: #ffffff;          /* White Cards */
+  --text-primary: #000000;     /* Pitch Black Text */
+  --text-secondary: #888888;
+  --accent-color: #ccff00;     /* Acid Green */
+  --border-color: #000000;
   
-  --card-width: 180px; /* Slightly smaller to fit width */
-  --card-height: 70px;
+  /* DIMENSIONS */
+  --card-w: 160px;
+  --card-h: 70px;
+  --gap-col: 40px;
+  --gap-row: 20px;
   
-  font-family: 'Oswald', sans-serif;
-  background-color: var(--val-dark);
-  color: var(--val-white);
-  min-height: 100vh;
-  padding: 40px;
+  /* Thick borders are key to this style */
+  --border-thick: 3px;
+
+  font-family: 'Anton', sans-serif; /* Thick Condensed Font */
+  background-color: var(--bg-color);
+  
+  /* Dot Pattern Background */
+  background-image: radial-gradient(#000 1px, transparent 1px);
+  background-size: 20px 20px;
+  
+  height: 100vh;
+  width: 100%;
   display: flex;
-  justify-content: center; /* Center the whole thing */
+  justify-content: center;
   align-items: center;
-  overflow-x: auto;
+  overflow: hidden;
+  color: var(--text-primary);
 }
 
-/* The Main 3-Column Layout */
 .layoutGrid {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 40px;
-}
-
-/* --- Round Columns --- */
-.sideBracket {
-  display: flex;
-  gap: 40px;
-}
-
-/* Reverse the right side so Round 1 is on the far right */
-.sideBracket.rightSide {
-  flex-direction: row-reverse;
+  gap: var(--gap-col);
 }
 
 .column {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  min-height: 600px; /* Ensure vertical spacing is consistent */
+  justify-content: center;
+  gap: var(--gap-row);
 }
 
-/* --- The Card --- */
+/* --- THE CARD: STICKER / PATCH STYLE --- */
 .matchWrapper {
   position: relative;
   display: flex;
   align-items: center;
-  height: 100%;
 }
 
-.card {
-  width: var(--card-width);
-  height: var(--card-height);
-  background: var(--val-dark-2);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border: 1px solid var(--line-color);
-  transition: all 0.2s;
+.matchCard {
+  width: var(--card-w);
+  height: var(--card-h);
+  background: var(--card-bg);
+  border: var(--border-thick) solid var(--border-color);
   position: relative;
   z-index: 2;
-}
-
-/* Left Side Styling (Standard) */
-.leftSide .card {
-  border-left: 4px solid var(--val-red);
-  /* Cut Top-Right, Bottom-Left */
-  clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
-}
-
-/* Right Side Styling (Mirrored) */
-.rightSide .card {
-  border-right: 4px solid var(--val-red);
-  /* Cut Top-Left, Bottom-Right */
-  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-}
-
-/* Grand Final Styling (Center) */
-.finalWrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  transform: scale(1.2); /* Make it bigger */
+  
+  /* THE BRUTALIST SHADOW (Hard Offset) */
+  box-shadow: 6px 6px 0px var(--border-color);
+  transition: all 0.1s ease-in-out;
 }
 
-.trophyIcon {
-  color: #ffd700;
-  font-size: 24px;
-  margin-bottom: 10px;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+.matchCard:hover {
+  transform: translate(2px, 2px); /* Press down effect */
+  box-shadow: 2px 2px 0px var(--border-color);
 }
 
-.finalCard {
-  width: 220px;
-  height: 90px;
-  background: black;
-  border: 2px solid var(--val-red);
-  box-shadow: 0 0 30px rgba(255, 70, 85, 0.2);
-}
-
-/* --- Text Styling --- */
-.player {
+/* --- TEAM ROWS --- */
+.teamRow {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 0 10px;
-  font-size: 13px;
+  height: 50%;
+  font-size: 14px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  border-bottom: 1px solid #ddd;
 }
 
-.winner { color: var(--val-white); font-weight: bold; background: linear-gradient(90deg, rgba(255,70,85,0.2), transparent); }
-.loser { color: #666; }
+.teamRow:last-child {
+  border-bottom: none;
+}
 
-/* --- CONNECTING LINES --- */
+.winner {
+  background-color: var(--text-primary); /* Invert colors for winner */
+  color: var(--accent-color);
+}
 
+.winner span {
+    /* Ensure text is visible on black background */
+    color: var(--accent-color);
+}
+
+.loser {
+  color: var(--text-secondary);
+  background-color: #fff;
+}
+
+.score {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* --- CONNECTORS: THICK BLACK LINES --- */
 .matchWrapper::after, .matchWrapper::before {
   content: '';
   position: absolute;
-  background-color: var(--line-color);
-  transition: 0.2s;
+  background: var(--border-color);
 }
 
-.matchWrapper:hover::after, .matchWrapper:hover::before {
-  background-color: var(--val-red);
-}
-
-/* === LEFT SIDE LINES (Points Right) === */
+/* Connectors need to be thick */
 .leftSide .matchWrapper::after {
-  height: 2px; width: 20px;
-  right: -20px; top: 50%;
+  height: var(--border-thick); 
+  width: var(--gap-col);
+  right: calc(var(--gap-col) * -0.6); 
+  top: 50%;
 }
-.leftSide .matchWrapper[data-even="true"]::before {
-  width: 2px; height: calc(50% + 2px);
-  right: -20px; top: 50%;
+.leftSide .matchWrapper[data-pos="top"]::before {
+  width: var(--border-thick); height: 50%;
+  right: calc(var(--gap-col) * -0.6); top: 50%;
+  transform: translateY(50%);
 }
-.leftSide .matchWrapper[data-even="false"]::before {
-  width: 2px; height: calc(50% + 2px);
-  right: -20px; bottom: 50%;
+.leftSide .matchWrapper[data-pos="bottom"]::before {
+  width: var(--border-thick); height: 50%;
+  right: calc(var(--gap-col) * -0.6); bottom: 50%;
+  transform: translateY(-50%);
 }
 
-/* === RIGHT SIDE LINES (Points Left) === */
+/* Right Side Mirrored */
 .rightSide .matchWrapper::after {
-  height: 2px; width: 20px;
-  left: -20px; top: 50%; /* Position on Left */
+  height: var(--border-thick); 
+  width: var(--gap-col);
+  left: calc(var(--gap-col) * -0.6); 
+  top: 50%;
 }
-.rightSide .matchWrapper[data-even="true"]::before {
-  width: 2px; height: calc(50% + 2px);
-  left: -20px; top: 50%; /* Position on Left */
+.rightSide .matchWrapper[data-pos="top"]::before {
+  width: var(--border-thick); height: 50%;
+  left: calc(var(--gap-col) * -0.6); top: 50%;
+  transform: translateY(50%);
 }
-.rightSide .matchWrapper[data-even="false"]::before {
-  width: 2px; height: calc(50% + 2px);
-  left: -20px; bottom: 50%; /* Position on Left */
+.rightSide .matchWrapper[data-pos="bottom"]::before {
+  width: var(--border-thick); height: 50%;
+  left: calc(var(--gap-col) * -0.6); bottom: 50%;
+  transform: translateY(-50%);
+}
+
+
+/* --- CENTER / FINAL --- */
+.finalColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 20px;
+}
+
+.finalLabel {
+  background: var(--border-color);
+  color: var(--card-bg);
+  padding: 5px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  transform: rotate(-3deg); /* Slight tilt for style */
+}
+
+.finalCard {
+  width: 200px;
+  height: 90px;
+  border: 4px solid var(--border-color);
+  box-shadow: 10px 10px 0px var(--accent-color); /* Acid green shadow */
+}
+
+.finalCard:hover {
+    box-shadow: 4px 4px 0px var(--accent-color);
 }
