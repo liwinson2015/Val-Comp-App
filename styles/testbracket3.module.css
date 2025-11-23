@@ -1,26 +1,36 @@
-.container {
-  /* --- CYBER-ARENA PALETTE --- */
-  --bg-deep: #05050a;
-  --card-bg: rgba(20, 20, 35, 0.9);
-  --neon-cyan: #00f3ff;
-  --neon-purple: #bc13fe;
-  --text-main: #fff;
-  --text-dim: #5c5c70;
-  --line-inactive: #2a2a35;
-  
-  /* SIZE VARIABLES (Kept Compact) */
-  --card-w: 160px;
-  --card-h: 60px;
-  --gap-x: 30px;
-  --gap-y: 15px;
+/* styles/testbracket3.module.css */
 
-  font-family: 'Rajdhani', sans-serif; /* We will load this font in the JS */
+.container {
+  /* --- PALETTE: HIGH-TECH HUD --- */
+  --bg-deep: #0b0c15;
+  --glass-bg: rgba(20, 25, 40, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --neon-blue: #00f0ff;
+  --neon-purple: #7000ff;
+  --neon-red: #ff2a2a;
+  --text-main: #ffffff;
+  --text-muted: #5d6878;
+  
+  /* SIZING */
+  --card-w: 170px;
+  --card-h: 68px;
+  --gap-x: 40px;
+  --gap-y: 20px;
+
+  font-family: 'Rajdhani', sans-serif;
   background-color: var(--bg-deep);
-  /* Futuristic Grid Background */
+  
+  /* COMPLEX BACKGROUND: Hex Mesh + Vignette */
   background-image: 
-    linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(circle at center, transparent 0%, #000 90%),
+    linear-gradient(30deg, #111 12%, transparent 12.5%, transparent 87%, #111 87.5%, #111),
+    linear-gradient(150deg, #111 12%, transparent 12.5%, transparent 87%, #111 87.5%, #111),
+    linear-gradient(30deg, #111 12%, transparent 12.5%, transparent 87%, #111 87.5%, #111),
+    linear-gradient(150deg, #111 12%, transparent 12.5%, transparent 87%, #111 87.5%, #111),
+    linear-gradient(60deg, #1a1a25 25%, transparent 25.5%, transparent 75%, #1a1a25 75%, #1a1a25),
+    linear-gradient(60deg, #1a1a25 25%, transparent 25.5%, transparent 75%, #1a1a25 75%, #1a1a25);
+  background-size: 100% 100%, 40px 70px, 40px 70px, 40px 70px, 40px 70px, 40px 70px, 40px 70px;
+  background-position: 0 0, 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px;
   
   height: 100vh;
   width: 100%;
@@ -35,11 +45,9 @@
   display: flex;
   align-items: center;
   gap: var(--gap-x);
-  /* Slight perspective for 3D feel */
-  perspective: 1000px;
+  transform: scale(0.95); /* Ensure it fits nicely */
 }
 
-/* --- COLUMNS --- */
 .column {
   display: flex;
   flex-direction: column;
@@ -47,7 +55,7 @@
   gap: var(--gap-y);
 }
 
-/* --- THE CARD (HUD ELEMENT) --- */
+/* --- THE CARD: DETAILED GLASS HUD --- */
 .matchWrapper {
   position: relative;
   display: flex;
@@ -57,162 +65,193 @@
 .matchBox {
   width: var(--card-w);
   height: var(--card-h);
-  background: var(--card-bg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px); /* The frosted glass effect */
+  border: 1px solid var(--glass-border);
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
-  /* THE FUTURISTIC SHAPE: Chamfered Corners */
+  /* Detailed Shape: Notched Corners */
   clip-path: polygon(
     10px 0, 100% 0, 
     100% calc(100% - 10px), calc(100% - 10px) 100%, 
     0 100%, 0 10px
   );
-  
-  /* Border effect achieved via box-shadow or inset border not possible with clip-path, 
-     so we use a pseudo-element gradient border below */
-  transition: all 0.3s ease;
 }
 
-/* The Glowing Border */
+/* DECORATION: The glowing accent bar on the side */
 .matchBox::before {
   content: '';
   position: absolute;
-  inset: 0;
-  padding: 1px; /* Border width */
-  background: linear-gradient(135deg, var(--line-inactive), transparent);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  top: 0; bottom: 0;
+  width: 3px;
+  background: var(--text-muted);
+  transition: 0.3s;
 }
 
-/* Hover Effect */
+.leftSide .matchBox::before { left: 0; }
+.rightSide .matchBox::before { right: 0; }
+
+/* HOVER STATE */
 .matchBox:hover {
-  background: rgba(30, 30, 50, 1);
-  transform: scale(1.02);
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
-}
-.matchBox:hover::before {
-  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+  background: rgba(30, 40, 60, 0.8);
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+  transform: scale(1.03);
 }
 
-/* --- CONTENT STYLING --- */
+.matchBox:hover::before {
+  background: var(--neon-blue);
+  box-shadow: 0 0 8px var(--neon-blue);
+}
+
+/* --- TEAM ROW DETAILS --- */
 .teamRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 10px 0 16px; /* Extra left padding for the accent bar */
   height: 50%;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;
+  position: relative;
 }
 
-.winner {
-  color: var(--neon-cyan);
-  text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
-  background: linear-gradient(90deg, rgba(0, 243, 255, 0.1), transparent);
+/* Subtle separator line between teams */
+.teamRow:first-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.loser {
-  color: var(--text-dim);
+/* Team Logo Placeholder */
+.teamLogo {
+  width: 16px;
+  height: 16px;
+  background: #333;
+  border-radius: 3px;
+  margin-right: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  border: 1px solid #555;
 }
 
-.score {
-  font-family: monospace; /* Tech numbers */
+.winner .teamLogo {
+  background: var(--text-main);
+  box-shadow: 0 0 5px rgba(255,255,255,0.5);
+}
+
+.winner span {
+  color: #fff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.loser span {
+  color: var(--text-muted);
+}
+
+/* --- DIGITAL SCORE BOX --- */
+.scoreBox {
+  font-family: 'Rajdhani', monospace;
   font-size: 14px;
+  width: 24px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  color: #666;
+  border: 1px solid #333;
 }
 
-/* --- CONNECTING LINES (Glowing Circuitry) --- */
+.winner .scoreBox {
+  background: rgba(0, 240, 255, 0.2);
+  color: var(--neon-blue);
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 5px rgba(0, 240, 255, 0.3);
+}
+
+/* --- CONNECTING LINES (Tech Pipes) --- */
 .matchWrapper::after, .matchWrapper::before {
   content: '';
   position: absolute;
-  background: var(--line-inactive);
-  transition: background 0.3s;
+  background: #2a2a35;
+  transition: 0.3s;
 }
 
-/* Hovering lights up the path */
 .matchWrapper:hover::after, 
 .matchWrapper:hover::before {
-  background: var(--neon-cyan);
-  box-shadow: 0 0 5px var(--neon-cyan);
+  background: var(--neon-blue);
 }
 
-/* == LEFT SIDE CONNECTORS == */
+/* Left Connectors */
 .leftSide .matchWrapper::after {
-  height: 1px; width: var(--gap-x);
+  height: 2px; width: var(--gap-x);
   right: calc(var(--gap-x) * -0.6); top: 50%;
 }
 .leftSide .matchWrapper[data-pos="top"]::before {
-  width: 1px; height: 50%;
+  width: 2px; height: 50%;
   right: calc(var(--gap-x) * -0.6); top: 50%;
   transform: translateY(50%);
 }
 .leftSide .matchWrapper[data-pos="bottom"]::before {
-  width: 1px; height: 50%;
+  width: 2px; height: 50%;
   right: calc(var(--gap-x) * -0.6); bottom: 50%;
   transform: translateY(-50%);
 }
 
-/* == RIGHT SIDE CONNECTORS == */
+/* Right Connectors */
 .rightSide .matchWrapper::after {
-  height: 1px; width: var(--gap-x);
+  height: 2px; width: var(--gap-x);
   left: calc(var(--gap-x) * -0.6); top: 50%;
 }
 .rightSide .matchWrapper[data-pos="top"]::before {
-  width: 1px; height: 50%;
+  width: 2px; height: 50%;
   left: calc(var(--gap-x) * -0.6); top: 50%;
   transform: translateY(50%);
 }
 .rightSide .matchWrapper[data-pos="bottom"]::before {
-  width: 1px; height: 50%;
+  width: 2px; height: 50%;
   left: calc(var(--gap-x) * -0.6); bottom: 50%;
   transform: translateY(-50%);
 }
 
-/* --- GRAND FINAL (Center Piece) --- */
+/* --- GRAND FINAL GLOW --- */
 .finalColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   margin: 0 20px;
 }
 
 .finalBox {
-  width: 200px;
-  height: 80px;
-  border: none;
-  background: rgba(0,0,0,0.8);
-  /* Fancy Double Cut */
-  clip-path: polygon(
-    20px 0, 100% 0, 
-    100% calc(100% - 20px), calc(100% - 20px) 100%, 
-    0 100%, 0 20px
-  );
-  box-shadow: 0 0 30px rgba(188, 19, 254, 0.2);
+  width: 210px;
+  height: 90px;
+  border: 1px solid var(--neon-purple);
+  box-shadow: 0 0 30px rgba(112, 0, 255, 0.2), inset 0 0 20px rgba(112, 0, 255, 0.1);
 }
 
-/* Grand Final Gradient Border Override */
 .finalBox::before {
-  background: linear-gradient(45deg, var(--neon-cyan), var(--neon-purple));
-  padding: 2px;
+  background: var(--neon-purple) !important;
+  width: 100% !important;
+  height: 3px !important;
+  top: 0; left: 0;
+  box-shadow: 0 0 10px var(--neon-purple);
 }
 
 .trophy {
-  font-size: 24px;
+  font-size: 28px;
   margin-bottom: 15px;
-  color: var(--neon-purple);
-  filter: drop-shadow(0 0 5px var(--neon-purple));
-  animation: pulse 2s infinite;
+  filter: drop-shadow(0 0 10px gold);
+  animation: float 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
-  100% { opacity: 0.8; transform: scale(1); }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
