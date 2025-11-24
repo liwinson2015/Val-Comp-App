@@ -2,8 +2,40 @@
 import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
-// Reusable Card Component
-function MatchCard({ p1, p2, theme = "ice" }) {
+// --- HELPERS ---
+
+// Convert pairs ["A", "B"] into objects { p1: "A", p2: "B", winner: 0 }
+function toMatchObjects(pairs) {
+  return pairs.map((pair) => ({
+    p1: pair?.[0] || "TBD",
+    p2: pair?.[1] || "TBD",
+    winner: 0,
+  }));
+}
+
+// Check current round against next round to determine winners
+function calcWinners(currentRound, nextRound) {
+  if (!currentRound || !nextRound) return;
+
+  currentRound.forEach((match) => {
+    // If P1 is in the next round, P1 won
+    if (match.p1 !== "TBD" && playerInRound(match.p1, nextRound)) {
+      match.winner = 1;
+    } 
+    // If P2 is in the next round, P2 won
+    else if (match.p2 && match.p2 !== "TBD" && playerInRound(match.p2, nextRound)) {
+      match.winner = 2;
+    }
+  });
+}
+
+function playerInRound(name, targetRound) {
+  return targetRound.some((m) => m.p1 === name || m.p2 === name);
+}
+
+// --- COMPONENTS ---
+
+function MatchCard({ match, theme = "ice" }) {
   let themeClass = s.cardIce;
   if (theme === "fire") themeClass = s.cardFire;
   if (theme === "clash") themeClass = s.cardClash;
@@ -11,10 +43,14 @@ function MatchCard({ p1, p2, theme = "ice" }) {
   return (
     <div className={s.matchWrapper}>
       <div className={`${s.matchCard} ${themeClass}`}>
-        <div className={s.team}><span>{p1}</span></div>
-        {/* If P2 exists, render it. If it's a "Single" box, p2 will be null/undefined */}
-        {p2 !== undefined && (
-          <div className={s.team}><span>{p2}</span></div>
+        <div className={`${s.team} ${match.winner === 1 ? s.winnerRow : ""}`}>
+          <span>{match.p1}</span>
+        </div>
+        {/* Only render P2 if it exists (Singles rounds don't have P2) */}
+        {match.p2 !== undefined && (
+          <div className={`${s.team} ${match.winner === 2 ? s.winnerRow : ""}`}>
+            <span>{match.p2}</span>
+          </div>
         )}
       </div>
     </div>
@@ -24,84 +60,100 @@ function MatchCard({ p1, p2, theme = "ice" }) {
 export default function LosersBracket16(props) {
   const norm = normalize(props);
 
-  // Flatten R3A pairs into 4 distinct names for the "Singles" round
-  const r3aSingles = [];
+  // 1. PREPARE ROUND 3A SINGLES
+  const r3aRawNames = [];
   norm.R3A.forEach((pair) => {
-    if (pair?.[0]) r3aSingles.push(String(pair[0] || "TBD"));
-    if (pair?.[1]) r3aSingles.push(String(pair[1] || "TBD"));
+    if (pair?.[0]) r3aRawNames.push(String(pair[0] || "TBD"));
+    if (pair?.[1]) r3aRawNames.push(String(pair[1] || "TBD"));
   });
-  while (r3aSingles.length < 4) r3aSingles.push("TBD");
-  if (r3aSingles.length > 4) r3aSingles.length = 4;
+  while (r3aRawNames.length < 4) r3aRawNames.push("TBD");
+  if (r3aRawNames.length > 4) r3aRawNames.length = 4;
+
+  // 2. CONVERT ALL TO MATCH OBJECTS
+  const matches = {
+    R1: toMatchObjects(norm.R1),
+    R2: toMatchObjects(norm.R2),
+    // Special: Singles are matches with only p1
+    R3A: r3aRawNames.map(name => ({ p1: name, p2: undefined, winner: 0 })),
+    R3B: toMatchObjects(norm.R3B),
+    R4: toMatchObjects(norm.R4),
+    LBF: toMatchObjects([norm.LBF]), // wrap single pair in array
+    // This is the "LB Champion" slot (Winner of LB Final)
+    LBChamp: [{ p1: norm.LBWinner || "TBD", p2: undefined, winner: 0 }]
+  };
+
+  // 3. CALCULATE WINNERS (Look Ahead Logic)
+  calcWinners(matches.R1, matches.R2);
+  calcWinners(matches.R2, matches.R3A);
+  calcWinners(matches.R3A, matches.R3B);
+  calcWinners(matches.R3B, matches.R4);
+  calcWinners(matches.R4, matches.LBF);
+  calcWinners(matches.LBF, matches.LBChamp); // LB Final -> LB Champion
+
+  // Note: We do not calculate a winner for LBChamp because they leave this component 
+  // and go to the Grand Final component.
 
   return (
     <div className={s.lbViewport}>
       <div className={s.bracketWrapper}>
         
-        {/* COL 1: ROUND 1 (4 Matches) */}
+        {/* COL 1: ROUND 1 */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.iceTitle}`}>LB Round 1</h3>
           <div className={s.matchContainer}>
-            {norm.R1.map((m, i) => (
-              <MatchCard key={i} p1={m[0]} p2={m[1]} theme="ice" />
-            ))}
+            {matches.R1.map((m, i) => <MatchCard key={i} match={m} theme="ice" />)}
           </div>
         </div>
 
-        {/* COL 2: ROUND 2 (4 Matches) */}
+        {/* COL 2: ROUND 2 */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.iceTitle}`}>LB Round 2</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            {norm.R2.map((m, i) => (
-              <MatchCard key={i} p1={m[0]} p2={m[1]} theme="ice" />
-            ))}
+            {matches.R2.map((m, i) => <MatchCard key={i} match={m} theme="ice" />)}
           </div>
         </div>
 
-        {/* COL 3: ROUND 3A (4 Singles) */}
-        {/* These are single players dropping in, so we pass p2={undefined} */}
+        {/* COL 3: ROUND 3A (Singles) */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3A</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            {r3aSingles.map((name, i) => (
-              <MatchCard key={i} p1={name} p2={undefined} theme="fire" />
-            ))}
+            {matches.R3A.map((m, i) => <MatchCard key={i} match={m} theme="fire" />)}
           </div>
         </div>
 
-        {/* COL 4: ROUND 3B (2 Matches) */}
+        {/* COL 4: ROUND 3B */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3B</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            {norm.R3B.map((m, i) => (
-              <MatchCard key={i} p1={m[0]} p2={m[1]} theme="fire" />
-            ))}
+            {matches.R3B.map((m, i) => <MatchCard key={i} match={m} theme="fire" />)}
           </div>
         </div>
 
-        {/* COL 5: ROUND 4 (1 Match) */}
+        {/* COL 5: ROUND 4 */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 4</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            <MatchCard p1={norm.R4[0][0]} p2={norm.R4[0][1]} theme="fire" />
+            {matches.R4.map((m, i) => <MatchCard key={i} match={m} theme="fire" />)}
           </div>
         </div>
 
-        {/* COL 6: LB FINAL (1 Match) */}
+        {/* COL 6: LB FINAL */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Final</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            <MatchCard p1={norm.LBF[0]} p2={norm.LBF[1]} theme="clash" />
+            <MatchCard match={matches.LBF[0]} theme="clash" />
           </div>
         </div>
 
-        {/* COL 7: WINNER (1 Pill) */}
+        {/* COL 7: LB CHAMPION (Goes to Grand Final) */}
         <div className={s.column} style={{ flex: '0 0 200px'}}>
-           <h3 className={`${s.roundTitle} ${s.clashTitle}`}>Winner</h3>
+           {/* Updated Label to differentiate from Grand Winner */}
+           <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Champion</h3>
            <div className={`${s.matchContainer} ${s.connectorLeft}`}>
              <div className={s.matchWrapper}>
                 <div className={`${s.matchCard} ${s.cardClash}`}>
                    <div className={s.team}>
-                     <span className={s.winnerText}>{norm.LBWinner}</span>
+                     <span className={s.winnerText}>{matches.LBChamp[0].p1}</span>
                    </div>
                 </div>
              </div>
@@ -113,7 +165,7 @@ export default function LosersBracket16(props) {
   );
 }
 
-// Data Normalization (Unchanged)
+// --- NORMALIZATION ---
 function normalize(props) {
   const d = props.data;
   if (d) {
@@ -127,7 +179,6 @@ function normalize(props) {
       LBWinner: d.LBWinner ?? "TBD",
     };
   }
-
   const r1 = props.r1 ?? Array(4).fill(["TBD", "TBD"]);
   const r2 = props.r2 ?? [["TBD", "WB R2 Loser"], ["TBD", "WB R2 Loser"], ["TBD", "WB R2 Loser"], ["TBD", "WB R2 Loser"]];
   const r3a = props.r3a ?? Array(2).fill(["TBD", "TBD"]);

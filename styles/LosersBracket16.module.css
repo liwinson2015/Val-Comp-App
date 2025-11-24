@@ -50,7 +50,6 @@
   padding: 40px 0;
 }
 
-/* The Wrapper for the Columns */
 .bracketWrapper {
   display: flex;
   flex-direction: row;
@@ -58,7 +57,7 @@
   align-items: stretch;
   gap: 20px;
   width: 100%;
-  max-width: 1800px; /* Wide enough for 7 columns */
+  max-width: 1800px;
   padding: 0 20px;
 }
 
@@ -66,16 +65,13 @@
 .column {
   display: flex;
   flex-direction: column;
-  /* KEY: This forces even distribution vertically */
   justify-content: space-around; 
-  /* KEY: This ensures every column is exactly the same width */
   flex: 1 1 0px; 
   min-width: 0;
   position: relative;
   gap: 20px; 
 }
 
-/* Titles */
 .roundTitle {
   text-align: center;
   font-size: 0.85rem;
@@ -85,37 +81,30 @@
   margin-bottom: 10px;
   min-height: 20px;
   opacity: 0.9;
-  /* Stick to top when scrolling vertically in column (optional) */
   position: sticky;
   top: 0;
 }
 
-/* Colorize Titles */
 .iceTitle { color: var(--ice-primary); text-shadow: 0 0 10px rgba(0,198,255,0.3); }
 .fireTitle { color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3); }
 .clashTitle { color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3); }
 
-
-/* --- MATCH CONTAINER --- */
-/* Holds the matches below the title. This is what Flexbox spaces out. */
 .matchContainer {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-around; /* The magic alignment */
+  justify-content: space-around;
   width: 100%;
   gap: 20px;
   position: relative;
 }
 
 /* --- CONNECTORS --- */
-/* Standardize connector lines */
 .matchWrapper {
   position: relative;
   width: 100%;
 }
 
-/* Horizontal stub to the right */
 .matchWrapper::after {
   content: "";
   position: absolute;
@@ -126,18 +115,17 @@
   background: rgba(255,255,255,0.2);
 }
 
-/* Vertical lines on the LEFT of the Receiving Column */
 .connectorLeft::before {
   content: "";
   position: absolute;
-  top: 50%; /* Adjusted dynamically by logic usually, but here we use a simple bracket style */
+  top: 50%;
   left: -10px;
   width: 10px;
   height: 2px;
   background: rgba(255,255,255,0.2);
 }
 
-/* --- CARD STYLES (MATCHING WINNERS BRACKET) --- */
+/* --- CARD STYLES --- */
 .matchCard {
   background: rgba(20, 25, 35, 0.95);
   backdrop-filter: blur(5px);
@@ -175,16 +163,38 @@
   width: 100%;
 }
 
-/* Themes */
+/* --- THEMES & GLOW LOGIC --- */
+
+/* ICE */
 .cardIce { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .cardIce:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); background: rgba(10, 30, 50, 1); }
+/* ICE WINNER GLOW */
+.cardIce .winnerRow {
+  color: #fff;
+  background: var(--ice-bg-win);
+  text-shadow: 0 0 5px var(--ice-primary), 0 0 10px var(--ice-primary), 0 0 20px var(--ice-secondary);
+  font-weight: 700;
+}
 
+/* FIRE */
 .cardFire { border-color: rgba(255, 75, 31, 0.3); box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .cardFire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); background: rgba(50, 20, 10, 1); }
+/* FIRE WINNER GLOW */
+.cardFire .winnerRow {
+  color: #fff;
+  background: var(--fire-bg-win);
+  text-shadow: 0 0 5px var(--fire-primary), 0 0 10px var(--fire-primary), 0 0 20px var(--fire-secondary);
+  font-weight: 700;
+}
 
+/* CLASH */
 .cardClash { border-color: var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); transform: scale(1.1); }
+.cardClash .winnerRow {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent);
+  text-shadow: 0 0 5px var(--clash-primary), 0 0 15px var(--clash-primary), 0 0 30px var(--clash-primary);
+}
 
-/* Winner Text */
 .winnerText {
   font-size: 1.2rem;
   font-weight: 800;
@@ -192,25 +202,11 @@
   text-shadow: 0 0 10px var(--clash-glow);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
-  .bracketWrapper {
-    flex-direction: column; /* Stack vertically on mobile */
-    gap: 40px;
-    padding-bottom: 40px;
-  }
-  .column {
-    width: 100%;
-    gap: 10px;
-  }
-  .matchContainer {
-    flex-direction: row; /* Matches flow horizontally in the column */
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-  .matchWrapper {
-    width: 45%; /* 2 per row */
-  }
+  .bracketWrapper { flex-direction: column; gap: 40px; padding-bottom: 40px; }
+  .column { width: 100%; gap: 10px; }
+  .matchContainer { flex-direction: row; flex-wrap: wrap; gap: 15px; }
+  .matchWrapper { width: 45%; }
   .matchWrapper::after { display: none; }
   .connectorLeft::before { display: none; }
 }
