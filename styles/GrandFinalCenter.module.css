@@ -56,6 +56,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Important: Keep wrapper above lines */
   z-index: 2;
 }
 
@@ -70,6 +71,7 @@
   height: 110px; /* Vertical UP */
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
+  /* Behind everything */
   z-index: -1; 
 }
 
@@ -80,8 +82,11 @@
   top: 0; 
   left: 0;
   height: 2px;
-  /* INCREASED: From 22vw to 26vw to reach further right */
-  width: 26vw; 
+  
+  /* THE FIX: Make it extra long ("Overshoot") */
+  /* 35vw ensures it reaches the center. The center box will hide the excess. */
+  width: 35vw; 
+  
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
 }
@@ -91,8 +96,8 @@
   content: "";
   position: absolute;
   top: -40px; 
-  /* ADJUSTED: Matches the new width (-26vw) */
-  right: -26vw; 
+  /* Align with the END of the long horizontal line */
+  right: -35vw; 
   width: 2px;
   height: 40px; 
   background: linear-gradient(to top, var(--ice-primary), transparent);
@@ -169,7 +174,17 @@
 }
 
 /* --- CENTER --- */
-.center { display: grid; justify-items: center; align-items: center; gap: 10px; min-width: 280px; position: relative; z-index: 2; }
+.center { 
+  display: grid; 
+  justify-items: center; 
+  align-items: center; 
+  gap: 10px; 
+  min-width: 280px; 
+  position: relative; 
+  /* Important: This must be higher than the line's z-index so it hides the line behind it */
+  z-index: 10; 
+}
+
 .title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
 .gfBox { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); border-radius: 4px; font-weight: 800; font-size: 1.2rem; }
 .trophyWrap { margin-bottom: 0; animation: floatTrophy 3s ease-in-out infinite; }
