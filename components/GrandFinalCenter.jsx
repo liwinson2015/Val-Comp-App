@@ -1,196 +1,212 @@
-// components/GrandFinalCenter.jsx
-import React, { useEffect, useRef, useState } from "react";
-import s from "../styles/GrandFinalCenter.module.css";
+// components/LosersBracket16.jsx
+import React from "react";
+import s from "../styles/LosersBracket16.module.css";
 
-function TrophyIcon({ className }) {
+// --- HELPERS ---
+function toMatchObjects(pairs) {
+  return pairs.map((pair) => ({
+    p1: pair?.[0] || "TBD",
+    p2: pair?.[1] || "TBD",
+    winner: 0,
+  }));
+}
+
+function calcWinners(currentRound, nextRound) {
+  if (!currentRound || !nextRound) return;
+  currentRound.forEach((match) => {
+    if (match.p1 !== "TBD" && playerInRound(match.p1, nextRound)) {
+      match.winner = 1;
+    } else if (match.p2 && match.p2 !== "TBD" && playerInRound(match.p2, nextRound)) {
+      match.winner = 2;
+    }
+  });
+}
+
+function playerInRound(name, targetRound) {
+  return targetRound.some((m) => m.p1 === name || m.p2 === name);
+}
+
+// --- COMPONENTS ---
+function MatchCard({ match, theme = "ice" }) {
+  let themeClass = s.cardIce;
+  if (theme === "fire") themeClass = s.cardFire;
+  if (theme === "clash") themeClass = s.cardClash;
+
   return (
-    <svg className={className} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFD700" />
-          <stop offset="50%" stopColor="#FFC300" />
-          <stop offset="100%" stopColor="#E6AC00" />
-        </linearGradient>
-      </defs>
-      <path d="M16 8h32v8a16 16 0 0 1-32 0V8z" fill="url(#grad)" stroke="#b38600" strokeWidth="2" />
-      <path d="M14 10c-4 0-6 4-6 9 0 5 2 9 8 9v-4c-3 0-4-2-4-5 0-3 1-5 4-5V10zM50 10c4 0 6 4 6 9 0 5-2 9-8 9v-4c3 0 4-2 4-5 0-3-1-5-4-5V10z" fill="url(#grad)" stroke="#b38600" strokeWidth="1.5" />
-      <rect x="28" y="24" width="8" height="12" fill="url(#grad)" />
-      <rect x="20" y="36" width="24" height="8" rx="1" fill="url(#grad)" stroke="#b38600" strokeWidth="1.5" />
-      <circle cx="32" cy="12" r="2" fill="white" opacity="0.8" />
-      <circle cx="25" cy="16" r="1.2" fill="white" opacity="0.7" />
-      <circle cx="39" cy="16" r="1.2" fill="white" opacity="0.7" />
-    </svg>
+    <div className={s.matchWrapper}>
+      <div className={`${s.matchCard} ${themeClass}`}>
+        <div className={`${s.team} ${match.winner === 1 ? s.winnerRow : ""}`}>
+          <span>{match.p1}</span>
+        </div>
+        {match.p2 !== undefined && (
+          <div className={`${s.team} ${match.winner === 2 ? s.winnerRow : ""}`}>
+            <span>{match.p2}</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-export default function GrandFinalCenter({
-  wbChampion = "WB Champion",
-  lbChampion = "LB Champion",
-  champion = "TBD",
-}) {
-  const containerRef = useRef(null);
-  const leftSlotRef = useRef(null);
-  const rightSlotRef = useRef(null);
-  const centerBoxRef = useRef(null);
+export default function LosersBracket16(props) {
+  const norm = normalize(props);
 
-  const [paths, setPaths] = useState({ ice: "", fire: "" });
+  // 1. PREPARE DATA
+  const r3aRawNames = [];
+  norm.R3A.forEach((pair) => {
+    if (pair?.[0]) r3aRawNames.push(String(pair[0] || "TBD"));
+    if (pair?.[1]) r3aRawNames.push(String(pair[1] || "TBD"));
+  });
+  while (r3aRawNames.length < 4) r3aRawNames.push("TBD");
+  if (r3aRawNames.length > 4) r3aRawNames.length = 4;
 
-  useEffect(() => {
-    const updateLines = () => {
-      if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
+  const matches = {
+    R1: toMatchObjects(norm.R1),
+    R2: toMatchObjects(norm.R2),
+    R3A: r3aRawNames.map(name => ({ p1: name, p2: undefined, winner: 0 })),
+    R3B: toMatchObjects(norm.R3B),
+    R4: toMatchObjects(norm.R4),
+    LBF: toMatchObjects([norm.LBF]), 
+    LBChamp: [{ p1: norm.LBWinner || "TBD", p2: undefined, winner: 0 }]
+  };
 
-      const contRect = containerRef.current.getBoundingClientRect();
-      const leftRect = leftSlotRef.current.getBoundingClientRect();
-      const rightRect = rightSlotRef.current.getBoundingClientRect();
-      const centerRect = centerBoxRef.current.getBoundingClientRect();
-
-      const offY = 100;
-      const labelGap = 40;
-      const riseHeight = 60; 
-      
-      const wbTarget = document.getElementById("wb-final-target");
-      const lbTarget = document.getElementById("lb-final-target");
-
-      // --- ICE LINE (Upper) - Unchanged Logic ---
-      const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
-      const y1_ice = (leftRect.top - contRect.top) - labelGap; 
-      const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
-      
-      let iceTotalHeight = 130;
-      let iceRise = riseHeight;
-
-      if (wbTarget) {
-        const wbRect = wbTarget.getBoundingClientRect();
-        const gap = 20; 
-        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - gap;
-        iceRise = iceTotalHeight * 0.4;
-      }
-
-      const icePath = `
-        M ${x1_ice} ${y1_ice + offY} 
-        L ${x1_ice} ${y1_ice + offY - iceRise} 
-        L ${x2_ice} ${y1_ice + offY - iceRise}
-        L ${x2_ice} ${y1_ice + offY - iceTotalHeight}
-      `;
-
-      // --- FIRE LINE (Lower) - NEW "STEPPED" LOGIC ---
-      
-      // Start X: Center of the Right Slot (Grand Final)
-      const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
-      // Start Y: Bottom of the Right Slot (+ label gap)
-      const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
-      
-      // Default Target X: If no LB found, just go straight down
-      let x2_fire = x1_fire; 
-      let fireFinalY = y1_fire + 100;
-      
-      // First drop distance before turning horizontal
-      let fireDrop = 60; 
-
-      if (lbTarget) {
-        const lbRect = lbTarget.getBoundingClientRect();
-        
-        // Target X: The center of the actual LB Final match box on the right
-        x2_fire = lbRect.left + lbRect.width / 2 - contRect.left;
-        
-        // Target Y: The top of the LB Final match box
-        const gap = 20;
-        fireFinalY = (lbRect.top - contRect.top) - gap;
-      }
-
-      // SVG Path: Move Start -> Down (Drop) -> Right (Target X) -> Down (Target Y)
-      const firePath = `
-        M ${x1_fire} ${y1_fire + offY}
-        L ${x1_fire} ${y1_fire + offY + fireDrop}
-        L ${x2_fire} ${y1_fire + offY + fireDrop}
-        L ${x2_fire} ${fireFinalY + offY}
-      `;
-
-      setPaths({ ice: icePath, fire: firePath });
-    };
-
-    updateLines();
-    window.addEventListener("resize", updateLines);
-    setTimeout(updateLines, 100); 
-    
-    return () => window.removeEventListener("resize", updateLines);
-  }, []);
+  // 2. CALCULATE WINNERS
+  calcWinners(matches.R1, matches.R2);
+  calcWinners(matches.R2, matches.R3A);
+  calcWinners(matches.R3A, matches.R3B);
+  calcWinners(matches.R3B, matches.R4);
+  calcWinners(matches.R4, matches.LBF);
+  calcWinners(matches.LBF, matches.LBChamp);
 
   return (
-    <div className={s.wrap}>
-      <div className={s.row} ref={containerRef}>
+    <div className={s.lbViewport}>
+      <div className={s.bracketWrapper}>
         
-        <svg className={s.svgOverlay}>
-          <defs>
-            <linearGradient id="iceLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0055ff" />
-              <stop offset="100%" stopColor="#00eaff" />
-            </linearGradient>
-            <filter id="iceGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-
-            <linearGradient id="fireLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ff0055" />
-              <stop offset="100%" stopColor="#ff7b00" />
-            </linearGradient>
-            <filter id="fireGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          {/* ICE LINE */}
-          <path 
-            d={paths.ice} 
-            stroke="url(#iceLineGrad)" 
-            strokeWidth="3" 
-            strokeLinecap="round" 
-            fill="none" 
-            strokeLinejoin="round"
-            filter="url(#iceGlow)" 
-            opacity="0.9"
-          />
-          
-          {/* FIRE LINE */}
-          <path 
-            d={paths.fire} 
-            stroke="url(#fireLineGrad)" 
-            strokeWidth="3" 
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none" 
-            filter="url(#fireGlow)"
-            opacity="0.9"
-          />
-        </svg>
-
-        <div className={`${s.source} ${s.left}`}>
-          <div className={s.slotWrapper}>
-             <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
-             <div className={`${s.slot} ${s.ice}`} ref={leftSlotRef}>{wbChampion}</div>
+        {/* COL 1 */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.iceTitle}`}>LB Round 1</h3>
+          <div className={s.matchContainer}>
+            {matches.R1.map((m, i) => <MatchCard key={i} match={m} theme="ice" />)}
           </div>
-          <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
-        <div className={s.center} ref={centerBoxRef}>
-          <div className={s.trophyWrap}>
-            <TrophyIcon className={s.trophyIcon} />
+        {/* COL 2 */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.iceTitle}`}>LB Round 2</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {matches.R2.map((m, i) => <MatchCard key={i} match={m} theme="ice" />)}
           </div>
-          <div className={s.title}>GRAND FINAL CHAMPION</div>
-          <div className={s.gfBox}>{champion}</div>
         </div>
 
-        <div className={`${s.source} ${s.right}`}>
-          <div className={`${s.arm} ${s.armRight}`} />
-          <div className={s.slotWrapper}>
-             <div className={`${s.slot} ${s.fire}`} ref={rightSlotRef}>{lbChampion}</div>
-             <div className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</div>
+        {/* COL 3 */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3A</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {matches.R3A.map((m, i) => <MatchCard key={i} match={m} theme="fire" />)}
           </div>
+        </div>
+
+        {/* COL 4 */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3B</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {matches.R3B.map((m, i) => <MatchCard key={i} match={m} theme="fire" />)}
+          </div>
+        </div>
+
+        {/* COL 5 */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 4</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {matches.R4.map((m, i) => <MatchCard key={i} match={m} theme="fire" />)}
+          </div>
+        </div>
+
+        {/* COL 6: LB FINAL */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Final</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {/* REMOVED ID FROM HERE */}
+            <div style={{width: '100%'}}>
+               <MatchCard match={matches.LBF[0]} theme="clash" />
+            </div>
+          </div>
+        </div>
+
+        {/* COL 7: LB CHAMPION (Correct Target) */}
+        <div className={s.column} style={{ flex: '0 0 200px'}}>
+           <h3 className={`${s.roundTitle} ${s.clashTitle}`} style={{ visibility: "hidden" }}>
+             LB Champion
+           </h3>
+           
+           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+             <div className={s.matchWrapper}>
+                <h2 className={s.winnerText}>WINNER</h2>
+                
+                {/* --- TARGET ID MOVED HERE --- */}
+                {/* This tells GrandFinalCenter to draw the line to THIS box */}
+                <div id="lb-final-target" style={{ width: '100%' }}>
+                  <div className={`${s.matchCard} ${s.cardClash}`}>
+                     <div className={`${s.team} ${s.winnerRow}`}>
+                       <span>{matches.LBChamp[0].p1}</span>
+                     </div>
+                  </div>
+                </div>
+
+             </div>
+           </div>
         </div>
 
       </div>
     </div>
   );
+}
+
+// --- NORMALIZATION ---
+function normalize(props) {
+  const d = props.data;
+  if (d) {
+    return {
+      R1: ensurePairs(d.R1, 4, "TBD"),
+      R2: mergePairs(d.R2A, d.R2B, 2, "WB R2 Loser"),
+      R3A: ensurePairs(d.R3A ?? [["TBD", "TBD"], ["TBD", "TBD"]], 2, "TBD"),
+      R3B: ensurePairs(d.R3B ?? [["TBD", "WB SF Loser 1"], ["TBD", "WB SF Loser 2"]], 2, "TBD"),
+      R4: ensurePairs(d.R4, 1, "TBD"),
+      LBF: Array.isArray(d.LBF) ? d.LBF : ["TBD", "WB Final Loser"],
+      LBWinner: d.LBWinner ?? "TBD",
+    };
+  }
+  const r1 = props.r1 ?? Array(4).fill(["TBD", "TBD"]);
+  const r2 = props.r2 ?? [["TBD", "WB R2 Loser"], ["TBD", "WB R2 Loser"], ["TBD", "WB R2 Loser"], ["TBD", "WB R2 Loser"]];
+  const r3a = props.r3a ?? Array(2).fill(["TBD", "TBD"]);
+  const r3b = props.r3b ?? [["TBD", "WB SF Loser 1"], ["TBD", "WB SF Loser 2"]];
+  const r4 = props.r4 ?? Array(1).fill(["TBD", "TBD"]);
+  const lbFinal = props.lbFinal ?? ["TBD", "WB Final Loser"];
+  const lbWinner = props.lbWinner ?? "TBD";
+
+  return {
+    R1: ensurePairs(r1, 4, "TBD"),
+    R2: ensurePairs(r2, 4, "TBD"),
+    R3A: ensurePairs(r3a, 2, "TBD"),
+    R3B: ensurePairs(r3b, 2, "TBD"),
+    R4: ensurePairs(r4, 1, "TBD"),
+    LBF: lbFinal,
+    LBWinner: lbWinner,
+  };
+}
+
+function ensurePairs(arr, needed, filler) {
+  return Array.from({ length: needed }, (_, i) => {
+    const v = arr?.[i];
+    if (Array.isArray(v) && v.length >= 2) {
+      return [String(v[0] ?? "TBD"), String(v[1] ?? "TBD")];
+    }
+    return [filler, "TBD"];
+  });
+}
+
+function mergePairs(r2a, r2b, needed, dropInLabelBase) {
+  const a = ensurePairs(r2a ?? [], needed, "TBD");
+  const b = ensurePairs(r2b ?? [["TBD", `${dropInLabelBase} 1`], ["TBD", `${dropInLabelBase} 2`]], needed, "TBD");
+  return [a[0], b[0], a[1], b[1]];
 }
