@@ -2,15 +2,9 @@
 import React from "react";
 import s from "../styles/GrandFinalCenter.module.css";
 
-/** Refined inline SVG trophy — gold, modern, crisp edges */
 function TrophyIcon({ className }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 64 64"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+    <svg className={className} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FFD700" />
@@ -37,16 +31,21 @@ export default function GrandFinalCenter({
   return (
     <div className={s.wrap}>
       <div className={s.row}>
-        {/* LEFT (WB side) - Ice Theme */}
+        {/* LEFT (WB side) */}
         <div className={`${s.source} ${s.left}`}>
+          {/* New Connector: Horizontal + Stub */}
           <div className={s.wbConnect} />
+          
           <h3 className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</h3>
           <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
-        {/* CENTER — Grand Final with trophy */}
+        {/* CENTER */}
         <div className={s.center}>
+          {/* New Connector: Vertical UP */}
+          <div className={s.centerUp} />
+          
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
           </div>
@@ -54,11 +53,8 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* RIGHT (LB side) - Fire Theme */}
+        {/* RIGHT (LB side) */}
         <div className={`${s.source} ${s.right}`}>
-           {/* NEW: Connector Line to Losers Bracket */}
-           <div className={s.lbConnect} />
-           
            <h3 className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</h3>
           <div className={`${s.arm} ${s.armRight}`} />
           <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>

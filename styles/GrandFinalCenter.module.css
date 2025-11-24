@@ -41,16 +41,31 @@
   position: relative; 
 }
 
-.source {
-  position: relative;
-  display: grid;
-  align-items: center;
-}
-
+.source { position: relative; display: grid; align-items: center; }
 .left { grid-template-columns: 1fr auto; }
 .right { grid-template-columns: auto 1fr; }
 
-/* --- UPPER BRACKET CONNECTION (Up & Right) --- */
+/* --- CENTER VERTICAL LINE (The "Up" part at Trophy) --- */
+.centerUp {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px; /* Spacer */
+}
+.centerUp::before {
+  content: "";
+  position: absolute;
+  bottom: 100%; /* Go UP from top of center box */
+  left: 50%;
+  width: 2px;
+  height: 100px; /* Reach up to Winners Bracket */
+  background: var(--ice-primary);
+  box-shadow: 0 0 15px var(--ice-glow);
+  z-index: 0;
+}
+
+/* --- WB HORIZONTAL LINE (Connects Slot to Center) --- */
 .wbConnect {
   position: absolute;
   top: 0;
@@ -59,66 +74,36 @@
   height: 100%;
   pointer-events: none;
 }
+
+/* Horizontal line stretching Right from Slot */
 .wbConnect::before {
   content: "";
   position: absolute;
-  bottom: 100%; 
-  left: 50%;    
-  width: 2px;
-  height: 80px; /* Reaches UP into Winners Bracket */
+  /* Positioned above the "UPPER BRACKET WINNER" text roughly */
+  bottom: calc(100% + 20px); 
+  left: 50%; /* Start at center of slot */
+  
+  /* Stretch far to the right to meet the center vertical line */
+  width: 60vw; 
+  height: 2px;
+  
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
-  z-index: 0;
+  
+  /* Z-index -1 ensures it goes behind the center element visually */
+  z-index: -1;
 }
+
+/* Small Vertical stub at the Slot to lift the line up */
 .wbConnect::after {
   content: "";
   position: absolute;
-  bottom: calc(100% + 80px); 
-  left: 50%;                 
-  width: 35vw; /* Stretches towards center */
-  height: 2px;
-  background: linear-gradient(90deg, var(--ice-primary) 20%, transparent 100%);
-  box-shadow: 0 0 15px var(--ice-glow);
-  border-top-left-radius: 4px;
-  z-index: 0;
-}
-
-/* --- NEW: LOWER BRACKET CONNECTION (Down & Right) --- */
-.lbConnect {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* 1. Vertical Line: Extends DOWNWARDS from the slot */
-.lbConnect::before {
-  content: "";
-  position: absolute;
-  top: 100%; /* Start at bottom of slot */
+  bottom: 100%; /* Start at top of slot container */
   left: 50%;
   width: 2px;
-  height: 80px; /* Reaches DOWN into Losers Bracket */
-  background: var(--fire-primary);
-  box-shadow: 0 0 10px var(--fire-glow);
-  z-index: 0;
-}
-
-/* 2. Horizontal Line: Stretches RIGHT towards the LB Champion column */
-.lbConnect::after {
-  content: "";
-  position: absolute;
-  top: calc(100% + 80px); /* At the bottom of the vertical line */
-  left: 50%;
-  width: 35vw; /* Stretches far right */
-  height: 2px;
-  /* Gradient: Solid Fire -> Transparent */
-  background: linear-gradient(90deg, var(--fire-primary) 20%, transparent 100%);
-  box-shadow: 0 0 15px var(--fire-glow);
-  border-bottom-left-radius: 4px;
-  z-index: 0;
+  height: 20px; /* Connect slot to the horizontal line above */
+  background: var(--ice-primary);
+  box-shadow: 0 0 10px var(--ice-glow);
 }
 
 /* Labels */
@@ -136,7 +121,6 @@
   pointer-events: none; 
   white-space: nowrap; 
 }
-
 .iceLabel { color: var(--ice-primary); text-shadow: 0 0 15px var(--ice-glow); }
 .fireLabel { color: var(--fire-primary); text-shadow: 0 0 15px var(--fire-glow); }
 
@@ -158,10 +142,8 @@
   transition: all 0.3s ease;
   z-index: 2; 
 }
-
 .ice { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .ice:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); background: rgba(10, 30, 50, 1); }
-
 .fire { border-color: rgba(255, 75, 31, 0.3); box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); background: rgba(10, 30, 50, 1); }
 
@@ -169,46 +151,14 @@
 .armLeft { margin-left: 10px; background: linear-gradient(90deg, var(--ice-primary), transparent); }
 .armRight { margin-right: 10px; background: linear-gradient(270deg, var(--fire-primary), transparent); }
 
-.center { display: grid; justify-items: center; align-items: center; text-align: center; gap: 6px; min-width: 240px; }
+.center { display: grid; justify-items: center; align-items: center; text-align: center; gap: 6px; min-width: 240px; position: relative; }
 
-.title {
-  color: var(--clash-primary);
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-  text-shadow: 0 0 10px var(--clash-glow);
-}
-
-.gfBox {
-  min-width: 240px;
-  height: 42px;
-  padding: 0 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
-  color: #ffffff;
-  border: 1px solid var(--clash-primary);
-  box-shadow: 0 0 30px var(--clash-glow);
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-  font-weight: 800;
-}
-
+.title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .10em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
+.gfBox { min-width: 240px; height: 42px; padding: 0 14px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); font-weight: 800; }
 .trophyWrap { margin-bottom: 6px; display: flex; justify-content: center; align-items: center; animation: floatTrophy 3s ease-in-out infinite; }
 .trophyIcon { width: 46px; height: 46px; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7)); transition: transform .3s ease; }
-
-@keyframes floatTrophy {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
+@keyframes floatTrophy { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
 @media (max-width: 1000px){ .slot{ min-width: 140px; } .gfBox{ min-width: 220px; height: 40px; } }
 @media (max-width: 780px){ .row{ gap: 12px; } .slot{ min-width: 120px; font-size: 12px; height: 32px; } .gfBox{ min-width: 200px; } .trophyIcon{ width: 40px; height: 40px; } }
-@media (max-width: 600px){ 
-  .row{ width: 96vw; grid-template-columns: 1fr; gap: 10px; } 
-  .left, .right{ grid-template-columns: 1fr; } 
-  .arm{ display: none; } 
-  .slot{ width: 100%; } 
-  .wbConnect, .lbConnect { display: none; }
-}
+@media (max-width: 600px){ .row{ width: 96vw; grid-template-columns: 1fr; gap: 10px; } .left, .right{ grid-template-columns: 1fr; } .arm{ display: none; } .slot{ width: 100%; } .wbConnect, .centerUp { display: none; } }
