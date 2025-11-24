@@ -32,10 +32,10 @@ export default function GrandFinalCenter({
     <div className={s.wrap}>
       <div className={s.row}>
         
-        {/* LEFT (WB side) */}
+        {/* LEFT (WB side) - Ice Theme */}
         <div className={`${s.source} ${s.left}`}>
           <div className={s.slotWrapper}>
-             {/* The Vertical Line UP */}
+             {/* The Line Structure: UP then RIGHT */}
              <div className={s.lineUp} />
              
              <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
@@ -53,12 +53,12 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* RIGHT (LB side) */}
+        {/* RIGHT (LB side) - Fire Theme */}
         <div className={`${s.source} ${s.right}`}>
           <div className={`${s.arm} ${s.armRight}`} />
           
           <div className={s.slotWrapper}>
-             {/* The Vertical Line DOWN */}
+             {/* The Line Structure: DOWN then LEFT */}
              <div className={s.lineDown} />
              
              <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>

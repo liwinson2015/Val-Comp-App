@@ -51,39 +51,63 @@
 .left { justify-content: flex-end; }
 .right { justify-content: flex-start; }
 
-/* --- SLOT WRAPPER (The Fix) --- */
-/* Holds the Slot, the Label, and the Vertical Line together */
+/* --- SLOT WRAPPER --- */
 .slotWrapper {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 2;
+  z-index: 2; /* Above the lines */
 }
 
-/* --- VERTICAL LINES --- */
-/* These sit inside the wrapper but outside the clipped slot */
+/* --- VERTICAL & HORIZONTAL LINES --- */
+
+/* ICE: UP and RIGHT */
 .lineUp {
   position: absolute;
-  bottom: 50%; /* Start from center of slot */
+  bottom: 50%; 
   left: 50%;
   width: 2px;
-  height: 100px; /* Reach UP */
-  background: linear-gradient(to top, var(--ice-primary), transparent);
+  height: 80px; /* Vertical UP */
+  background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
-  z-index: -1; /* Behind the slot */
+  z-index: -1; 
+}
+/* Horizontal Beam to Center */
+.lineUp::after {
+  content: "";
+  position: absolute;
+  top: 0; /* Top of the vertical line */
+  left: 0;
+  height: 2px;
+  width: 50vw; /* Stretch far to the right */
+  background: var(--ice-primary);
+  box-shadow: 0 0 10px var(--ice-glow);
 }
 
+/* FIRE: DOWN and LEFT */
 .lineDown {
   position: absolute;
-  top: 50%; /* Start from center of slot */
+  top: 50%; 
   left: 50%;
   width: 2px;
-  height: 100px; /* Reach DOWN */
-  background: linear-gradient(to bottom, var(--fire-primary), transparent);
+  height: 80px; /* Vertical DOWN */
+  background: var(--fire-primary);
   box-shadow: 0 0 10px var(--fire-glow);
-  z-index: -1; /* Behind the slot */
+  z-index: -1; 
 }
+/* Horizontal Beam to Center */
+.lineDown::after {
+  content: "";
+  position: absolute;
+  bottom: 0; /* Bottom of the vertical line */
+  right: 0;  /* Align to right side of vertical line */
+  height: 2px;
+  width: 50vw; /* Stretch far to the left */
+  background: var(--fire-primary);
+  box-shadow: 0 0 10px var(--fire-glow);
+}
+
 
 /* --- SLOTS --- */
 .slot {
@@ -118,7 +142,7 @@
 }
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
-/* --- HORIZONTAL ARMS --- */
+/* --- HORIZONTAL ARMS (Direct connection) --- */
 .arm {
   height: 2px;
   flex: 1; 
@@ -154,7 +178,29 @@
 }
 
 /* --- CENTER --- */
-.center { display: grid; justify-items: center; align-items: center; gap: 10px; min-width: 280px; position: relative; z-index: 2; }
+.center { 
+  display: grid; 
+  justify-items: center; 
+  align-items: center; 
+  gap: 10px; 
+  min-width: 280px; 
+  position: relative; 
+  /* Z-INDEX 5: Important! Covers the horizontal beams from the sides */
+  z-index: 5; 
+}
+
+/* Small vertical connector on center trophy to catch the beams */
+.center::before {
+  content: "";
+  position: absolute;
+  top: -30px; /* Catch the Ice line */
+  bottom: -30px; /* Catch the Fire line */
+  left: 50%;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--ice-primary) 0%, transparent 40%, transparent 60%, var(--fire-primary) 100%);
+  z-index: -1;
+}
+
 .title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
 .gfBox { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); border-radius: 4px; font-weight: 800; font-size: 1.2rem; }
 .trophyWrap { margin-bottom: 0; animation: floatTrophy 3s ease-in-out infinite; }
@@ -164,4 +210,5 @@
 @media (max-width: 900px){ 
   .row{ grid-template-columns: 1fr; gap: 40px; }
   .arm, .lineUp, .lineDown { display: none; }
+  .center::before { display: none; }
 }
