@@ -5,18 +5,18 @@
   /* Ice Palette */
   --ice-primary: #00c6ff;
   --ice-secondary: #0072ff;
-  --ice-glow: rgba(0, 198, 255, 0.4);
-  --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.2), transparent);
+  --ice-glow: rgba(0, 198, 255, 0.6); /* Increased opacity */
+  --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.3), transparent);
 
   /* Fire Palette */
   --fire-primary: #ff4b1f;
   --fire-secondary: #ffaa00;
-  --fire-glow: rgba(255, 75, 31, 0.4);
-  --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.2), transparent);
+  --fire-glow: rgba(255, 75, 31, 0.6); /* Increased opacity */
+  --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.3), transparent);
 
   /* Clash/Gold Palette */
   --clash-primary: #ffd700;
-  --clash-glow: rgba(255, 215, 0, 0.5);
+  --clash-glow: rgba(255, 215, 0, 0.8);
 
   /* Layout: Full viewport width, centered */
   width: 100vw; 
@@ -29,7 +29,6 @@
   min-height: 100vh;
   background-color: #050505;
 
-  /* 🔁 Symmetric centered background */
   background-image:
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
     linear-gradient(
@@ -49,7 +48,7 @@
   flex-direction: column;
   align-items: center;   
   justify-content: center;
-  overflow-x: hidden; /* Prevent horizontal scroll bar if possible */
+  overflow-x: hidden;
   padding: 40px 0;
 }
 
@@ -75,7 +74,6 @@
   font-weight: 300;
 }
 
-/* The Main Bracket Layout */
 .bracketWrapper {
   display: flex;
   justify-content: center;
@@ -92,30 +90,24 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  
-  /* --- SYMMETRY FIX --- */
-  /* This forces columns to be mathematically equal width regardless of text content */
   flex: 1 1 0px; 
-  min-width: 0; /* Allows the column to shrink below the text width */
-  /* -------------------- */
-  
+  min-width: 0; 
   gap: 20px;
   position: relative;
 }
 
 .columnMid {
-  /* Keep the center column fixed width so it doesn't get crushed */
   flex: 0 0 260px;
   justify-content: center;
   z-index: 2; 
 }
 
-/* Connector Lines Logic */
+/* Connector Lines */
 .column::before {
   content: "";
   position: absolute;
   top: 50%;
-  width: 20px; /* Slightly shorter lines to fit tightly */
+  width: 20px; 
   height: 2px;
   opacity: 0.5;
 }
@@ -137,113 +129,104 @@
   width: 100%;
 }
 
-/* --- BASE CARD STYLING --- */
+/* --- MATCH CARDS --- */
 .matchCard {
   background: rgba(20, 25, 35, 0.95);
   backdrop-filter: blur(5px);
   width: 100%;
-  /* Removed fixed padding, using flex centering inside team rows instead */
   padding: 4px 0; 
   position: relative;
-  clip-path: polygon(
-    10px 0,
-    100% 0,
-    100% calc(100% - 10px),
-    calc(100% - 10px) 100%,
-    0 100%,
-    0 10px
-  );
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   transition: all 0.3s ease;
   border: 1px solid transparent;
 }
 
-/* --- ICE THEME CARDS (Left Side) --- */
+/* Ice Theme */
 .cardIce {
   border-color: rgba(0, 198, 255, 0.3);
-  box-shadow: 0 0 10px var(--ice-glow), inset 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 .cardIce:hover {
   border-color: var(--ice-primary);
-  box-shadow: 0 0 20px var(--ice-glow), inset 0 0 15px var(--ice-glow);
+  box-shadow: 0 0 20px var(--ice-glow);
   background: rgba(10, 30, 50, 1);
 }
+/* ICE WINNER GLOW */
 .cardIce .winnerRow {
-  color: var(--ice-primary);
-  text-shadow: 0 0 8px var(--ice-glow);
+  color: #fff;
   background: var(--ice-bg-win);
+  /* Strong Neon Blue Glow */
+  text-shadow: 
+    0 0 5px var(--ice-primary),
+    0 0 10px var(--ice-primary),
+    0 0 20px var(--ice-secondary);
+  font-weight: 700;
 }
 
-/* --- FIRE THEME CARDS (Right Side) --- */
+/* Fire Theme */
 .cardFire {
   border-color: rgba(255, 75, 31, 0.3);
-  box-shadow: 0 0 10px var(--fire-glow), inset 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 .cardFire:hover {
   border-color: var(--fire-primary);
-  box-shadow: 0 0 20px var(--fire-glow), inset 0 0 15px var(--fire-glow);
+  box-shadow: 0 0 20px var(--fire-glow);
   background: rgba(50, 20, 10, 1);
 }
+/* FIRE WINNER GLOW */
 .cardFire .winnerRow {
-  color: var(--fire-secondary);
-  text-shadow: 0 0 8px var(--fire-glow);
+  color: #fff;
   background: var(--fire-bg-win);
+  /* Strong Neon Orange Glow */
+  text-shadow: 
+    0 0 5px var(--fire-primary),
+    0 0 10px var(--fire-primary),
+    0 0 20px var(--fire-secondary);
+  font-weight: 700;
 }
 
-/* --- CLASH/FINALS CARD (Middle) --- */
+/* Clash/Finals Theme */
 .cardClash {
   border-color: var(--clash-primary);
   box-shadow: 0 0 30px var(--clash-glow);
   transform: scale(1.15);
-  background: linear-gradient(
-    135deg,
-    rgba(30, 10, 0, 0.9),
-    rgba(0, 10, 30, 0.9)
-  );
+  background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
 }
 .cardClash .winnerRow {
-  color: var(--clash-primary);
-  text-shadow: 0 0 10px var(--clash-glow);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 215, 0, 0.2),
-    transparent
-  );
+  color: #fff;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent);
+  text-shadow: 
+    0 0 5px var(--clash-primary),
+    0 0 15px var(--clash-primary),
+    0 0 30px var(--clash-primary);
 }
 
-/* Team Rows Generic */
 .team {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6px 8px; /* Slightly reduced padding */
+  padding: 6px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   text-align: center;
   width: 100%;
+  transition: all 0.3s ease;
 }
-
 .team:last-child {
   border-bottom: none;
 }
 
-/* --- TEXT SIZING & WRAPPING FIX --- */
 .team span {
-  /* Allow text to wrap naturally */
   white-space: normal; 
-  /* Force long strings (like temppj...) to break */
   overflow-wrap: anywhere; 
   word-break: break-word;
-  
-  /* Make text smaller to fit */
   font-size: 0.8rem; 
   line-height: 1.1;
   font-weight: 600;
   letter-spacing: 0.5px;
-  
   display: block;
   width: 100%;
 }
 
-/* Winner Text Styling (Subtle) */
 .winnerText {
   font-size: 1.5rem;
   font-weight: 600;
@@ -255,39 +238,14 @@
   line-height: 1;
 }
 
-/* Mobile Response */
 @media (max-width: 1024px) {
-  .bracketWrapper {
-    flex-direction: column;
-    padding-bottom: 50px;
-  }
-  .column {
-    flex: 1; 
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  .columnMid {
-    order: -1; 
-    margin-bottom: 40px;
-    flex: 0 0 auto;
-    width: 100%;
-  }
-  .matchWrapper {
-    width: 45%; 
-  }
-  .column::before {
-    display: none;
-  }
-  .container {
-    height: auto;
-    min-height: 100vh;
-  }
+  .bracketWrapper { flex-direction: column; padding-bottom: 50px; }
+  .column { flex: 1; flex-direction: row; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .columnMid { order: -1; margin-bottom: 40px; flex: 0 0 auto; width: 100%; }
+  .matchWrapper { width: 45%; }
+  .column::before { display: none; }
+  .container { height: auto; min-height: 100vh; }
 }
-
 @media (max-width: 600px) {
-  .matchWrapper {
-    width: 100%; 
-  }
+  .matchWrapper { width: 100%; }
 }
