@@ -126,21 +126,21 @@ export default function LosersBracket16(props) {
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Final</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            {/* TARGET ID */}
             <div id="lb-final-target" style={{width: '100%'}}>
                <MatchCard match={matches.LBF[0]} theme="clash" />
             </div>
           </div>
         </div>
 
-        {/* COL 7: LB CHAMPION */}
+        {/* COL 7: LB CHAMPION (Hidden title to maintain spacing) */}
         <div className={s.column} style={{ flex: '0 0 200px'}}>
-           {/* --- REMOVED THE "LB CHAMPION" HEADER TEXT HERE --- */}
-           {/* We keep an empty spacer if needed, or just nothing so the box aligns */}
+           {/* --- RESTORED BUT HIDDEN --- */}
+           <h3 className={`${s.roundTitle} ${s.clashTitle}`} style={{ visibility: "hidden" }}>
+             LB Champion
+           </h3>
            
            <div className={`${s.matchContainer} ${s.connectorLeft}`}>
              <div className={s.matchWrapper}>
-                {/* Keeping this "WINNER" label as it floats above the box */}
                 <h2 className={s.winnerText}>WINNER</h2>
                 <div className={`${s.matchCard} ${s.cardClash}`}>
                    <div className={`${s.team} ${s.winnerRow}`}>
