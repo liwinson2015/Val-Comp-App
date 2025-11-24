@@ -7,11 +7,9 @@ function inferWinners(currentRound, nextRound) {
   if (!currentRound || !nextRound) return;
 
   currentRound.forEach((match) => {
-    // If Player 1 is found in the next round, P1 won this match
     if (match.p1 !== "TBD" && playerExistsInRound(match.p1, nextRound)) {
       match.winner = 1;
     } 
-    // If Player 2 is found in the next round, P2 won this match
     else if (match.p2 !== "TBD" && playerExistsInRound(match.p2, nextRound)) {
       match.winner = 2;
     }
@@ -24,7 +22,6 @@ function playerExistsInRound(playerName, roundMatches) {
   );
 }
 
-// Convert ["A","B"] pairs into match objects
 function pairsToMatches(pairs, prefix) {
   return (pairs || []).map((pair, idx) => ({
     id: `${prefix}-${idx}`,
@@ -34,7 +31,6 @@ function pairsToMatches(pairs, prefix) {
   }));
 }
 
-// Single match card
 function MatchCard({ match, theme = "ice" }) {
   if (!match) return <div className={s.matchWrapper}></div>;
 
@@ -45,18 +41,10 @@ function MatchCard({ match, theme = "ice" }) {
   return (
     <div className={s.matchWrapper}>
       <div className={`${s.matchCard} ${themeClass}`}>
-        <div
-          className={`${s.team} ${
-            match.winner === 1 ? s.winnerRow : ""
-          }`}
-        >
+        <div className={`${s.team} ${match.winner === 1 ? s.winnerRow : ""}`}>
           <span>{match.p1}</span>
         </div>
-        <div
-          className={`${s.team} ${
-            match.winner === 2 ? s.winnerRow : ""
-          }`}
-        >
+        <div className={`${s.team} ${match.winner === 2 ? s.winnerRow : ""}`}>
           <span>{match.p2}</span>
         </div>
       </div>
@@ -67,17 +55,12 @@ function MatchCard({ match, theme = "ice" }) {
 export default function Bracket16({ data }) {
   const D = normalizeData(data);
 
-  // 1. Create Match Objects
+  // 1. Create Matches
   const leftSide = {
     round1: pairsToMatches(D.left.R16, "L-R16"),
     round2: pairsToMatches(D.left.QF, "L-QF"),
     semis: [
-      {
-        id: "L-SF-0",
-        p1: D.left.SF?.[0] || "TBD",
-        p2: D.left.SF?.[1] || "TBD",
-        winner: 0,
-      },
+      { id: "L-SF-0", p1: D.left.SF?.[0] || "TBD", p2: D.left.SF?.[1] || "TBD", winner: 0 },
     ],
   };
 
@@ -85,16 +68,10 @@ export default function Bracket16({ data }) {
     round1: pairsToMatches(D.right.R16, "R-R16"),
     round2: pairsToMatches(D.right.QF, "R-QF"),
     semis: [
-      {
-        id: "R-SF-0",
-        p1: D.right.SF?.[0] || "TBD",
-        p2: D.right.SF?.[1] || "TBD",
-        winner: 0,
-      },
+      { id: "R-SF-0", p1: D.right.SF?.[0] || "TBD", p2: D.right.SF?.[1] || "TBD", winner: 0 },
     ],
   };
 
-  // 2. Finals Object
   let finalWinner = 0;
   if (D.final.champion && D.final.champion !== "TBD") {
     if (D.final.champion === D.final.left) finalWinner = 1;
@@ -108,22 +85,16 @@ export default function Bracket16({ data }) {
     winner: finalWinner,
   };
 
-  // 3. INFER WINNERS (Look Ahead Logic)
-  
-  // Left Side: R16 -> QF -> SF -> Final
+  // 2. Infer Winners
   inferWinners(leftSide.round1, leftSide.round2);
   inferWinners(leftSide.round2, leftSide.semis);
-  // Check if Semi-Final winner made it to the Grand Final (Left side of final)
   if (leftSide.semis[0].p1 === finalsMatch.p1) leftSide.semis[0].winner = 1;
   if (leftSide.semis[0].p2 === finalsMatch.p1) leftSide.semis[0].winner = 2;
 
-  // Right Side: R16 -> QF -> SF -> Final
   inferWinners(rightSide.round1, rightSide.round2);
   inferWinners(rightSide.round2, rightSide.semis);
-  // Check if Semi-Final winner made it to the Grand Final (Right side of final)
   if (rightSide.semis[0].p1 === finalsMatch.p2) rightSide.semis[0].winner = 1;
   if (rightSide.semis[0].p2 === finalsMatch.p2) rightSide.semis[0].winner = 2;
-
 
   return (
     <div className={s.container}>
@@ -133,47 +104,66 @@ export default function Bracket16({ data }) {
       </header>
 
       <div className={s.bracketWrapper}>
-        {/* --- LEFT SIDE (ICE THEME) --- */}
+        {/* --- LEFT SIDE (ICE) --- */}
+        
+        {/* Round of 16 */}
         <div className={`${s.column} ${s.columnLeft}`}>
-          {leftSide.round1.map((m) => (
-            <MatchCard key={m.id} match={m} theme="ice" />
-          ))}
-        </div>
-        <div className={`${s.column} ${s.columnLeft}`}>
-          {leftSide.round2.map((m) => (
-            <MatchCard key={m.id} match={m} theme="ice" />
-          ))}
-        </div>
-        <div className={`${s.column} ${s.columnLeft}`}>
-          {leftSide.semis.map((m) => (
-            <MatchCard key={m.id} match={m} theme="ice" />
-          ))}
-        </div>
-
-        {/* --- MIDDLE (CLASH THEME) --- */}
-        <div className={`${s.column} ${s.columnMid}`}>
-          <div style={{ textAlign: "center", marginBottom: "10px" }}>
-            <h2 className={s.winnerText}>WINNER</h2>
+          <h3 className={s.roundTitle}>Round of 16</h3>
+          <div className={s.matchContainer}>
+            {leftSide.round1.map((m) => <MatchCard key={m.id} match={m} theme="ice" />)}
           </div>
-          <MatchCard match={finalsMatch} theme="clash" />
         </div>
 
-        {/* --- RIGHT SIDE (FIRE THEME) --- */}
-        <div className={`${s.column} ${s.columnRight}`}>
-          {rightSide.semis.map((m) => (
-            <MatchCard key={m.id} match={m} theme="fire" />
-          ))}
+        {/* Quarter Finals */}
+        <div className={`${s.column} ${s.columnLeft}`}>
+          <h3 className={s.roundTitle}>Quarter Final</h3>
+          <div className={s.matchContainer}>
+            {leftSide.round2.map((m) => <MatchCard key={m.id} match={m} theme="ice" />)}
+          </div>
         </div>
-        <div className={`${s.column} ${s.columnRight}`}>
-          {rightSide.round2.map((m) => (
-            <MatchCard key={m.id} match={m} theme="fire" />
-          ))}
+
+        {/* Semi Finals */}
+        <div className={`${s.column} ${s.columnLeft}`}>
+          <h3 className={s.roundTitle}>Semi Final</h3>
+          <div className={s.matchContainer}>
+            {leftSide.semis.map((m) => <MatchCard key={m.id} match={m} theme="ice" />)}
+          </div>
         </div>
-        <div className={`${s.column} ${s.columnRight}`}>
-          {rightSide.round1.map((m) => (
-            <MatchCard key={m.id} match={m} theme="fire" />
-          ))}
+
+        {/* --- MIDDLE (FINAL) --- */}
+        <div className={`${s.column} ${s.columnMid}`}>
+          <h3 className={s.roundTitle}>Grand Final</h3>
+          <div className={s.matchContainer}>
+             <MatchCard match={finalsMatch} theme="clash" />
+          </div>
         </div>
+
+        {/* --- RIGHT SIDE (FIRE) --- */}
+
+        {/* Semi Finals */}
+        <div className={`${s.column} ${s.columnRight}`}>
+          <h3 className={s.roundTitle}>Semi Final</h3>
+          <div className={s.matchContainer}>
+            {rightSide.semis.map((m) => <MatchCard key={m.id} match={m} theme="fire" />)}
+          </div>
+        </div>
+
+        {/* Quarter Finals */}
+        <div className={`${s.column} ${s.columnRight}`}>
+          <h3 className={s.roundTitle}>Quarter Final</h3>
+          <div className={s.matchContainer}>
+            {rightSide.round2.map((m) => <MatchCard key={m.id} match={m} theme="fire" />)}
+          </div>
+        </div>
+
+        {/* Round of 16 */}
+        <div className={`${s.column} ${s.columnRight}`}>
+          <h3 className={s.roundTitle}>Round of 16</h3>
+          <div className={s.matchContainer}>
+            {rightSide.round1.map((m) => <MatchCard key={m.id} match={m} theme="fire" />)}
+          </div>
+        </div>
+
       </div>
     </div>
   );

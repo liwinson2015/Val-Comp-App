@@ -5,13 +5,13 @@
   /* Ice Palette */
   --ice-primary: #00c6ff;
   --ice-secondary: #0072ff;
-  --ice-glow: rgba(0, 198, 255, 0.6); /* Increased opacity */
+  --ice-glow: rgba(0, 198, 255, 0.6);
   --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.3), transparent);
 
   /* Fire Palette */
   --fire-primary: #ff4b1f;
   --fire-secondary: #ffaa00;
-  --fire-glow: rgba(255, 75, 31, 0.6); /* Increased opacity */
+  --fire-glow: rgba(255, 75, 31, 0.6);
   --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.3), transparent);
 
   /* Clash/Gold Palette */
@@ -54,7 +54,7 @@
 
 .header {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
   text-transform: uppercase;
   letter-spacing: 4px;
 }
@@ -77,10 +77,10 @@
 .bracketWrapper {
   display: flex;
   justify-content: center;
-  align-items: stretch;
+  align-items: stretch; /* Stretch columns to full height */
   gap: 20px;
   width: 100%;
-  max-width: 1600px;
+  max-width: 1700px; /* Slightly wider to accommodate titles */
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -89,21 +89,51 @@
 .column {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  /* Removed 'justify-content: space-around' here to allow header at top */
   flex: 1 1 0px; 
   min-width: 0; 
-  gap: 20px;
+  gap: 15px;
   position: relative;
 }
 
 .columnMid {
   flex: 0 0 260px;
-  justify-content: center;
   z-index: 2; 
 }
 
-/* Connector Lines */
-.column::before {
+/* New: Round Title Styling */
+.roundTitle {
+  text-align: center;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  opacity: 0.8;
+  height: 30px; /* Fixed height to ensure alignment across columns */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Theme specific title colors */
+.columnLeft .roundTitle { color: var(--ice-primary); text-shadow: 0 0 10px rgba(0,198,255,0.3); }
+.columnRight .roundTitle { color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3); }
+.columnMid .roundTitle { color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+
+/* New: Container for matches to ensure they space correctly BELOW title */
+.matchContainer {
+  flex: 1; /* Take up remaining space */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around; /* Distribute matches evenly */
+  width: 100%;
+  gap: 20px;
+}
+
+/* Connector Lines - Adjusted to align with matchContainer */
+/* We target the matchContainer for the pseudo-element so lines align with boxes, not the header */
+.matchContainer::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -112,12 +142,14 @@
   opacity: 0.5;
 }
 
-.columnLeft::before {
+/* Left side lines on right of container */
+.columnLeft .matchContainer::before {
   right: -10px;
   background: linear-gradient(90deg, var(--ice-primary), transparent);
 }
 
-.columnRight::before {
+/* Right side lines on left of container */
+.columnRight .matchContainer::before {
   left: -10px;
   background: linear-gradient(270deg, var(--fire-primary), transparent);
 }
@@ -141,7 +173,6 @@
   border: 1px solid transparent;
 }
 
-/* Ice Theme */
 .cardIce {
   border-color: rgba(0, 198, 255, 0.3);
   box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
@@ -151,19 +182,13 @@
   box-shadow: 0 0 20px var(--ice-glow);
   background: rgba(10, 30, 50, 1);
 }
-/* ICE WINNER GLOW */
 .cardIce .winnerRow {
   color: #fff;
   background: var(--ice-bg-win);
-  /* Strong Neon Blue Glow */
-  text-shadow: 
-    0 0 5px var(--ice-primary),
-    0 0 10px var(--ice-primary),
-    0 0 20px var(--ice-secondary);
+  text-shadow: 0 0 5px var(--ice-primary), 0 0 10px var(--ice-primary), 0 0 20px var(--ice-secondary);
   font-weight: 700;
 }
 
-/* Fire Theme */
 .cardFire {
   border-color: rgba(255, 75, 31, 0.3);
   box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
@@ -173,19 +198,13 @@
   box-shadow: 0 0 20px var(--fire-glow);
   background: rgba(50, 20, 10, 1);
 }
-/* FIRE WINNER GLOW */
 .cardFire .winnerRow {
   color: #fff;
   background: var(--fire-bg-win);
-  /* Strong Neon Orange Glow */
-  text-shadow: 
-    0 0 5px var(--fire-primary),
-    0 0 10px var(--fire-primary),
-    0 0 20px var(--fire-secondary);
+  text-shadow: 0 0 5px var(--fire-primary), 0 0 10px var(--fire-primary), 0 0 20px var(--fire-secondary);
   font-weight: 700;
 }
 
-/* Clash/Finals Theme */
 .cardClash {
   border-color: var(--clash-primary);
   box-shadow: 0 0 30px var(--clash-glow);
@@ -195,10 +214,7 @@
 .cardClash .winnerRow {
   color: #fff;
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent);
-  text-shadow: 
-    0 0 5px var(--clash-primary),
-    0 0 15px var(--clash-primary),
-    0 0 30px var(--clash-primary);
+  text-shadow: 0 0 5px var(--clash-primary), 0 0 15px var(--clash-primary), 0 0 30px var(--clash-primary);
 }
 
 .team {
@@ -227,23 +243,14 @@
   width: 100%;
 }
 
-.winnerText {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: 3px;
-  color: var(--clash-primary);
-  opacity: 0.9;
-  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-  margin: 0;
-  line-height: 1;
-}
-
 @media (max-width: 1024px) {
   .bracketWrapper { flex-direction: column; padding-bottom: 50px; }
   .column { flex: 1; flex-direction: row; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
   .columnMid { order: -1; margin-bottom: 40px; flex: 0 0 auto; width: 100%; }
+  .matchContainer { flex-direction: row; flex-wrap: wrap; gap: 10px; } /* Mobile match flow */
+  .roundTitle { width: 100%; margin-bottom: 10px; } /* Header takes full width on mobile */
   .matchWrapper { width: 45%; }
-  .column::before { display: none; }
+  .matchContainer::before { display: none; }
   .container { height: auto; min-height: 100vh; }
 }
 @media (max-width: 600px) {
