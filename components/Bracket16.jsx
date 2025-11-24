@@ -128,13 +128,20 @@ export default function Bracket16({ data }) {
 
         {/* --- MIDDLE (FINAL) --- */}
         <div className={`${s.column} ${s.columnMid}`}>
-          {/* RENAMED TO FINAL */}
           <h3 className={s.roundTitle}>FINAL</h3>
           <div className={s.matchContainer}>
-             {/* ADDED "WINNER" TEXT ABOVE CARD */}
-             <div style={{width: '100%'}}>
+             {/* Put text INSIDE the matchWrapper so it floats relative to the box */}
+             <div className={s.matchWrapper}>
                 <h2 className={s.winnerText}>WINNER</h2>
-                <MatchCard match={finalsMatch} theme="clash" />
+                {/* Manually rendering MatchCard internals to insert text in wrapper */}
+                <div className={`${s.matchCard} ${s.cardClash}`}>
+                  <div className={`${s.team} ${finalsMatch.winner === 1 ? s.winnerRow : ""}`}>
+                    <span>{finalsMatch.p1}</span>
+                  </div>
+                  <div className={`${s.team} ${finalsMatch.winner === 2 ? s.winnerRow : ""}`}>
+                    <span>{finalsMatch.p2}</span>
+                  </div>
+                </div>
              </div>
           </div>
         </div>

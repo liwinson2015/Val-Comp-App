@@ -119,23 +119,14 @@
 .columnRight .roundTitle { color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3); }
 .columnMid .roundTitle { color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3); }
 
-/* NEW: Winner Text Styling */
-.winnerText {
-  text-align: center;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: 3px;
-  color: var(--clash-primary);
-  text-shadow: 0 0 10px var(--clash-glow);
-  margin: 0 0 10px 0; /* Add spacing below text */
-}
-
 /* Match Container */
 .matchContainer {
   flex: 1; 
   display: flex;
   flex-direction: column;
-  justify-content: space-around; 
+  justify-content: space-around;
+  /* Ensure centers align */
+  align-items: center;  
   width: 100%;
   gap: 20px;
 }
@@ -161,6 +152,7 @@
 .matchWrapper {
   position: relative;
   display: flex;
+  justify-content: center;
   align-items: center;
   width: 100%;
 }
@@ -219,6 +211,22 @@
   color: #fff;
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent);
   text-shadow: 0 0 5px var(--clash-primary), 0 0 15px var(--clash-primary), 0 0 30px var(--clash-primary);
+}
+
+/* --- FIXED: WINNER TEXT HEADER (Absolute Positioning) --- */
+.winnerText {
+  position: absolute;
+  bottom: 100%; /* Position right above the wrapper */
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--clash-primary);
+  text-shadow: 0 0 10px var(--clash-glow);
+  margin: 0 0 12px 0; /* Spacing between text and box */
+  pointer-events: none;
 }
 
 .team {
