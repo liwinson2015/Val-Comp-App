@@ -21,15 +21,21 @@
   width: 100%;
   min-height: 100vh;
   background-color: #050505;
+
+  /* 🔁 Symmetric centered background (no visual shift left/right) */
   background-image:
-    radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
     linear-gradient(
       90deg,
-      rgba(0, 20, 40, 1) 0%,
-      rgba(5, 5, 10, 1) 45%,
-      rgba(5, 5, 10, 1) 55%,
-      rgba(40, 10, 0, 1) 100%
+      rgba(0, 20, 40, 0.9) 0%,
+      rgba(0, 20, 40, 0.9) 30%,
+      rgba(5, 5, 10, 1) 50%,
+      rgba(40, 10, 0, 0.9) 70%,
+      rgba(40, 10, 0, 0.9) 100%
     );
+  background-position: center;
+  background-size: cover;
+
   color: #fff;
   font-family: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
