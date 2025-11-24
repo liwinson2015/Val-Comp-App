@@ -32,10 +32,12 @@ export default function GrandFinalCenter({
     <div className={s.wrap}>
       <div className={s.row}>
         
-        {/* LEFT (WB side) - Ice Theme */}
+        {/* LEFT (WB side) */}
         <div className={`${s.source} ${s.left}`}>
           <div className={s.slotWrapper}>
-             {/* The Line Structure: UP then RIGHT */}
+             {/* This .lineUp now handles the logic: 
+               Vertical UP -> Horizontal RIGHT -> Vertical UP 
+             */}
              <div className={s.lineUp} />
              
              <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
@@ -53,14 +55,10 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* RIGHT (LB side) - Fire Theme */}
+        {/* RIGHT (LB side) - Lines Hidden for now as requested */}
         <div className={`${s.source} ${s.right}`}>
           <div className={`${s.arm} ${s.armRight}`} />
-          
           <div className={s.slotWrapper}>
-             {/* The Line Structure: DOWN then LEFT */}
-             <div className={s.lineDown} />
-             
              <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
              <div className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</div>
           </div>

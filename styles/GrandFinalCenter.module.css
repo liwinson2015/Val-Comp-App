@@ -41,7 +41,6 @@
   position: relative; 
 }
 
-/* ===== SIDES ===== */
 .source {
   position: relative;
   display: flex;
@@ -57,55 +56,45 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 2; /* Above the lines */
+  z-index: 2;
 }
 
-/* --- VERTICAL & HORIZONTAL LINES --- */
-
-/* ICE: UP and RIGHT */
+/* --- WINNERS LINE (Upper Bracket) --- */
+/* 1. Vertical Line UP from Slot */
 .lineUp {
   position: absolute;
   bottom: 50%; 
   left: 50%;
   width: 2px;
-  height: 80px; /* Vertical UP */
+  height: 60px; /* Go UP 60px */
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
   z-index: -1; 
 }
-/* Horizontal Beam to Center */
+
+/* 2. Horizontal Line RIGHT towards Center */
 .lineUp::after {
   content: "";
   position: absolute;
-  top: 0; /* Top of the vertical line */
+  top: 0; 
   left: 0;
   height: 2px;
-  width: 50vw; /* Stretch far to the right */
+  /* 18vw is approx distance from 25% (slot) to 50% (center) */
+  width: 18vw; 
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
 }
 
-/* FIRE: DOWN and LEFT */
-.lineDown {
-  position: absolute;
-  top: 50%; 
-  left: 50%;
-  width: 2px;
-  height: 80px; /* Vertical DOWN */
-  background: var(--fire-primary);
-  box-shadow: 0 0 10px var(--fire-glow);
-  z-index: -1; 
-}
-/* Horizontal Beam to Center */
-.lineDown::after {
+/* 3. Vertical Line UP to the Final Match */
+.lineUp::before {
   content: "";
   position: absolute;
-  bottom: 0; /* Bottom of the vertical line */
-  right: 0;  /* Align to right side of vertical line */
-  height: 2px;
-  width: 50vw; /* Stretch far to the left */
-  background: var(--fire-primary);
-  box-shadow: 0 0 10px var(--fire-glow);
+  top: -60px; /* Start higher up */
+  right: -18vw; /* Align with the end of the horizontal line */
+  width: 2px;
+  height: 60px; /* Connect down to the horizontal line */
+  background: linear-gradient(to top, var(--ice-primary), transparent);
+  box-shadow: 0 0 10px var(--ice-glow);
 }
 
 
@@ -142,7 +131,7 @@
 }
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
-/* --- HORIZONTAL ARMS (Direct connection) --- */
+/* --- ARMS --- */
 .arm {
   height: 2px;
   flex: 1; 
@@ -178,29 +167,7 @@
 }
 
 /* --- CENTER --- */
-.center { 
-  display: grid; 
-  justify-items: center; 
-  align-items: center; 
-  gap: 10px; 
-  min-width: 280px; 
-  position: relative; 
-  /* Z-INDEX 5: Important! Covers the horizontal beams from the sides */
-  z-index: 5; 
-}
-
-/* Small vertical connector on center trophy to catch the beams */
-.center::before {
-  content: "";
-  position: absolute;
-  top: -30px; /* Catch the Ice line */
-  bottom: -30px; /* Catch the Fire line */
-  left: 50%;
-  width: 2px;
-  background: linear-gradient(to bottom, var(--ice-primary) 0%, transparent 40%, transparent 60%, var(--fire-primary) 100%);
-  z-index: -1;
-}
-
+.center { display: grid; justify-items: center; align-items: center; gap: 10px; min-width: 280px; position: relative; z-index: 2; }
 .title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
 .gfBox { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); border-radius: 4px; font-weight: 800; font-size: 1.2rem; }
 .trophyWrap { margin-bottom: 0; animation: floatTrophy 3s ease-in-out infinite; }
@@ -209,6 +176,5 @@
 
 @media (max-width: 900px){ 
   .row{ grid-template-columns: 1fr; gap: 40px; }
-  .arm, .lineUp, .lineDown { display: none; }
-  .center::before { display: none; }
+  .arm, .lineUp { display: none; }
 }
