@@ -1,7 +1,7 @@
 /* styles/GrandFinalCenter.module.css */
 
 .wrap {
-  /* Theme Vars */
+  /* --- Theme Vars --- */
   --ice-primary: #00c6ff;
   --ice-glow: rgba(0, 198, 255, 0.6);
   --fire-primary: #ff4b1f;
@@ -9,13 +9,17 @@
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.8);
 
-  /* Layout */
+  /* --- Full Screen Breakout Fix --- */
   width: 100vw;
   position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  
+  /* Robust centering calculation */
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  
+  /* Remove any default margins that might shift it */
+  left: auto;
+  right: auto;
 
   /* Seamless Background Match */
   background-color: #050505;
@@ -35,9 +39,8 @@
   display: grid;
   place-items: center;
   
-  /* FIX: No margins, only padding, so background touches neighbors */
-  margin: 0;
-  padding: 20px 0;
+  /* Padding top/bottom to space it out */
+  padding: 40px 0;
 }
 
 .row {
