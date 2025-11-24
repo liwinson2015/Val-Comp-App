@@ -48,40 +48,44 @@
   align-items: center;
 }
 
-/* Left: Slot on left, Arm on right */
-.left {
-  justify-content: flex-end; /* Push slot against the center gap */
-  flex-direction: row;
-}
+.left { justify-content: flex-end; }
+.right { justify-content: flex-start; }
 
-/* Right: Arm on left, Slot on right */
-.right {
-  justify-content: flex-start;
-  flex-direction: row;
-}
-
-/* --- HORIZONTAL ARMS (Linking to Champion) --- */
-.arm {
-  height: 2px;
-  flex: 1; /* Stretch to fill space between slot and center */
-  min-width: 20px;
+/* --- SLOT WRAPPER (The Fix) --- */
+/* Holds the Slot, the Label, and the Vertical Line together */
+.slotWrapper {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
 }
 
-.armLeft {
-  /* Gradient from Blue (slot side) to Transparent/Center */
-  background: linear-gradient(90deg, var(--ice-primary), rgba(0, 198, 255, 0.2));
-  box-shadow: 0 0 5px var(--ice-glow);
+/* --- VERTICAL LINES --- */
+/* These sit inside the wrapper but outside the clipped slot */
+.lineUp {
+  position: absolute;
+  bottom: 50%; /* Start from center of slot */
+  left: 50%;
+  width: 2px;
+  height: 100px; /* Reach UP */
+  background: linear-gradient(to top, var(--ice-primary), transparent);
+  box-shadow: 0 0 10px var(--ice-glow);
+  z-index: -1; /* Behind the slot */
 }
 
-.armRight {
-  /* Gradient from Transparent/Center to Orange (slot side) */
-  background: linear-gradient(90deg, rgba(255, 75, 31, 0.2), var(--fire-primary));
-  box-shadow: 0 0 5px var(--fire-glow);
+.lineDown {
+  position: absolute;
+  top: 50%; /* Start from center of slot */
+  left: 50%;
+  width: 2px;
+  height: 100px; /* Reach DOWN */
+  background: linear-gradient(to bottom, var(--fire-primary), transparent);
+  box-shadow: 0 0 10px var(--fire-glow);
+  z-index: -1; /* Behind the slot */
 }
 
-
-/* --- SLOTS & VERTICAL EXTENSIONS --- */
+/* --- SLOTS --- */
 .slot {
   height: 44px;
   min-width: 180px;
@@ -96,58 +100,37 @@
   font-weight: 700;
   font-size: 14px;
   transition: all 0.3s ease;
-  position: relative; /* Anchor for vertical lines */
+  position: relative;
   z-index: 2;
 }
 
-/* ICE THEME + VERTICAL UP LINE */
 .ice { 
   border-color: rgba(0, 198, 255, 0.3); 
   box-shadow: 0 0 10px rgba(0, 198, 255, 0.1);
-  /* Corner clip style */
   clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
 }
 .ice:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); }
 
-/* The Line Going UP to Winners Bracket */
-.ice::before {
-  content: "";
-  position: absolute;
-  bottom: 100%; /* Start at top of slot */
-  left: 50%;
-  width: 2px;
-  height: 80px; /* Reach up high */
-  background: linear-gradient(to top, var(--ice-primary), transparent);
-  box-shadow: 0 0 8px var(--ice-glow);
-}
-
-
-/* FIRE THEME + VERTICAL DOWN LINE */
 .fire { 
   border-color: rgba(255, 75, 31, 0.3); 
   box-shadow: 0 0 10px rgba(255, 75, 31, 0.1);
-  /* Corner clip style (opposite corner) */
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
 }
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
-/* The Line Going DOWN to Losers Bracket */
-.fire::before {
-  content: "";
-  position: absolute;
-  top: 100%; /* Start at bottom of slot */
-  left: 50%;
-  width: 2px;
-  height: 80px; /* Reach down deep */
-  background: linear-gradient(to bottom, var(--fire-primary), transparent);
-  box-shadow: 0 0 8px var(--fire-glow);
+/* --- HORIZONTAL ARMS --- */
+.arm {
+  height: 2px;
+  flex: 1; 
+  min-width: 20px;
+  position: relative;
 }
-
+.armLeft { background: linear-gradient(90deg, var(--ice-primary), rgba(0, 198, 255, 0.2)); box-shadow: 0 0 5px var(--ice-glow); }
+.armRight { background: linear-gradient(90deg, rgba(255, 75, 31, 0.2), var(--fire-primary)); box-shadow: 0 0 5px var(--fire-glow); }
 
 /* --- LABELS --- */
 .sideLabel {
   position: absolute;
-  /* Position above/below appropriately */
   width: 100%; 
   text-align: center;
   font-size: 0.75rem;
@@ -157,16 +140,12 @@
   pointer-events: none; 
   white-space: nowrap;
 }
-
-/* Ice Label sits ABOVE the slot (next to the up-line) */
 .iceLabel { 
   bottom: 100%; 
   margin-bottom: 8px;
   color: var(--ice-primary); 
   text-shadow: 0 0 15px var(--ice-glow); 
 }
-
-/* Fire Label sits BELOW the slot (next to the down-line) */
 .fireLabel { 
   top: 100%; 
   margin-top: 8px;
@@ -174,46 +153,15 @@
   text-shadow: 0 0 15px var(--fire-glow); 
 }
 
-
-/* --- CENTER COMPONENT --- */
-.center { 
-  display: grid; 
-  justify-items: center; 
-  align-items: center; 
-  gap: 10px; 
-  min-width: 280px; 
-  position: relative; 
-  z-index: 2;
-}
-
+/* --- CENTER --- */
+.center { display: grid; justify-items: center; align-items: center; gap: 10px; min-width: 280px; position: relative; z-index: 2; }
 .title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
-
-.gfBox {
-  width: 100%;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
-  color: #ffffff;
-  border: 1px solid var(--clash-primary);
-  box-shadow: 0 0 30px var(--clash-glow);
-  border-radius: 4px;
-  font-weight: 800;
-  font-size: 1.2rem;
-}
-
+.gfBox { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); border-radius: 4px; font-weight: 800; font-size: 1.2rem; }
 .trophyWrap { margin-bottom: 0; animation: floatTrophy 3s ease-in-out infinite; }
 .trophyIcon { width: 50px; height: 50px; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
+@keyframes floatTrophy { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
-@keyframes floatTrophy {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-/* Mobile */
 @media (max-width: 900px){ 
   .row{ grid-template-columns: 1fr; gap: 40px; }
-  .arm { display: none; }
-  .ice::before, .fire::before { display: none; } /* Hide vertical lines on mobile */
+  .arm, .lineUp, .lineDown { display: none; }
 }

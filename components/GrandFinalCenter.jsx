@@ -34,12 +34,13 @@ export default function GrandFinalCenter({
         
         {/* LEFT (WB side) */}
         <div className={`${s.source} ${s.left}`}>
-          {/* Slot contains the Vertical UP line via CSS ::before */}
-          <div className={`${s.slot} ${s.ice}`}>
-             {wbChampion}
+          <div className={s.slotWrapper}>
+             {/* The Vertical Line UP */}
+             <div className={s.lineUp} />
+             
              <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
+             <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
           </div>
-          {/* Horizontal Connector */}
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
@@ -54,12 +55,13 @@ export default function GrandFinalCenter({
 
         {/* RIGHT (LB side) */}
         <div className={`${s.source} ${s.right}`}>
-          {/* Horizontal Connector */}
           <div className={`${s.arm} ${s.armRight}`} />
-          {/* Slot contains the Vertical DOWN line via CSS ::before */}
-          <div className={`${s.slot} ${s.fire}`}>
-             {lbChampion}
-             {/* Label below for cleaner look with the down-line */}
+          
+          <div className={s.slotWrapper}>
+             {/* The Vertical Line DOWN */}
+             <div className={s.lineDown} />
+             
+             <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
              <div className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</div>
           </div>
         </div>
