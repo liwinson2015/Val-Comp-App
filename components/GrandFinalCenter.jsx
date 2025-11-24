@@ -44,26 +44,30 @@ export default function GrandFinalCenter({
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
-      const offY = 100;
-      const riseHeight = 60; 
+      // --- CONFIGURATION ---
+      const offY = 100;        // Matches CSS top: -100px
+      const riseHeight = 60;   // Height of the first vertical segment
+      const labelGap = 40;     // <--- NEW: Gap to clear the text label
+      
+      // --- ICE LINE (Upper) ---
+      const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
+      
+      // Start Y: Top of box MINUS the label gap (Starts above the text)
+      const y1_ice = (leftRect.top - contRect.top) - labelGap; 
+      
+      const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
       
       // Dynamic Target Logic
       const wbTarget = document.getElementById("wb-final-target");
-      const lbTarget = document.getElementById("lb-final-target");
-
-      // --- ICE LINE (Upper) ---
-      const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
-      const y1_ice = leftRect.top - contRect.top; 
-      const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
-      
       let iceTotalHeight = 130;
       let iceRise = riseHeight;
 
       if (wbTarget) {
         const wbRect = wbTarget.getBoundingClientRect();
         const gap = 20; 
-        iceTotalHeight = (leftRect.top - wbRect.bottom) - gap;
-        // Smooth curve: rise 40% of the way before turning
+        // Calculate total height from our NEW starting point (above text)
+        // Distance = (Start Y) - (Target Bottom)
+        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - gap;
         iceRise = iceTotalHeight * 0.4;
       }
 
@@ -76,16 +80,22 @@ export default function GrandFinalCenter({
 
       // --- FIRE LINE (Lower) ---
       const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
-      const y1_fire = rightRect.bottom - contRect.top;
+      
+      // Start Y: Bottom of box PLUS the label gap (Starts below the text)
+      const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
+      
       const x2_fire = centerRect.left + centerRect.width / 2 - contRect.left;
       
+      // Dynamic Target Logic
+      const lbTarget = document.getElementById("lb-final-target");
       let fireTotalHeight = 130;
       let fireDrop = riseHeight;
 
       if (lbTarget) {
         const lbRect = lbTarget.getBoundingClientRect();
         const gap = 20;
-        fireTotalHeight = (lbRect.top - rightRect.bottom) - gap;
+        // Calculate total height from NEW starting point (below text)
+        fireTotalHeight = (lbRect.top - (rightRect.bottom + labelGap)) - gap;
         fireDrop = fireTotalHeight * 0.4;
       }
 
@@ -112,47 +122,39 @@ export default function GrandFinalCenter({
         
         <svg className={s.svgOverlay}>
           <defs>
-            {/* --- ICE GRADIENT (Blue -> Cyan) --- */}
+            {/* ICE GRADIENT */}
             <linearGradient id="iceLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#0055ff" />
               <stop offset="100%" stopColor="#00eaff" />
             </linearGradient>
-            {/* Ice Glow Filter */}
             <filter id="iceGlow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
 
-            {/* --- FIRE GRADIENT (Red -> Orange) --- */}
+            {/* FIRE GRADIENT */}
             <linearGradient id="fireLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ff0055" />
               <stop offset="100%" stopColor="#ff7b00" />
             </linearGradient>
-            {/* Fire Glow Filter */}
             <filter id="fireGlow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
 
           {/* ICE LINE */}
           <path 
             d={paths.ice} 
-            stroke="url(#iceLineGrad)" /* Uses Gradient */
-            strokeWidth="3"            /* Thicker Line */
-            strokeLinecap="round"      /* Rounded Ends */
+            stroke="url(#iceLineGrad)" 
+            strokeWidth="3" 
+            strokeLinecap="round" 
             fill="none" 
-            filter="url(#iceGlow)"     /* Enhanced Glow */
+            filter="url(#iceGlow)" 
             opacity="0.9"
           />
           
-          {/* FIRE LINE (Now Enabled & Dynamic) */}
+          {/* FIRE LINE */}
           <path 
             d={paths.fire} 
             stroke="url(#fireLineGrad)" 
@@ -164,7 +166,6 @@ export default function GrandFinalCenter({
           />
         </svg>
 
-        {/* LEFT (WB side) */}
         <div className={`${s.source} ${s.left}`}>
           <div className={s.slotWrapper}>
              <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
@@ -173,7 +174,6 @@ export default function GrandFinalCenter({
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
-        {/* CENTER */}
         <div className={s.center} ref={centerBoxRef}>
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
@@ -182,7 +182,6 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* RIGHT (LB side) */}
         <div className={`${s.source} ${s.right}`}>
           <div className={`${s.arm} ${s.armRight}`} />
           <div className={s.slotWrapper}>
