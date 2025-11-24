@@ -44,29 +44,24 @@ export default function GrandFinalCenter({
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
-      // --- CONFIGURATION ---
-      const offY = 100;        // Matches CSS top: -100px
-      const riseHeight = 60;   // Height of the first vertical segment
-      const labelGap = 40;     // <--- NEW: Gap to clear the text label
+      const offY = 100;
+      const labelGap = 40;
+      const riseHeight = 60; 
       
-      // --- ICE LINE (Upper) ---
+      const wbTarget = document.getElementById("wb-final-target");
+      const lbTarget = document.getElementById("lb-final-target");
+
+      // --- ICE LINE (Upper) - Unchanged Logic ---
       const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
-      
-      // Start Y: Top of box MINUS the label gap (Starts above the text)
       const y1_ice = (leftRect.top - contRect.top) - labelGap; 
-      
       const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
       
-      // Dynamic Target Logic
-      const wbTarget = document.getElementById("wb-final-target");
       let iceTotalHeight = 130;
       let iceRise = riseHeight;
 
       if (wbTarget) {
         const wbRect = wbTarget.getBoundingClientRect();
         const gap = 20; 
-        // Calculate total height from our NEW starting point (above text)
-        // Distance = (Start Y) - (Target Bottom)
         iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - gap;
         iceRise = iceTotalHeight * 0.4;
       }
@@ -78,32 +73,37 @@ export default function GrandFinalCenter({
         L ${x2_ice} ${y1_ice + offY - iceTotalHeight}
       `;
 
-      // --- FIRE LINE (Lower) ---
-      const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
+      // --- FIRE LINE (Lower) - NEW "STEPPED" LOGIC ---
       
-      // Start Y: Bottom of box PLUS the label gap (Starts below the text)
+      // Start X: Center of the Right Slot (Grand Final)
+      const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
+      // Start Y: Bottom of the Right Slot (+ label gap)
       const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
       
-      const x2_fire = centerRect.left + centerRect.width / 2 - contRect.left;
+      // Default Target X: If no LB found, just go straight down
+      let x2_fire = x1_fire; 
+      let fireFinalY = y1_fire + 100;
       
-      // Dynamic Target Logic
-      const lbTarget = document.getElementById("lb-final-target");
-      let fireTotalHeight = 130;
-      let fireDrop = riseHeight;
+      // First drop distance before turning horizontal
+      let fireDrop = 60; 
 
       if (lbTarget) {
         const lbRect = lbTarget.getBoundingClientRect();
+        
+        // Target X: The center of the actual LB Final match box on the right
+        x2_fire = lbRect.left + lbRect.width / 2 - contRect.left;
+        
+        // Target Y: The top of the LB Final match box
         const gap = 20;
-        // Calculate total height from NEW starting point (below text)
-        fireTotalHeight = (lbRect.top - (rightRect.bottom + labelGap)) - gap;
-        fireDrop = fireTotalHeight * 0.4;
+        fireFinalY = (lbRect.top - contRect.top) - gap;
       }
 
+      // SVG Path: Move Start -> Down (Drop) -> Right (Target X) -> Down (Target Y)
       const firePath = `
         M ${x1_fire} ${y1_fire + offY}
         L ${x1_fire} ${y1_fire + offY + fireDrop}
         L ${x2_fire} ${y1_fire + offY + fireDrop}
-        L ${x2_fire} ${y1_fire + offY + fireTotalHeight}
+        L ${x2_fire} ${fireFinalY + offY}
       `;
 
       setPaths({ ice: icePath, fire: firePath });
@@ -122,7 +122,6 @@ export default function GrandFinalCenter({
         
         <svg className={s.svgOverlay}>
           <defs>
-            {/* ICE GRADIENT */}
             <linearGradient id="iceLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#0055ff" />
               <stop offset="100%" stopColor="#00eaff" />
@@ -132,7 +131,6 @@ export default function GrandFinalCenter({
               <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
 
-            {/* FIRE GRADIENT */}
             <linearGradient id="fireLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ff0055" />
               <stop offset="100%" stopColor="#ff7b00" />
@@ -150,6 +148,7 @@ export default function GrandFinalCenter({
             strokeWidth="3" 
             strokeLinecap="round" 
             fill="none" 
+            strokeLinejoin="round"
             filter="url(#iceGlow)" 
             opacity="0.9"
           />
@@ -160,6 +159,7 @@ export default function GrandFinalCenter({
             stroke="url(#fireLineGrad)" 
             strokeWidth="3" 
             strokeLinecap="round"
+            strokeLinejoin="round"
             fill="none" 
             filter="url(#fireGlow)"
             opacity="0.9"
