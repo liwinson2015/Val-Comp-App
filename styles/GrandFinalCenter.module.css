@@ -1,11 +1,8 @@
-/* styles/GrandFinalCenter.module.css
-   Centered Grand Final strip used between Winners & Losers brackets.
-   Square aesthetic to match your main bracket (Bracket16.module.css).
-*/
+/* styles/GrandFinalCenter.module.css */
 
-/* ===== Layout ===== */
-.wrap{
-  /* Define theme colors here for reference */
+/* ===== Layout & Background ===== */
+.wrap {
+  /* --- Theme Vars --- */
   --ice-primary: #00c6ff;
   --ice-glow: rgba(0, 198, 255, 0.6);
   --fire-primary: #ff4b1f;
@@ -13,36 +10,62 @@
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.8);
 
-  margin: 24px 0 32px;
+  /* --- Full Screen Breakout & Background Matching --- */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+
+  /* Match the dark background of Winners/Losers brackets exactly */
+  background-color: #050505;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
+    linear-gradient(
+      90deg,
+      rgba(0, 20, 40, 0.9) 0%,
+      rgba(0, 20, 40, 0.9) 30%,
+      rgba(5, 5, 10, 1) 50%,
+      rgba(40, 10, 0, 0.9) 70%,
+      rgba(40, 10, 0, 0.9) 100%
+    );
+  background-position: center;
+  background-size: cover;
+
+  /* Flex/Grid centering */
   display: grid;
   place-items: center;
+  
+  /* Use padding instead of margin so the background stretches */
+  padding: 50px 0;
+  margin: 0;
 }
 
-.row{
-  /* cap width so it fits with your bracket columns */
+.row {
   width: min(1100px, 92vw);
   display: grid;
-  grid-template-columns: 1fr auto 1fr; /* WB  | CENTER |  LB */
+  grid-template-columns: 1fr auto 1fr; /* WB | CENTER | LB */
   align-items: center;
   gap: 18px;
 }
 
 /* ===== Source sides (WB / LB) ===== */
-.source{
+.source {
   display: grid;
   align-items: center;
 }
 
-.left{
-  grid-template-columns: 1fr auto; /* [slot]---arm--> */
+.left {
+  grid-template-columns: 1fr auto; 
 }
 
-.right{
-  grid-template-columns: auto 1fr; /* <--arm---[slot] */
+.right {
+  grid-template-columns: auto 1fr; 
 }
 
-/* Angled slot matching bracket boxes */
-.slot{
+/* Common Slot Style */
+.slot {
   height: 34px;
   min-width: 160px;
   padding: 0 10px;
@@ -50,7 +73,6 @@
   align-items: center;
   justify-content: center;
 
-  /* Match the bracket card style */
   background: rgba(20, 25, 35, 0.95);
   backdrop-filter: blur(5px);
   color: #fff;
@@ -62,7 +84,7 @@
   transition: all 0.3s ease;
 }
 
-/* Ice Theme for WB slot */
+/* Ice Theme */
 .ice {
   border-color: rgba(0, 198, 255, 0.3);
   box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
@@ -73,7 +95,7 @@
   background: rgba(10, 30, 50, 1);
 }
 
-/* Fire Theme for LB slot */
+/* Fire Theme */
 .fire {
   border-color: rgba(255, 75, 31, 0.3);
   box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
@@ -81,26 +103,26 @@
 .fire:hover {
   border-color: var(--fire-primary);
   box-shadow: 0 0 20px var(--fire-glow);
-  background: rgba(50, 20, 10, 1);
+  background: rgba(10, 30, 50, 1);
 }
 
-/* connector arms from each side into the center */
-.arm{
+/* Connector Arms */
+.arm {
   height: 2px;
   width: 100%;
 }
 
-.armLeft{
+.armLeft {
   margin-left: 10px;
   background: linear-gradient(90deg, var(--ice-primary), transparent);
 }
-.armRight{
+.armRight {
   margin-right: 10px;
   background: linear-gradient(270deg, var(--fire-primary), transparent);
 }
 
 /* ===== Center block ===== */
-.center{
+.center {
   display: grid;
   justify-items: center;
   align-items: center;
@@ -109,7 +131,7 @@
   min-width: 240px;
 }
 
-.title{
+.title {
   color: var(--clash-primary);
   font-weight: 900;
   font-size: 12px;
@@ -118,7 +140,7 @@
   text-shadow: 0 0 10px var(--clash-glow);
 }
 
-.gfBox{
+.gfBox {
   min-width: 240px;
   height: 42px;
   padding: 0 14px;
@@ -127,7 +149,6 @@
   align-items: center;
   justify-content: center;
 
-  /* Match the Clash/Gold theme */
   background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
   color: #ffffff;
   border: 1px solid var(--clash-primary);
@@ -137,8 +158,8 @@
   font-weight: 800;
 }
 
-/* ===== Trophy above champion ===== */
-.trophyWrap{
+/* ===== Trophy ===== */
+.trophyWrap {
   margin-bottom: 6px;
   display: flex;
   justify-content: center;
@@ -146,16 +167,14 @@
   animation: floatTrophy 3s ease-in-out infinite;
 }
 
-.trophyIcon{
+.trophyIcon {
   width: 46px;
   height: 46px;
-  /* Removed color: gold; as the SVG now handles the colors */
   filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7));
   transition: transform .3s ease;
 }
 
-/* gentle prestige motion */
-@keyframes floatTrophy{
+@keyframes floatTrophy {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-4px); }
 }
@@ -176,10 +195,10 @@
 @media (max-width: 560px){
   .row{
     width: 96vw;
-    grid-template-columns: 1fr;        /* stack for narrow screens */
+    grid-template-columns: 1fr;
     gap: 10px;
   }
   .left, .right{ grid-template-columns: 1fr; }
-  .arm{ display: none; }               /* hide arms when stacked */
+  .arm{ display: none; }
   .slot{ width: 100%; }
 }
