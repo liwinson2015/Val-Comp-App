@@ -1,305 +1,415 @@
-/* Losers bracket: structured so that:
-   - R1 match 1 & R2 match 1 share the same center
-   - R3A has 4 single boxes, each centered on one R2 matchup
-   - R3B matches are aligned between the 3A singles
-   - R4 top and bottom players are aligned to 3B matches
-   - LB Final top player centered between the two R4 players (exact math)
-*/
+/* styles/LosersBracket16.module.css */
 
-.lbViewport{
-  --colw: clamp(120px, 9vw, 160px);
-  --gap:  clamp(18px, 2.2vw, 26px);
+/* --- Theme Variables & Main Container --- */
+.lbViewport {
+  /* --- FROSTFIRE THEME VARS --- */
+  --ice-primary: #00c6ff;
+  --ice-secondary: #0072ff;
+  --ice-glow: rgba(0, 198, 255, 0.6);
+  --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.3), transparent);
 
-  /* slot + match geometry */
-  --slotH: 40px;           /* height of each player box */
-  --pairGapInside: 10px;   /* default gap between two players in a match */
-  --pairPad: 4px;
+  --fire-primary: #ff4b1f;
+  --fire-secondary: #ffaa00;
+  --fire-glow: rgba(255, 75, 31, 0.6);
+  --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.3), transparent);
 
-  /* total height of one match block (two slots, default gap) */
-  --pairH: calc(var(--slotH)*2 + var(--pairGapInside) + var(--pairPad)*2);
+  --clash-primary: #ffd700;
+  --clash-glow: rgba(255, 215, 0, 0.8);
 
-  /* base spacing: vertical distance between matches in ROUND 1 */
-  --r1Space: 24px;
+  /* --- GRID & SPACING VARS (Kept from original layout) --- */
+  --colw: clamp(140px, 10vw, 180px); /* Slightly wider for new cards */
+  --gap: clamp(20px, 2.5vw, 30px);
+  --r1Space: 30px; /* Increased spacing between matches */
 
-  --line: #2a2f36;
-  --joinW: 2px;
-  --stub: 10px;
-  --arm:  calc(var(--gap) - var(--stub));
-
-  --slotBg: #f5f7fb;
-  --slotBorder: #cfd7ea;
-  --textDark: #0f1320;
-
+  /* Dimensions used for vertical alignment calculations */
+  /* NOTE: These must match the actual rendered height of matchCard */
+  --cardHeight: 66px; /* Approx height of 2 teams + padding + borders */
+  --singleHeight: 38px; /* Approx height of 1 team + padding + border */
+  
+  /* Grid dimensions */
   --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(520px, 62vh, 720px);
+  --stageH: clamp(600px, 70vh, 800px);
+  --topSpace: 140px;
 
-  --topSpace: 120px;
-  --fitW: calc(100vw / var(--stageW));
-  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
-  --scale: min(1, var(--fitW), var(--fitH));
-
-  width:100%;
-  height:calc(100vh - var(--topSpace));
-  display:grid;
-  place-items:center;
-  overflow:visible;
-}
-
-.lbStage{
-  width:var(--stageW);
-  height:var(--stageH);
-  transform:scale(var(--scale));
-  transform-origin:top center;
-}
-
-.lbGrid{
-  width:100%;
-  height:100%;
-  display:grid;
-  grid-template-columns:repeat(7,var(--colw));
-  gap:var(--gap);
-  align-items:start;
-}
-
-/* ---------- rounds / titles ---------- */
-
-.round{
-  position:relative;
-  width: 100%;           /* fill grid column */
-}
-
-/* Force all titles to same height so columns start at same Y */
-.roundTitle{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  margin-bottom:8px;
-
-  height: 24px;
-  line-height: 24px;
-  white-space: nowrap;
-
-  text-align:center;     /* center "LB ROUND 1", etc. */
-  width:100%;
-}
-
-/* container for matches in each column */
-.stack{
-  position:relative;
-  display:grid;
-  width: 100%;
-}
-
-/* ---------- vertical spacing logic ---------- */
-
-/* R1: base rhythm. each .pair = one matchup */
-.r1 .pair{
-  margin: calc(var(--r1Space)/2) 0;
-}
-
-/* R2: same rhythm and no offset.
-   ⇒ R2 match 1 center == R1 match 1 center.
-*/
-.r2 .pair{
-  margin: calc(var(--r1Space)/2) 0;
-}
-.r2 .stack{
-  margin-top: 0;
-}
-
-/* R3A (special):
-   Four .single blocks, one centered on each R2 matchup.
-*/
-.r3a .single{
-  margin: calc(var(--r1Space)/2) 0;
-}
-.r3a .stack{
-  margin-top: 0;
-}
-
-/* R3B:
-   Top of match 1 centered between 3A players 1 & 2,
-   top of match 2 centered between 3A players 3 & 4.
-*/
-.r3b .pair{
-  margin: calc(var(--pairH) / 2 + var(--r1Space)) 0;
-}
-.r3b .stack{
-  margin-top: calc((var(--slotH) + var(--pairGapInside)) / 2);
-}
-
-/* R4:
-   Top player aligned with center of 3B match 1,
-   bottom player aligned with center of 3B match 2.
-   This creates a large vertical separation between them.
-*/
-.r4 .pair{
-  margin: calc(
-    var(--pairH) + var(--r1Space) - var(--pairPad) - (var(--slotH) / 2)
-  ) 0;
-}
-
-.r4 .stack{
-  margin-top: calc((var(--slotH) + var(--pairGapInside)) / 2);
-}
-
-/* Big custom gap between the two players in R4 */
-.r4 .pair .slot + .slot{
-  margin-top: calc(
-    3 * var(--slotH) +
-    2 * var(--pairGapInside) +
-    4 * var(--pairPad) +
-    2 * var(--r1Space)
-  );
-}
-
-/* LB Final:
-   Exact math so the TOP player of LB Final is centered
-   between the TOP and BOTTOM players of LB Round 4.
-
-   Derived:
-   margin-top(LB Final stack) =
-     3.5*slotH + 2*gap + 3*pad + 2*r1Space
-*/
-.rFinal .pair{
-  margin: 0;
-}
-
-.rFinal .stack{
-  margin-top: calc(
-    3.5 * var(--slotH) +
-    2 * var(--pairGapInside) +
-    3 * var(--pairPad) +
-    2 * var(--r1Space)
-  );
-}
-
-/* ---------- match boxes + connectors ---------- */
-
-.pair{
-  position:relative;
-  padding: var(--pairPad) 0;
-  width: 100%;           /* match block fills column */
-}
-
-/* small horizontal stub on the right connecting to the next column */
-.pair::after{
-  content:"";
-  position:absolute;
-  top:50%;
-  right: calc(var(--stub) * -1);
-  transform: translateY(-50%);
-  width: var(--stub);
-  height: var(--joinW);
-  background: var(--line);
-}
-
-/* Single (for R3A) – a match-height container with one centered slot */
-.single{
+  /* --- MAIN BACKGROUND & TYPOGRAPHY --- */
+  width: 100vw;
   position: relative;
-  height: var(--pairH);   /* same height as a full match */
-  display: flex;
-  align-items: center;    /* center the slot vertically */
-  width: 100%;
-}
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  min-height: calc(100vh - var(--topSpace));
+  background-color: #050505;
 
-/* Slot styling (used by both Pair and Single) */
-.slot{
-  height: var(--slotH);
-  border: 2px solid var(--slotBorder);
-  border-radius: 0;
-  background: var(--slotBg);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding: 0 10px;
-  box-shadow: none;
-  text-align: center;
-
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* default gap between two slots in a pair (R4 overrides above) */
-.slot + .slot{
-  margin-top: var(--pairGapInside);
-}
-
-.label{
-  color: var(--textDark);
-  font-weight: 700;
-  font-size: 13px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-/* vertical collectors + arms from previous column
-   (R3A singles don't need collectors) */
-.r2 .pair,
-.r3b .pair,
-.r4 .pair,
-.rFinal .pair{
   background-image:
-    linear-gradient(var(--line), var(--line)),
-    linear-gradient(var(--line), var(--line));
-  background-repeat: no-repeat, no-repeat;
-  background-size:
-    var(--joinW) calc(var(--slotH) + var(--pairGapInside)),
-    var(--arm) var(--joinW);
-  background-position:
-    left calc(var(--gap) * -1 + var(--arm)) 50%,
-    left calc(var(--gap) * -1)              50%;
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
+    linear-gradient(
+      90deg,
+      rgba(0, 20, 40, 0.9) 0%,
+      rgba(0, 20, 40, 0.9) 30%,
+      rgba(5, 5, 10, 1) 50%,
+      rgba(40, 10, 0, 0.9) 70%,
+      rgba(40, 10, 0, 0.9) 100%
+    );
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+  font-family: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+
+  display: grid;
+  place-items: center;
+  overflow-x: auto;
+  padding: 40px 0;
 }
 
-/* ---------- LB winner pill ---------- */
-
-.lbWinnerCol{
-  display:flex;
-  flex-direction:column;
-  align-items:center;   /* center title + pill horizontally */
-  margin-top: 0;        /* keep LB Winner title in the header row */
+/* Scaling logic for the whole stage */
+.lbViewport {
+  --fitW: calc(100vw / var(--stageW));
+  /* Ensure it doesn't get too small vertically */
+  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
+  /* Only scale down if needed, don't scale up past 1 */
+  --scale: min(1, var(--fitW)); 
 }
 
-.lbWinnerTitle{
-  color:#dfe6f3;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  margin-bottom:8px;
-  height: 24px;
-  line-height: 24px;
-  text-align:center;
-  width:100%;
+.lbStage {
+  width: var(--stageW);
+  /* Allow height to grow if needed on mobile, min-height for desktop alignment */
+  min-height: var(--stageH); 
+  transform: scale(var(--scale));
+  transform-origin: top center;
+  /* Add padding to prevent clipping due to scale */
+  padding: 20px; 
 }
 
-.lbWinnerPill{
-  min-width: var(--colw);
-  height: var(--slotH);       /* align pill height to player slots */
-  background:#1c2952;
-  border:2px solid #122040;
-  color:#ffffff;
-  border-radius:8px;
-  padding:0 16px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  /* Center of pill is exactly between the two LB Final players.
-     Derived:
-     margin-top(pill) = 4*slotH + 2.5*gap + 4*pad + 2*r1Space
-  */
-  margin-top: calc(
-    4 * var(--slotH) +
-    2.5 * var(--pairGapInside) +
-    4 * var(--pairPad) +
-    2 * var(--r1Space)
-  );
+.lbGrid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, var(--colw));
+  gap: var(--gap);
+  align-items: start;
 }
 
-.lbWinnerText{
-  font-weight:800;
+/* ---------- Rounds / Titles ---------- */
+.round {
+  position: relative;
+  width: 100%;
+}
+
+.roundTitle {
+  text-align: center;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Theme titles based on column index (approximate) */
+.r1 .roundTitle, .r2 .roundTitle, .r3a .roundTitle {
+    color: var(--ice-primary); text-shadow: 0 0 10px rgba(0,198,255,0.3);
+}
+.r3b .roundTitle, .r4 .roundTitle {
+    color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3);
+}
+.rFinal .roundTitle, .lbWinnerCol .lbWinnerTitle {
+    color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3);
+}
+
+
+.stack {
+  position: relative;
+  display: grid;
+  width: 100%;
+}
+
+/* ---------- NEW CARD STYLING (Replaces old slots) ---------- */
+
+/* The container for a 2-player match card */
+.matchCard {
+    background: rgba(20, 25, 35, 0.95);
+    backdrop-filter: blur(5px);
+    width: 100%;
+    /* Padding handles internal spacing between teams */
+    padding: 4px 0; 
+    position: relative;
+    /* The angled corner cut */
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    /* Force height for alignment calculations */
+    height: var(--cardHeight); 
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+/* A single player row inside a card */
+.team {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Adjust padding to fit height */
+    padding: 4px 8px; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: center;
+    width: 100%;
+    flex: 1; /* Distribute space evenly */
+}
+.team:last-child { border-bottom: none; }
+
+/* Text styling allowing wrapping */
+.team span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font-size: 0.8rem;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: block;
+    width: 100%;
+}
+
+
+/* --- THEMES --- */
+
+/* Ice Theme */
+.cardIce {
+    border-color: rgba(0, 198, 255, 0.3);
+    box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+.cardIce:hover {
+    border-color: var(--ice-primary);
+    box-shadow: 0 0 20px var(--ice-glow);
+    background: rgba(10, 30, 50, 1);
+}
+
+/* Fire Theme */
+.cardFire {
+    border-color: rgba(255, 75, 31, 0.3);
+    box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+.cardFire:hover {
+    border-color: var(--fire-primary);
+    box-shadow: 0 0 20px var(--fire-glow);
+    background: rgba(50, 20, 10, 1);
+}
+
+/* Clash Theme (Finals/Winner) */
+.cardClash {
+    border-color: var(--clash-primary);
+    box-shadow: 0 0 30px var(--clash-glow);
+    background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
+}
+/* Scale up the winner pill slightly */
+.lbWinnerPill .cardClash {
+    transform: scale(1.1);
+}
+
+
+/* ---------- Vertical Spacing Logic (Refined for new card heights) ---------- */
+
+/* R1 & R2 base rhythm */
+.r1 .pairWrapper, .r2 .pairWrapper { margin: calc(var(--r1Space)/2) 0; }
+.r2 .stack { margin-top: 0; }
+
+/* R3A Singles */
+.r3a .singleWrapper { margin: calc(var(--r1Space)/2) 0; }
+.r3a .stack { margin-top: 0; }
+
+/* R3B: Aligned between R3A singles */
+/* Calculation: (CardHeight / 2) + Spacing */
+.r3b .pairWrapper { margin: calc(var(--cardHeight)/2 + var(--r1Space)) 0; }
+/* Offset stack to align midpoints */
+.r3b .stack { margin-top: calc((var(--cardHeight) - var(--singleHeight)) / 2); }
+
+
+/* R4: Large gap. Top aligned to R3B-1 center, Bottom aligned to R3B-2 center */
+.r4 .pairWrapper {
+    /* Math: CardHeight + R1Space - (CardHeight/2) */
+    margin: calc(var(--cardHeight)/2 + var(--r1Space)) 0;
+}
+.r4 .stack { margin-top: calc((var(--cardHeight) - var(--singleHeight)) / 2); }
+
+
+/* The big gap inside R4 match between top and bottom teams.
+   This is tricky because we are now using a single .matchCard container.
+   We need to use padding on the container to separate the teams.
+*/
+.r4 .matchCard {
+    height: auto; /* Allow growth */
+    /* Add huge padding between the two team rows */
+    padding-top: 4px;
+    padding-bottom: 4px;
+    /* Calculation for the gap between teams based on previous rounds */
+    gap: calc(var(--cardHeight) + var(--r1Space) * 2 + 4px);
+}
+.r4 .matchCard .team {
+    border-bottom: none; /* Remove separator line for this big gap style */
+    /* Force team height back to normal single height */
+    flex: 0 0 var(--singleHeight); 
+    border: 1px solid rgba(255,255,255,0.1); /* Add borders back to individual teams */
+    background: rgba(0,0,0,0.3);
+}
+
+/* LB Final */
+.rFinal .pairWrapper { margin: 0; }
+/* Complex calculation to center final between R4 top and bottom */
+.rFinal .stack {
+    margin-top: calc(var(--cardHeight) + var(--r1Space) * 1.5 - 2px);
+}
+
+
+/* ---------- Connectors (Glowing Lines) ---------- */
+
+.pairWrapper, .singleWrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Use variables for connector colors based on theme */
+.iceConnectors { --connector-color: var(--ice-primary); }
+.fireConnectors { --connector-color: var(--fire-primary); }
+.clashConnectors { --connector-color: var(--clash-primary); }
+
+/* The horizontal stub to the right */
+.pairWrapper::after, .singleWrapper::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -10px; /* Stub length */
+    width: 100%; /* Changed strategy: width controls length */
+    max-width: 10px;
+    height: 2px;
+    /* Glowing gradient line */
+    background: linear-gradient(90deg, var(--connector-color), transparent);
+    box-shadow: 0 0 5px var(--connector-color);
+    z-index: -1;
+}
+
+/* Vertical connectors (collectors from previous round) */
+/* We apply this to the wrapper of the receiving rounds */
+.r2 .pairWrapper,
+.r3b .pairWrapper,
+.r4 .pairWrapper,
+.rFinal .pairWrapper {
+    /* 1. Vertical Line (The collector) */
+    background-image: linear-gradient(var(--connector-color), var(--connector-color));
+    background-size: 2px calc(100% + var(--r1Space)); /* Height of card + spacing */
+    background-repeat: no-repeat;
+    background-position: left -10px center; /* Position to the left */
+
+    /* 2. Horizontal Arm (connecting vertical to card) */
+}
+
+/* Add the horizontal arm using ::before on these specific rounds */
+.r2 .pairWrapper::before,
+.r3b .pairWrapper::before,
+.r4 .pairWrapper::before,
+.rFinal .pairWrapper::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -10px;
+    width: 10px;
+    height: 2px;
+    background: linear-gradient(270deg, var(--connector-color), transparent);
+    box-shadow: 0 0 5px var(--connector-color);
+}
+
+/* Special case for R4 vertical line height due to the big gap */
+.r4 .pairWrapper {
+     /* Adjust height to span the massive gap */
+    background-size: 2px calc(var(--cardHeight) * 2 + var(--r1Space) * 3);
+}
+
+
+/* ---------- LB Winner Section ---------- */
+
+.lbWinnerCol {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Calculation to center pill relative to LB Final */
+.lbWinnerPillWrapper {
+    margin-top: calc(var(--cardHeight) + var(--r1Space) * 1.5 + 10px);
+    width: 100%;
+}
+
+/* Style the winner text inside the Clash card */
+.lbWinnerText {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--clash-primary);
+    text-shadow: 0 0 10px var(--clash-glow);
+}
+
+/* MOBILE OVERRIDES */
+@media (max-width: 1024px) {
+  /* On mobile, we have to break the precise grid alignment 
+     because it won't fit horizontally. We switch to a flex column layout. */
+  .lbViewport {
+    display: block;
+    height: auto;
+    padding: 20px 0;
+  }
+  .lbStage {
+    width: 100%;
+    height: auto;
+    transform: none;
+    padding: 10px;
+  }
+  .lbGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .round {
+    margin-bottom: 30px;
+  }
+  .stack {
+    display: flex;
+    flex-direction: row; /* Stack matches horizontally on mobile */
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 0 !important; /* Reset calculated margins */
+  }
+  .pairWrapper, .singleWrapper {
+    width: 45%; /* Two per row roughly */
+    margin: 0 !important; /* Reset calculated margins */
+    background-image: none !important; /* Hide complex connector lines on mobile */
+  }
+  .pairWrapper::before, .pairWrapper::after,
+  .singleWrapper::before, .singleWrapper::after {
+      display: none; /* Hide connector stubs */
+  }
+
+  /* Reset R4 special gap for mobile */
+  .r4 .matchCard {
+      height: var(--cardHeight);
+      gap: 0;
+      padding: 4px 0;
+  }
+  .r4 .matchCard .team {
+      flex: 1;
+      border: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: transparent;
+  }
+  .r4 .matchCard .team:last-child { border-bottom: none; }
+
+  .lbWinnerPillWrapper {
+      margin-top: 20px;
+      width: 80%;
+  }
 }
