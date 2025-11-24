@@ -289,7 +289,7 @@ export default function BracketPage({
 
   return (
     <div className={styles.shell}>
-      {/* ===== HEADER + RANKINGS + GRAND FINAL (NORMAL WIDTH) ===== */}
+      {/* ===== HEADER + RANKINGS ===== */}
       <div className={styles.contentWrap}>
         <div className={styles.headerGrid}>
           {/* LEFT: Info Card */}
@@ -306,9 +306,7 @@ export default function BracketPage({
               </div>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Status</span>
-                <span
-                  className={`${styles.statValue} ${styles.statValueHighlight}`}
-                >
+                <span className={`${styles.statValue} ${styles.statValueHighlight}`}>
                   LIVE
                 </span>
               </div>
@@ -372,32 +370,29 @@ export default function BracketPage({
             </div>
           </div>
         </div>
-
-        {/* Grand Final banner stays in normal width */}
-        <GrandFinalCenter
-          wbChampion={wbFinalWinner}
-          lbChampion={lbFinalWinner}
-          champion={grandChampion}
-        />
       </div>
 
-      {/* ===== WINNERS BRACKET: FULL SECTION (NO contentWrap) ===== */}
+      {/* ===== 1. WINNERS BRACKET (TOP) ===== */}
       <Bracket16 data={bracketData} />
 
-      {/* ===== LOSERS BRACKET BACK IN NORMAL WIDTH ===== */}
-      <div className={styles.contentWrap}>
-        <div style={{ marginTop: "40px" }}>
-          <LosersBracket16
-            r1={lb_r1}
-            r2={lb_r2}
-            r3a={lb_r3a}
-            r3b={lb_r3b}
-            r4={lb_r4}
-            lbFinal={lb_final}
-            lbWinner={lb_winner}
-          />
-        </div>
-      </div>
+      {/* ===== 2. GRAND FINAL (CENTER) ===== */}
+      <GrandFinalCenter
+        wbChampion={wbFinalWinner}
+        lbChampion={lbFinalWinner}
+        champion={grandChampion}
+      />
+
+      {/* ===== 3. LOSERS BRACKET (BOTTOM) ===== */}
+      {/* Removed wrapper/margins to allow beam alignment with GrandFinalCenter */}
+      <LosersBracket16
+        r1={lb_r1}
+        r2={lb_r2}
+        r3a={lb_r3a}
+        r3b={lb_r3b}
+        r4={lb_r4}
+        lbFinal={lb_final}
+        lbWinner={lb_winner}
+      />
     </div>
   );
 }
