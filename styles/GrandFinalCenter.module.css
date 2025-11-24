@@ -12,14 +12,10 @@
   position: relative;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-
+  
   background-color: #050505;
   background-image:
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0.75) 100%
-    ),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
     linear-gradient(
       90deg,
       rgba(0, 20, 40, 0.9) 0%,
@@ -31,35 +27,58 @@
   background-position: center;
   background-size: cover;
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 60px 0;
+  display: grid;
+  place-items: center;
+  padding: 80px 0; /* Extra padding for lines */
 }
 
-.stack {
-  width: min(600px, 92vw);
-  display: flex;
-  flex-direction: column;
+/* The container must be relative so the SVG can sit absolutely inside it */
+.row {
+  width: min(1100px, 92vw);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; 
   align-items: center;
-  gap: 32px;
+  gap: 20px;
+  position: relative; 
+}
+
+/* --- THE NEW SVG LAYER --- */
+/* This sits on top/behind the content and holds the drawn lines */
+.svgOverlay {
+  position: absolute;
+  top: -100px; /* Extend bounds to allow drawing outside */
+  left: 0;
+  width: 100%;
+  height: calc(100% + 200px); /* Tall enough to reach up and down */
+  pointer-events: none;
+  z-index: 0; /* Behind slots */
+  overflow: visible;
+}
+
+/* --- SIDES --- */
+.source {
   position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 2; /* Above SVG lines */
 }
-
-/* ===== SLOTS (upper + lower) ===== */
+.left { justify-content: flex-end; }
+.right { justify-content: flex-start; }
 
 .slotWrapper {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 2; /* above pipe lines */
+  width: 100%;
+  max-width: 220px;
 }
 
+/* --- SLOTS --- */
 .slot {
   height: 44px;
-  min-width: 200px;
-  padding: 0 12px;
+  width: 100%;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,201 +88,65 @@
   border: 1px solid transparent;
   font-weight: 700;
   font-size: 14px;
-  transition: all 0.2s ease;
-  position: relative;
+  transition: all 0.3s ease;
 }
 
-.ice {
-  border-color: rgba(0, 198, 255, 0.3);
-  box-shadow: 0 0 10px rgba(0, 198, 255, 0.15);
+.ice { 
+  border-color: rgba(0, 198, 255, 0.3); 
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.1);
   clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
 }
+.ice:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); }
 
-.ice:hover {
-  border-color: var(--ice-primary);
-  box-shadow: 0 0 20px var(--ice-glow);
-}
-
-.fire {
-  border-color: rgba(255, 75, 31, 0.3);
-  box-shadow: 0 0 10px rgba(255, 75, 31, 0.15);
+.fire { 
+  border-color: rgba(255, 75, 31, 0.3); 
+  box-shadow: 0 0 10px rgba(255, 75, 31, 0.1);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
 }
+.fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
-.fire:hover {
-  border-color: var(--fire-primary);
-  box-shadow: 0 0 20px var(--fire-glow);
+/* --- ARMS (Horizontal small connectors) --- */
+.arm {
+  height: 2px;
+  flex: 1; 
+  min-width: 20px;
 }
+.armLeft { background: linear-gradient(90deg, var(--ice-primary), rgba(0, 198, 255, 0.2)); box-shadow: 0 0 5px var(--ice-glow); }
+.armRight { background: linear-gradient(90deg, rgba(255, 75, 31, 0.2), var(--fire-primary)); box-shadow: 0 0 5px var(--fire-glow); }
 
-/* ===== LABELS ===== */
-
+/* --- LABELS --- */
 .sideLabel {
+  position: absolute;
+  width: 100%; 
+  text-align: center;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
-  pointer-events: none;
+  pointer-events: none; 
   white-space: nowrap;
 }
+.iceLabel { bottom: 100%; margin-bottom: 8px; color: var(--ice-primary); text-shadow: 0 0 15px var(--ice-glow); }
+.fireLabel { top: 100%; margin-top: 8px; color: var(--fire-primary); text-shadow: 0 0 15px var(--fire-glow); }
 
-.iceLabel {
-  margin-bottom: 8px;
-  color: var(--ice-primary);
-  text-shadow: 0 0 15px var(--ice-glow);
+/* --- CENTER --- */
+.center { 
+  display: grid; 
+  justify-items: center; 
+  align-items: center; 
+  gap: 10px; 
+  min-width: 280px; 
+  position: relative; 
+  z-index: 2; 
 }
 
-.fireLabel {
-  margin-top: 8px;
-  color: var(--fire-primary);
-  text-shadow: 0 0 15px var(--fire-glow);
-}
+.title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
+.gfBox { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); border-radius: 4px; font-weight: 800; font-size: 1.2rem; }
+.trophyWrap { margin-bottom: 0; animation: floatTrophy 3s ease-in-out infinite; }
+.trophyIcon { width: 50px; height: 50px; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
+@keyframes floatTrophy { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
-/* ===== L-SHAPED PIPES (LEFT / RIGHT) ===== */
-
-.pipe {
-  position: absolute;
-  width: 120px;
-  height: 24px;
-  pointer-events: none;
-}
-
-/* Attach to the left of the upper slot */
-.pipeLeft {
-  right: 100%;      /* sits to the left of slot */
-  margin-right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Attach to the right of the lower slot, mirrored horizontally */
-.pipeRight {
-  left: 100%;       /* sits to the right of slot */
-  margin-left: 24px;
-  top: 50%;
-  transform: translateY(-50%) scaleX(-1); /* mirror the same shape */
-}
-
-/* Color + glow */
-.pipeIce {
-  color: var(--ice-primary);
-  filter: drop-shadow(0 0 6px var(--ice-glow));
-}
-
-.pipeFire {
-  color: var(--fire-primary);
-  filter: drop-shadow(0 0 6px var(--fire-glow));
-}
-
-/* Segments inside the pipe */
-.pipeVert,
-.pipeHoriz {
-  position: absolute;
-  background: currentColor;
-}
-
-/* start vertical segment (left side in original orientation) */
-.pipeVertStart {
-  left: 0;
-  top: 12px;      /* middle-ish */
-  bottom: 0;
-  width: 4px;
-}
-
-/* horizontal segment */
-.pipeHoriz {
-  left: 0;
-  top: 12px;
-  height: 4px;
-  width: 100%;
-}
-
-/* end vertical segment (right side in original orientation) */
-.pipeVertEnd {
-  right: 0;
-  top: 0;
-  bottom: 12px;
-  width: 4px;
-}
-
-/* ===== CENTER TROPHY / CHAMPION ===== */
-
-.center {
-  display: grid;
-  justify-items: center;
-  align-items: center;
-  gap: 10px;
-  min-width: 260px;
-  position: relative;
-  z-index: 3;
-}
-
-.title {
-  color: var(--clash-primary);
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  text-align: center;
-  text-shadow: 0 0 10px var(--clash-glow);
-}
-
-.gfBox {
-  width: 100%;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(30, 10, 0, 0.9),
-    rgba(0, 10, 30, 0.9)
-  );
-  color: #ffffff;
-  border: 1px solid var(--clash-primary);
-  box-shadow: 0 0 30px var(--clash-glow);
-  border-radius: 4px;
-  font-weight: 800;
-  font-size: 1.2rem;
-}
-
-.trophyWrap {
-  margin-bottom: 0;
-  animation: floatTrophy 3s ease-in-out infinite;
-}
-
-.trophyIcon {
-  width: 50px;
-  height: 50px;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
-}
-
-@keyframes floatTrophy {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-/* ===== RESPONSIVE ===== */
-
-@media (max-width: 900px) {
-  .wrap {
-    padding: 40px 0;
-  }
-
-  .stack {
-    gap: 24px;
-  }
-
-  /* hide pipes on very small screens if they get cramped */
-  .pipe {
-    display: none;
-  }
-
-  .slot {
-    min-width: 160px;
-  }
+@media (max-width: 900px){ 
+  .row{ grid-template-columns: 1fr; gap: 40px; }
+  .arm, .svgOverlay { display: none; }
 }
