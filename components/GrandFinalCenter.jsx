@@ -31,21 +31,21 @@ export default function GrandFinalCenter({
   return (
     <div className={s.wrap}>
       <div className={s.row}>
+        
+        {/* --- CONNECTOR LINES --- */}
+        <div className={s.bridges}>
+          {/* The Blue Bridge: Connects Left Slot UP and OVER to the Center */}
+          <div className={s.wbBridge} />
+        </div>
+
         {/* LEFT (WB side) */}
-        <div className={`${s.source} ${s.left}`}>
-          {/* New Connector: Horizontal + Stub */}
-          <div className={s.wbConnect} />
-          
+        <div className={s.source}>
           <h3 className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</h3>
           <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
-          <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
         {/* CENTER */}
         <div className={s.center}>
-          {/* New Connector: Vertical UP */}
-          <div className={s.centerUp} />
-          
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
           </div>
@@ -54,9 +54,8 @@ export default function GrandFinalCenter({
         </div>
 
         {/* RIGHT (LB side) */}
-        <div className={`${s.source} ${s.right}`}>
+        <div className={s.source}>
            <h3 className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</h3>
-          <div className={`${s.arm} ${s.armRight}`} />
           <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
         </div>
       </div>
