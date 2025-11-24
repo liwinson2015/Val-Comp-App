@@ -1,22 +1,17 @@
 /* styles/LosersBracket16.module.css */
 
-/* --- Theme Variables & Main Container --- */
 .lbViewport {
-  /* Inherit Frostfire Palette */
   --ice-primary: #00c6ff;
   --ice-secondary: #0072ff;
   --ice-glow: rgba(0, 198, 255, 0.6);
   --ice-bg-win: linear-gradient(90deg, rgba(0, 198, 255, 0.3), transparent);
-
   --fire-primary: #ff4b1f;
   --fire-secondary: #ffaa00;
   --fire-glow: rgba(255, 75, 31, 0.6);
   --fire-bg-win: linear-gradient(90deg, rgba(255, 75, 31, 0.3), transparent);
-
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.8);
 
-  /* Layout */
   width: 100vw;
   position: relative;
   left: 50%;
@@ -24,9 +19,10 @@
   margin-left: -50vw;
   margin-right: -50vw;
   
-  min-height: 100vh;
+  /* FIX: Remove 100vh so it sits right below Grand Final */
+  min-height: auto;
+  
   background-color: #050505;
-
   background-image:
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
     linear-gradient(
@@ -47,7 +43,9 @@
   justify-content: center;
   align-items: center;
   overflow-x: auto;
-  padding: 40px 0;
+  
+  /* PADDING FIX: Top padding 0, Bottom padding ample for scrolling */
+  padding: 0 0 80px 0;
 }
 
 .bracketWrapper {
@@ -61,7 +59,6 @@
   padding: 0 20px;
 }
 
-/* --- COLUMNS --- */
 .column {
   display: flex;
   flex-direction: column;
@@ -97,42 +94,21 @@
   width: 100%;
   gap: 20px;
   position: relative;
-  /* Ensure this container is centered so its children are center aligned */
-  align-items: center; 
+  align-items: center;
 }
 
-/* --- CONNECTORS --- */
 .matchWrapper {
   position: relative;
   width: 100%;
-  /* Ensure wrapper doesn't collapse if children are absolute */
   min-height: 50px; 
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.matchWrapper::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: -10px;
-  width: 10px;
-  height: 2px;
-  background: rgba(255,255,255,0.2);
-}
+.matchWrapper::after { content: ""; position: absolute; top: 50%; right: -10px; width: 10px; height: 2px; background: rgba(255,255,255,0.2); }
+.connectorLeft::before { content: ""; position: absolute; top: 50%; left: -10px; width: 10px; height: 2px; background: rgba(255,255,255,0.2); }
 
-.connectorLeft::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: -10px;
-  width: 10px;
-  height: 2px;
-  background: rgba(255,255,255,0.2);
-}
-
-/* --- CARD STYLES --- */
 .matchCard {
   background: rgba(20, 25, 35, 0.95);
   backdrop-filter: blur(5px);
@@ -157,20 +133,8 @@
   width: 100%;
 }
 .team:last-child { border-bottom: none; }
+.team span { white-space: normal; overflow-wrap: anywhere; word-break: break-word; font-size: 0.8rem; line-height: 1.1; font-weight: 600; letter-spacing: 0.5px; display: block; width: 100%; }
 
-.team span {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  font-size: 0.8rem;
-  line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  display: block;
-  width: 100%;
-}
-
-/* --- THEMES & GLOW LOGIC --- */
 .cardIce { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .cardIce:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); background: rgba(10, 30, 50, 1); }
 .cardIce .winnerRow { color: #fff; background: var(--ice-bg-win); text-shadow: 0 0 5px var(--ice-primary), 0 0 10px var(--ice-primary), 0 0 20px var(--ice-secondary); font-weight: 700; }
@@ -182,10 +146,9 @@
 .cardClash { border-color: var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); transform: scale(1.1); }
 .cardClash .winnerRow { color: #fff; background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent); text-shadow: 0 0 5px var(--clash-primary), 0 0 15px var(--clash-primary), 0 0 30px var(--clash-primary); }
 
-/* --- FIXED: WINNER TEXT HEADER (Absolute Positioning) --- */
 .winnerText {
   position: absolute;
-  bottom: 100%; /* Position right above the wrapper */
+  bottom: 100%;
   left: 0;
   right: 0;
   text-align: center;
@@ -194,8 +157,8 @@
   letter-spacing: 3px;
   color: var(--clash-primary);
   text-shadow: 0 0 10px var(--clash-glow);
-  margin: 0 0 12px 0; /* Spacing between text and box */
-  pointer-events: none; /* Ensure it doesn't block clicks underneath */
+  margin: 0 0 12px 0; 
+  pointer-events: none;
 }
 
 @media (max-width: 1200px) {
