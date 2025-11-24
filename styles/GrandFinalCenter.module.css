@@ -67,8 +67,7 @@
   bottom: 50%; 
   left: 50%;
   width: 2px;
-  /* INCREASED: Go higher up before turning horizontal */
-  height: 110px; 
+  height: 110px; /* Vertical UP */
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
   z-index: -1; 
@@ -81,8 +80,8 @@
   top: 0; 
   left: 0;
   height: 2px;
-  /* INCREASED: Extend further right to reach the center bracket */
-  width: 22vw; 
+  /* INCREASED: From 22vw to 26vw to reach further right */
+  width: 26vw; 
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
 }
@@ -91,12 +90,10 @@
 .lineUp::before {
   content: "";
   position: absolute;
-  /* Start higher up relative to the horizontal line */
   top: -40px; 
-  /* Align with the end of the horizontal line */
-  right: -22vw; 
+  /* ADJUSTED: Matches the new width (-26vw) */
+  right: -26vw; 
   width: 2px;
-  /* Connect down to the horizontal line */
   height: 40px; 
   background: linear-gradient(to top, var(--ice-primary), transparent);
   box-shadow: 0 0 10px var(--ice-glow);
