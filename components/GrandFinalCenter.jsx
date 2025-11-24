@@ -36,8 +36,6 @@ export default function GrandFinalCenter({
   const [paths, setPaths] = useState({ ice: "", fire: "" });
 
   useEffect(() => {
-    let attempts = 0;
-    
     const updateLines = () => {
       if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
 
@@ -46,21 +44,16 @@ export default function GrandFinalCenter({
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
-      // Offset matching SVG top: -200px
-      const offY = 200; 
-      const labelGap = 40; 
+      const offY = 100;
+      const labelGap = 40;
       const riseHeight = 60; 
       
       const wbTarget = document.getElementById("wb-final-target");
       const lbTarget = document.getElementById("lb-final-target");
 
-      // If targets aren't found yet, try again soon
-      if ((!wbTarget || !lbTarget) && attempts < 5) {
-        attempts++;
-        setTimeout(updateLines, 200);
-      }
-
-      // --- ICE (UPPER) ---
+      // ============================================================
+      // ICE LINE (Upper) - REVERTED TO REACH HIGHER
+      // ============================================================
       const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
       const y1_ice = (leftRect.top - contRect.top) - labelGap; 
       const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
@@ -70,8 +63,9 @@ export default function GrandFinalCenter({
 
       if (wbTarget) {
         const wbRect = wbTarget.getBoundingClientRect();
-        const gap = 30; 
-        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - gap;
+        // GAP: Changed back to 10px (was 30px) to ensure it reaches the box
+        const iceGap = 10; 
+        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - iceGap;
         iceRise = Math.min(60, iceTotalHeight * 0.4);
       }
 
@@ -82,10 +76,11 @@ export default function GrandFinalCenter({
         L ${x2_ice} ${y1_ice + offY - iceTotalHeight}
       `;
 
-      // --- FIRE (LOWER) ---
+      // ============================================================
+      // FIRE LINE (Lower) - KEPT AS IS (Works correctly)
+      // ============================================================
       const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
       const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
-      const x2_fire = centerRect.left + centerRect.width / 2 - contRect.left;
       
       let targetX_fire = x1_fire; 
       let fireTotalHeight = 100;        
@@ -95,10 +90,10 @@ export default function GrandFinalCenter({
         const lbRect = lbTarget.getBoundingClientRect();
         targetX_fire = lbRect.left + lbRect.width / 2 - contRect.left;
 
-        const gap = 60; // Gap to stop above "WINNER" text
+        // Gap set to 60px to clear the "WINNER" text
+        const fireGap = 60; 
         
-        // Distance from start to top of target box
-        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - gap;
+        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - fireGap;
         fireDrop = Math.min(60, fireTotalHeight * 0.5);
       }
 
@@ -114,8 +109,7 @@ export default function GrandFinalCenter({
 
     updateLines();
     window.addEventListener("resize", updateLines);
-    // Initial delay to allow layout to settle
-    setTimeout(updateLines, 100);
+    setTimeout(updateLines, 500); 
     
     return () => window.removeEventListener("resize", updateLines);
   }, []);
@@ -160,10 +154,10 @@ export default function GrandFinalCenter({
             d={paths.fire} 
             stroke="url(#fireLineGrad)" 
             strokeWidth="3" 
-            strokeLinecap="round" 
+            strokeLinecap="round"
             strokeLinejoin="round"
             fill="none" 
-            filter="url(#fireGlow)" 
+            filter="url(#fireGlow)"
             opacity="0.9"
           />
         </svg>
