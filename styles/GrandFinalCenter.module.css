@@ -60,13 +60,15 @@
 }
 
 /* --- WINNERS LINE (Upper Bracket) --- */
+
 /* 1. Vertical Line UP from Slot */
 .lineUp {
   position: absolute;
   bottom: 50%; 
   left: 50%;
   width: 2px;
-  height: 60px; /* Go UP 60px */
+  /* INCREASED: Go higher up before turning horizontal */
+  height: 110px; 
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
   z-index: -1; 
@@ -79,8 +81,8 @@
   top: 0; 
   left: 0;
   height: 2px;
-  /* 18vw is approx distance from 25% (slot) to 50% (center) */
-  width: 18vw; 
+  /* INCREASED: Extend further right to reach the center bracket */
+  width: 22vw; 
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
 }
@@ -89,10 +91,13 @@
 .lineUp::before {
   content: "";
   position: absolute;
-  top: -60px; /* Start higher up */
-  right: -18vw; /* Align with the end of the horizontal line */
+  /* Start higher up relative to the horizontal line */
+  top: -40px; 
+  /* Align with the end of the horizontal line */
+  right: -22vw; 
   width: 2px;
-  height: 60px; /* Connect down to the horizontal line */
+  /* Connect down to the horizontal line */
+  height: 40px; 
   background: linear-gradient(to top, var(--ice-primary), transparent);
   box-shadow: 0 0 10px var(--ice-glow);
 }
