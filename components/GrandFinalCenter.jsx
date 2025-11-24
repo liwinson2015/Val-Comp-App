@@ -39,29 +39,24 @@ export default function GrandFinalCenter({
     const updateLines = () => {
       if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
 
-      // 1. Get our local coordinates (The Grand Final Area)
       const contRect = containerRef.current.getBoundingClientRect();
       const leftRect = leftSlotRef.current.getBoundingClientRect();
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
       const offY = 100;      // Matches CSS top: -100px
-      const labelGap = 40;   // Space for "UPPER BRACKET WINNER" labels
-      const riseHeight = 60; // The initial vertical stem
+      const labelGap = 40;   // Height of "UPPER BRACKET WINNER" text
+      const riseHeight = 60; // Initial vertical stem length
       
-      // 2. Find the External Targets (The actual bracket boxes)
+      // Find Targets
       const wbTarget = document.getElementById("wb-final-target");
       const lbTarget = document.getElementById("lb-final-target");
 
       // ============================================================
-      // ICE LINE (Upper Bracket) -> Going UP
+      // ICE LINE (Upper) -> Going UP
       // ============================================================
-      
-      // Start X: Center of Left Slot
       const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
-      // Start Y: Top of Left Slot (minus space for text label)
       const y1_ice = (leftRect.top - contRect.top) - labelGap; 
-      
       const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
       
       let iceTotalHeight = 130;
@@ -69,12 +64,9 @@ export default function GrandFinalCenter({
 
       if (wbTarget) {
         const wbRect = wbTarget.getBoundingClientRect();
-        
-        // MATH: Distance = (My Top) - (Target Bottom) - (Buffer)
-        const gap = 20; 
-        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - gap;
-        
-        // If screens are small, adjust the curve start
+        // GAP: Distance to stop BEFORE hitting the box
+        const iceGap = 30; 
+        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - iceGap;
         iceRise = Math.min(60, iceTotalHeight * 0.4);
       }
 
@@ -86,35 +78,24 @@ export default function GrandFinalCenter({
       `;
 
       // ============================================================
-      // FIRE LINE (Lower Bracket) -> Going DOWN
+      // FIRE LINE (Lower) -> Going DOWN
       // ============================================================
-
-      // Start X: Center of Right Slot
       const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
-      // Start Y: Bottom of Right Slot (plus space for text label)
       const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
       
-      let targetX_fire = x1_fire + 200; // Default fallback if no target
-      let fireTotalHeight = 100;        // Default fallback
+      let targetX_fire = x1_fire; 
+      let fireTotalHeight = 100;        
       let fireDrop = riseHeight;
 
       if (lbTarget) {
         const lbRect = lbTarget.getBoundingClientRect();
-        
-        // 1. CALCULATE TARGET X
-        // Find the EXACT center of the "LB Champion" box on the far right
         targetX_fire = lbRect.left + lbRect.width / 2 - contRect.left;
 
-        // 2. CALCULATE TARGET Y
-        // Find the distance from my bottom to the target's top
-        const textHeight = 40; // Height of "WINNER" text
-        const buffer = 20;     // Extra breathing room
-        const gap = textHeight + buffer; 
+        // GAP: Distance to stop BEFORE hitting the "WINNER" text
+        // Reduced to 20px so it gets closer
+        const fireGap = 20; 
         
-        // MATH: Distance = (Target Top) - (My Bottom) - (Gap)
-        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - gap;
-        
-        // Ensure the initial drop down isn't larger than the total distance available
+        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - fireGap;
         fireDrop = Math.min(60, fireTotalHeight * 0.5);
       }
 
@@ -128,9 +109,10 @@ export default function GrandFinalCenter({
       setPaths({ ice: icePath, fire: firePath });
     };
 
+    // Trigger update on load and resize
     updateLines();
     window.addEventListener("resize", updateLines);
-    setTimeout(updateLines, 100); // Double check after DOM settles
+    setTimeout(updateLines, 500); // Extra delay to ensure layout settles
     
     return () => window.removeEventListener("resize", updateLines);
   }, []);
