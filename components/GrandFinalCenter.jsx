@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import s from "../styles/GrandFinalCenter.module.css";
 
-/** Trophy Icon (Unchanged) */
 function TrophyIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -29,72 +28,58 @@ export default function GrandFinalCenter({
   lbChampion = "LB Champion",
   champion = "TBD",
 }) {
-  // Refs to track positions
   const containerRef = useRef(null);
   const leftSlotRef = useRef(null);
   const rightSlotRef = useRef(null);
   const centerBoxRef = useRef(null);
 
-  // State to hold calculated paths
   const [paths, setPaths] = useState({ ice: "", fire: "" });
 
-  // Calculate lines on mount and resize
   useEffect(() => {
     const updateLines = () => {
       if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
 
-      // Get coordinates relative to the viewport
       const contRect = containerRef.current.getBoundingClientRect();
       const leftRect = leftSlotRef.current.getBoundingClientRect();
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
+      // --- CONFIGURATION ---
+      const offY = 100;        // Offset to align SVG coord system
+      const riseHeight = 60;   // Initial UP from the slot
+      const finalReach = 130;  // <--- INCREASED: Final UP reach to Winners Bracket
+
       // --- ICE LINE (Upper) ---
-      // Start: Top-Center of Left Slot
       const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
       const y1_ice = leftRect.top - contRect.top; 
-      
-      // Target X: Center of the Middle Box
       const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
       
-      // Vertical Riser Height (How high to go before turning right)
-      const riseHeight = 60; 
-      
-      // Ice Path: Move to Start -> Line Up -> Line Right -> Line Up (Final Tip)
-      // Note: SVG coordinates are from the top-left of .svgOverlay
-      // Because .svgOverlay is top: -100px, we add 100 to Y coords to align with content
-      const offY = 100; 
-
       const icePath = `
         M ${x1_ice} ${y1_ice + offY} 
         L ${x1_ice} ${y1_ice + offY - riseHeight} 
         L ${x2_ice} ${y1_ice + offY - riseHeight}
-        L ${x2_ice} ${y1_ice + offY - riseHeight - 40}
+        L ${x2_ice} ${y1_ice + offY - riseHeight - finalReach}
       `;
 
       // --- FIRE LINE (Lower) ---
-      // Start: Bottom-Center of Right Slot
+      // (Keeping logic ready for when you uncomment it)
       const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
       const y1_fire = rightRect.bottom - contRect.top;
-
-      // Target X: Center of the Middle Box
       const x2_fire = centerRect.left + centerRect.width / 2 - contRect.left;
-
       const dropHeight = 60;
+      const finalDrop = 130; // Symmetrical drop for bottom
 
       const firePath = `
         M ${x1_fire} ${y1_fire + offY}
         L ${x1_fire} ${y1_fire + offY + dropHeight}
         L ${x2_fire} ${y1_fire + offY + dropHeight}
-        L ${x2_fire} ${y1_fire + offY + dropHeight + 40}
+        L ${x2_fire} ${y1_fire + offY + dropHeight + finalDrop}
       `;
 
       setPaths({ ice: icePath, fire: firePath });
     };
 
-    // Run on mount
     updateLines();
-    // Run on resize
     window.addEventListener("resize", updateLines);
     return () => window.removeEventListener("resize", updateLines);
   }, []);
@@ -103,9 +88,7 @@ export default function GrandFinalCenter({
     <div className={s.wrap}>
       <div className={s.row} ref={containerRef}>
         
-        {/* SVG LAYER: Draws pixel-perfect lines based on refs */}
         <svg className={s.svgOverlay}>
-          {/* Ice Line (Upper) */}
           <path 
             d={paths.ice} 
             stroke="#00c6ff" 
@@ -113,8 +96,7 @@ export default function GrandFinalCenter({
             fill="none" 
             filter="drop-shadow(0 0 5px #00c6ff)"
           />
-          
-          {/* Fire Line (Lower) - Uncomment to enable later */}
+          {/* Uncomment to enable Fire line */}
           {/* <path 
             d={paths.fire} 
             stroke="#ff4b1f" 
@@ -125,17 +107,14 @@ export default function GrandFinalCenter({
           */}
         </svg>
 
-        {/* LEFT (WB side) */}
         <div className={`${s.source} ${s.left}`}>
           <div className={s.slotWrapper}>
              <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
-             {/* Ref attached here to calculate position */}
              <div className={`${s.slot} ${s.ice}`} ref={leftSlotRef}>{wbChampion}</div>
           </div>
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
-        {/* CENTER */}
         <div className={s.center} ref={centerBoxRef}>
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
@@ -144,7 +123,6 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* RIGHT (LB side) */}
         <div className={`${s.source} ${s.right}`}>
           <div className={`${s.arm} ${s.armRight}`} />
           <div className={s.slotWrapper}>
