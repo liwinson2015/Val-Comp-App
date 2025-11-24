@@ -90,9 +90,6 @@ export default function LosersBracket16(props) {
   calcWinners(matches.R4, matches.LBF);
   calcWinners(matches.LBF, matches.LBChamp); // LB Final -> LB Champion
 
-  // Note: We do not calculate a winner for LBChamp because they leave this component 
-  // and go to the Grand Final component.
-
   return (
     <div className={s.lbViewport}>
       <div className={s.bracketWrapper}>
@@ -145,15 +142,20 @@ export default function LosersBracket16(props) {
           </div>
         </div>
 
-        {/* COL 7: LB CHAMPION (Goes to Grand Final) */}
+        {/* COL 7: LB CHAMPION (Glow Up + Header) */}
         <div className={s.column} style={{ flex: '0 0 200px'}}>
-           {/* Updated Label to differentiate from Grand Winner */}
            <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Champion</h3>
            <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-             <div className={s.matchWrapper}>
-                <div className={`${s.matchCard} ${s.cardClash}`}>
-                   <div className={s.team}>
-                     <span className={s.winnerText}>{matches.LBChamp[0].p1}</span>
+             <div style={{ width: '100%' }}>
+                {/* 1. Add WINNER text above */}
+                <h2 className={s.winnerText}>WINNER</h2>
+                
+                <div className={s.matchWrapper}>
+                   <div className={`${s.matchCard} ${s.cardClash}`}>
+                      {/* 2. Force the winnerRow glow since this IS the champion */}
+                      <div className={`${s.team} ${s.winnerRow}`}>
+                        <span>{matches.LBChamp[0].p1}</span>
+                      </div>
                    </div>
                 </div>
              </div>
