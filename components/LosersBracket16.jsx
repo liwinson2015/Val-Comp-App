@@ -2,10 +2,29 @@
 import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
+// Reusable Card Component
+function MatchCard({ p1, p2, theme = "ice" }) {
+  let themeClass = s.cardIce;
+  if (theme === "fire") themeClass = s.cardFire;
+  if (theme === "clash") themeClass = s.cardClash;
+
+  return (
+    <div className={s.matchWrapper}>
+      <div className={`${s.matchCard} ${themeClass}`}>
+        <div className={s.team}><span>{p1}</span></div>
+        {/* If P2 exists, render it. If it's a "Single" box, p2 will be null/undefined */}
+        {p2 !== undefined && (
+          <div className={s.team}><span>{p2}</span></div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LosersBracket16(props) {
   const norm = normalize(props);
 
-  // Flatten R3A pairs into singles
+  // Flatten R3A pairs into 4 distinct names for the "Singles" round
   const r3aSingles = [];
   norm.R3A.forEach((pair) => {
     if (pair?.[0]) r3aSingles.push(String(pair[0] || "TBD"));
@@ -16,120 +35,85 @@ export default function LosersBracket16(props) {
 
   return (
     <div className={s.lbViewport}>
-      <div className={s.lbStage}>
-        <div className={s.lbGrid}>
-          
-          {/* R1 - Ice Theme */}
-          <Round title="LB Round 1" cls="r1">
+      <div className={s.bracketWrapper}>
+        
+        {/* COL 1: ROUND 1 (4 Matches) */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.iceTitle}`}>LB Round 1</h3>
+          <div className={s.matchContainer}>
             {norm.R1.map((m, i) => (
-              <Pair key={`r1-${i}`} top={m[0]} bot={m[1]} theme="ice" />
+              <MatchCard key={i} p1={m[0]} p2={m[1]} theme="ice" />
             ))}
-          </Round>
-
-          {/* R2 - Ice Theme (Connects from R1) */}
-          <Round title="LB Round 2" cls="r2">
-            {norm.R2.map((m, i) => (
-              <Pair key={`r2-${i}`} top={m[0]} bot={m[1]} theme="ice" connectorTheme="ice" />
-            ))}
-          </Round>
-
-          {/* R3A - Singles - Ice Theme */}
-          <Round title="LB Round 3A" cls="r3a">
-            {r3aSingles.map((name, i) => (
-              <Single key={`r3a-single-${i}`} name={name} theme="ice" />
-            ))}
-          </Round>
-
-          {/* R3B - Fire Theme starts here (getting hotter) */}
-          <Round title="LB Round 3B" cls="r3b">
-            {norm.R3B.map((m, i) => (
-              <Pair key={`r3b-${i}`} top={m[0]} bot={m[1]} theme="fire" connectorTheme="ice" />
-            ))}
-          </Round>
-
-          {/* R4 - Fire Theme */}
-          <Round title="LB Round 4" cls="r4">
-            <Pair top={norm.R4[0][0]} bot={norm.R4[0][1]} theme="fire" connectorTheme="fire" />
-          </Round>
-
-          {/* LB Final - Clash Theme (The big one before Grand Final) */}
-          <Round title="LB Final" cls="rFinal">
-            <Pair top={norm.LBF[0]} bot={norm.LBF[1]} theme="clash" connectorTheme="fire" />
-          </Round>
-
-          {/* LB Winner pill - Clash Theme */}
-          <div className={s.lbWinnerCol}>
-            <div className={s.lbWinnerTitle}>LB WINNER</div>
-            <div className={s.lbWinnerPillWrapper}>
-                 {/* Reusing the matchCard style for the winner pill */}
-                <div className={`${s.matchCard} ${s.cardClash}`}>
-                  <div className={s.team}>
-                     <span className={s.lbWinnerText}>{norm.LBWinner}</span>
-                  </div>
-                </div>
-            </div>
           </div>
         </div>
+
+        {/* COL 2: ROUND 2 (4 Matches) */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.iceTitle}`}>LB Round 2</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {norm.R2.map((m, i) => (
+              <MatchCard key={i} p1={m[0]} p2={m[1]} theme="ice" />
+            ))}
+          </div>
+        </div>
+
+        {/* COL 3: ROUND 3A (4 Singles) */}
+        {/* These are single players dropping in, so we pass p2={undefined} */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3A</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {r3aSingles.map((name, i) => (
+              <MatchCard key={i} p1={name} p2={undefined} theme="fire" />
+            ))}
+          </div>
+        </div>
+
+        {/* COL 4: ROUND 3B (2 Matches) */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3B</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            {norm.R3B.map((m, i) => (
+              <MatchCard key={i} p1={m[0]} p2={m[1]} theme="fire" />
+            ))}
+          </div>
+        </div>
+
+        {/* COL 5: ROUND 4 (1 Match) */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 4</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            <MatchCard p1={norm.R4[0][0]} p2={norm.R4[0][1]} theme="fire" />
+          </div>
+        </div>
+
+        {/* COL 6: LB FINAL (1 Match) */}
+        <div className={s.column}>
+          <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Final</h3>
+          <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+            <MatchCard p1={norm.LBF[0]} p2={norm.LBF[1]} theme="clash" />
+          </div>
+        </div>
+
+        {/* COL 7: WINNER (1 Pill) */}
+        <div className={s.column} style={{ flex: '0 0 200px'}}>
+           <h3 className={`${s.roundTitle} ${s.clashTitle}`}>Winner</h3>
+           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
+             <div className={s.matchWrapper}>
+                <div className={`${s.matchCard} ${s.cardClash}`}>
+                   <div className={s.team}>
+                     <span className={s.winnerText}>{norm.LBWinner}</span>
+                   </div>
+                </div>
+             </div>
+           </div>
+        </div>
+
       </div>
     </div>
   );
 }
 
-/* ---------- Helpers ---------- */
-
-function Round({ title, cls, children }) {
-  return (
-    <div className={`${s.round} ${s[cls] || ""}`}>
-      <div className={s.roundTitle}>{title}</div>
-      <div className={s.stack}>{children}</div>
-    </div>
-  );
-}
-
-/** * New Pair component using the Frostfire UI structure.
- * theme = style of the box itself (ice, fire, clash)
- * connectorTheme = style of the lines connecting TO this box from the left.
- */
-function Pair({ top = "TBD", bot = "TBD", theme = "ice", connectorTheme = "ice" }) {
-  const themeClass = s[`card${theme.charAt(0).toUpperCase() + theme.slice(1)}`];
-  const connectorClass = s[`${connectorTheme}Connectors`];
-
-  return (
-    // Wrapper handles positioning and connector lines
-    <div className={`${s.pairWrapper} ${connectorClass}`}>
-      {/* Inner card handles visual style (clip path, blur, border glow) */}
-      <div className={`${s.matchCard} ${themeClass}`}>
-        <div className={s.team} title={top}>
-          <span>{top}</span>
-        </div>
-        <div className={s.team} title={bot}>
-          <span>{bot}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Single player drop-in box */
-function Single({ name = "TBD", theme = "ice" }) {
-  const themeClass = s[`card${theme.charAt(0).toUpperCase() + theme.slice(1)}`];
-  // Singles don't usually have incoming connectors in this layout, so we default outgoing to match theme
-  const connectorClass = s[`${theme}Connectors`]; 
-
-  return (
-    <div className={`${s.singleWrapper} ${connectorClass}`}>
-      {/* For a single, we reuse matchCard but it only has one team entry */}
-      <div className={`${s.matchCard} ${themeClass}`} style={{height: 'var(--singleHeight)'}}>
-        <div className={s.team} title={name} style={{borderBottom: 'none'}}>
-          <span>{name}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// (Normalize function remains exactly the same as your original code)
+// Data Normalization (Unchanged)
 function normalize(props) {
   const d = props.data;
   if (d) {

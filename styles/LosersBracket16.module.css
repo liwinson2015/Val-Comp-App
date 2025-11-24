@@ -2,7 +2,7 @@
 
 /* --- Theme Variables & Main Container --- */
 .lbViewport {
-  /* --- FROSTFIRE THEME VARS --- */
+  /* Inherit Frostfire Palette */
   --ice-primary: #00c6ff;
   --ice-secondary: #0072ff;
   --ice-glow: rgba(0, 198, 255, 0.6);
@@ -16,29 +16,15 @@
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.8);
 
-  /* --- GRID & SPACING VARS (Kept from original layout) --- */
-  --colw: clamp(140px, 10vw, 180px); /* Slightly wider for new cards */
-  --gap: clamp(20px, 2.5vw, 30px);
-  --r1Space: 30px; /* Increased spacing between matches */
-
-  /* Dimensions used for vertical alignment calculations */
-  /* NOTE: These must match the actual rendered height of matchCard */
-  --cardHeight: 66px; /* Approx height of 2 teams + padding + borders */
-  --singleHeight: 38px; /* Approx height of 1 team + padding + border */
-  
-  /* Grid dimensions */
-  --stageW: calc(var(--colw) * 7 + var(--gap) * 6);
-  --stageH: clamp(600px, 70vh, 800px);
-  --topSpace: 140px;
-
-  /* --- MAIN BACKGROUND & TYPOGRAPHY --- */
+  /* Layout */
   width: 100vw;
   position: relative;
   left: 50%;
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  min-height: calc(100vh - var(--topSpace));
+  
+  min-height: 100vh;
   background-color: #050505;
 
   background-image:
@@ -53,363 +39,178 @@
     );
   background-position: center;
   background-size: cover;
+
   color: #fff;
   font-family: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-
-  display: grid;
-  place-items: center;
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
   overflow-x: auto;
   padding: 40px 0;
 }
 
-/* Scaling logic for the whole stage */
-.lbViewport {
-  --fitW: calc(100vw / var(--stageW));
-  /* Ensure it doesn't get too small vertically */
-  --fitH: calc((100vh - var(--topSpace)) / var(--stageH));
-  /* Only scale down if needed, don't scale up past 1 */
-  --scale: min(1, var(--fitW)); 
-}
-
-.lbStage {
-  width: var(--stageW);
-  /* Allow height to grow if needed on mobile, min-height for desktop alignment */
-  min-height: var(--stageH); 
-  transform: scale(var(--scale));
-  transform-origin: top center;
-  /* Add padding to prevent clipping due to scale */
-  padding: 20px; 
-}
-
-.lbGrid {
+/* The Wrapper for the Columns */
+.bracketWrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
   width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(7, var(--colw));
-  gap: var(--gap);
-  align-items: start;
+  max-width: 1800px; /* Wide enough for 7 columns */
+  padding: 0 20px;
 }
 
-/* ---------- Rounds / Titles ---------- */
-.round {
+/* --- COLUMNS --- */
+.column {
+  display: flex;
+  flex-direction: column;
+  /* KEY: This forces even distribution vertically */
+  justify-content: space-around; 
+  /* KEY: This ensures every column is exactly the same width */
+  flex: 1 1 0px; 
+  min-width: 0;
+  position: relative;
+  gap: 20px; 
+}
+
+/* Titles */
+.roundTitle {
+  text-align: center;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  min-height: 20px;
+  opacity: 0.9;
+  /* Stick to top when scrolling vertically in column (optional) */
+  position: sticky;
+  top: 0;
+}
+
+/* Colorize Titles */
+.iceTitle { color: var(--ice-primary); text-shadow: 0 0 10px rgba(0,198,255,0.3); }
+.fireTitle { color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3); }
+.clashTitle { color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+
+
+/* --- MATCH CONTAINER --- */
+/* Holds the matches below the title. This is what Flexbox spaces out. */
+.matchContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around; /* The magic alignment */
+  width: 100%;
+  gap: 20px;
+  position: relative;
+}
+
+/* --- CONNECTORS --- */
+/* Standardize connector lines */
+.matchWrapper {
   position: relative;
   width: 100%;
 }
 
-.roundTitle {
-  text-align: center;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-weight: 700;
-  margin-bottom: 15px;
-  height: 30px;
+/* Horizontal stub to the right */
+.matchWrapper::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  width: 10px;
+  height: 2px;
+  background: rgba(255,255,255,0.2);
+}
+
+/* Vertical lines on the LEFT of the Receiving Column */
+.connectorLeft::before {
+  content: "";
+  position: absolute;
+  top: 50%; /* Adjusted dynamically by logic usually, but here we use a simple bracket style */
+  left: -10px;
+  width: 10px;
+  height: 2px;
+  background: rgba(255,255,255,0.2);
+}
+
+/* --- CARD STYLES (MATCHING WINNERS BRACKET) --- */
+.matchCard {
+  background: rgba(20, 25, 35, 0.95);
+  backdrop-filter: blur(5px);
+  width: 100%;
+  padding: 4px 0;
+  position: relative;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
 }
 
-/* Theme titles based on column index (approximate) */
-.r1 .roundTitle, .r2 .roundTitle, .r3a .roundTitle {
-    color: var(--ice-primary); text-shadow: 0 0 10px rgba(0,198,255,0.3);
-}
-.r3b .roundTitle, .r4 .roundTitle {
-    color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3);
-}
-.rFinal .roundTitle, .lbWinnerCol .lbWinnerTitle {
-    color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3);
-}
-
-
-.stack {
-  position: relative;
-  display: grid;
-  width: 100%;
-}
-
-/* ---------- NEW CARD STYLING (Replaces old slots) ---------- */
-
-/* The container for a 2-player match card */
-.matchCard {
-    background: rgba(20, 25, 35, 0.95);
-    backdrop-filter: blur(5px);
-    width: 100%;
-    /* Padding handles internal spacing between teams */
-    padding: 4px 0; 
-    position: relative;
-    /* The angled corner cut */
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    /* Force height for alignment calculations */
-    height: var(--cardHeight); 
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  
-/* A single player row inside a card */
 .team {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Adjust padding to fit height */
-    padding: 4px 8px; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    text-align: center;
-    width: 100%;
-    flex: 1; /* Distribute space evenly */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  width: 100%;
 }
 .team:last-child { border-bottom: none; }
 
-/* Text styling allowing wrapping */
 .team span {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    font-size: 0.8rem;
-    line-height: 1;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    display: block;
-    width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: 0.8rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: block;
+  width: 100%;
 }
 
+/* Themes */
+.cardIce { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.cardIce:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); background: rgba(10, 30, 50, 1); }
 
-/* --- THEMES --- */
+.cardFire { border-color: rgba(255, 75, 31, 0.3); box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.cardFire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); background: rgba(50, 20, 10, 1); }
 
-/* Ice Theme */
-.cardIce {
-    border-color: rgba(0, 198, 255, 0.3);
-    box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-.cardIce:hover {
-    border-color: var(--ice-primary);
-    box-shadow: 0 0 20px var(--ice-glow);
-    background: rgba(10, 30, 50, 1);
-}
+.cardClash { border-color: var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); transform: scale(1.1); }
 
-/* Fire Theme */
-.cardFire {
-    border-color: rgba(255, 75, 31, 0.3);
-    box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-.cardFire:hover {
-    border-color: var(--fire-primary);
-    box-shadow: 0 0 20px var(--fire-glow);
-    background: rgba(50, 20, 10, 1);
+/* Winner Text */
+.winnerText {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--clash-primary);
+  text-shadow: 0 0 10px var(--clash-glow);
 }
 
-/* Clash Theme (Finals/Winner) */
-.cardClash {
-    border-color: var(--clash-primary);
-    box-shadow: 0 0 30px var(--clash-glow);
-    background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9));
-}
-/* Scale up the winner pill slightly */
-.lbWinnerPill .cardClash {
-    transform: scale(1.1);
-}
-
-
-/* ---------- Vertical Spacing Logic (Refined for new card heights) ---------- */
-
-/* R1 & R2 base rhythm */
-.r1 .pairWrapper, .r2 .pairWrapper { margin: calc(var(--r1Space)/2) 0; }
-.r2 .stack { margin-top: 0; }
-
-/* R3A Singles */
-.r3a .singleWrapper { margin: calc(var(--r1Space)/2) 0; }
-.r3a .stack { margin-top: 0; }
-
-/* R3B: Aligned between R3A singles */
-/* Calculation: (CardHeight / 2) + Spacing */
-.r3b .pairWrapper { margin: calc(var(--cardHeight)/2 + var(--r1Space)) 0; }
-/* Offset stack to align midpoints */
-.r3b .stack { margin-top: calc((var(--cardHeight) - var(--singleHeight)) / 2); }
-
-
-/* R4: Large gap. Top aligned to R3B-1 center, Bottom aligned to R3B-2 center */
-.r4 .pairWrapper {
-    /* Math: CardHeight + R1Space - (CardHeight/2) */
-    margin: calc(var(--cardHeight)/2 + var(--r1Space)) 0;
-}
-.r4 .stack { margin-top: calc((var(--cardHeight) - var(--singleHeight)) / 2); }
-
-
-/* The big gap inside R4 match between top and bottom teams.
-   This is tricky because we are now using a single .matchCard container.
-   We need to use padding on the container to separate the teams.
-*/
-.r4 .matchCard {
-    height: auto; /* Allow growth */
-    /* Add huge padding between the two team rows */
-    padding-top: 4px;
-    padding-bottom: 4px;
-    /* Calculation for the gap between teams based on previous rounds */
-    gap: calc(var(--cardHeight) + var(--r1Space) * 2 + 4px);
-}
-.r4 .matchCard .team {
-    border-bottom: none; /* Remove separator line for this big gap style */
-    /* Force team height back to normal single height */
-    flex: 0 0 var(--singleHeight); 
-    border: 1px solid rgba(255,255,255,0.1); /* Add borders back to individual teams */
-    background: rgba(0,0,0,0.3);
-}
-
-/* LB Final */
-.rFinal .pairWrapper { margin: 0; }
-/* Complex calculation to center final between R4 top and bottom */
-.rFinal .stack {
-    margin-top: calc(var(--cardHeight) + var(--r1Space) * 1.5 - 2px);
-}
-
-
-/* ---------- Connectors (Glowing Lines) ---------- */
-
-.pairWrapper, .singleWrapper {
-    position: relative;
-    width: 100%;
-}
-
-/* Use variables for connector colors based on theme */
-.iceConnectors { --connector-color: var(--ice-primary); }
-.fireConnectors { --connector-color: var(--fire-primary); }
-.clashConnectors { --connector-color: var(--clash-primary); }
-
-/* The horizontal stub to the right */
-.pairWrapper::after, .singleWrapper::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: -10px; /* Stub length */
-    width: 100%; /* Changed strategy: width controls length */
-    max-width: 10px;
-    height: 2px;
-    /* Glowing gradient line */
-    background: linear-gradient(90deg, var(--connector-color), transparent);
-    box-shadow: 0 0 5px var(--connector-color);
-    z-index: -1;
-}
-
-/* Vertical connectors (collectors from previous round) */
-/* We apply this to the wrapper of the receiving rounds */
-.r2 .pairWrapper,
-.r3b .pairWrapper,
-.r4 .pairWrapper,
-.rFinal .pairWrapper {
-    /* 1. Vertical Line (The collector) */
-    background-image: linear-gradient(var(--connector-color), var(--connector-color));
-    background-size: 2px calc(100% + var(--r1Space)); /* Height of card + spacing */
-    background-repeat: no-repeat;
-    background-position: left -10px center; /* Position to the left */
-
-    /* 2. Horizontal Arm (connecting vertical to card) */
-}
-
-/* Add the horizontal arm using ::before on these specific rounds */
-.r2 .pairWrapper::before,
-.r3b .pairWrapper::before,
-.r4 .pairWrapper::before,
-.rFinal .pairWrapper::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: -10px;
-    width: 10px;
-    height: 2px;
-    background: linear-gradient(270deg, var(--connector-color), transparent);
-    box-shadow: 0 0 5px var(--connector-color);
-}
-
-/* Special case for R4 vertical line height due to the big gap */
-.r4 .pairWrapper {
-     /* Adjust height to span the massive gap */
-    background-size: 2px calc(var(--cardHeight) * 2 + var(--r1Space) * 3);
-}
-
-
-/* ---------- LB Winner Section ---------- */
-
-.lbWinnerCol {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Calculation to center pill relative to LB Final */
-.lbWinnerPillWrapper {
-    margin-top: calc(var(--cardHeight) + var(--r1Space) * 1.5 + 10px);
-    width: 100%;
-}
-
-/* Style the winner text inside the Clash card */
-.lbWinnerText {
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: var(--clash-primary);
-    text-shadow: 0 0 10px var(--clash-glow);
-}
-
-/* MOBILE OVERRIDES */
-@media (max-width: 1024px) {
-  /* On mobile, we have to break the precise grid alignment 
-     because it won't fit horizontally. We switch to a flex column layout. */
-  .lbViewport {
-    display: block;
-    height: auto;
-    padding: 20px 0;
-  }
-  .lbStage {
-    width: 100%;
-    height: auto;
-    transform: none;
-    padding: 10px;
-  }
-  .lbGrid {
-    display: flex;
-    flex-direction: column;
+/* Responsive */
+@media (max-width: 1200px) {
+  .bracketWrapper {
+    flex-direction: column; /* Stack vertically on mobile */
     gap: 40px;
+    padding-bottom: 40px;
   }
-  .round {
-    margin-bottom: 30px;
+  .column {
+    width: 100%;
+    gap: 10px;
   }
-  .stack {
-    display: flex;
-    flex-direction: row; /* Stack matches horizontally on mobile */
+  .matchContainer {
+    flex-direction: row; /* Matches flow horizontally in the column */
     flex-wrap: wrap;
     gap: 15px;
-    justify-content: center;
-    margin-top: 0 !important; /* Reset calculated margins */
   }
-  .pairWrapper, .singleWrapper {
-    width: 45%; /* Two per row roughly */
-    margin: 0 !important; /* Reset calculated margins */
-    background-image: none !important; /* Hide complex connector lines on mobile */
+  .matchWrapper {
+    width: 45%; /* 2 per row */
   }
-  .pairWrapper::before, .pairWrapper::after,
-  .singleWrapper::before, .singleWrapper::after {
-      display: none; /* Hide connector stubs */
-  }
-
-  /* Reset R4 special gap for mobile */
-  .r4 .matchCard {
-      height: var(--cardHeight);
-      gap: 0;
-      padding: 4px 0;
-  }
-  .r4 .matchCard .team {
-      flex: 1;
-      border: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      background: transparent;
-  }
-  .r4 .matchCard .team:last-child { border-bottom: none; }
-
-  .lbWinnerPillWrapper {
-      margin-top: 20px;
-      width: 80%;
-  }
+  .matchWrapper::after { display: none; }
+  .connectorLeft::before { display: none; }
 }
