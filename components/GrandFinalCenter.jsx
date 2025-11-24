@@ -63,9 +63,9 @@ export default function GrandFinalCenter({
   return (
     <div className={s.wrap}>
       <div className={s.row}>
-        {/* LEFT (WB side) */}
+        {/* LEFT (WB side) - Ice Theme */}
         <div className={`${s.source} ${s.left}`}>
-          <div className={s.slot}>{wbChampion}</div>
+          <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
@@ -76,13 +76,13 @@ export default function GrandFinalCenter({
           </div>
           <div className={s.title}>GRAND FINAL</div>
           <div className={s.gfBox}>{champion}</div>
-          <div className={s.reset}>Reset match if LB side wins first set</div>
+          {/* Removed reset text */}
         </div>
 
-        {/* RIGHT (LB side) */}
+        {/* RIGHT (LB side) - Fire Theme */}
         <div className={`${s.source} ${s.right}`}>
           <div className={`${s.arm} ${s.armRight}`} />
-          <div className={s.slot}>{lbChampion}</div>
+          <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
         </div>
       </div>
     </div>
