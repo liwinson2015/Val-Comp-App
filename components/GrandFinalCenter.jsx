@@ -39,8 +39,8 @@ export default function GrandFinalCenter({
       <div className={s.row}>
         {/* LEFT (WB side) - Ice Theme */}
         <div className={`${s.source} ${s.left}`}>
-          {/* Label Changed to WINNER */}
-          <h3 className={`${s.sideLabel} ${s.iceLabel}`}>WINNER</h3>
+          {/* Label: Upper Bracket Winner */}
+          <h3 className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</h3>
           <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
@@ -50,14 +50,15 @@ export default function GrandFinalCenter({
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
           </div>
-          <div className={s.title}>GRAND FINAL</div>
+          {/* Label: Grand Final Champion */}
+          <div className={s.title}>GRAND FINAL CHAMPION</div>
           <div className={s.gfBox}>{champion}</div>
         </div>
 
         {/* RIGHT (LB side) - Fire Theme */}
         <div className={`${s.source} ${s.right}`}>
-           {/* Label Changed to WINNER */}
-           <h3 className={`${s.sideLabel} ${s.fireLabel}`}>WINNER</h3>
+           {/* Label: Lower Bracket Winner */}
+           <h3 className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</h3>
           <div className={`${s.arm} ${s.armRight}`} />
           <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
         </div>
