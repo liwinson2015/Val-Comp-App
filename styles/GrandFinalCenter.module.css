@@ -12,12 +12,8 @@
   /* --- Full Screen Breakout Fix --- */
   width: 100vw;
   position: relative;
-  
-  /* Robust centering calculation */
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  
-  /* Remove any default margins that might shift it */
   left: auto;
   right: auto;
 
@@ -38,8 +34,6 @@
 
   display: grid;
   place-items: center;
-  
-  /* Padding top/bottom to space it out */
   padding: 40px 0;
 }
 
@@ -49,12 +43,48 @@
   grid-template-columns: 1fr auto 1fr; 
   align-items: center;
   gap: 18px;
+  /* Ensure labels don't get clipped */
+  position: relative; 
 }
 
-.source { display: grid; align-items: center; }
+/* ===== Source sides (WB / LB) ===== */
+.source {
+  /* Important: relative position so absolute labels sit correctly */
+  position: relative;
+  display: grid;
+  align-items: center;
+}
+
 .left { grid-template-columns: 1fr auto; }
 .right { grid-template-columns: auto 1fr; }
 
+/* --- NEW: Side Labels (Absolute positioning) --- */
+.sideLabel {
+  position: absolute;
+  bottom: 100%; /* Sit right on top of the container */
+  left: 0;
+  width: 100%; /* Span the width of the slot area */
+  text-align: center;
+  margin-bottom: 12px; /* Spacing between text and slot */
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none; /* Ensure clicks pass through */
+  white-space: nowrap; /* Prevent wrapping */
+}
+
+.iceLabel {
+  color: var(--ice-primary);
+  text-shadow: 0 0 15px var(--ice-glow);
+}
+
+.fireLabel {
+  color: var(--fire-primary);
+  text-shadow: 0 0 15px var(--fire-glow);
+}
+
+/* --- Slots --- */
 .slot {
   height: 34px;
   min-width: 160px;
