@@ -126,15 +126,15 @@ export default function LosersBracket16(props) {
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Final</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-            <div id="lb-final-target" style={{width: '100%'}}>
+            {/* REMOVED ID FROM HERE */}
+            <div style={{width: '100%'}}>
                <MatchCard match={matches.LBF[0]} theme="clash" />
             </div>
           </div>
         </div>
 
-        {/* COL 7: LB CHAMPION (Hidden title to maintain spacing) */}
+        {/* COL 7: LB CHAMPION (Correct Target) */}
         <div className={s.column} style={{ flex: '0 0 200px'}}>
-           {/* --- RESTORED BUT HIDDEN --- */}
            <h3 className={`${s.roundTitle} ${s.clashTitle}`} style={{ visibility: "hidden" }}>
              LB Champion
            </h3>
@@ -142,11 +142,17 @@ export default function LosersBracket16(props) {
            <div className={`${s.matchContainer} ${s.connectorLeft}`}>
              <div className={s.matchWrapper}>
                 <h2 className={s.winnerText}>WINNER</h2>
-                <div className={`${s.matchCard} ${s.cardClash}`}>
-                   <div className={`${s.team} ${s.winnerRow}`}>
-                     <span>{matches.LBChamp[0].p1}</span>
-                   </div>
+                
+                {/* --- TARGET ID MOVED HERE --- */}
+                {/* This tells GrandFinalCenter to draw the line to THIS box */}
+                <div id="lb-final-target" style={{ width: '100%' }}>
+                  <div className={`${s.matchCard} ${s.cardClash}`}>
+                     <div className={`${s.team} ${s.winnerRow}`}>
+                       <span>{matches.LBChamp[0].p1}</span>
+                     </div>
+                  </div>
                 </div>
+
              </div>
            </div>
         </div>
