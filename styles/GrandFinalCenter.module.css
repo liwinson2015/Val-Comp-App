@@ -1,7 +1,6 @@
 /* styles/GrandFinalCenter.module.css */
 
 .wrap {
-  /* --- Theme Vars --- */
   --ice-primary: #00c6ff;
   --ice-glow: rgba(0, 198, 255, 0.6);
   --fire-primary: #ff4b1f;
@@ -9,15 +8,11 @@
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.8);
 
-  /* Layout */
   width: 100vw;
   position: relative;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  left: auto;
-  right: auto;
-
-  /* Background */
+  
   background-color: #050505;
   background-image:
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
@@ -46,7 +41,6 @@
   position: relative; 
 }
 
-/* ===== Source sides ===== */
 .source {
   position: relative;
   display: grid;
@@ -56,8 +50,7 @@
 .left { grid-template-columns: 1fr auto; }
 .right { grid-template-columns: auto 1fr; }
 
-/* --- NEW: WB CONNECTION LINE (Only for Left Side) --- */
-/* This element sits inside the .left container */
+/* --- CONNECTING LINE TO WINNERS BRACKET (The Fix) --- */
 .wbConnect {
   position: absolute;
   top: 0;
@@ -67,38 +60,41 @@
   pointer-events: none;
 }
 
-/* 1. Vertical Line UP from the slot */
+/* 1. Vertical Line: Extends UPWARDS from the slot */
 .wbConnect::before {
   content: "";
   position: absolute;
-  bottom: 100%; /* Start at top of slot */
-  left: 50%;    /* Center of slot */
+  /* Start at the top of the slot text/box */
+  bottom: 100%; 
+  left: 50%;    
   width: 2px;
-  height: 40px; /* Go up 40px */
+  /* INCREASED HEIGHT: Reaches up into the component above */
+  height: 80px; 
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
+  z-index: 0;
 }
 
-/* 2. Horizontal Line RIGHT towards center */
+/* 2. Horizontal Line: Stretches RIGHT towards the center */
 .wbConnect::after {
   content: "";
   position: absolute;
-  bottom: calc(100% + 40px); /* Top of the vertical line */
-  left: 50%;                 /* Start from the vertical line */
-  width: 50vw;               /* Stretch far to the right */
+  /* Positioned at the top of the vertical line (100% + height of before) */
+  bottom: calc(100% + 80px); 
+  left: 50%;                 
+  /* Stretch to approximate center */
+  width: 35vw;               
   height: 2px;
   
-  /* Gradient: Solid Ice -> Transparent */
-  /* This creates a visual link to the center without needing exact pixels */
-  background: linear-gradient(90deg, var(--ice-primary) 0%, var(--ice-primary) 20%, transparent 100%);
-  box-shadow: 0 0 10px var(--ice-glow);
+  /* Gradient: Solid Blue -> Transparent */
+  background: linear-gradient(90deg, var(--ice-primary) 20%, transparent 100%);
+  box-shadow: 0 0 15px var(--ice-glow);
   
-  /* Rounded corner */
   border-top-left-radius: 4px;
+  z-index: 0;
 }
 
-
-/* --- Labels --- */
+/* Labels */
 .sideLabel {
   position: absolute;
   bottom: 100%; 
@@ -117,7 +113,7 @@
 .iceLabel { color: var(--ice-primary); text-shadow: 0 0 15px var(--ice-glow); }
 .fireLabel { color: var(--fire-primary); text-shadow: 0 0 15px var(--fire-glow); }
 
-/* --- Slots --- */
+/* Slots */
 .slot {
   height: 34px;
   min-width: 160px;
@@ -133,8 +129,7 @@
   font-weight: 700;
   font-size: 13px;
   transition: all 0.3s ease;
-  /* Ensure slot sits ON TOP of the connector lines */
-  z-index: 2; 
+  z-index: 2; /* Keep slot above lines */
 }
 
 .ice { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
@@ -183,11 +178,10 @@
 
 @media (max-width: 1000px){ .slot{ min-width: 140px; } .gfBox{ min-width: 220px; height: 40px; } }
 @media (max-width: 780px){ .row{ gap: 12px; } .slot{ min-width: 120px; font-size: 12px; height: 32px; } .gfBox{ min-width: 200px; } .trophyIcon{ width: 40px; height: 40px; } }
-/* Hide connectors on mobile where layout stacks */
 @media (max-width: 600px){ 
   .row{ width: 96vw; grid-template-columns: 1fr; gap: 10px; } 
   .left, .right{ grid-template-columns: 1fr; } 
   .arm{ display: none; } 
   .slot{ width: 100%; } 
-  .wbConnect { display: none; }
+  .wbConnect { display: none; } /* Hide custom line on mobile */
 }
