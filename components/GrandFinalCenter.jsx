@@ -39,8 +39,8 @@ export default function GrandFinalCenter({
       <div className={s.row}>
         {/* LEFT (WB side) - Ice Theme */}
         <div className={`${s.source} ${s.left}`}>
-          {/* Floating Label */}
-          <h3 className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</h3>
+          {/* Label Changed to WINNER */}
+          <h3 className={`${s.sideLabel} ${s.iceLabel}`}>WINNER</h3>
           <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
@@ -56,8 +56,8 @@ export default function GrandFinalCenter({
 
         {/* RIGHT (LB side) - Fire Theme */}
         <div className={`${s.source} ${s.right}`}>
-           {/* Floating Label */}
-           <h3 className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET CHAMPION</h3>
+           {/* Label Changed to WINNER */}
+           <h3 className={`${s.sideLabel} ${s.fireLabel}`}>WINNER</h3>
           <div className={`${s.arm} ${s.armRight}`} />
           <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
         </div>
