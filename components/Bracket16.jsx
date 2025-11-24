@@ -86,15 +86,30 @@ export default function Bracket16({ data }) {
   };
 
   // 2. Infer Winners
+  
+  // Left Side Logic
   inferWinners(leftSide.round1, leftSide.round2);
   inferWinners(leftSide.round2, leftSide.semis);
-  if (leftSide.semis[0].p1 === finalsMatch.p1) leftSide.semis[0].winner = 1;
-  if (leftSide.semis[0].p2 === finalsMatch.p1) leftSide.semis[0].winner = 2;
+  
+  // FIXED: Check Semi -> Final connection (Ignore "TBD")
+  if (leftSide.semis[0].p1 !== "TBD" && leftSide.semis[0].p1 === finalsMatch.p1) {
+    leftSide.semis[0].winner = 1;
+  }
+  if (leftSide.semis[0].p2 !== "TBD" && leftSide.semis[0].p2 === finalsMatch.p1) {
+    leftSide.semis[0].winner = 2;
+  }
 
+  // Right Side Logic
   inferWinners(rightSide.round1, rightSide.round2);
   inferWinners(rightSide.round2, rightSide.semis);
-  if (rightSide.semis[0].p1 === finalsMatch.p2) rightSide.semis[0].winner = 1;
-  if (rightSide.semis[0].p2 === finalsMatch.p2) rightSide.semis[0].winner = 2;
+
+  // FIXED: Check Semi -> Final connection (Ignore "TBD")
+  if (rightSide.semis[0].p1 !== "TBD" && rightSide.semis[0].p1 === finalsMatch.p2) {
+    rightSide.semis[0].winner = 1;
+  }
+  if (rightSide.semis[0].p2 !== "TBD" && rightSide.semis[0].p2 === finalsMatch.p2) {
+    rightSide.semis[0].winner = 2;
+  }
 
   return (
     <div className={s.container}>
@@ -105,8 +120,6 @@ export default function Bracket16({ data }) {
 
       <div className={s.bracketWrapper}>
         {/* --- LEFT SIDE (ICE) --- */}
-        
-        {/* Round of 16 */}
         <div className={`${s.column} ${s.columnLeft}`}>
           <h3 className={s.roundTitle}>Round of 16</h3>
           <div className={s.matchContainer}>
@@ -114,7 +127,6 @@ export default function Bracket16({ data }) {
           </div>
         </div>
 
-        {/* Quarter Finals */}
         <div className={`${s.column} ${s.columnLeft}`}>
           <h3 className={s.roundTitle}>Quarter Final</h3>
           <div className={s.matchContainer}>
@@ -122,7 +134,6 @@ export default function Bracket16({ data }) {
           </div>
         </div>
 
-        {/* Semi Finals */}
         <div className={`${s.column} ${s.columnLeft}`}>
           <h3 className={s.roundTitle}>Semi Final</h3>
           <div className={s.matchContainer}>
@@ -139,8 +150,6 @@ export default function Bracket16({ data }) {
         </div>
 
         {/* --- RIGHT SIDE (FIRE) --- */}
-
-        {/* Semi Finals */}
         <div className={`${s.column} ${s.columnRight}`}>
           <h3 className={s.roundTitle}>Semi Final</h3>
           <div className={s.matchContainer}>
@@ -148,7 +157,6 @@ export default function Bracket16({ data }) {
           </div>
         </div>
 
-        {/* Quarter Finals */}
         <div className={`${s.column} ${s.columnRight}`}>
           <h3 className={s.roundTitle}>Quarter Final</h3>
           <div className={s.matchContainer}>
@@ -156,7 +164,6 @@ export default function Bracket16({ data }) {
           </div>
         </div>
 
-        {/* Round of 16 */}
         <div className={`${s.column} ${s.columnRight}`}>
           <h3 className={s.roundTitle}>Round of 16</h3>
           <div className={s.matchContainer}>
