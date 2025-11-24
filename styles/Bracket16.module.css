@@ -18,7 +18,7 @@
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.8);
 
-  /* Layout: Full viewport width, centered */
+  /* Layout */
   width: 100vw; 
   position: relative;
   left: 50%;
@@ -77,10 +77,10 @@
 .bracketWrapper {
   display: flex;
   justify-content: center;
-  align-items: stretch; /* Stretch columns to full height */
+  align-items: stretch;
   gap: 20px;
   width: 100%;
-  max-width: 1700px; /* Slightly wider to accommodate titles */
+  max-width: 1700px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -89,7 +89,6 @@
 .column {
   display: flex;
   flex-direction: column;
-  /* Removed 'justify-content: space-around' here to allow header at top */
   flex: 1 1 0px; 
   min-width: 0; 
   gap: 15px;
@@ -101,7 +100,7 @@
   z-index: 2; 
 }
 
-/* New: Round Title Styling */
+/* Titles */
 .roundTitle {
   text-align: center;
   font-size: 1rem;
@@ -110,29 +109,38 @@
   font-weight: 700;
   margin-bottom: 10px;
   opacity: 0.8;
-  height: 30px; /* Fixed height to ensure alignment across columns */
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Theme specific title colors */
 .columnLeft .roundTitle { color: var(--ice-primary); text-shadow: 0 0 10px rgba(0,198,255,0.3); }
 .columnRight .roundTitle { color: var(--fire-primary); text-shadow: 0 0 10px rgba(255,75,31,0.3); }
 .columnMid .roundTitle { color: var(--clash-primary); text-shadow: 0 0 10px rgba(255,215,0,0.3); }
 
-/* New: Container for matches to ensure they space correctly BELOW title */
+/* NEW: Winner Text Styling */
+.winnerText {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--clash-primary);
+  text-shadow: 0 0 10px var(--clash-glow);
+  margin: 0 0 10px 0; /* Add spacing below text */
+}
+
+/* Match Container */
 .matchContainer {
-  flex: 1; /* Take up remaining space */
+  flex: 1; 
   display: flex;
   flex-direction: column;
-  justify-content: space-around; /* Distribute matches evenly */
+  justify-content: space-around; 
   width: 100%;
   gap: 20px;
 }
 
-/* Connector Lines - Adjusted to align with matchContainer */
-/* We target the matchContainer for the pseudo-element so lines align with boxes, not the header */
+/* Connectors */
 .matchContainer::before {
   content: "";
   position: absolute;
@@ -141,14 +149,10 @@
   height: 2px;
   opacity: 0.5;
 }
-
-/* Left side lines on right of container */
 .columnLeft .matchContainer::before {
   right: -10px;
   background: linear-gradient(90deg, var(--ice-primary), transparent);
 }
-
-/* Right side lines on left of container */
 .columnRight .matchContainer::before {
   left: -10px;
   background: linear-gradient(270deg, var(--fire-primary), transparent);
@@ -247,8 +251,8 @@
   .bracketWrapper { flex-direction: column; padding-bottom: 50px; }
   .column { flex: 1; flex-direction: row; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
   .columnMid { order: -1; margin-bottom: 40px; flex: 0 0 auto; width: 100%; }
-  .matchContainer { flex-direction: row; flex-wrap: wrap; gap: 10px; } /* Mobile match flow */
-  .roundTitle { width: 100%; margin-bottom: 10px; } /* Header takes full width on mobile */
+  .matchContainer { flex-direction: row; flex-wrap: wrap; gap: 10px; } 
+  .roundTitle { width: 100%; margin-bottom: 10px; } 
   .matchWrapper { width: 45%; }
   .matchContainer::before { display: none; }
   .container { height: auto; min-height: 100vh; }

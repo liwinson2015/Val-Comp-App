@@ -85,31 +85,16 @@ export default function Bracket16({ data }) {
     winner: finalWinner,
   };
 
-  // 2. Infer Winners
-  
-  // Left Side Logic
+  // 2. Infer Winners (Skipping TBD)
   inferWinners(leftSide.round1, leftSide.round2);
   inferWinners(leftSide.round2, leftSide.semis);
-  
-  // FIXED: Check Semi -> Final connection (Ignore "TBD")
-  if (leftSide.semis[0].p1 !== "TBD" && leftSide.semis[0].p1 === finalsMatch.p1) {
-    leftSide.semis[0].winner = 1;
-  }
-  if (leftSide.semis[0].p2 !== "TBD" && leftSide.semis[0].p2 === finalsMatch.p1) {
-    leftSide.semis[0].winner = 2;
-  }
+  if (leftSide.semis[0].p1 !== "TBD" && leftSide.semis[0].p1 === finalsMatch.p1) leftSide.semis[0].winner = 1;
+  if (leftSide.semis[0].p2 !== "TBD" && leftSide.semis[0].p2 === finalsMatch.p1) leftSide.semis[0].winner = 2;
 
-  // Right Side Logic
   inferWinners(rightSide.round1, rightSide.round2);
   inferWinners(rightSide.round2, rightSide.semis);
-
-  // FIXED: Check Semi -> Final connection (Ignore "TBD")
-  if (rightSide.semis[0].p1 !== "TBD" && rightSide.semis[0].p1 === finalsMatch.p2) {
-    rightSide.semis[0].winner = 1;
-  }
-  if (rightSide.semis[0].p2 !== "TBD" && rightSide.semis[0].p2 === finalsMatch.p2) {
-    rightSide.semis[0].winner = 2;
-  }
+  if (rightSide.semis[0].p1 !== "TBD" && rightSide.semis[0].p1 === finalsMatch.p2) rightSide.semis[0].winner = 1;
+  if (rightSide.semis[0].p2 !== "TBD" && rightSide.semis[0].p2 === finalsMatch.p2) rightSide.semis[0].winner = 2;
 
   return (
     <div className={s.container}>
@@ -143,9 +128,14 @@ export default function Bracket16({ data }) {
 
         {/* --- MIDDLE (FINAL) --- */}
         <div className={`${s.column} ${s.columnMid}`}>
-          <h3 className={s.roundTitle}>Grand Final</h3>
+          {/* RENAMED TO FINAL */}
+          <h3 className={s.roundTitle}>FINAL</h3>
           <div className={s.matchContainer}>
-             <MatchCard match={finalsMatch} theme="clash" />
+             {/* ADDED "WINNER" TEXT ABOVE CARD */}
+             <div style={{width: '100%'}}>
+                <h2 className={s.winnerText}>WINNER</h2>
+                <MatchCard match={finalsMatch} theme="clash" />
+             </div>
           </div>
         </div>
 
