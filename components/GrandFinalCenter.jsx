@@ -4,7 +4,12 @@ import s from "../styles/GrandFinalCenter.module.css";
 
 function TrophyIcon({ className }) {
   return (
-    <svg className={className} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 64 64"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
       <defs>
         <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FFD700" />
@@ -12,10 +17,29 @@ function TrophyIcon({ className }) {
           <stop offset="100%" stopColor="#E6AC00" />
         </linearGradient>
       </defs>
-      <path d="M16 8h32v8a16 16 0 0 1-32 0V8z" fill="url(#grad)" stroke="#b38600" strokeWidth="2" />
-      <path d="M14 10c-4 0-6 4-6 9 0 5 2 9 8 9v-4c-3 0-4-2-4-5 0-3 1-5 4-5V10zM50 10c4 0 6 4 6 9 0 5-2 9-8 9v-4c3 0 4-2 4-5 0-3-1-5-4-5V10z" fill="url(#grad)" stroke="#b38600" strokeWidth="1.5" />
+      <path
+        d="M16 8h32v8a16 16 0 0 1-32 0V8z"
+        fill="url(#grad)"
+        stroke="#b38600"
+        strokeWidth="2"
+      />
+      <path
+        d="M14 10c-4 0-6 4-6 9 0 5 2 9 8 9v-4c-3 0-4-2-4-5 0-3 1-5 4-5V10zM50 10c4 0 6 4 6 9 0 5-2 9-8 9v-4c3 0 4-2 4-5 0-3-1-5-4-5V10z"
+        fill="url(#grad)"
+        stroke="#b38600"
+        strokeWidth="1.5"
+      />
       <rect x="28" y="24" width="8" height="12" fill="url(#grad)" />
-      <rect x="20" y="36" width="24" height="8" rx="1" fill="url(#grad)" stroke="#b38600" strokeWidth="1.5" />
+      <rect
+        x="20"
+        y="36"
+        width="24"
+        height="8"
+        rx="1"
+        fill="url(#grad)"
+        stroke="#b38600"
+        strokeWidth="1.5"
+      />
       <circle cx="32" cy="12" r="2" fill="white" opacity="0.8" />
       <circle cx="25" cy="16" r="1.2" fill="white" opacity="0.7" />
       <circle cx="39" cy="16" r="1.2" fill="white" opacity="0.7" />
@@ -30,23 +54,19 @@ export default function GrandFinalCenter({
 }) {
   return (
     <div className={s.wrap}>
-      <div className={s.row}>
-        
-        {/* LEFT (WB side) */}
-        <div className={`${s.source} ${s.left}`}>
-          <div className={s.slotWrapper}>
-             {/* This .lineUp now handles the logic: 
-               Vertical UP -> Horizontal RIGHT -> Vertical UP 
-             */}
-             <div className={s.lineUp} />
-             
-             <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
-             <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
+      <div className={s.stack}>
+        {/* UPPER BRACKET WINNER (feeds from the top winners bracket) */}
+        <div className={s.slotWrapper}>
+          {/* vertical connector going UP into the winners bracket section */}
+          <div className={s.connectorUp} />
+
+          <div className={`${s.sideLabel} ${s.iceLabel}`}>
+            UPPER BRACKET WINNER
           </div>
-          <div className={`${s.arm} ${s.armLeft}`} />
+          <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
         </div>
 
-        {/* CENTER */}
+        {/* CENTER TROPHY + CHAMPION */}
         <div className={s.center}>
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
@@ -55,15 +75,16 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* RIGHT (LB side) - Lines Hidden for now as requested */}
-        <div className={`${s.source} ${s.right}`}>
-          <div className={`${s.arm} ${s.armRight}`} />
-          <div className={s.slotWrapper}>
-             <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
-             <div className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</div>
+        {/* LOWER BRACKET WINNER (feeds into losers bracket below) */}
+        <div className={s.slotWrapper}>
+          <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
+          <div className={`${s.sideLabel} ${s.fireLabel}`}>
+            LOWER BRACKET WINNER
           </div>
-        </div>
 
+          {/* vertical connector going DOWN into the losers bracket section */}
+          <div className={s.connectorDown} />
+        </div>
       </div>
     </div>
   );
