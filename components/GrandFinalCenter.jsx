@@ -55,10 +55,14 @@ export default function GrandFinalCenter({
   return (
     <div className={s.wrap}>
       <div className={s.stack}>
-        {/* UPPER BRACKET WINNER (feeds from the top winners bracket) */}
+        {/* UPPER BRACKET WINNER (top) */}
         <div className={s.slotWrapper}>
-          {/* vertical connector going UP into the winners bracket section */}
-          <div className={s.connectorUp} />
+          {/* L-shaped pipe going to the LEFT */}
+          <div className={`${s.pipe} ${s.pipeLeft} ${s.pipeIce}`}>
+            <span className={`${s.pipeVert} ${s.pipeVertStart}`} />
+            <span className={s.pipeHoriz} />
+            <span className={`${s.pipeVert} ${s.pipeVertEnd}`} />
+          </div>
 
           <div className={`${s.sideLabel} ${s.iceLabel}`}>
             UPPER BRACKET WINNER
@@ -75,15 +79,19 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
-        {/* LOWER BRACKET WINNER (feeds into losers bracket below) */}
+        {/* LOWER BRACKET WINNER (bottom) */}
         <div className={s.slotWrapper}>
           <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
           <div className={`${s.sideLabel} ${s.fireLabel}`}>
             LOWER BRACKET WINNER
           </div>
 
-          {/* vertical connector going DOWN into the losers bracket section */}
-          <div className={s.connectorDown} />
+          {/* mirrored L-shaped pipe going to the RIGHT */}
+          <div className={`${s.pipe} ${s.pipeRight} ${s.pipeFire}`}>
+            <span className={`${s.pipeVert} ${s.pipeVertStart}`} />
+            <span className={s.pipeHoriz} />
+            <span className={`${s.pipeVert} ${s.pipeVertEnd}`} />
+          </div>
         </div>
       </div>
     </div>
