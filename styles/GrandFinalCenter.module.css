@@ -1,152 +1,218 @@
-/* styles/GrandFinalCenter.module.css
-   Centered Grand Final strip used between Winners & Losers brackets.
-   Square aesthetic to match your main bracket (Bracket16.module.css).
-*/
+/* styles/GrandFinalCenter.module.css */
 
-/* ===== Layout ===== */
-.wrap{
-  margin: 24px 0 32px;
+/* --- Theme Variables --- */
+.wrap {
+  --ice-primary: #00c6ff;
+  --ice-glow: rgba(0, 198, 255, 0.6);
+  --fire-primary: #ff4b1f;
+  --fire-glow: rgba(255, 75, 31, 0.6);
+  --clash-primary: #ffd700;
+  --clash-glow: rgba(255, 215, 0, 0.8);
+  
+  margin: 40px 0 50px;
   display: grid;
   place-items: center;
+  width: 100%;
 }
 
-.row{
-  /* cap width so it fits with your bracket columns */
-  width: min(1100px, 92vw);
+.row {
+  width: min(1200px, 94vw);
   display: grid;
-  grid-template-columns: 1fr auto 1fr; /* WB  | CENTER |  LB */
+  grid-template-columns: 1fr auto 1fr; /* WB | CENTER | LB */
   align-items: center;
-  gap: 18px;
+  gap: 20px;
 }
 
 /* ===== Source sides (WB / LB) ===== */
-.source{
+.source {
   display: grid;
   align-items: center;
 }
 
-.left{
+.left {
   grid-template-columns: 1fr auto; /* [slot]---arm--> */
 }
 
-.right{
+.right {
   grid-template-columns: auto 1fr; /* <--arm---[slot] */
 }
 
-/* Square slot like bracket boxes */
-.slot{
-  height: 34px;
+/* Common Slot Style (Dark, Angled, Blurred) */
+.slot {
+  height: 44px;
   min-width: 160px;
-  padding: 0 10px;
+  padding: 0 15px;
   display: flex;
   align-items: center;
   justify-content: center;
 
-  background: #ffffff;
-  color: #0f1320;
-
-  border: 2px solid #cfd7ea;
-  border-radius: 0;                 /* square corners */
-  box-shadow: none;
+  background: rgba(20, 25, 35, 0.95);
+  backdrop-filter: blur(5px);
+  color: #fff;
+  
+  /* Angled corners to match brackets */
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  
   font-weight: 700;
-  font-size: 13px;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
 }
 
-/* connector arms from each side into the center */
-.arm{
+/* Left Slot (WB) - Ice Theme */
+.left .slot {
+  border-color: rgba(0, 198, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 198, 255, 0.1);
+}
+.left .slot:hover {
+  border-color: var(--ice-primary);
+  box-shadow: 0 0 20px var(--ice-glow);
+}
+
+/* Right Slot (LB) - Fire Theme */
+.right .slot {
+  border-color: rgba(255, 75, 31, 0.3);
+  box-shadow: 0 0 15px rgba(255, 75, 31, 0.1);
+}
+.right .slot:hover {
+  border-color: var(--fire-primary);
+  box-shadow: 0 0 20px var(--fire-glow);
+}
+
+/* Connector Arms */
+.arm {
   height: 2px;
-  background: #2a2f36;
   width: 100%;
+  opacity: 0.8;
 }
 
-.armLeft{  margin-left: 10px;  }
-.armRight{ margin-right: 10px; }
+.armLeft {
+  margin-left: 5px;
+  background: linear-gradient(90deg, var(--ice-primary), transparent);
+  box-shadow: 0 0 5px var(--ice-primary);
+}
+
+.armRight {
+  margin-right: 5px;
+  background: linear-gradient(270deg, var(--fire-primary), transparent);
+  box-shadow: 0 0 5px var(--fire-primary);
+}
 
 /* ===== Center block ===== */
-.center{
+.center {
   display: grid;
   justify-items: center;
   align-items: center;
   text-align: center;
-  gap: 6px;
-  min-width: 240px;
+  gap: 8px;
+  min-width: 260px;
 }
 
-.title{
-  color: #dfe6f3;
+.title {
+  color: var(--clash-primary);
   font-weight: 900;
-  font-size: 12px;
-  letter-spacing: .10em;
+  font-size: 14px;
+  letter-spacing: .2em;
   text-transform: uppercase;
+  text-shadow: 0 0 10px var(--clash-glow);
 }
 
-.gfBox{
-  min-width: 240px;
-  height: 42px;
-  padding: 0 14px;
+.gfBox {
+  min-width: 260px;
+  height: 54px;
+  padding: 0 20px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  background: #1c2952;
-  color: #ffffff;
+  background: linear-gradient(135deg, rgba(30, 10, 0, 0.95), rgba(0, 10, 30, 0.95));
+  color: #fff;
 
-  border: 2px solid #122040;
-  border-radius: 0;                 /* square corners */
+  border: 1px solid var(--clash-primary);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+  
+  /* Angled corners */
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  
   font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
 }
 
-/* small helper note */
-.reset{
+/* Helper note */
+.reset {
   color: #95a3bf;
   font-size: 11px;
-  margin-top: 4px;
+  margin-top: 6px;
+  opacity: 0.6;
 }
 
-/* ===== Trophy above champion ===== */
-.trophyWrap{
-  margin-bottom: 6px;
+/* ===== Trophy ===== */
+.trophyWrap {
+  margin-bottom: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   animation: floatTrophy 3s ease-in-out infinite;
 }
 
-.trophyIcon{
-  width: 46px;
-  height: 46px;
-  color: gold; /* inline SVG uses gradient fill; this sets fallback & glow */
-  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7));
+.trophyIcon {
+  width: 50px;
+  height: 50px;
+  /* Add a glow filter to the SVG */
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
   transition: transform .3s ease;
 }
 
-/* gentle prestige motion */
-@keyframes floatTrophy{
+@keyframes floatTrophy {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
+  50% { transform: translateY(-6px); }
 }
 
 /* ===== Responsiveness ===== */
-@media (max-width: 1000px){
-  .slot{ min-width: 140px; }
-  .gfBox{ min-width: 220px; height: 40px; }
+@media (max-width: 1000px) {
+  .slot { min-width: 140px; }
+  .gfBox { min-width: 220px; height: 48px; }
 }
 
-@media (max-width: 780px){
-  .row{ gap: 12px; }
-  .slot{ min-width: 120px; font-size: 12px; height: 32px; }
-  .gfBox{ min-width: 200px; }
-  .trophyIcon{ width: 40px; height: 40px; }
+@media (max-width: 780px) {
+  .row { gap: 12px; }
+  .slot { min-width: 120px; font-size: 12px; height: 38px; }
+  .gfBox { min-width: 200px; }
+  .trophyIcon { width: 40px; height: 40px; }
 }
 
-@media (max-width: 560px){
-  .row{
+@media (max-width: 600px) {
+  .row {
     width: 96vw;
-    grid-template-columns: 1fr;        /* stack for narrow screens */
-    gap: 10px;
+    grid-template-columns: 1fr; /* Stack vertically on mobile */
+    gap: 30px;
   }
-  .left, .right{ grid-template-columns: 1fr; }
-  .arm{ display: none; }               /* hide arms when stacked */
-  .slot{ width: 100%; }
+  .left, .right { 
+    grid-template-columns: 1fr; 
+    justify-items: center;
+  }
+  .arm { 
+    /* Rotate arms to be vertical on mobile stack */
+    width: 2px; 
+    height: 30px; 
+    margin: 0;
+  }
+  .armLeft {
+    background: linear-gradient(180deg, var(--ice-primary), transparent);
+    order: 2; /* Put arm below box */
+  }
+  .armRight {
+    background: linear-gradient(0deg, var(--fire-primary), transparent);
+    order: -1; /* Put arm above box */
+  }
+  
+  .slot { width: 80%; }
+  
+  /* Reorder: WB top, Center middle, LB bottom */
+  .center { order: 0; margin: 20px 0; }
+  .left { order: -1; }
+  .right { order: 1; }
 }
