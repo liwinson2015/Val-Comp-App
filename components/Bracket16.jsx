@@ -38,12 +38,11 @@ function pairsToMatches(pairs, prefix) {
     id: `${prefix}-${idx}`,
     p1: pair?.[0] || "TBD",
     p2: pair?.[1] || "TBD",
-    winner: 0, // unknown from this data structure
+    winner: 0, 
   }));
 }
 
 export default function Bracket16({ data }) {
-  // keep your original data contract: left.R16/QF/SF, right.R16/QF/SF, final.left/right/champion
   const D = normalizeData(data);
 
   const leftSide = {
@@ -151,7 +150,6 @@ export default function Bracket16({ data }) {
   );
 }
 
-// same normalizeData helper as your original file
 function normalizeData(data) {
   const L = data?.left ?? {};
   const R = data?.right ?? {};
