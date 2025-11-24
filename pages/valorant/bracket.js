@@ -1,6 +1,6 @@
+// pages/valorant/bracket.js
 import React from "react";
 import mongoose from "mongoose";
-// CHANGE: Importing the renamed CSS module
 import styles from "../../styles/Rankings.module.css";
 import Bracket16 from "../../components/Bracket16";
 import LosersBracket16 from "../../components/LosersBracket16";
@@ -147,11 +147,18 @@ export default function BracketPage({
 
   // --- MAPPINGS (Unchanged logic) ---
   const rounds = bracket?.rounds || [];
-  const r1Matches = (rounds.find((r) => r.roundNumber === 1 && r.type === "winners") || {}).matches || [];
-  const r2Matches = (rounds.find((r) => r.roundNumber === 2 && r.type === "winners") || {}).matches || [];
-  const r3Matches = (rounds.find((r) => r.roundNumber === 3 && r.type === "winners") || {}).matches || [];
+  const r1Matches =
+    (rounds.find((r) => r.roundNumber === 1 && r.type === "winners") || {})
+      .matches || [];
+  const r2Matches =
+    (rounds.find((r) => r.roundNumber === 2 && r.type === "winners") || {})
+      .matches || [];
+  const r3Matches =
+    (rounds.find((r) => r.roundNumber === 3 && r.type === "winners") || {})
+      .matches || [];
 
-  const leftR16 = [], rightR16 = [];
+  const leftR16 = [],
+    rightR16 = [];
   r1Matches.forEach((m, index) => {
     const pair = [getLabel(m.player1Id), getLabel(m.player2Id)];
     index < 4 ? leftR16.push(pair) : rightR16.push(pair);
@@ -159,7 +166,8 @@ export default function BracketPage({
   while (leftR16.length < 4) leftR16.push(["TBD", "TBD"]);
   while (rightR16.length < 4) rightR16.push(["TBD", "TBD"]);
 
-  const leftQF = [], rightQF = [];
+  const leftQF = [],
+    rightQF = [];
   r2Matches.forEach((m, index) => {
     const pair = [getLabel(m.player1Id), getLabel(m.player2Id)];
     index < 2 ? leftQF.push(pair) : rightQF.push(pair);
@@ -167,12 +175,17 @@ export default function BracketPage({
   while (leftQF.length < 2) leftQF.push(["TBD", "TBD"]);
   while (rightQF.length < 2) rightQF.push(["TBD", "TBD"]);
 
-  let leftSF = ["TBD", "TBD"], rightSF = ["TBD", "TBD"];
-  if (r3Matches[0]) leftSF = [getLabel(r3Matches[0].player1Id), getLabel(r3Matches[0].player2Id)];
-  if (r3Matches[1]) rightSF = [getLabel(r3Matches[1].player1Id), getLabel(r3Matches[1].player2Id)];
+  let leftSF = ["TBD", "TBD"],
+    rightSF = ["TBD", "TBD"];
+  if (r3Matches[0])
+    leftSF = [getLabel(r3Matches[0].player1Id), getLabel(r3Matches[0].player2Id)];
+  if (r3Matches[1])
+    rightSF = [getLabel(r3Matches[1].player1Id), getLabel(r3Matches[1].player2Id)];
 
   const winnersFinal = bracket?.winnersFinal || null;
-  let finalLeft = "TBD", finalRight = "TBD", finalChamp = "TBD";
+  let finalLeft = "TBD",
+    finalRight = "TBD",
+    finalChamp = "TBD";
   if (winnersFinal) {
     if (winnersFinal.player1Id) finalLeft = getLabel(winnersFinal.player1Id);
     if (winnersFinal.player2Id) finalRight = getLabel(winnersFinal.player2Id);
@@ -186,31 +199,87 @@ export default function BracketPage({
   };
 
   const losersRounds = bracket?.losersRounds || [];
-  const getLbRound = (n) => (losersRounds.find((r) => r.roundNumber === n && r.type === "losers") || { matches: [] }).matches;
-  const lb_r1 = padNames((getLbRound(1)||[]).map(m => [getLabel(m.player1Id), getLabel(m.player2Id)]), 4);
-  const lb_r2 = padNames((getLbRound(2)||[]).map(m => [getLabel(m.player1Id), getLabel(m.player2Id)]), 4);
-  const lb_r3a = padNames((getLbRound(3)||[]).map(m => [getLabel(m.player1Id), getLabel(m.player2Id)]), 2);
-  const lb_r3b = padNames((getLbRound(4)||[]).map(m => [getLabel(m.player1Id), getLabel(m.player2Id)]), 2);
-  const lb_r4 = padNames((getLbRound(5)||[]).map(m => [getLabel(m.player1Id), getLabel(m.player2Id)]), 1);
+  const getLbRound = (n) =>
+    (losersRounds.find((r) => r.roundNumber === n && r.type === "losers") || {
+      matches: [],
+    }).matches;
+  const lb_r1 = padNames(
+    (getLbRound(1) || []).map((m) => [
+      getLabel(m.player1Id),
+      getLabel(m.player2Id),
+    ]),
+    4
+  );
+  const lb_r2 = padNames(
+    (getLbRound(2) || []).map((m) => [
+      getLabel(m.player1Id),
+      getLabel(m.player2Id),
+    ]),
+    4
+  );
+  const lb_r3a = padNames(
+    (getLbRound(3) || []).map((m) => [
+      getLabel(m.player1Id),
+      getLabel(m.player2Id),
+    ]),
+    2
+  );
+  const lb_r3b = padNames(
+    (getLbRound(4) || []).map((m) => [
+      getLabel(m.player1Id),
+      getLabel(m.player2Id),
+    ]),
+    2
+  );
+  const lb_r4 = padNames(
+    (getLbRound(5) || []).map((m) => [
+      getLabel(m.player1Id),
+      getLabel(m.player2Id),
+    ]),
+    1
+  );
 
   const losersFinal = bracket?.losersFinal || null;
-  const lb_final = losersFinal && (losersFinal.player1Id || losersFinal.player2Id) ? [getLabel(losersFinal.player1Id), getLabel(losersFinal.player2Id)] : ["TBD", "TBD"];
+  const lb_final =
+    losersFinal && (losersFinal.player1Id || losersFinal.player2Id)
+      ? [getLabel(losersFinal.player1Id), getLabel(losersFinal.player2Id)]
+      : ["TBD", "TBD"];
   const lb_winner = losersFinal?.winnerId ? getLabel(losersFinal.winnerId) : "TBD";
 
   const grandFinal = bracket?.grandFinal || null;
-  const wbFinalWinner = winnersFinal?.winnerId ? getLabel(winnersFinal.winnerId) : "TBD";
+  const wbFinalWinner = winnersFinal?.winnerId
+    ? getLabel(winnersFinal.winnerId)
+    : "TBD";
   const lbFinalWinner = lb_winner;
-  const grandChampion = grandFinal?.winnerId ? getLabel(grandFinal.winnerId) : "TBD";
+  const grandChampion = grandFinal?.winnerId
+    ? getLabel(grandFinal.winnerId)
+    : "TBD";
 
   // --- RANKING LOGIC ---
   const getLoserNames = (matches) => {
-    return (matches || []).filter(m => m.winnerId).map(m => getLabel(m.winnerId === m.player1Id ? m.player2Id : m.player1Id));
+    return (matches || [])
+      .filter((m) => m.winnerId)
+      .map((m) =>
+        getLabel(m.winnerId === m.player1Id ? m.player2Id : m.player1Id)
+      );
   };
 
   const placements = {
     first: grandFinal?.winnerId ? getLabel(grandFinal.winnerId) : "TBD",
-    second: grandFinal?.winnerId ? getLabel(grandFinal.winnerId === grandFinal.player1Id ? grandFinal.player2Id : grandFinal.player1Id) : "TBD",
-    third: losersFinal?.winnerId ? getLabel(losersFinal.winnerId === losersFinal.player1Id ? losersFinal.player2Id : losersFinal.player1Id) : "TBD",
+    second: grandFinal?.winnerId
+      ? getLabel(
+          grandFinal.winnerId === grandFinal.player1Id
+            ? grandFinal.player2Id
+            : grandFinal.player1Id
+        )
+      : "TBD",
+    third: losersFinal?.winnerId
+      ? getLabel(
+          losersFinal.winnerId === losersFinal.player1Id
+            ? losersFinal.player2Id
+            : losersFinal.player1Id
+        )
+      : "TBD",
     fourth: getLoserNames(getLbRound(5))[0] || "TBD",
     fifthToSixth: padNames(getLoserNames(getLbRound(4)), 2),
     seventhToEighth: padNames(getLoserNames(getLbRound(3)), 2),
@@ -220,16 +289,16 @@ export default function BracketPage({
 
   return (
     <div className={styles.shell}>
+      {/* ===== HEADER + RANKINGS + GRAND FINAL (NORMAL WIDTH) ===== */}
       <div className={styles.contentWrap}>
-        
-        {/* ===== HEADER LAYOUT ===== */}
         <div className={styles.headerGrid}>
-          
           {/* LEFT: Info Card */}
           <div className={styles.infoCard}>
             <h2 className={styles.tournamentTitle}>Championship Bracket</h2>
-            <div className={styles.tournamentSubtitle}>// 16 PLAYERS • DOUBLE ELIMINATION</div>
-            
+            <div className={styles.tournamentSubtitle}>
+              // 16 PLAYERS • DOUBLE ELIMINATION
+            </div>
+
             <div className={styles.statsGrid}>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Registration</span>
@@ -237,7 +306,11 @@ export default function BracketPage({
               </div>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Status</span>
-                <span className={`${styles.statValue} ${styles.statValueHighlight}`}>LIVE</span>
+                <span
+                  className={`${styles.statValue} ${styles.statValueHighlight}`}
+                >
+                  LIVE
+                </span>
               </div>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Stream</span>
@@ -275,37 +348,44 @@ export default function BracketPage({
             </div>
             <div className={styles.rankRow}>
               <div className={styles.rankBadge}>5-6</div>
-              <div className={styles.rankName}>{placements.fifthToSixth.join(" • ")}</div>
+              <div className={styles.rankName}>
+                {placements.fifthToSixth.join(" • ")}
+              </div>
             </div>
             <div className={styles.rankRow}>
               <div className={styles.rankBadge}>7-8</div>
-              <div className={styles.rankName}>{placements.seventhToEighth.join(" • ")}</div>
+              <div className={styles.rankName}>
+                {placements.seventhToEighth.join(" • ")}
+              </div>
             </div>
             <div className={styles.rankRow}>
               <div className={styles.rankBadge}>9-12</div>
-              <div className={styles.rankName}>{placements.ninthToTwelfth.join(" • ")}</div>
+              <div className={styles.rankName}>
+                {placements.ninthToTwelfth.join(" • ")}
+              </div>
             </div>
             <div className={styles.rankRow}>
               <div className={styles.rankBadge}>13-16</div>
-              <div className={styles.rankName}>{placements.thirteenthToSixteenth.join(" • ")}</div>
+              <div className={styles.rankName}>
+                {placements.thirteenthToSixteenth.join(" • ")}
+              </div>
             </div>
           </div>
-
         </div>
 
-        {/* ===== Grand Final Banner ===== */}
+        {/* Grand Final banner stays in normal width */}
         <GrandFinalCenter
           wbChampion={wbFinalWinner}
           lbChampion={lbFinalWinner}
           champion={grandChampion}
         />
+      </div>
 
-        {/* ===== Winners Bracket ===== */}
-        <div style={{ margin: "40px 0" }}>
-          <Bracket16 data={bracketData} />
-        </div>
+      {/* ===== WINNERS BRACKET: FULL SECTION (NO contentWrap) ===== */}
+      <Bracket16 data={bracketData} />
 
-        {/* ===== Losers Bracket ===== */}
+      {/* ===== LOSERS BRACKET BACK IN NORMAL WIDTH ===== */}
+      <div className={styles.contentWrap}>
         <div style={{ marginTop: "40px" }}>
           <LosersBracket16
             r1={lb_r1}
@@ -317,7 +397,6 @@ export default function BracketPage({
             lbWinner={lb_winner}
           />
         </div>
-
       </div>
     </div>
   );
