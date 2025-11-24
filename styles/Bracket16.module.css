@@ -18,11 +18,18 @@
   --clash-primary: #ffd700;
   --clash-glow: rgba(255, 215, 0, 0.5);
 
-  width: 100%;
+  /* Layout: Break out of parent container padding to use full screen width */
+  width: 100vw; 
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  
   min-height: 100vh;
   background-color: #050505;
 
-  /* 🔁 Symmetric centered background (no visual shift left/right) */
+  /* 🔁 Symmetric centered background */
   background-image:
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
     linear-gradient(
@@ -40,10 +47,10 @@
   font-family: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   flex-direction: column;
-  align-items: center;   /* center header + bracket */
+  align-items: center;   
   justify-content: center;
-  overflow-x: auto;
-  padding: 40px 20px;
+  overflow-x: auto; /* Allow scroll if bracket is wider than screen */
+  padding: 40px 0; /* Removed horizontal padding to allow full width stretch */
 }
 
 .header {
@@ -77,6 +84,7 @@
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
+  padding: 0 20px; /* Add safety padding for smaller screens */
 }
 
 /* Columns */
@@ -84,15 +92,18 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  flex: 1;
+  /* ✨ FIX: flex 1 1 0px forces all columns to be EXACTLY the same width */
+  /* regardless of player name length. This guarantees symmetry. */
+  flex: 1 1 0px; 
   gap: 20px;
   position: relative;
 }
 
 .columnMid {
+  /* Keep the center column fixed width */
   flex: 0 0 280px;
   justify-content: center;
-  z-index: 2; /* Ensure finals pop over connector lines */
+  z-index: 2; 
 }
 
 /* Connector Lines Logic - Simple Guides */
@@ -114,10 +125,6 @@
   left: -15px;
   background: linear-gradient(270deg, var(--fire-primary), transparent);
 }
-
-/* hooks for JSX */
-.columnLeft {}
-.columnRight {}
 
 .matchWrapper {
   position: relative;
@@ -233,16 +240,18 @@
     flex-direction: column;
   }
   .column {
+    /* Reset flex so they just stack naturally on mobile */
+    flex: 1; 
     flex-direction: row;
     flex-wrap: wrap;
     gap: 10px;
   }
   .columnMid {
-    order: -1; /* Put finals at top on mobile */
+    order: -1; 
     margin-bottom: 30px;
   }
   .matchWrapper {
-    width: 45%; /* Two wide on mobile */
+    width: 45%; 
   }
   .column::before {
     display: none;
@@ -251,6 +260,6 @@
 
 @media (max-width: 600px) {
   .matchWrapper {
-    width: 100%; /* Full width on small screens */
+    width: 100%; 
   }
 }
