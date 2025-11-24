@@ -29,15 +29,15 @@
 
   display: grid;
   place-items: center;
-  padding: 60px 0; /* More padding for the lines */
+  padding: 60px 0;
 }
 
 .row {
   width: min(1100px, 92vw);
   display: grid;
   grid-template-columns: 1fr auto 1fr; 
-  align-items: flex-start; /* Align to top to manage line heights */
-  gap: 30px;
+  align-items: center;
+  gap: 20px;
   position: relative; 
 }
 
@@ -45,103 +45,137 @@
 .source {
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
 }
 
-/* --- THE BRIDGE (Upper Bracket Connection) --- */
-/* This container sits absolutely over the whole row to draw lines between columns */
-.bridges {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
+/* Left: Slot on left, Arm on right */
+.left {
+  justify-content: flex-end; /* Push slot against the center gap */
+  flex-direction: row;
 }
 
-/* The Blue Line Path */
-.wbBridge {
-  position: absolute;
-  /* Position: From center of Left column to Center of Middle column */
-  /* We approximate this using percentages for the 3-column grid */
-  left: 20%; 
-  right: 50%;
-  top: -30px; /* Height of the bridge above the boxes */
-  height: 30px;
-  
-  /* Draw the bridge: Top border and Right vertical drop */
-  border-top: 2px solid var(--ice-primary);
-  border-right: 2px solid var(--ice-primary); /* Connects down to center */
-  border-left: 2px solid var(--ice-primary);  /* Connects down to left slot */
-  
-  box-shadow: 0 0 10px var(--ice-glow);
-  
-  /* Round the top corners for a tech look */
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+/* Right: Arm on left, Slot on right */
+.right {
+  justify-content: flex-start;
+  flex-direction: row;
 }
 
-/* Extension line to reach UP to the Winners Bracket component */
-.wbBridge::before {
-  content: "";
-  position: absolute;
-  top: 0; /* Start at the top of our bridge */
-  right: -2px; /* Align with the right border (Center) */
-  width: 2px;
-  height: 40px; /* Go UP 40px towards the bracket above */
-  background: var(--ice-primary);
-  transform: translateY(-100%); /* Move it above the element */
-  box-shadow: 0 0 10px var(--ice-glow);
-}
-
-
-/* --- Labels --- */
-.sideLabel {
-  text-align: center;
-  margin-bottom: 12px; 
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+/* --- HORIZONTAL ARMS (Linking to Champion) --- */
+.arm {
+  height: 2px;
+  flex: 1; /* Stretch to fill space between slot and center */
+  min-width: 20px;
   position: relative;
-  z-index: 2;
 }
 
-.iceLabel { color: var(--ice-primary); text-shadow: 0 0 15px var(--ice-glow); }
-.fireLabel { color: var(--fire-primary); text-shadow: 0 0 15px var(--fire-glow); }
+.armLeft {
+  /* Gradient from Blue (slot side) to Transparent/Center */
+  background: linear-gradient(90deg, var(--ice-primary), rgba(0, 198, 255, 0.2));
+  box-shadow: 0 0 5px var(--ice-glow);
+}
 
-/* --- Slots --- */
+.armRight {
+  /* Gradient from Transparent/Center to Orange (slot side) */
+  background: linear-gradient(90deg, rgba(255, 75, 31, 0.2), var(--fire-primary));
+  box-shadow: 0 0 5px var(--fire-glow);
+}
+
+
+/* --- SLOTS & VERTICAL EXTENSIONS --- */
 .slot {
   height: 44px;
-  width: 100%;
-  max-width: 220px;
+  min-width: 180px;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(20, 25, 35, 0.95);
   backdrop-filter: blur(5px);
   color: #fff;
-  
-  /* Clean borders, no angled clips for now to keep it sharp */
   border: 1px solid transparent;
-  border-radius: 4px;
-  
   font-weight: 700;
   font-size: 14px;
   transition: all 0.3s ease;
-  z-index: 2; 
-  position: relative;
+  position: relative; /* Anchor for vertical lines */
+  z-index: 2;
 }
 
-.ice { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.1); }
+/* ICE THEME + VERTICAL UP LINE */
+.ice { 
+  border-color: rgba(0, 198, 255, 0.3); 
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.1);
+  /* Corner clip style */
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+}
 .ice:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); }
 
-.fire { border-color: rgba(255, 75, 31, 0.3); box-shadow: 0 0 10px rgba(255, 75, 31, 0.1); }
+/* The Line Going UP to Winners Bracket */
+.ice::before {
+  content: "";
+  position: absolute;
+  bottom: 100%; /* Start at top of slot */
+  left: 50%;
+  width: 2px;
+  height: 80px; /* Reach up high */
+  background: linear-gradient(to top, var(--ice-primary), transparent);
+  box-shadow: 0 0 8px var(--ice-glow);
+}
+
+
+/* FIRE THEME + VERTICAL DOWN LINE */
+.fire { 
+  border-color: rgba(255, 75, 31, 0.3); 
+  box-shadow: 0 0 10px rgba(255, 75, 31, 0.1);
+  /* Corner clip style (opposite corner) */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
-/* Center Component */
+/* The Line Going DOWN to Losers Bracket */
+.fire::before {
+  content: "";
+  position: absolute;
+  top: 100%; /* Start at bottom of slot */
+  left: 50%;
+  width: 2px;
+  height: 80px; /* Reach down deep */
+  background: linear-gradient(to bottom, var(--fire-primary), transparent);
+  box-shadow: 0 0 8px var(--fire-glow);
+}
+
+
+/* --- LABELS --- */
+.sideLabel {
+  position: absolute;
+  /* Position above/below appropriately */
+  width: 100%; 
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none; 
+  white-space: nowrap;
+}
+
+/* Ice Label sits ABOVE the slot (next to the up-line) */
+.iceLabel { 
+  bottom: 100%; 
+  margin-bottom: 8px;
+  color: var(--ice-primary); 
+  text-shadow: 0 0 15px var(--ice-glow); 
+}
+
+/* Fire Label sits BELOW the slot (next to the down-line) */
+.fireLabel { 
+  top: 100%; 
+  margin-top: 8px;
+  color: var(--fire-primary); 
+  text-shadow: 0 0 15px var(--fire-glow); 
+}
+
+
+/* --- CENTER COMPONENT --- */
 .center { 
   display: grid; 
   justify-items: center; 
@@ -177,8 +211,9 @@
   50% { transform: translateY(-5px); }
 }
 
-/* Mobile Hide Lines */
+/* Mobile */
 @media (max-width: 900px){ 
   .row{ grid-template-columns: 1fr; gap: 40px; }
-  .bridges { display: none; }
+  .arm { display: none; }
+  .ice::before, .fire::before { display: none; } /* Hide vertical lines on mobile */
 }

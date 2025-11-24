@@ -32,16 +32,15 @@ export default function GrandFinalCenter({
     <div className={s.wrap}>
       <div className={s.row}>
         
-        {/* --- CONNECTOR LINES --- */}
-        <div className={s.bridges}>
-          {/* The Blue Bridge: Connects Left Slot UP and OVER to the Center */}
-          <div className={s.wbBridge} />
-        </div>
-
         {/* LEFT (WB side) */}
-        <div className={s.source}>
-          <h3 className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</h3>
-          <div className={`${s.slot} ${s.ice}`}>{wbChampion}</div>
+        <div className={`${s.source} ${s.left}`}>
+          {/* Slot contains the Vertical UP line via CSS ::before */}
+          <div className={`${s.slot} ${s.ice}`}>
+             {wbChampion}
+             <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
+          </div>
+          {/* Horizontal Connector */}
+          <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
         {/* CENTER */}
@@ -54,10 +53,17 @@ export default function GrandFinalCenter({
         </div>
 
         {/* RIGHT (LB side) */}
-        <div className={s.source}>
-           <h3 className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</h3>
-          <div className={`${s.slot} ${s.fire}`}>{lbChampion}</div>
+        <div className={`${s.source} ${s.right}`}>
+          {/* Horizontal Connector */}
+          <div className={`${s.arm} ${s.armRight}`} />
+          {/* Slot contains the Vertical DOWN line via CSS ::before */}
+          <div className={`${s.slot} ${s.fire}`}>
+             {lbChampion}
+             {/* Label below for cleaner look with the down-line */}
+             <div className={`${s.sideLabel} ${s.fireLabel}`}>LOWER BRACKET WINNER</div>
+          </div>
         </div>
+
       </div>
     </div>
   );
