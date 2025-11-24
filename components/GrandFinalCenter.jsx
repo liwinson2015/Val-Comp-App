@@ -36,6 +36,8 @@ export default function GrandFinalCenter({
   const [paths, setPaths] = useState({ ice: "", fire: "" });
 
   useEffect(() => {
+    let attempts = 0;
+    
     const updateLines = () => {
       if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
 
@@ -44,17 +46,21 @@ export default function GrandFinalCenter({
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
-      const offY = 100;      // Matches CSS top: -100px
-      const labelGap = 40;   // Height of "UPPER BRACKET WINNER" text
-      const riseHeight = 60; // Initial vertical stem length
+      // Offset matching SVG top: -200px
+      const offY = 200; 
+      const labelGap = 40; 
+      const riseHeight = 60; 
       
-      // Find Targets
       const wbTarget = document.getElementById("wb-final-target");
       const lbTarget = document.getElementById("lb-final-target");
 
-      // ============================================================
-      // ICE LINE (Upper) -> Going UP
-      // ============================================================
+      // If targets aren't found yet, try again soon
+      if ((!wbTarget || !lbTarget) && attempts < 5) {
+        attempts++;
+        setTimeout(updateLines, 200);
+      }
+
+      // --- ICE (UPPER) ---
       const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
       const y1_ice = (leftRect.top - contRect.top) - labelGap; 
       const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
@@ -64,9 +70,8 @@ export default function GrandFinalCenter({
 
       if (wbTarget) {
         const wbRect = wbTarget.getBoundingClientRect();
-        // GAP: Distance to stop BEFORE hitting the box
-        const iceGap = 30; 
-        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - iceGap;
+        const gap = 30; 
+        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - gap;
         iceRise = Math.min(60, iceTotalHeight * 0.4);
       }
 
@@ -77,11 +82,10 @@ export default function GrandFinalCenter({
         L ${x2_ice} ${y1_ice + offY - iceTotalHeight}
       `;
 
-      // ============================================================
-      // FIRE LINE (Lower) -> Going DOWN
-      // ============================================================
+      // --- FIRE (LOWER) ---
       const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
       const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
+      const x2_fire = centerRect.left + centerRect.width / 2 - contRect.left;
       
       let targetX_fire = x1_fire; 
       let fireTotalHeight = 100;        
@@ -91,11 +95,10 @@ export default function GrandFinalCenter({
         const lbRect = lbTarget.getBoundingClientRect();
         targetX_fire = lbRect.left + lbRect.width / 2 - contRect.left;
 
-        // GAP: Distance to stop BEFORE hitting the "WINNER" text
-        // Reduced to 20px so it gets closer
-        const fireGap = 20; 
+        const gap = 60; // Gap to stop above "WINNER" text
         
-        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - fireGap;
+        // Distance from start to top of target box
+        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - gap;
         fireDrop = Math.min(60, fireTotalHeight * 0.5);
       }
 
@@ -109,10 +112,10 @@ export default function GrandFinalCenter({
       setPaths({ ice: icePath, fire: firePath });
     };
 
-    // Trigger update on load and resize
     updateLines();
     window.addEventListener("resize", updateLines);
-    setTimeout(updateLines, 500); // Extra delay to ensure layout settles
+    // Initial delay to allow layout to settle
+    setTimeout(updateLines, 100);
     
     return () => window.removeEventListener("resize", updateLines);
   }, []);
@@ -157,10 +160,10 @@ export default function GrandFinalCenter({
             d={paths.fire} 
             stroke="url(#fireLineGrad)" 
             strokeWidth="3" 
-            strokeLinecap="round"
+            strokeLinecap="round" 
             strokeLinejoin="round"
             fill="none" 
-            filter="url(#fireGlow)"
+            filter="url(#fireGlow)" 
             opacity="0.9"
           />
         </svg>
