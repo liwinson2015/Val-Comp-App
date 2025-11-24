@@ -50,7 +50,7 @@
 .left { grid-template-columns: 1fr auto; }
 .right { grid-template-columns: auto 1fr; }
 
-/* --- CONNECTING LINE TO WINNERS BRACKET (The Fix) --- */
+/* --- UPPER BRACKET CONNECTION (Up & Right) --- */
 .wbConnect {
   position: absolute;
   top: 0;
@@ -59,38 +59,65 @@
   height: 100%;
   pointer-events: none;
 }
-
-/* 1. Vertical Line: Extends UPWARDS from the slot */
 .wbConnect::before {
   content: "";
   position: absolute;
-  /* Start at the top of the slot text/box */
   bottom: 100%; 
   left: 50%;    
   width: 2px;
-  /* INCREASED HEIGHT: Reaches up into the component above */
-  height: 80px; 
+  height: 80px; /* Reaches UP into Winners Bracket */
   background: var(--ice-primary);
   box-shadow: 0 0 10px var(--ice-glow);
   z-index: 0;
 }
-
-/* 2. Horizontal Line: Stretches RIGHT towards the center */
 .wbConnect::after {
   content: "";
   position: absolute;
-  /* Positioned at the top of the vertical line (100% + height of before) */
   bottom: calc(100% + 80px); 
   left: 50%;                 
-  /* Stretch to approximate center */
-  width: 35vw;               
+  width: 35vw; /* Stretches towards center */
   height: 2px;
-  
-  /* Gradient: Solid Blue -> Transparent */
   background: linear-gradient(90deg, var(--ice-primary) 20%, transparent 100%);
   box-shadow: 0 0 15px var(--ice-glow);
-  
   border-top-left-radius: 4px;
+  z-index: 0;
+}
+
+/* --- NEW: LOWER BRACKET CONNECTION (Down & Right) --- */
+.lbConnect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 1. Vertical Line: Extends DOWNWARDS from the slot */
+.lbConnect::before {
+  content: "";
+  position: absolute;
+  top: 100%; /* Start at bottom of slot */
+  left: 50%;
+  width: 2px;
+  height: 80px; /* Reaches DOWN into Losers Bracket */
+  background: var(--fire-primary);
+  box-shadow: 0 0 10px var(--fire-glow);
+  z-index: 0;
+}
+
+/* 2. Horizontal Line: Stretches RIGHT towards the LB Champion column */
+.lbConnect::after {
+  content: "";
+  position: absolute;
+  top: calc(100% + 80px); /* At the bottom of the vertical line */
+  left: 50%;
+  width: 35vw; /* Stretches far right */
+  height: 2px;
+  /* Gradient: Solid Fire -> Transparent */
+  background: linear-gradient(90deg, var(--fire-primary) 20%, transparent 100%);
+  box-shadow: 0 0 15px var(--fire-glow);
+  border-bottom-left-radius: 4px;
   z-index: 0;
 }
 
@@ -129,7 +156,7 @@
   font-weight: 700;
   font-size: 13px;
   transition: all 0.3s ease;
-  z-index: 2; /* Keep slot above lines */
+  z-index: 2; 
 }
 
 .ice { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
@@ -183,5 +210,5 @@
   .left, .right{ grid-template-columns: 1fr; } 
   .arm{ display: none; } 
   .slot{ width: 100%; } 
-  .wbConnect { display: none; } /* Hide custom line on mobile */
+  .wbConnect, .lbConnect { display: none; }
 }
