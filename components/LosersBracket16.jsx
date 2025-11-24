@@ -3,8 +3,6 @@ import React from "react";
 import s from "../styles/LosersBracket16.module.css";
 
 // --- HELPERS ---
-
-// Convert pairs ["A", "B"] into objects { p1: "A", p2: "B", winner: 0 }
 function toMatchObjects(pairs) {
   return pairs.map((pair) => ({
     p1: pair?.[0] || "TBD",
@@ -13,17 +11,12 @@ function toMatchObjects(pairs) {
   }));
 }
 
-// Check current round against next round to determine winners
 function calcWinners(currentRound, nextRound) {
   if (!currentRound || !nextRound) return;
-
   currentRound.forEach((match) => {
-    // If P1 is in the next round, P1 won
     if (match.p1 !== "TBD" && playerInRound(match.p1, nextRound)) {
       match.winner = 1;
-    } 
-    // If P2 is in the next round, P2 won
-    else if (match.p2 && match.p2 !== "TBD" && playerInRound(match.p2, nextRound)) {
+    } else if (match.p2 && match.p2 !== "TBD" && playerInRound(match.p2, nextRound)) {
       match.winner = 2;
     }
   });
@@ -34,7 +27,6 @@ function playerInRound(name, targetRound) {
 }
 
 // --- COMPONENTS ---
-
 function MatchCard({ match, theme = "ice" }) {
   let themeClass = s.cardIce;
   if (theme === "fire") themeClass = s.cardFire;
@@ -46,7 +38,6 @@ function MatchCard({ match, theme = "ice" }) {
         <div className={`${s.team} ${match.winner === 1 ? s.winnerRow : ""}`}>
           <span>{match.p1}</span>
         </div>
-        {/* Only render P2 if it exists (Singles rounds don't have P2) */}
         {match.p2 !== undefined && (
           <div className={`${s.team} ${match.winner === 2 ? s.winnerRow : ""}`}>
             <span>{match.p2}</span>
@@ -60,7 +51,7 @@ function MatchCard({ match, theme = "ice" }) {
 export default function LosersBracket16(props) {
   const norm = normalize(props);
 
-  // 1. PREPARE ROUND 3A SINGLES
+  // 1. PREPARE DATA
   const r3aRawNames = [];
   norm.R3A.forEach((pair) => {
     if (pair?.[0]) r3aRawNames.push(String(pair[0] || "TBD"));
@@ -69,26 +60,23 @@ export default function LosersBracket16(props) {
   while (r3aRawNames.length < 4) r3aRawNames.push("TBD");
   if (r3aRawNames.length > 4) r3aRawNames.length = 4;
 
-  // 2. CONVERT ALL TO MATCH OBJECTS
   const matches = {
     R1: toMatchObjects(norm.R1),
     R2: toMatchObjects(norm.R2),
-    // Special: Singles are matches with only p1
     R3A: r3aRawNames.map(name => ({ p1: name, p2: undefined, winner: 0 })),
     R3B: toMatchObjects(norm.R3B),
     R4: toMatchObjects(norm.R4),
-    LBF: toMatchObjects([norm.LBF]), // wrap single pair in array
-    // This is the "LB Champion" slot (Winner of LB Final)
+    LBF: toMatchObjects([norm.LBF]), 
     LBChamp: [{ p1: norm.LBWinner || "TBD", p2: undefined, winner: 0 }]
   };
 
-  // 3. CALCULATE WINNERS (Look Ahead Logic)
+  // 2. CALCULATE WINNERS
   calcWinners(matches.R1, matches.R2);
   calcWinners(matches.R2, matches.R3A);
   calcWinners(matches.R3A, matches.R3B);
   calcWinners(matches.R3B, matches.R4);
   calcWinners(matches.R4, matches.LBF);
-  calcWinners(matches.LBF, matches.LBChamp); // LB Final -> LB Champion
+  calcWinners(matches.LBF, matches.LBChamp);
 
   return (
     <div className={s.lbViewport}>
@@ -110,7 +98,7 @@ export default function LosersBracket16(props) {
           </div>
         </div>
 
-        {/* COL 3: ROUND 3A (Singles) */}
+        {/* COL 3: ROUND 3A */}
         <div className={s.column}>
           <h3 className={`${s.roundTitle} ${s.fireTitle}`}>LB Round 3A</h3>
           <div className={`${s.matchContainer} ${s.connectorLeft}`}>
@@ -142,20 +130,16 @@ export default function LosersBracket16(props) {
           </div>
         </div>
 
-        {/* COL 7: LB CHAMPION (Glow Up + Header) */}
+        {/* COL 7: LB CHAMPION (Fixed Centering) */}
         <div className={s.column} style={{ flex: '0 0 200px'}}>
            <h3 className={`${s.roundTitle} ${s.clashTitle}`}>LB Champion</h3>
            <div className={`${s.matchContainer} ${s.connectorLeft}`}>
-             <div style={{ width: '100%' }}>
-                {/* 1. Add WINNER text above */}
+             {/* Put text INSIDE the matchWrapper so it floats relative to the box */}
+             <div className={s.matchWrapper}>
                 <h2 className={s.winnerText}>WINNER</h2>
-                
-                <div className={s.matchWrapper}>
-                   <div className={`${s.matchCard} ${s.cardClash}`}>
-                      {/* 2. Force the winnerRow glow since this IS the champion */}
-                      <div className={`${s.team} ${s.winnerRow}`}>
-                        <span>{matches.LBChamp[0].p1}</span>
-                      </div>
+                <div className={`${s.matchCard} ${s.cardClash}`}>
+                   <div className={`${s.team} ${s.winnerRow}`}>
+                     <span>{matches.LBChamp[0].p1}</span>
                    </div>
                 </div>
              </div>
@@ -167,7 +151,7 @@ export default function LosersBracket16(props) {
   );
 }
 
-// --- NORMALIZATION ---
+// --- NORMALIZATION (Unchanged) ---
 function normalize(props) {
   const d = props.data;
   if (d) {

@@ -97,12 +97,19 @@
   width: 100%;
   gap: 20px;
   position: relative;
+  /* Ensure this container is centered so its children are center aligned */
+  align-items: center; 
 }
 
 /* --- CONNECTORS --- */
 .matchWrapper {
   position: relative;
   width: 100%;
+  /* Ensure wrapper doesn't collapse if children are absolute */
+  min-height: 50px; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .matchWrapper::after {
@@ -164,46 +171,31 @@
 }
 
 /* --- THEMES & GLOW LOGIC --- */
-
-/* ICE */
 .cardIce { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .cardIce:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); background: rgba(10, 30, 50, 1); }
-.cardIce .winnerRow {
-  color: #fff;
-  background: var(--ice-bg-win);
-  text-shadow: 0 0 5px var(--ice-primary), 0 0 10px var(--ice-primary), 0 0 20px var(--ice-secondary);
-  font-weight: 700;
-}
+.cardIce .winnerRow { color: #fff; background: var(--ice-bg-win); text-shadow: 0 0 5px var(--ice-primary), 0 0 10px var(--ice-primary), 0 0 20px var(--ice-secondary); font-weight: 700; }
 
-/* FIRE */
 .cardFire { border-color: rgba(255, 75, 31, 0.3); box-shadow: 0 0 10px rgba(255, 75, 31, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .cardFire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); background: rgba(50, 20, 10, 1); }
-.cardFire .winnerRow {
-  color: #fff;
-  background: var(--fire-bg-win);
-  text-shadow: 0 0 5px var(--fire-primary), 0 0 10px var(--fire-primary), 0 0 20px var(--fire-secondary);
-  font-weight: 700;
-}
+.cardFire .winnerRow { color: #fff; background: var(--fire-bg-win); text-shadow: 0 0 5px var(--fire-primary), 0 0 10px var(--fire-primary), 0 0 20px var(--fire-secondary); font-weight: 700; }
 
-/* CLASH */
 .cardClash { border-color: var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); transform: scale(1.1); }
-.cardClash .winnerRow {
-  color: #fff;
-  background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent);
-  text-shadow: 0 0 5px var(--clash-primary), 0 0 15px var(--clash-primary), 0 0 30px var(--clash-primary);
-}
+.cardClash .winnerRow { color: #fff; background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), transparent); text-shadow: 0 0 5px var(--clash-primary), 0 0 15px var(--clash-primary), 0 0 30px var(--clash-primary); }
 
-/* WINNER TEXT HEADER */
+/* --- FIXED: WINNER TEXT HEADER (Absolute Positioning) --- */
 .winnerText {
-  display: block;
+  position: absolute;
+  bottom: 100%; /* Position right above the wrapper */
+  left: 0;
+  right: 0;
   text-align: center;
-  font-size: 1.5rem; /* Larger to match winner bracket header */
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: 3px;
   color: var(--clash-primary);
   text-shadow: 0 0 10px var(--clash-glow);
-  margin: 0 0 10px 0;
-  width: 100%;
+  margin: 0 0 12px 0; /* Spacing between text and box */
+  pointer-events: none; /* Ensure it doesn't block clicks underneath */
 }
 
 @media (max-width: 1200px) {
