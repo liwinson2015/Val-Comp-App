@@ -39,48 +39,78 @@ export default function GrandFinalCenter({
     const updateLines = () => {
       if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
 
+      // 1. Get our local coordinates
       const contRect = containerRef.current.getBoundingClientRect();
       const leftRect = leftSlotRef.current.getBoundingClientRect();
       const rightRect = rightSlotRef.current.getBoundingClientRect();
       const centerRect = centerBoxRef.current.getBoundingClientRect();
 
-      // --- CONFIGURATION ---
-      const offY = 100;        // Offset to align SVG coord system
-      const riseHeight = 60;   // Initial UP from the slot
-      const finalReach = 130;  // <--- INCREASED: Final UP reach to Winners Bracket
+      const offY = 100; // Matches the SVG top: -100px in CSS
+
+      // 2. Find External Targets (Winners Bracket Final & Losers Bracket Final)
+      const wbTarget = document.getElementById("wb-final-target");
+      const lbTarget = document.getElementById("lb-final-target");
 
       // --- ICE LINE (Upper) ---
       const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
       const y1_ice = leftRect.top - contRect.top; 
       const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
       
+      // DYNAMIC: Calculate exact distance to the Winners Bracket Final Box
+      let iceRise = 60; // Default fallback
+      let iceTotalHeight = 130; // Default fallback
+
+      if (wbTarget) {
+        const wbRect = wbTarget.getBoundingClientRect();
+        // The line needs to go from (y1_ice) UP to (wbRect.bottom + gap)
+        // distance = currentY - targetY
+        const gap = 30; // Gap between line and box
+        iceTotalHeight = (leftRect.top - wbRect.bottom) - gap;
+        
+        // Ensure the horizontal bar is reasonably positioned (e.g. 1/3 of the way up)
+        iceRise = Math.max(40, iceTotalHeight * 0.3);
+      }
+
       const icePath = `
         M ${x1_ice} ${y1_ice + offY} 
-        L ${x1_ice} ${y1_ice + offY - riseHeight} 
-        L ${x2_ice} ${y1_ice + offY - riseHeight}
-        L ${x2_ice} ${y1_ice + offY - riseHeight - finalReach}
+        L ${x1_ice} ${y1_ice + offY - iceRise} 
+        L ${x2_ice} ${y1_ice + offY - iceRise}
+        L ${x2_ice} ${y1_ice + offY - iceTotalHeight}
       `;
 
       // --- FIRE LINE (Lower) ---
-      // (Keeping logic ready for when you uncomment it)
       const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
       const y1_fire = rightRect.bottom - contRect.top;
       const x2_fire = centerRect.left + centerRect.width / 2 - contRect.left;
-      const dropHeight = 60;
-      const finalDrop = 130; // Symmetrical drop for bottom
+      
+      // DYNAMIC: Calculate exact distance to the Losers Bracket Final Box
+      let fireDrop = 60;
+      let fireTotalHeight = 130;
+
+      if (lbTarget) {
+        const lbRect = lbTarget.getBoundingClientRect();
+        // The line needs to go from (y1_fire) DOWN to (lbRect.top - gap)
+        const gap = 30; 
+        fireTotalHeight = (lbRect.top - rightRect.bottom) - gap;
+        fireDrop = Math.max(40, fireTotalHeight * 0.3);
+      }
 
       const firePath = `
         M ${x1_fire} ${y1_fire + offY}
-        L ${x1_fire} ${y1_fire + offY + dropHeight}
-        L ${x2_fire} ${y1_fire + offY + dropHeight}
-        L ${x2_fire} ${y1_fire + offY + dropHeight + finalDrop}
+        L ${x1_fire} ${y1_fire + offY + fireDrop}
+        L ${x2_fire} ${y1_fire + offY + fireDrop}
+        L ${x2_fire} ${y1_fire + offY + fireTotalHeight}
       `;
 
       setPaths({ ice: icePath, fire: firePath });
     };
 
+    // Run on mount, resize, and scroll (to handle dynamic layout shifts)
     updateLines();
     window.addEventListener("resize", updateLines);
+    // Optional: Add a small delay to ensure DOM is fully painted before measuring
+    setTimeout(updateLines, 100); 
+    
     return () => window.removeEventListener("resize", updateLines);
   }, []);
 
@@ -89,6 +119,7 @@ export default function GrandFinalCenter({
       <div className={s.row} ref={containerRef}>
         
         <svg className={s.svgOverlay}>
+          {/* ICE (Upper) */}
           <path 
             d={paths.ice} 
             stroke="#00c6ff" 
@@ -96,15 +127,14 @@ export default function GrandFinalCenter({
             fill="none" 
             filter="drop-shadow(0 0 5px #00c6ff)"
           />
-          {/* Uncomment to enable Fire line */}
-          {/* <path 
+          {/* FIRE (Lower) - Now enabled since we have dynamic targeting */}
+          <path 
             d={paths.fire} 
             stroke="#ff4b1f" 
             strokeWidth="2" 
             fill="none" 
             filter="drop-shadow(0 0 5px #ff4b1f)"
           />
-          */}
         </svg>
 
         <div className={`${s.source} ${s.left}`}>
