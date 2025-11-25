@@ -37,79 +37,93 @@ export default function GrandFinalCenter({
 
   useEffect(() => {
     const updateLines = () => {
-      if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current || !centerBoxRef.current) return;
+      if (!containerRef.current || !leftSlotRef.current || !rightSlotRef.current) return;
 
+      // 1. Establish the "Zero Point" of our SVG
+      // The SVG is positioned at top: -500px relative to the container.
+      // So SVG Y=0 is actually (Container Top - 500px) on the page.
       const contRect = containerRef.current.getBoundingClientRect();
-      const leftRect = leftSlotRef.current.getBoundingClientRect();
-      const rightRect = rightSlotRef.current.getBoundingClientRect();
-      const centerRect = centerBoxRef.current.getBoundingClientRect();
+      const svgOriginY = contRect.top - 500; 
+      const svgOriginX = contRect.left;
 
-      const offY = 100;
-      const labelGap = 40;
-      const riseHeight = 60; 
-      
+      // 2. Find Targets
       const wbTarget = document.getElementById("wb-final-target");
       const lbTarget = document.getElementById("lb-final-target");
 
+      const labelGap = 40; // Space to clear the "WINNER" text
+
       // ============================================================
-      // ICE LINE (Upper) - REVERTED TO REACH HIGHER
+      // ICE LINE (Upper)
       // ============================================================
-      const x1_ice = leftRect.left + leftRect.width / 2 - contRect.left;
-      const y1_ice = (leftRect.top - contRect.top) - labelGap; 
-      const x2_ice = centerRect.left + centerRect.width / 2 - contRect.left;
+      const leftRect = leftSlotRef.current.getBoundingClientRect();
       
-      let iceTotalHeight = 130;
-      let iceRise = riseHeight;
+      // START: Top-Center of the Left Slot
+      const startX_ice = leftRect.left + leftRect.width / 2 - svgOriginX;
+      const startY_ice = (leftRect.top - svgOriginY) - labelGap;
+
+      let icePath = "";
 
       if (wbTarget) {
-        const wbRect = wbTarget.getBoundingClientRect();
-        // GAP: Changed back to 10px (was 30px) to ensure it reaches the box
-        const iceGap = 10; 
-        iceTotalHeight = (leftRect.top - labelGap - wbRect.bottom) - iceGap;
-        iceRise = Math.min(60, iceTotalHeight * 0.4);
+        const targetRect = wbTarget.getBoundingClientRect();
+        
+        // END: Bottom-Center of the Winners Bracket Final Box
+        const endX_ice = targetRect.left + targetRect.width / 2 - svgOriginX;
+        const endY_ice = targetRect.bottom - svgOriginY + 20; // +20px buffer
+
+        // MIDPOINT: Halfway between Start and End vertically
+        const midY_ice = startY_ice - ((startY_ice - endY_ice) / 2);
+
+        // Draw Stepped Line: Start -> Up to Mid -> Right to Target X -> Up to Target
+        icePath = `
+          M ${startX_ice} ${startY_ice}
+          L ${startX_ice} ${midY_ice}
+          L ${endX_ice} ${midY_ice}
+          L ${endX_ice} ${endY_ice}
+        `;
+      } else {
+        // Fallback if target not found (draw a short stub up)
+        icePath = `M ${startX_ice} ${startY_ice} L ${startX_ice} ${startY_ice - 100}`;
       }
 
-      const icePath = `
-        M ${x1_ice} ${y1_ice + offY} 
-        L ${x1_ice} ${y1_ice + offY - iceRise} 
-        L ${x2_ice} ${y1_ice + offY - iceRise}
-        L ${x2_ice} ${y1_ice + offY - iceTotalHeight}
-      `;
+      // ============================================================
+      // FIRE LINE (Lower)
+      // ============================================================
+      const rightRect = rightSlotRef.current.getBoundingClientRect();
 
-      // ============================================================
-      // FIRE LINE (Lower) - KEPT AS IS (Works correctly)
-      // ============================================================
-      const x1_fire = rightRect.left + rightRect.width / 2 - contRect.left;
-      const y1_fire = (rightRect.bottom - contRect.top) + labelGap;
-      
-      let targetX_fire = x1_fire; 
-      let fireTotalHeight = 100;        
-      let fireDrop = riseHeight;
+      // START: Bottom-Center of the Right Slot
+      const startX_fire = rightRect.left + rightRect.width / 2 - svgOriginX;
+      const startY_fire = (rightRect.bottom - svgOriginY) + labelGap;
+
+      let firePath = "";
 
       if (lbTarget) {
-        const lbRect = lbTarget.getBoundingClientRect();
-        targetX_fire = lbRect.left + lbRect.width / 2 - contRect.left;
+        const targetRect = lbTarget.getBoundingClientRect();
 
-        // Gap set to 60px to clear the "WINNER" text
-        const fireGap = 60; 
-        
-        fireTotalHeight = (lbRect.top - contRect.top) - y1_fire - fireGap;
-        fireDrop = Math.min(60, fireTotalHeight * 0.5);
+        // END: Top-Center of the Losers Bracket Final Box
+        const endX_fire = targetRect.left + targetRect.width / 2 - svgOriginX;
+        const endY_fire = targetRect.top - svgOriginY - 60; // -60px buffer to clear "WINNER" text
+
+        // MIDPOINT
+        const midY_fire = startY_fire + ((endY_fire - startY_fire) / 2);
+
+        // Draw Stepped Line: Start -> Down to Mid -> Right to Target X -> Down to Target
+        firePath = `
+          M ${startX_fire} ${startY_fire}
+          L ${startX_fire} ${midY_fire}
+          L ${endX_fire} ${midY_fire}
+          L ${endX_fire} ${endY_fire}
+        `;
+      } else {
+        // Fallback
+        firePath = `M ${startX_fire} ${startY_fire} L ${startX_fire} ${startY_fire + 100}`;
       }
-
-      const firePath = `
-        M ${x1_fire} ${y1_fire + offY}
-        L ${x1_fire} ${y1_fire + offY + fireDrop}
-        L ${targetX_fire} ${y1_fire + offY + fireDrop}
-        L ${targetX_fire} ${y1_fire + offY + fireTotalHeight}
-      `;
 
       setPaths({ ice: icePath, fire: firePath });
     };
 
     updateLines();
     window.addEventListener("resize", updateLines);
-    setTimeout(updateLines, 500); 
+    setTimeout(updateLines, 500); // Wait for layout
     
     return () => window.removeEventListener("resize", updateLines);
   }, []);
@@ -154,14 +168,15 @@ export default function GrandFinalCenter({
             d={paths.fire} 
             stroke="url(#fireLineGrad)" 
             strokeWidth="3" 
-            strokeLinecap="round"
+            strokeLinecap="round" 
             strokeLinejoin="round"
             fill="none" 
-            filter="url(#fireGlow)"
+            filter="url(#fireGlow)" 
             opacity="0.9"
           />
         </svg>
 
+        {/* LEFT (WB side) */}
         <div className={`${s.source} ${s.left}`}>
           <div className={s.slotWrapper}>
              <div className={`${s.sideLabel} ${s.iceLabel}`}>UPPER BRACKET WINNER</div>
@@ -170,6 +185,7 @@ export default function GrandFinalCenter({
           <div className={`${s.arm} ${s.armLeft}`} />
         </div>
 
+        {/* CENTER */}
         <div className={s.center} ref={centerBoxRef}>
           <div className={s.trophyWrap}>
             <TrophyIcon className={s.trophyIcon} />
@@ -178,6 +194,7 @@ export default function GrandFinalCenter({
           <div className={s.gfBox}>{champion}</div>
         </div>
 
+        {/* RIGHT (LB side) */}
         <div className={`${s.source} ${s.right}`}>
           <div className={`${s.arm} ${s.armRight}`} />
           <div className={s.slotWrapper}>
