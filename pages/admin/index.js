@@ -118,7 +118,7 @@ export default function AdminDashboard({ player, stats }) {
               className={styles.primaryButton}
               onClick={() => router.push("/admin/brackets")}
             >
-              <span>🧩</span> Manage Brackets
+              <span>🧩</span> Manage Tournament
             </button>
 
             <button
