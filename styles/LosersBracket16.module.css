@@ -1,6 +1,7 @@
 /* styles/LosersBracket16.module.css */
 
 .lbViewport {
+  /* Theme Vars */
   --ice-primary: #00c6ff;
   --ice-secondary: #0072ff;
   --ice-glow: rgba(0, 198, 255, 0.6);
@@ -20,17 +21,22 @@
   margin-right: -50vw;
   min-height: auto;
   
-  /* TRANSPARENT BACKGROUND */
-  background: transparent;
+  /* FORCE TRANSPARENCY so the Master Background shows through */
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
 
   color: #fff;
   font-family: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  
   display: flex;
   justify-content: center;
   align-items: center;
   overflow-x: auto;
-  padding: 0 0 80px 0;
+  padding: 0 0 100px 0; /* Extra padding at bottom for scroll comfort */
 }
+
+/* ... (Keep everything else below the same) ... */
 
 .bracketWrapper { display: flex; flex-direction: row; justify-content: center; align-items: stretch; gap: 20px; width: 100%; max-width: 1800px; padding: 0 20px; }
 .column { display: flex; flex-direction: column; justify-content: space-around; flex: 1 1 0px; min-width: 0; position: relative; gap: 20px; }

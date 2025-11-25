@@ -5,19 +5,22 @@
   min-height: 100vh;
   padding-bottom: 100px;
   
-  /* --- MASTER BACKGROUND (Applied to whole page) --- */
+  /* --- MASTER BACKGROUND --- */
   background-color: #050505;
   background-image:
-    radial-gradient(circle at 50% 20%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%),
+    /* Top Glow (Blue/Ice) */
+    radial-gradient(circle at 50% 20%, rgba(0, 198, 255, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
+    /* Bottom Glow (Orange/Fire) - Keeps the bottom from looking dead/black */
+    radial-gradient(circle at 50% 80%, rgba(255, 75, 31, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
+    /* Base Dark Gradient */
     linear-gradient(
-      90deg,
-      rgba(0, 20, 40, 0.95) 0%,
-      rgba(0, 20, 40, 0.95) 30%,
-      rgba(5, 5, 10, 1) 50%,
-      rgba(40, 10, 0, 0.95) 70%,
-      rgba(40, 10, 0, 0.95) 100%
+      180deg,
+      #050505 0%,
+      #0a0f18 50%,
+      #050505 100%
     );
-  background-attachment: fixed; /* Keeps background steady while scrolling */
+  
+  background-attachment: fixed; 
   background-size: cover;
   background-position: center;
   
@@ -39,14 +42,14 @@
   margin-bottom: 40px;
 }
 
-/* --- GLASS CARDS (So they blend with the new background) --- */
+/* Glass Cards */
 .infoCard, .rankingContainer {
-  background: rgba(20, 25, 35, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 25, 35, 0.5); /* Slightly more transparent */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 30px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 .tournamentTitle {
