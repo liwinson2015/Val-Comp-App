@@ -3,107 +3,36 @@ import React from "react";
 import styles from "../styles/Valorant.module.css";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
-import TournamentState from "../models/TournamentState";
-import Tournament from "../models/Tournament";
 
-// Fallback max slots if tournament doc doesn't define it
-const DEFAULT_MAX_SLOTS = 16;
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
+const MAX_SLOTS = 16;
 
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // 1) Find currently featured tournament (if any)
-  const state = await TournamentState.findOne({ isFeatured: true }).lean();
-
-  if (!state) {
-    // No featured tournament -> homepage should show "COMING SOON"
-    return {
-      props: {
-        featured: null,
-      },
-    };
-  }
-
-  const tournamentId = state.tournamentId;
-
-  // 2) Get the Tournament doc (for name/game/etc) – schema-flexible
-  const t = await Tournament.findOne({ tournamentId }).lean();
-
-  // 3) Count active registrations for this tournament
   const currentCount = await Player.countDocuments({
-    "registeredFor.tournamentId": tournamentId,
+    "registeredFor.tournamentId": TOURNAMENT_ID,
   });
-
-  // Try a few possible field names for capacity; fall back to default
-  const maxSlots =
-    t?.maxSlots ??
-    t?.capacity ??
-    t?.maxPlayers ??
-    DEFAULT_MAX_SLOTS;
-
-  const featured = {
-    tournamentId,
-    currentCount: Number(currentCount) || 0,
-    maxSlots: Number(maxSlots) || DEFAULT_MAX_SLOTS,
-    status: state.status || "ongoing", // "ongoing" or "completed"
-
-    // These are safe fallbacks if your Tournament model doesn't have them yet
-    name: t?.name || "Featured Event",
-    game: t?.game || "VALORANT",
-    mode: t?.mode || "1v1",
-    // Optional pretty start time string stored on the tournament doc
-    startTimeDisplay: t?.startTimeDisplay || null,
-    // Optional link path to its hub page
-    linkPath:
-      t?.linkPath || "/tournaments-hub/valorant-types/1v1",
-  };
 
   return {
     props: {
-      featured,
+      featured: {
+        tournamentId: TOURNAMENT_ID,
+        currentCount: Number(currentCount) || 0,
+        maxSlots: MAX_SLOTS,
+      },
     },
   };
 }
 
 export default function HomePage({ featured }) {
-  const hasFeatured = !!featured;
+  const currentCount = featured?.currentCount ?? 0;
+  const maxSlots = featured?.maxSlots ?? MAX_SLOTS;
 
-  const currentCount = hasFeatured ? featured.currentCount : 0;
-  const maxSlots = hasFeatured ? featured.maxSlots : DEFAULT_MAX_SLOTS;
-
-  const isFull = hasFeatured && currentCount >= maxSlots;
-  const isOngoing = hasFeatured && featured.status === "ongoing";
-
-  const statusText = !hasFeatured
-    ? "COMING SOON"
-    : !isOngoing
-    ? "COMPLETED"
-    : isFull
-    ? "FULL / CLOSED"
-    : "OPEN ENTRY";
-
-  const slotsText = hasFeatured
-    ? `${currentCount} / ${maxSlots}`
-    : "-- / --";
-
-  const playersText = hasFeatured
-    ? `${currentCount} REGISTERED`
-    : "COMING SOON";
-
-  const titleText = hasFeatured ? featured.name : "Next Event Coming Soon";
-  const gameLabel = hasFeatured ? (featured.game || "VALORANT") : "TBA";
-  const modeLabel = hasFeatured ? (featured.mode || "1v1") : "";
-  const startTimeText =
-    hasFeatured && featured.startTimeDisplay
-      ? featured.startTimeDisplay
-      : hasFeatured
-      ? "DATE TBA"
-      : "TBD";
-
-  const canRegister = hasFeatured && isOngoing && !isFull;
-  const ctaHref = hasFeatured
-    ? featured.linkPath || "/tournaments-hub/valorant-types/1v1"
-    : "#";
+  const isFull = currentCount >= maxSlots;
+  const statusText = isFull ? "FULL / CLOSED" : "OPEN ENTRY";
+  const slotsText = `${currentCount} / ${maxSlots}`;
+  const playersText = `${currentCount} REGISTERED`;
 
   return (
     <div className={styles.shell}>
@@ -111,77 +40,59 @@ export default function HomePage({ featured }) {
         
         {/* HERO SECTION */}
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>COMPETITIVE BRACKETS</div>
-          <h1 className={styles.heroTitle}>PLAY. COMPETE. CLIMB.</h1>
-          <p className={styles.heroSubtitle}>
-            Community tournaments hosted by 5TQ. <br />
-            Battle for skins, RP, and glory in a live bracket environment.
-          </p>
+            <div className={styles.heroBadge}>COMPETITIVE BRACKETS</div>
+            <h1 className={styles.heroTitle}>PLAY. COMPETE. CLIMB.</h1>
+            <p className={styles.heroSubtitle}>
+              Community tournaments hosted by 5TQ. <br />
+              Battle for skins, RP, and glory in a live bracket environment.
+            </p>
 
-          <div className={styles.heroStats}>
-            <div>
-              <span className={styles.heroStatLabel}>LIVE COUNT</span>
-              <span className={styles.heroStatValue}>{playersText}</span>
+            <div className={styles.heroStats}>
+              <div>
+                <span className={styles.heroStatLabel}>LIVE COUNT</span>
+                <span className={styles.heroStatValue}>{playersText}</span>
+              </div>
+              <div>
+                <span className={styles.heroStatLabel}>ACTIVE TITLES</span>
+                <span className={styles.heroStatValue}>
+                  VALORANT // TFT
+                </span>
+              </div>
+              <div>
+                <span className={styles.heroStatLabel}>PRIZE POOL</span>
+                <span className={styles.heroStatValue}>
+                  SKINS / GIFT CARDS
+                </span>
+              </div>
             </div>
-            <div>
-              <span className={styles.heroStatLabel}>ACTIVE TITLES</span>
-              <span className={styles.heroStatValue}>
-                VALORANT // TFT
-              </span>
-            </div>
-            <div>
-              <span className={styles.heroStatLabel}>PRIZE POOL</span>
-              <span className={styles.heroStatValue}>
-                SKINS / GIFT CARDS
-              </span>
-            </div>
-          </div>
         </section>
 
         {/* FEATURED + UPCOMING GRID */}
         <section className={styles.cardGrid}>
           
-          {/* LEFT: Featured Tournament (or Coming Soon) */}
+          {/* LEFT: Featured Tournament */}
           <div className={styles.featuredColumn}>
             <div className={styles.cardHeaderRow}>
               <h2 className={styles.cardTitle}>FEATURED EVENT</h2>
-              <span className={styles.gamePill}>
-                {hasFeatured
-                  ? `${gameLabel.toUpperCase()}${
-                      modeLabel ? ` • ${modeLabel}` : ""
-                    }`
-                  : "TBD"}
-              </span>
+              <span className={styles.gamePill}>VALORANT • 1v1</span>
             </div>
 
-            <h3 className={styles.featuredTitle}>{titleText}</h3>
+            <h3 className={styles.featuredTitle}>SOLO SKIRMISH #1</h3>
             <p className={styles.featuredSubtitle}>
-              {hasFeatured
-                ? "Double elimination bracket. Winner takes all. Screenshot score verification required."
-                : "We’re preparing the next bracket. Watch announcements on Discord for the next signup window."}
+              Double elimination bracket. Winner takes all.
+              Screenshot score verification required.
             </p>
 
             <div className={styles.featuredMetaRow}>
               <div>
                 <div className={styles.metaLabel}>STATUS</div>
-                <div
-                  className={styles.metaValue}
-                  style={{
-                    color: !hasFeatured
-                      ? "#eab308"
-                      : !isOngoing
-                      ? "#f97316"
-                      : isFull
-                      ? "#ff4655"
-                      : "#4ade80",
-                  }}
-                >
+                <div className={styles.metaValue} style={{ color: isFull ? '#ff4655' : '#4ade80' }}>
                   {statusText}
                 </div>
               </div>
               <div>
                 <div className={styles.metaLabel}>START TIME</div>
-                <div className={styles.metaValue}>{startTimeText}</div>
+                <div className={styles.metaValue}>NOV 2 • 7PM ET</div>
               </div>
               <div>
                 <div className={styles.metaLabel}>SLOTS</div>
@@ -190,23 +101,20 @@ export default function HomePage({ featured }) {
             </div>
 
             <div className={styles.featuredActions}>
-              {canRegister ? (
-                <a href={ctaHref} className={styles.heroPrimary}>
-                  <span>CLAIM YOUR SPOT</span>
-                </a>
-              ) : (
+              {isFull ? (
                 <button
                   className={`${styles.heroPrimary} ${styles.heroPrimaryDisabled}`}
                   disabled
                 >
-                  <span>
-                    {hasFeatured
-                      ? isOngoing && isFull
-                        ? "BRACKET FULL"
-                        : "REGISTRATION CLOSED"
-                      : "COMING SOON"}
-                  </span>
+                  <span>BRACKET FULL</span>
                 </button>
+              ) : (
+                <a
+                  href="/tournaments-hub/valorant-types/1v1"
+                  className={styles.heroPrimary}
+                >
+                  <span>CLAIM YOUR SPOT</span>
+                </a>
               )}
             </div>
           </div>
@@ -225,7 +133,9 @@ export default function HomePage({ featured }) {
               </li>
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>COMMUNITY VOTE</div>
-                <div className={styles.eventMain}>Next Title Selection</div>
+                <div className={styles.eventMain}>
+                  Next Title Selection
+                </div>
                 <div className={styles.eventMeta}>
                   Voting happens on Discord
                 </div>
@@ -264,23 +174,28 @@ export default function HomePage({ featured }) {
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>???</div>
-                <div className={styles.gameDesc}>More Coming Soon</div>
+                <div className={styles.gameDesc}>
+                  More Coming Soon
+                </div>
               </div>
             </div>
             <p className={styles.gamesFooter}>
-              Suggest a game in{" "}
-              <span className={styles.highlight}>#ideas</span> on Discord.
+              Suggest a game in <span className={styles.highlight}>#ideas</span> on Discord.
             </p>
           </section>
         </section>
 
         {/* FOOTER */}
         <footer className={styles.footer}>
-          <div className={styles.footerBrand}>5TQ TOURNAMENTS</div>
-          <div className={styles.footerSub}>
-            Independent community events. Not affiliated with Riot Games.
-          </div>
-          <div className={styles.footerCopy}>© 2025 ALL RIGHTS RESERVED</div>
+            <div className={styles.footerBrand}>
+              5TQ TOURNAMENTS
+            </div>
+            <div className={styles.footerSub}>
+              Independent community events. Not affiliated with Riot Games.
+            </div>
+            <div className={styles.footerCopy}>
+              © 2025 ALL RIGHTS RESERVED
+            </div>
         </footer>
       </div>
     </div>
