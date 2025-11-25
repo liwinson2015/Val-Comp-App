@@ -227,10 +227,12 @@ export default function TeamsPage({
   function openModal() { setError(""); setShowModal(true); }
   function closeModal() { if (submitting) return; setShowModal(false); setName(""); setTag(""); }
   function handleNameChange(e) { setName((e.target.value || "").toUpperCase()); }
+
+  // ✅ UPDATED: allow letters + numbers in tag
   function handleTagChange(e) {
     const raw = e.target.value || "";
-    const lettersOnly = raw.replace(/[^a-zA-Z]/g, "");
-    setTag(lettersOnly.toUpperCase().slice(0, 4));
+    const alnumOnly = raw.replace(/[^a-zA-Z0-9]/g, ""); // allow A–Z, a–z, 0–9
+    setTag(alnumOnly.toUpperCase().slice(0, 4));
   }
 
   async function handleCreate(e) {
