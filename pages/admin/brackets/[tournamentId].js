@@ -1,3 +1,4 @@
+// pages/admin/brackets/[tournamentId].js
 import React, { useEffect, useState } from "react";
 import styles from "../../../styles/BracketsAdmin.module.css";
 
@@ -61,815 +62,35 @@ export async function getServerSideProps({ req, params }) {
   const t = await Tournament.findOne({ tournamentId }).lean();
   const isPublished = !!t?.bracket?.isPublished;
 
-  // NEW: pull tournament status ("ongoing" / "completed") + featured flag
-  let tournamentStatus = "ongoing";
-  let isFeatured = false;
-  try {
-    const state = await TournamentState.findOne({ tournamentId }).lean();
-    if (state?.status) {
-      tournamentStatus = state.status;
-    }
-    if (typeof state?.isFeatured === "boolean") {
-      isFeatured = state.isFeatured;
-    }
-  } catch (e) {
-    console.error("Error reading TournamentState:", e);
-  }
+  // Load TournamentState for homepage featured info
+  const state = await TournamentState.findOne({ tournamentId }).lean();
+
+  const featuredMeta = state
+    ? {
+        displayName: state.displayName || "",
+        displayDescription: state.displayDescription || "",
+        displayTime: state.displayTime || "",
+        displayGameLabel: state.displayGameLabel || "",
+        displayModeLabel: state.displayModeLabel || "",
+        ctaPath: state.ctaPath || "",
+      }
+    : {
+        displayName: "",
+        displayDescription: "",
+        displayTime: "",
+        displayGameLabel: "",
+        displayModeLabel: "",
+        ctaPath: "",
+      };
 
   return {
     props: {
       tournamentId,
       players: playerRows,
       isPublished,
-      tournamentStatus,
-      isFeatured,
+      featuredMeta,
     },
   };
-}
-
-// ---------- END TOURNAMENT UI ----------
-function EndTournamentSection({ tournamentId }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmInput, setConfirmInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState(false);
-
-  const REQUIRED_PHRASE = `END ${tournamentId}`;
-
-  function openConfirm() {
-    setErr("");
-    setConfirmInput("");
-    setShowConfirm(true);
-  }
-
-  function closeConfirm() {
-    if (loading) return;
-    setShowConfirm(false);
-  }
-
-  async function handleConfirmEnd() {
-    if (confirmInput.trim() !== REQUIRED_PHRASE) {
-      setErr("Confirmation phrase does not match.");
-      return;
-    }
-
-    setLoading(true);
-    setErr("");
-
-    try {
-      const res = await fetch("/api/tournaments/end", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tournamentId,
-          // winnerTeamId: null // optional future field
-        }),
-      });
-
-      const data = await res.json();
-      if (!data.ok) {
-        setErr(data.error || "Failed to end tournament.");
-      } else {
-        setDone(true);
-        setShowConfirm(false);
-        // Optionally refresh page to update badges
-        window.location.reload();
-      }
-    } catch (e) {
-      console.error(e);
-      setErr("Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div style={{ marginLeft: "0.5rem" }}>
-      <button
-        type="button"
-        onClick={openConfirm}
-        disabled={done}
-        className={`${styles["btn"]} ${styles["btn-danger"]}`}
-      >
-        {done ? "Tournament Ended" : "⛔ End Tournament"}
-      </button>
-
-      {showConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-          onClick={closeConfirm}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#020617",
-              borderRadius: "10px",
-              padding: "20px 24px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-              color: "#e5e7eb",
-              fontFamily:
-                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            }}
-          >
-            <h2
-              style={{
-                margin: "0 0 8px",
-                fontSize: "1.1rem",
-                color: "#f97316",
-              }}
-            >
-              End Tournament?
-            </h2>
-            <p
-              style={{
-                margin: "0 0 8px",
-                fontSize: "0.9rem",
-                lineHeight: 1.4,
-              }}
-            >
-              You are about to{" "}
-              <strong style={{ color: "#fca5a5" }}>
-                permanently mark this tournament as ended
-              </strong>
-              .
-            </p>
-            <ul
-              style={{
-                margin: "0 0 8px 18px",
-                fontSize: "0.8rem",
-                color: "#9ca3af",
-              }}
-            >
-              <li>It will no longer appear in current tournaments.</li>
-              <li>Players will see it in their tournament history.</li>
-              <li>Announcements can fall back to “Coming soon”.</li>
-            </ul>
-            <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
-              To confirm, type this exactly:
-            </p>
-            <code
-              style={{
-                display: "inline-block",
-                padding: "4px 6px",
-                borderRadius: "4px",
-                background: "#0f172a",
-                fontSize: "0.75rem",
-                marginBottom: "6px",
-                color: "#facc15",
-              }}
-            >
-              {REQUIRED_PHRASE}
-            </code>
-
-            <input
-              type="text"
-              value={confirmInput}
-              onChange={(e) => setConfirmInput(e.target.value)}
-              placeholder="Type confirmation phrase here"
-              style={{
-                width: "100%",
-                marginTop: "4px",
-                padding: "6px 8px",
-                borderRadius: "4px",
-                border: "1px solid #475569",
-                background: "#020617",
-                color: "#e5e7eb",
-                fontSize: "0.85rem",
-              }}
-            />
-
-            {err && (
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "0.8rem",
-                  color: "#f97316",
-                }}
-              >
-                {err}
-              </div>
-            )}
-
-            <div
-              style={{
-                marginTop: "12px",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "8px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={closeConfirm}
-                disabled={loading}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background: "#334155",
-                  color: "#e5e7eb",
-                  fontSize: "0.8rem",
-                  cursor: loading ? "default" : "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmEnd}
-                disabled={
-                  loading || confirmInput.trim() !== REQUIRED_PHRASE
-                }
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "#7f1d1d"
-                      : "#dc2626",
-                  color: "#fee2e2",
-                  fontSize: "0.8rem",
-                  cursor:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "default"
-                      : "pointer",
-                }}
-              >
-                {loading ? "Ending..." : "Confirm End"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- REOPEN TOURNAMENT UI ----------
-function ReopenTournamentSection({ tournamentId }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmInput, setConfirmInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState(false);
-
-  const REQUIRED_PHRASE = `REOPEN ${tournamentId}`;
-
-  function openConfirm() {
-    setErr("");
-    setConfirmInput("");
-    setShowConfirm(true);
-  }
-
-  function closeConfirm() {
-    if (loading) return;
-    setShowConfirm(false);
-  }
-
-  async function handleConfirmReopen() {
-    if (confirmInput.trim() !== REQUIRED_PHRASE) {
-      setErr("Confirmation phrase does not match.");
-      return;
-    }
-
-    setLoading(true);
-    setErr("");
-
-    try {
-      const res = await fetch("/api/tournaments/reopen", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tournamentId }),
-      });
-
-      const data = await res.json();
-      if (!data.ok) {
-        setErr(data.error || "Failed to reopen tournament.");
-      } else {
-        setDone(true);
-        setShowConfirm(false);
-        window.location.reload();
-      }
-    } catch (e) {
-      console.error(e);
-      setErr("Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div style={{ marginLeft: "0.5rem" }}>
-      <button
-        type="button"
-        onClick={openConfirm}
-        disabled={done}
-        className={`${styles["btn"]} ${styles["btn-primary"]}`}
-        style={{
-          backgroundColor: "#16a34a",
-          borderColor: "#16a34a",
-        }}
-      >
-        {done ? "Tournament Reopened" : "♻ Reopen Tournament"}
-      </button>
-
-      {showConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-          onClick={closeConfirm}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#020617",
-              borderRadius: "10px",
-              padding: "20px 24px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-              color: "#e5e7eb",
-              fontFamily:
-                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            }}
-          >
-            <h2
-              style={{
-                margin: "0 0 8px",
-                fontSize: "1.1rem",
-                color: "#22c55e",
-              }}
-            >
-              Reopen Tournament?
-            </h2>
-            <p
-              style={{
-                margin: "0 0 8px",
-                fontSize: "0.9rem",
-                lineHeight: 1.4,
-              }}
-            >
-              This will set the tournament back to{" "}
-              <strong>ongoing</strong> and mark registrations as{" "}
-              <strong>active</strong> again.
-            </p>
-            <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
-              To confirm, type this exactly:
-            </p>
-            <code
-              style={{
-                display: "inline-block",
-                padding: "4px 6px",
-                borderRadius: "4px",
-                background: "#0f172a",
-                fontSize: "0.75rem",
-                marginBottom: "6px",
-                color: "#bbf7d0",
-              }}
-            >
-              {REQUIRED_PHRASE}
-            </code>
-
-            <input
-              type="text"
-              value={confirmInput}
-              onChange={(e) => setConfirmInput(e.target.value)}
-              placeholder="Type confirmation phrase here"
-              style={{
-                width: "100%",
-                marginTop: "4px",
-                padding: "6px 8px",
-                borderRadius: "4px",
-                border: "1px solid #475569",
-                background: "#020617",
-                color: "#e5e7eb",
-                fontSize: "0.85rem",
-              }}
-            />
-
-            {err && (
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "0.8rem",
-                  color: "#f97316",
-                }}
-              >
-                {err}
-              </div>
-            )}
-
-            <div
-              style={{
-                marginTop: "12px",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "8px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={closeConfirm}
-                disabled={loading}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background: "#334155",
-                  color: "#e5e7eb",
-                  fontSize: "0.8rem",
-                  cursor: loading ? "default" : "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReopen}
-                disabled={
-                  loading || confirmInput.trim() !== REQUIRED_PHRASE
-                }
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "#065f46"
-                      : "#16a34a",
-                  color: "#dcfce7",
-                  fontSize: "0.8rem",
-                  cursor:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "default"
-                      : "pointer",
-                }}
-              >
-                {loading ? "Reopening..." : "Confirm Reopen"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- FEATURE TOURNAMENT UI ----------
-function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
-  const [isFeatured, setIsFeatured] = useState(!!initialIsFeatured);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmInput, setConfirmInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const REQUIRED_PHRASE = isFeatured
-    ? `UNFEATURE ${tournamentId}`
-    : `FEATURE ${tournamentId}`;
-
-  function openConfirm() {
-    setErr("");
-    setConfirmInput("");
-    setShowConfirm(true);
-  }
-
-  function closeConfirm() {
-    if (loading) return;
-    setShowConfirm(false);
-  }
-
-  async function handleConfirmFeature() {
-    if (confirmInput.trim() !== REQUIRED_PHRASE) {
-      setErr("Confirmation phrase does not match.");
-      return;
-    }
-
-    setLoading(true);
-    setErr("");
-
-    try {
-      const res = await fetch("/api/tournaments/feature", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tournamentId,
-          isFeatured: !isFeatured,
-        }),
-      });
-
-      const data = await res.json();
-      if (!data.ok) {
-        setErr(data.error || "Failed to update featured state.");
-      } else {
-        setIsFeatured(!!data.isFeatured);
-        setShowConfirm(false);
-      }
-    } catch (e) {
-      console.error(e);
-      setErr("Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div style={{ marginLeft: "0.5rem" }}>
-      <button
-        type="button"
-        onClick={openConfirm}
-        className={`${styles["btn"]} ${styles["btn-primary"]}`}
-        style={{
-          backgroundColor: isFeatured ? "#0f172a" : "#eab308",
-          borderColor: isFeatured ? "#0f172a" : "#eab308",
-          color: isFeatured ? "#facc15" : "#0f172a",
-        }}
-      >
-        {isFeatured ? "⭐ Unfeature" : "⭐ Feature Tournament"}
-      </button>
-
-      {showConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-          onClick={closeConfirm}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#020617",
-              borderRadius: "10px",
-              padding: "20px 24px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-              color: "#e5e7eb",
-              fontFamily:
-                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            }}
-          >
-            <h2
-              style={{
-                margin: "0 0 8px",
-                fontSize: "1.1rem",
-                color: "#facc15",
-              }}
-            >
-              {isFeatured ? "Unfeature Tournament?" : "Feature Tournament?"}
-            </h2>
-            <p
-              style={{
-                margin: "0 0 8px",
-                fontSize: "0.9rem",
-                lineHeight: 1.4,
-              }}
-            >
-              {isFeatured ? (
-                <>
-                  This tournament is currently{" "}
-                  <strong>featured on your homepage</strong>. Unfeaturing
-                  it will remove it from the announcement block.
-                </>
-              ) : (
-                <>
-                  This will make this tournament the{" "}
-                  <strong>featured tournament</strong> on your homepage
-                  (and un-feature any other tournament).
-                </>
-              )}
-            </p>
-            <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
-              To confirm, type this exactly:
-            </p>
-            <code
-              style={{
-                display: "inline-block",
-                padding: "4px 6px",
-                borderRadius: "4px",
-                background: "#0f172a",
-                fontSize: "0.75rem",
-                marginBottom: "6px",
-                color: "#facc15",
-              }}
-            >
-              {REQUIRED_PHRASE}
-            </code>
-
-            <input
-              type="text"
-              value={confirmInput}
-              onChange={(e) => setConfirmInput(e.target.value)}
-              placeholder="Type confirmation phrase here"
-              style={{
-                width: "100%",
-                marginTop: "4px",
-                padding: "6px 8px",
-                borderRadius: "4px",
-                border: "1px solid #475569",
-                background: "#020617",
-                color: "#e5e7eb",
-                fontSize: "0.85rem",
-              }}
-            />
-
-            {err && (
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "0.8rem",
-                  color: "#f97316",
-                }}
-              >
-                {err}
-              </div>
-            )}
-
-            <div
-              style={{
-                marginTop: "12px",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "8px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={closeConfirm}
-                disabled={loading}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background: "#334155",
-                  color: "#e5e7eb",
-                  fontSize: "0.8rem",
-                  cursor: loading ? "default" : "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmFeature}
-                disabled={
-                  loading || confirmInput.trim() !== REQUIRED_PHRASE
-                }
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "#78350f"
-                      : "#eab308",
-                  color: "#0f172a",
-                  fontSize: "0.8rem",
-                  cursor:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "default"
-                      : "pointer",
-                }}
-              >
-                {loading
-                  ? isFeatured
-                    ? "Unfeaturing..."
-                    : "Featuring..."
-                  : isFeatured
-                  ? "Confirm Unfeature"
-                  : "Confirm Feature"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- MAIN PAGE COMPONENT ----------
-export default function BracketAdminPage({
-  tournamentId,
-  players,
-  isPublished,
-  tournamentStatus,
-  isFeatured,
-}) {
-  return (
-    <div className={styles["admin-container"]}>
-      {/* Header & Publish Actions */}
-      <header className={styles["header-section"]}>
-        <div className={styles["header-content"]}>
-          <h1>Bracket Editor</h1>
-          <div className={styles["header-description"]}>
-            Tournament ID: <strong>{tournamentId}</strong>
-            <br />
-            <span
-              className={`${styles["status-badge"]} ${
-                isPublished
-                  ? styles["status-published"]
-                  : styles["status-draft"]
-              }`}
-            >
-              {isPublished ? "● Live (Published)" : "○ Draft (Hidden)"}
-            </span>
-            <br />
-            <span
-              className={styles["status-badge"]}
-              style={{ marginTop: "0.25rem" }}
-            >
-              STATE:{" "}
-              {tournamentStatus === "completed"
-                ? "🏁 Completed"
-                : "▶ Ongoing"}
-            </span>
-            <br />
-            <span
-              className={styles["status-badge"]}
-              style={{
-                marginTop: "0.25rem",
-                backgroundColor: isFeatured ? "#eab30822" : "#020617",
-                borderColor: isFeatured ? "#eab308" : "#4b5563",
-                color: isFeatured ? "#facc15" : "#9ca3af",
-              }}
-            >
-              {isFeatured ? "⭐ FEATURED" : "Not featured"}
-            </span>
-          </div>
-        </div>
-
-        <div className={styles["action-bar"]}>
-          <form
-            method="POST"
-            action={`/api/admin/brackets/${encodeURIComponent(
-              tournamentId
-            )}/publish?state=unpublish`}
-          >
-            <button
-              type="submit"
-              className={`${styles["btn"]} ${styles["btn-danger"]}`}
-            >
-              Unpublish
-            </button>
-          </form>
-
-          <form
-            method="POST"
-            action={`/api/admin/brackets/${encodeURIComponent(
-              tournamentId
-            )}/publish?state=publish`}
-          >
-            <button
-              type="submit"
-              className={`${styles["btn"]} ${styles["btn-success"]}`}
-            >
-              📢 Publish Bracket
-            </button>
-          </form>
-
-          {/* Feature toggle */}
-          <FeatureTournamentSection
-            tournamentId={tournamentId}
-            initialIsFeatured={isFeatured}
-          />
-
-          {/* Show End or Reopen depending on status */}
-          {tournamentStatus !== "completed" && (
-            <EndTournamentSection tournamentId={tournamentId} />
-          )}
-          {tournamentStatus === "completed" && (
-            <ReopenTournamentSection tournamentId={tournamentId} />
-          )}
-        </div>
-      </header>
-
-      <BracketEditor tournamentId={tournamentId} players={players} />
-    </div>
-  );
 }
 
 // ---------- HELPER FUNCTIONS ----------
@@ -903,6 +124,218 @@ function buildPairsFromIds(ids) {
   return pairs;
 }
 
+// ---------- MAIN PAGE COMPONENT ----------
+export default function BracketAdminPage({
+  tournamentId,
+  players,
+  isPublished,
+  featuredMeta,
+}) {
+  return (
+    <div className={styles["admin-container"]}>
+      {/* Header & Publish Actions */}
+      <header className={styles["header-section"]}>
+        <div className={styles["header-content"]}>
+          <h1>Bracket Editor</h1>
+          <div className={styles["header-description"]}>
+            Tournament ID: <strong>{tournamentId}</strong>
+            <br />
+            <span
+              className={`${styles["status-badge"]} ${
+                isPublished
+                  ? styles["status-published"]
+                  : styles["status-draft"]
+              }`}
+            >
+              {isPublished ? "● Live (Published)" : "○ Draft (Hidden)"}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles["action-bar"]}>
+          <form
+            method="POST"
+            action={`/api/admin/brackets/${encodeURIComponent(
+              tournamentId
+            )}/publish?state=unpublish`}
+          >
+            <button
+              type="submit"
+              className={`${styles["btn"]} ${styles["btn-danger"]}`}
+            >
+              Unpublish
+            </button>
+          </form>
+
+          <form
+            method="POST"
+            action={`/api/admin/brackets/${encodeURIComponent(
+              tournamentId
+            )}/publish?state=publish`}
+          >
+            <button
+              type="submit"
+              className={`${styles["btn"]} ${styles["btn-success"]}`}
+            >
+              📢 Publish Bracket
+            </button>
+          </form>
+        </div>
+      </header>
+
+      {/* HOMEPAGE FEATURED INFO EDITOR */}
+      <HomepageMetaEditor
+        tournamentId={tournamentId}
+        initialMeta={featuredMeta}
+      />
+
+      <BracketEditor tournamentId={tournamentId} players={players} />
+    </div>
+  );
+}
+
+// ---------- HOMEPAGE META EDITOR ----------
+function HomepageMetaEditor({ tournamentId, initialMeta }) {
+  const [displayName, setDisplayName] = useState(initialMeta.displayName || "");
+  const [displayDescription, setDisplayDescription] = useState(
+    initialMeta.displayDescription || ""
+  );
+  const [displayTime, setDisplayTime] = useState(
+    initialMeta.displayTime || ""
+  );
+  const [displayGameLabel, setDisplayGameLabel] = useState(
+    initialMeta.displayGameLabel || ""
+  );
+  const [displayModeLabel, setDisplayModeLabel] = useState(
+    initialMeta.displayModeLabel || ""
+  );
+  const [ctaPath, setCtaPath] = useState(initialMeta.ctaPath || "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        `/api/admin/featured-meta/${encodeURIComponent(tournamentId)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            displayName,
+            displayDescription,
+            displayTime,
+            displayGameLabel,
+            displayModeLabel,
+            ctaPath,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!data.ok) {
+        setMessage(data.error || "Failed to save homepage info.");
+      } else {
+        setMessage("Homepage info saved.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Error saving homepage info.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className={styles["meta-panel"]}>
+      <h2 className={styles["meta-title"]}>Homepage Featured Info</h2>
+      <p className={styles["meta-text"]}>
+        These fields control what shows on the <strong>FEATURED EVENT</strong>{" "}
+        card on the homepage when this tournament is featured.
+      </p>
+
+      <form onSubmit={handleSave} className={styles["meta-form"]}>
+        <div className={styles["meta-row"]}>
+          <label className={styles["meta-label"]}>Title</label>
+          <input
+            type="text"
+            className={styles["meta-input"]}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="e.g. SOLO SKIRMISH #1"
+          />
+        </div>
+
+        <div className={styles["meta-row"]}>
+          <label className={styles["meta-label"]}>Description</label>
+          <textarea
+            className={styles["meta-textarea"]}
+            value={displayDescription}
+            onChange={(e) => setDisplayDescription(e.target.value)}
+            placeholder="Short description that appears under the title."
+            rows={3}
+          />
+        </div>
+
+        <div className={styles["meta-row"]}>
+          <label className={styles["meta-label"]}>Time Text</label>
+          <input
+            type="text"
+            className={styles["meta-input"]}
+            value={displayTime}
+            onChange={(e) => setDisplayTime(e.target.value)}
+            placeholder="e.g. NOV 2 • 7PM ET"
+          />
+        </div>
+
+        <div className={styles["meta-row"]}>
+          <label className={styles["meta-label"]}>Game Label</label>
+          <input
+            type="text"
+            className={styles["meta-input"]}
+            value={displayGameLabel}
+            onChange={(e) => setDisplayGameLabel(e.target.value)}
+            placeholder="e.g. VALORANT"
+          />
+        </div>
+
+        <div className={styles["meta-row"]}>
+          <label className={styles["meta-label"]}>Mode Label</label>
+          <input
+            type="text"
+            className={styles["meta-input"]}
+            value={displayModeLabel}
+            onChange={(e) => setDisplayModeLabel(e.target.value)}
+            placeholder="e.g. 1v1"
+          />
+        </div>
+
+        <div className={styles["meta-row"]}>
+          <label className={styles["meta-label"]}>CTA Link Path</label>
+          <input
+            type="text"
+            className={styles["meta-input"]}
+            value={ctaPath}
+            onChange={(e) => setCtaPath(e.target.value)}
+            placeholder="/tournaments-hub/valorant-types/1v1"
+          />
+        </div>
+
+        <button type="submit" className={styles["btn"]} disabled={saving}>
+          {saving ? "Saving..." : "Save Homepage Info"}
+        </button>
+
+        {message && (
+          <div className={styles["meta-message"]}>{message}</div>
+        )}
+      </form>
+    </section>
+  );
+}
+
 // ---------- BRACKET EDITOR ----------
 function BracketEditor({ tournamentId, players }) {
   const emptyFinalMatch = { player1Id: null, player2Id: null, winnerId: null };
@@ -931,6 +364,7 @@ function BracketEditor({ tournamentId, players }) {
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
+  // label map
   const idToLabel = {};
   for (const p of players || []) {
     const base = p.ign || p.username || "Unknown";
@@ -942,6 +376,7 @@ function BracketEditor({ tournamentId, players }) {
     label: idToLabel[p._id],
   }));
 
+  // ===== Load existing bracket on mount =====
   useEffect(() => {
     async function loadBracket() {
       try {
@@ -995,8 +430,9 @@ function BracketEditor({ tournamentId, players }) {
         if (bracket && Array.isArray(bracket.losersRounds)) {
           const lrs = bracket.losersRounds || [];
           const lb1 =
-            lrs.find((r) => r.roundNumber === 1 && r.type === "losers") ||
-            lrs[0];
+            lrs.find(
+              (r) => r.roundNumber === 1 && r.type === "losers"
+            ) || lrs[0];
           setLbMatches1(
             (lb1?.matches || []).map((m) => ({
               player1Id: m.player1Id || null,
@@ -1052,6 +488,7 @@ function BracketEditor({ tournamentId, players }) {
           setLbMatches4([]);
         }
 
+        // Finals
         const wf = bracket?.winnersFinal || emptyFinalMatch;
         setWbFinalMatches([
           {
@@ -1085,6 +522,7 @@ function BracketEditor({ tournamentId, players }) {
     loadBracket();
   }, [tournamentId]);
 
+  // ===== AUTO-BUILD =====
   useEffect(() => {
     const winnersSF = computeWinnersFromMatches(sfMatches);
     if (winnersSF.length < 2) return;
@@ -1111,6 +549,7 @@ function BracketEditor({ tournamentId, players }) {
     return idToLabel[id] || "TBD";
   }
 
+  // --- Match Handlers ---
   function handleChangeMatch(index, field, value) {
     setMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
@@ -1149,7 +588,10 @@ function BracketEditor({ tournamentId, players }) {
         `/api/admin/brackets/${encodeURIComponent(
           tournamentId
         )}/generate`,
-        { method: "POST", headers: { "Content-Type": "application/json" } }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
       );
       const data = await res.json();
       if (!res.ok) {
@@ -1205,6 +647,7 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
+  // Counts
   const usedIds = new Set();
   const placedCount = {};
   matches.forEach((m) => {
@@ -1229,6 +672,36 @@ function BracketEditor({ tournamentId, players }) {
   const losersR1 = computeLosersFromMatches(matches);
   const winnersChosenR1 = losersR1.length;
 
+  // Generic update/winner helpers
+  function updateMatch(prev, index, field, value) {
+    const copy = prev.map((m) => ({ ...m }));
+    if (!copy[index]) return copy;
+    copy[index][field] = value || null;
+    const m = copy[index];
+    if (
+      m.winnerId &&
+      m.winnerId !== m.player1Id &&
+      m.winnerId !== m.player2Id
+    ) {
+      m.winnerId = null;
+    }
+    return copy;
+  }
+  function setWinner(prev, index, which) {
+    const copy = prev.map((m) => ({ ...m }));
+    const m = copy[index];
+    if (which === "p1") {
+      if (!m.player1Id) return prev;
+      m.winnerId = m.player1Id;
+    }
+    if (which === "p2") {
+      if (!m.player2Id) return prev;
+      m.winnerId = m.player2Id;
+    }
+    return copy;
+  }
+
+  // LB Handlers
   function handleRandomizeLB1() {
     if (winnersChosenR1 === 0) {
       setSaveMessage("Set R1 winners first.");
@@ -1249,33 +722,21 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches1((prev) => setWinner(prev, index, which));
   }
 
-  function updateMatch(prev, index, field, value) {
-    const copy = prev.map((m) => ({ ...m }));
-    if (!copy[index]) return copy;
-    copy[index][field] = value || null;
-    const m = copy[index];
-    if (
-      m.winnerId &&
-      m.winnerId !== m.player1Id &&
-      m.winnerId !== m.player2Id
-    )
-      m.winnerId = null;
-    return copy;
-  }
-  function setWinner(prev, index, which) {
-    const copy = prev.map((m) => ({ ...m }));
-    const m = copy[index];
-    if (which === "p1") {
-      if (!m.player1Id) return prev;
-      m.winnerId = m.player1Id;
+  // QF
+  function buildNextRound(prevRoundMatches) {
+    const numNext = Math.ceil(prevRoundMatches.length / 2);
+    const next = [];
+    for (let i = 0; i < numNext; i++) {
+      const mA = prevRoundMatches[i * 2] || {};
+      const mB = prevRoundMatches[i * 2 + 1] || {};
+      next.push({
+        player1Id: mA.winnerId || null,
+        player2Id: mB.winnerId || null,
+        winnerId: null,
+      });
     }
-    if (which === "p2") {
-      if (!m.player2Id) return prev;
-      m.winnerId = m.player2Id;
-    }
-    return copy;
+    return next;
   }
-
   function handleBuildQF() {
     if (!matches.length) {
       setSaveMessage("Need R1 matches.");
@@ -1293,20 +754,6 @@ function BracketEditor({ tournamentId, players }) {
     setGrandFinalMatches([emptyFinalMatch]);
     setSaveMessage("Quarterfinals built.");
   }
-  function buildNextRound(prevRoundMatches) {
-    const numNext = Math.ceil(prevRoundMatches.length / 2);
-    const next = [];
-    for (let i = 0; i < numNext; i++) {
-      const mA = prevRoundMatches[i * 2] || {};
-      const mB = prevRoundMatches[i * 2 + 1] || {};
-      next.push({
-        player1Id: mA.winnerId || null,
-        player2Id: mB.winnerId || null,
-        winnerId: null,
-      });
-    }
-    return next;
-  }
   function handleChangeQFMatch(index, f, v) {
     setQfMatches((prev) => updateMatch(prev, index, f, v));
   }
@@ -1314,6 +761,7 @@ function BracketEditor({ tournamentId, players }) {
     setQfMatches((prev) => setWinner(prev, index, w));
   }
 
+  // LB2
   function handleBuildLB2() {
     const num = Math.max(lbMatches1.length, qfMatches.length);
     if (!num) {
@@ -1351,6 +799,7 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches2((p) => setWinner(p, i, w));
   }
 
+  // SF
   function handleBuildSF() {
     if (!qfMatches.length) {
       setSaveMessage("Need QF matches.");
@@ -1372,6 +821,7 @@ function BracketEditor({ tournamentId, players }) {
     setSfMatches((p) => setWinner(p, i, w));
   }
 
+  // LB3A
   function handleBuildLB3A() {
     if (!lbMatches2.length) {
       setSaveMessage("Need LB2.");
@@ -1391,6 +841,7 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a((p) => setWinner(p, i, w));
   }
 
+  // LB3B
   function handleBuildLB3B() {
     const num = Math.max(lbMatches3a.length, sfMatches.length);
     const next = [];
@@ -1422,6 +873,7 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3b((p) => setWinner(p, i, w));
   }
 
+  // LB4
   function handleBuildLB4() {
     if (!lbMatches3b.length) {
       setSaveMessage("Need LB3B.");
@@ -1439,6 +891,7 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches4((p) => setWinner(p, i, w));
   }
 
+  // Finals
   function handleChangeWbFinal(i, f, v) {
     setWbFinalMatches((p) => updateMatch(p, i, f, v));
   }
@@ -1460,8 +913,7 @@ function BracketEditor({ tournamentId, players }) {
           setLbFinalMatches((lbPrev) => {
             const next = lbPrev.map((x) => ({ ...x }));
             if (!next[0]) next[0] = {};
-            if (!next[0].player1Id && lb4Winner)
-              next[0].player1Id = lb4Winner;
+            if (!next[0].player1Id && lb4Winner) next[0].player1Id = lb4Winner;
             if (!next[0].player2Id && loser) next[0].player2Id = loser;
             return next;
           });
@@ -1503,6 +955,7 @@ function BracketEditor({ tournamentId, players }) {
     setGrandFinalMatches((p) => setWinner(p, i, w));
   }
 
+  // Save/Reset
   async function handleSave() {
     setSaving(true);
     setSaveMessage("");
@@ -1518,7 +971,8 @@ function BracketEditor({ tournamentId, players }) {
             : grandFinalMatches[0].player1Id
           : null,
         third: lbFinalMatches[0]?.winnerId
-          ? lbFinalMatches[0].winnerId === lbFinalMatches[0].player1Id
+          ? lbFinalMatches[0].winnerId ===
+            lbFinalMatches[0].player1Id
             ? lbFinalMatches[0].player2Id
             : lbFinalMatches[0].player1Id
           : null,
@@ -1534,9 +988,7 @@ function BracketEditor({ tournamentId, players }) {
       };
 
       const res = await fetch(
-        `/api/admin/brackets/${encodeURIComponent(
-          tournamentId
-        )}/save`,
+        `/api/admin/brackets/${encodeURIComponent(tournamentId)}/save`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1564,15 +1016,17 @@ function BracketEditor({ tournamentId, players }) {
       setSaving(false);
     }
   }
+
   async function handleReset() {
     if (!window.confirm("Reset bracket?")) return;
     setResetting(true);
     try {
       await fetch(
-        `/api/admin/brackets/${encodeURIComponent(
-          tournamentId
-        )}/reset`,
-        { method: "POST", headers: { "Content-Type": "application/json" } }
+        `/api/admin/brackets/${encodeURIComponent(tournamentId)}/reset`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
       );
       window.location.reload();
     } catch (e) {
@@ -1589,6 +1043,7 @@ function BracketEditor({ tournamentId, players }) {
 
   return (
     <div className={styles["bracket-editor-wrapper"]}>
+      {/* TOP TOOLBAR */}
       <div className={styles["toolbar"]}>
         <button
           type="button"
@@ -1628,6 +1083,7 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       </div>
 
+      {/* UNPLACED PLAYERS */}
       <div className={styles["player-pool"]}>
         <div className={styles["pool-title"]}>Unplaced Players (Round 1)</div>
         {unusedPlayers.length === 0 ? (
@@ -1657,19 +1113,21 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
+      {/* DUPLICATES ALERT */}
       {duplicatePlayers.length > 0 && (
         <div
           className={`${styles["alert-box"]} ${styles["alert-danger"]}`}
         >
           <strong>Warning:</strong> Duplicates:{" "}
           {duplicatePlayers.map(
-            (p) =>
-              `${p.ign || p.username} (x${placedCount[p._id]}), `
+            (p) => `${p.ign || p.username} (x${placedCount[p._id]}), `
           )}
         </div>
       )}
 
+      {/* --- SPLIT GRID LAYOUT --- */}
       <div className={styles["main-grid"]}>
+        {/* COLUMN 1: WINNERS BRACKET */}
         <div className={styles["bracket-column"]}>
           <div
             className={`${styles["column-header"]} ${styles["header-winners"]}`}
@@ -1721,6 +1179,7 @@ function BracketEditor({ tournamentId, players }) {
           />
         </div>
 
+        {/* COLUMN 2: LOSERS BRACKET */}
         <div className={styles["bracket-column"]}>
           <div
             className={`${styles["column-header"]} ${styles["header-losers"]}`}
@@ -1810,6 +1269,7 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       </div>
 
+      {/* --- FINALS SECTION --- */}
       <div className={styles["finals-section"]}>
         <div
           className={`${styles["column-header"]} ${styles["header-finals"]}`}
@@ -1844,6 +1304,7 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       </div>
 
+      {/* FLOATING SAVE BAR */}
       {(saveMessage || saving) && (
         <div className={styles["save-bar"]}>
           <span className={styles["save-msg"]}>{saveMessage}</span>
@@ -1854,7 +1315,7 @@ function BracketEditor({ tournamentId, players }) {
   );
 }
 
-// ---------- ROUND BLOCK ----------
+// ---------- REUSABLE COMPONENT ----------
 function RoundBlock({
   title,
   matches,
@@ -1897,11 +1358,7 @@ function RoundBlock({
                 <select
                   value={m.player1Id || ""}
                   onChange={(e) =>
-                    onChange(
-                      i,
-                      "player1Id",
-                      e.target.value || null
-                    )
+                    onChange(i, "player1Id", e.target.value || null)
                   }
                   className={`${styles["form-select"]} ${
                     p1Dup ? styles["error"] : ""
@@ -1929,11 +1386,7 @@ function RoundBlock({
                 <select
                   value={m.player2Id || ""}
                   onChange={(e) =>
-                    onChange(
-                      i,
-                      "player2Id",
-                      e.target.value || null
-                    )
+                    onChange(i, "player2Id", e.target.value || null)
                   }
                   className={`${styles["form-select"]} ${
                     p2Dup ? styles["error"] : ""

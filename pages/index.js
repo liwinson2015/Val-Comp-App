@@ -4,65 +4,45 @@ import styles from "../styles/Valorant.module.css";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import TournamentState from "../models/TournamentState";
-import Tournament from "../models/Tournament";
 
-// Fallback max slots if tournament doc doesn't define it
+const DEFAULT_TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const DEFAULT_MAX_SLOTS = 16;
 
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // 1) Find currently featured tournament (if any)
+  // 1) Find the currently featured tournament (if any)
   const state = await TournamentState.findOne({ isFeatured: true }).lean();
 
   if (!state) {
-    // No featured tournament -> homepage should show "COMING SOON"
-    return {
-      props: {
-        featured: null,
-      },
-    };
+    return { props: { featured: null } };
   }
 
-  const tournamentId = state.tournamentId;
+  const tournamentId = state.tournamentId || DEFAULT_TOURNAMENT_ID;
 
-  // 2) Get the Tournament doc (for name/game/etc) – schema-flexible
-  const t = await Tournament.findOne({ tournamentId }).lean();
-
-  // 3) Count active registrations for this tournament
+  // 2) Count registrations for this tournament
   const currentCount = await Player.countDocuments({
     "registeredFor.tournamentId": tournamentId,
   });
 
-  // Try a few possible field names for capacity; fall back to default
-  const maxSlots =
-    t?.maxSlots ??
-    t?.capacity ??
-    t?.maxPlayers ??
-    DEFAULT_MAX_SLOTS;
+  const maxSlots = DEFAULT_MAX_SLOTS;
 
   const featured = {
     tournamentId,
     currentCount: Number(currentCount) || 0,
     maxSlots: Number(maxSlots) || DEFAULT_MAX_SLOTS,
-    status: state.status || "ongoing", // "ongoing" or "completed"
+    status: state.status || "ongoing", // upcoming / ongoing / completed
 
-    // These are safe fallbacks if your Tournament model doesn't have them yet
-    name: t?.name || "Featured Event",
-    game: t?.game || "VALORANT",
-    mode: t?.mode || "1v1",
-    // Optional pretty start time string stored on the tournament doc
-    startTimeDisplay: t?.startTimeDisplay || null,
-    // Optional link path to its hub page
-    linkPath:
-      t?.linkPath || "/tournaments-hub/valorant-types/1v1",
+    // Homepage display fields (may be empty)
+    displayName: state.displayName || "",
+    displayDescription: state.displayDescription || "",
+    displayTime: state.displayTime || "",
+    displayGameLabel: state.displayGameLabel || "",
+    displayModeLabel: state.displayModeLabel || "",
+    ctaPath: state.ctaPath || "",
   };
 
-  return {
-    props: {
-      featured,
-    },
-  };
+  return { props: { featured } };
 }
 
 export default function HomePage({ featured }) {
@@ -82,28 +62,32 @@ export default function HomePage({ featured }) {
     ? "FULL / CLOSED"
     : "OPEN ENTRY";
 
-  const slotsText = hasFeatured
-    ? `${currentCount} / ${maxSlots}`
-    : "-- / --";
-
+  const slotsText = hasFeatured ? `${currentCount} / ${maxSlots}` : "-- / --";
   const playersText = hasFeatured
     ? `${currentCount} REGISTERED`
     : "COMING SOON";
 
-  const titleText = hasFeatured ? featured.name : "Next Event Coming Soon";
-  const gameLabel = hasFeatured ? (featured.game || "VALORANT") : "TBA";
-  const modeLabel = hasFeatured ? (featured.mode || "1v1") : "";
+  // --- FALLBACKS TO YOUR ORIGINAL HARD-CODED TEXT ---
+  const titleText =
+    (hasFeatured && featured.displayName) || "SOLO SKIRMISH #1";
+
+  const descriptionText =
+    (hasFeatured && featured.displayDescription) ||
+    "Double elimination bracket. Winner takes all. Screenshot score verification required.";
+
   const startTimeText =
-    hasFeatured && featured.startTimeDisplay
-      ? featured.startTimeDisplay
-      : hasFeatured
-      ? "DATE TBA"
-      : "TBD";
+    (hasFeatured && featured.displayTime) || "NOV 2 • 7PM ET";
+
+  const gameLabel =
+    (hasFeatured && featured.displayGameLabel) || "VALORANT";
+  const modeLabel =
+    (hasFeatured && featured.displayModeLabel) || "1v1";
 
   const canRegister = hasFeatured && isOngoing && !isFull;
-  const ctaHref = hasFeatured
-    ? featured.linkPath || "/tournaments-hub/valorant-types/1v1"
-    : "#";
+
+  const ctaHref =
+    (hasFeatured && featured.ctaPath) ||
+    "/tournaments-hub/valorant-types/1v1";
 
   return (
     <div className={styles.shell}>
@@ -141,25 +125,17 @@ export default function HomePage({ featured }) {
         {/* FEATURED + UPCOMING GRID */}
         <section className={styles.cardGrid}>
           
-          {/* LEFT: Featured Tournament (or Coming Soon) */}
+          {/* LEFT: Featured Tournament */}
           <div className={styles.featuredColumn}>
             <div className={styles.cardHeaderRow}>
               <h2 className={styles.cardTitle}>FEATURED EVENT</h2>
               <span className={styles.gamePill}>
-                {hasFeatured
-                  ? `${gameLabel.toUpperCase()}${
-                      modeLabel ? ` • ${modeLabel}` : ""
-                    }`
-                  : "TBD"}
+                {`${gameLabel.toUpperCase()} • ${modeLabel}`}
               </span>
             </div>
 
             <h3 className={styles.featuredTitle}>{titleText}</h3>
-            <p className={styles.featuredSubtitle}>
-              {hasFeatured
-                ? "Double elimination bracket. Winner takes all. Screenshot score verification required."
-                : "We’re preparing the next bracket. Watch announcements on Discord for the next signup window."}
-            </p>
+            <p className={styles.featuredSubtitle}>{descriptionText}</p>
 
             <div className={styles.featuredMetaRow}>
               <div>
@@ -211,7 +187,7 @@ export default function HomePage({ featured }) {
             </div>
           </div>
 
-          {/* RIGHT: Upcoming List */}
+          {/* RIGHT: Upcoming List (unchanged) */}
           <div className={styles.upcomingColumn}>
             <div className={styles.cardHeaderRow}>
               <h2 className={styles.cardTitle}>IN THE PIPELINE</h2>
@@ -225,7 +201,9 @@ export default function HomePage({ featured }) {
               </li>
               <li className={styles.eventItem}>
                 <div className={styles.eventGame}>COMMUNITY VOTE</div>
-                <div className={styles.eventMain}>Next Title Selection</div>
+                <div className={styles.eventMain}>
+                  Next Title Selection
+                </div>
                 <div className={styles.eventMeta}>
                   Voting happens on Discord
                 </div>
@@ -234,7 +212,7 @@ export default function HomePage({ featured }) {
           </div>
         </section>
 
-        {/* BOTTOM GRID */}
+        {/* BOTTOM GRID (unchanged) */}
         <section className={styles.bottomGrid}>
           <section className={styles.howCard}>
             <div className={styles.cardHeaderRow}>
@@ -264,23 +242,28 @@ export default function HomePage({ featured }) {
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>???</div>
-                <div className={styles.gameDesc}>More Coming Soon</div>
+                <div className={styles.gameDesc}>
+                  More Coming Soon
+                </div>
               </div>
             </div>
             <p className={styles.gamesFooter}>
-              Suggest a game in{" "}
-              <span className={styles.highlight}>#ideas</span> on Discord.
+              Suggest a game in <span className={styles.highlight}>#ideas</span> on Discord.
             </p>
           </section>
         </section>
 
         {/* FOOTER */}
         <footer className={styles.footer}>
-          <div className={styles.footerBrand}>5TQ TOURNAMENTS</div>
+          <div className={styles.footerBrand}>
+            5TQ TOURNAMENTS
+          </div>
           <div className={styles.footerSub}>
             Independent community events. Not affiliated with Riot Games.
           </div>
-          <div className={styles.footerCopy}>© 2025 ALL RIGHTS RESERVED</div>
+          <div className={styles.footerCopy}>
+            © 2025 ALL RIGHTS RESERVED
+          </div>
         </footer>
       </div>
     </div>

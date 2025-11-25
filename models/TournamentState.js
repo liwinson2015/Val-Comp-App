@@ -3,38 +3,44 @@ import mongoose from "mongoose";
 
 const TournamentStateSchema = new mongoose.Schema(
   {
-    // Same ID string you use everywhere, e.g. "VALO-SOLO-SKIRMISH-1"
-    tournamentId: { type: String, required: true, unique: true, index: true },
+    // Which tournament this state row belongs to
+    tournamentId: { type: String, required: true, unique: true },
 
-    // "ongoing" or "completed"
+    // Homepage "featured" flag
+    isFeatured: { type: Boolean, default: false },
+
+    // Logical status of the tournament
+    // (you can set this in your feature / end routes)
     status: {
       type: String,
-      enum: ["ongoing", "completed"],
-      default: "ongoing",
-      index: true,
+      enum: ["upcoming", "ongoing", "completed"],
+      default: "upcoming",
     },
 
-    // Whether this tournament is the one currently featured
-    // on your homepage / announcements.
-    isFeatured: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
+    // End-tournament tracking
+    isEnded: { type: Boolean, default: false },
+    endedAt: { type: Date, default: null },
+    endNotes: { type: String, default: "" },
 
-    // Optional: who won (for team tournaments or solo)
-    winnerTeamId: { type: String },
+    // --- HOMEPAGE DISPLAY FIELDS (editable from admin) ---
 
-    // When it was ended + which admin ended it
-    endedAt: { type: Date },
-    endedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Player",
-    },
+    // Big title on the homepage card
+    displayName: { type: String, default: "" },
+
+    // Short description text under the title
+    displayDescription: { type: String, default: "" },
+
+    // Start time / date string (human readable)
+    displayTime: { type: String, default: "" },
+
+    // Little pill at the top, e.g. "VALORANT • 1v1"
+    displayGameLabel: { type: String, default: "" },
+    displayModeLabel: { type: String, default: "" },
+
+    // Where the "Claim your spot" button should send players
+    ctaPath: { type: String, default: "" },
   },
-  {
-    timestamps: true, // createdAt, updatedAt
-  }
+  { timestamps: true }
 );
 
 export default mongoose.models.TournamentState ||
