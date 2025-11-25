@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-// Use the new module
 import styles from "../../../../styles/Valorant1v1.module.css";
 
 const TID = "VALO-SOLO-SKIRMISH-1";
@@ -46,9 +45,11 @@ export default function Valorant1v1ListPage() {
       start: "Nov 2, 2025",
       format: "1v1 • Single Elimination",
       checkIn: "15 min before start",
-      prize: "Skin (TBD)",
+      // UPDATED PRIZE
+      prize: "$20 Valorant Gift Card",
       server: "NA (Custom)",
-      maps: "Ascent / Haven",
+      // UPDATED MAPS
+      maps: "Skirmish A / B / C (random)",
       rules: "No Cheats",
       detailsUrl: "/valorant",
     },
