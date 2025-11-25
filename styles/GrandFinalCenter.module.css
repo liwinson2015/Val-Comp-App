@@ -29,10 +29,13 @@
 
   display: grid;
   place-items: center;
-  padding: 80px 0; /* Extra padding for lines */
+  padding: 60px 0;
+  
+  /* CRITICAL FIX: Allow lines to draw outside this box */
+  overflow: visible !important;
+  z-index: 5; /* Ensure it sits above the section below it */
 }
 
-/* The container must be relative so the SVG can sit absolutely inside it */
 .row {
   width: min(1100px, 92vw);
   display: grid;
@@ -40,28 +43,31 @@
   align-items: center;
   gap: 20px;
   position: relative; 
+  overflow: visible !important;
 }
 
-/* --- THE NEW SVG LAYER --- */
-/* This sits on top/behind the content and holds the drawn lines */
+/* --- THE SVG LAYER --- */
 .svgOverlay {
   position: absolute;
-  top: -100px; /* Extend bounds to allow drawing outside */
+  /* Start way above to catch the Winners Bracket */
+  top: -500px; 
   left: 0;
   width: 100%;
-  height: calc(100% + 200px); /* Tall enough to reach up and down */
+  /* Tall enough to reach the bottom */
+  height: 1500px; 
   pointer-events: none;
-  z-index: 0; /* Behind slots */
-  overflow: visible;
+  /* Ensure it sits on top of backgrounds but behind text */
+  z-index: 10; 
+  overflow: visible !important;
 }
 
-/* --- SIDES --- */
 .source {
   position: relative;
   display: flex;
   align-items: center;
-  z-index: 2; /* Above SVG lines */
+  z-index: 20; /* Content above lines */
 }
+
 .left { justify-content: flex-end; }
 .right { justify-content: flex-start; }
 
@@ -70,14 +76,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
-  max-width: 220px;
+  z-index: 20;
 }
 
 /* --- SLOTS --- */
 .slot {
   height: 44px;
-  width: 100%;
+  min-width: 180px;
   padding: 0 10px;
   display: flex;
   align-items: center;
@@ -89,6 +94,8 @@
   font-weight: 700;
   font-size: 14px;
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 20;
 }
 
 .ice { 
@@ -105,16 +112,10 @@
 }
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
-/* --- ARMS (Horizontal small connectors) --- */
-.arm {
-  height: 2px;
-  flex: 1; 
-  min-width: 20px;
-}
+.arm { height: 2px; flex: 1; min-width: 20px; }
 .armLeft { background: linear-gradient(90deg, var(--ice-primary), rgba(0, 198, 255, 0.2)); box-shadow: 0 0 5px var(--ice-glow); }
 .armRight { background: linear-gradient(90deg, rgba(255, 75, 31, 0.2), var(--fire-primary)); box-shadow: 0 0 5px var(--fire-glow); }
 
-/* --- LABELS --- */
 .sideLabel {
   position: absolute;
   width: 100%; 
@@ -129,17 +130,7 @@
 .iceLabel { bottom: 100%; margin-bottom: 8px; color: var(--ice-primary); text-shadow: 0 0 15px var(--ice-glow); }
 .fireLabel { top: 100%; margin-top: 8px; color: var(--fire-primary); text-shadow: 0 0 15px var(--fire-glow); }
 
-/* --- CENTER --- */
-.center { 
-  display: grid; 
-  justify-items: center; 
-  align-items: center; 
-  gap: 10px; 
-  min-width: 280px; 
-  position: relative; 
-  z-index: 2; 
-}
-
+.center { display: grid; justify-items: center; align-items: center; gap: 10px; min-width: 280px; position: relative; z-index: 20; }
 .title { color: var(--clash-primary); font-weight: 900; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; text-shadow: 0 0 10px var(--clash-glow); }
 .gfBox { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(30, 10, 0, 0.9), rgba(0, 10, 30, 0.9)); color: #ffffff; border: 1px solid var(--clash-primary); box-shadow: 0 0 30px var(--clash-glow); border-radius: 4px; font-weight: 800; font-size: 1.2rem; }
 .trophyWrap { margin-bottom: 0; animation: floatTrophy 3s ease-in-out infinite; }
