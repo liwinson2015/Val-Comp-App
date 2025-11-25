@@ -1411,6 +1411,476 @@ function BracketEditor({ tournamentId, players, featuredMeta }) {
     return idToLabel[id] || "TBD";
   }
 
+  function handleChangeMatch(index, field, value) {
+    setMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      copy[index] = { ...copy[index], [field]: value || null };
+      const m = copy[index];
+      if (
+        (field === "player1Id" || field === "player2Id") &&
+        m.winnerId &&
+        m.winnerId !== m.player1Id &&
+        m.winnerId !== m.player2Id
+      ) {
+        m.winnerId = null;
+      }
+      return copy;
+    });
+  }
+  function handleSetWinnerR1(index, which) {
+    setMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      const m = copy[index];
+      if (which === "p1") {
+        if (!m.player1Id) return prev;
+        m.winnerId = m.player1Id;
+      } else if (which === "p2") {
+        if (!m.player2Id) return prev;
+        m.winnerId = m.player2Id;
+      }
+      return copy;
+    });
+  }
+  async function handleRandomizeR1() {
+    setRandomizing(true);
+    setSaveMessage("");
+    try {
+      const res = await fetch(
+        `/api/admin/brackets/${encodeURIComponent(
+          tournamentId
+        )}/generate`,
+        { method: "POST", headers: { "Content-Type": "application/json" } }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveMessage(data.error || "Failed to randomize.");
+      } else {
+        const fresh = (data.matches || []).map((m) => ({
+          ...m,
+          winnerId: null,
+        }));
+        setMatches(fresh);
+        setQfMatches([]);
+        setSfMatches([]);
+        setLbMatches1([]);
+        setLbMatches2([]);
+        setLbMatches3a([]);
+        setLbMatches3b([]);
+        setLbMatches4([]);
+        setWbFinalMatches([emptyFinalMatch]);
+        setLbFinalMatches([emptyFinalMatch]);
+        setGrandFinalMatches([emptyFinalMatch]);
+        setSaveMessage("Random Round 1 generated.");
+      }
+    } catch (err) {
+      setSaveMessage("Error generating.");
+    } finally {
+      setRandomizing(false);
+    }
+  }
+  function handleAddPlayerToBracket(playerId) {
+    setMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      const alreadyPlaced = copy.some(
+        (m) => m.player1Id === playerId || m.player2Id === playerId
+      );
+      if (alreadyPlaced) {
+        setSaveMessage("Player already placed.");
+        return copy;
+      }
+      for (let m of copy) {
+        if (!m.player1Id) {
+          m.player1Id = playerId;
+          setSaveMessage("Added to empty slot.");
+          return copy;
+        }
+        if (!m.player2Id) {
+          m.player2Id = playerId;
+          setSaveMessage("Added to empty slot.");
+          return copy;
+        }
+      }
+      setSaveMessage("No empty slots left.");
+      return copy;
+    });
+  }
+
+  const usedIds = new Set();
+  const placedCount = {};
+  matches.forEach((m) => {
+    if (m.player1Id) {
+      usedIds.add(m.player1Id);
+      placedCount[m.player1Id] = (placedCount[m.player1Id] || 0) + 1;
+    }
+    if (m.player2Id) {
+      usedIds.add(m.player2Id);
+      placedCount[m.player2Id] = (placedCount[m.player2Id] || 0) + 1;
+    }
+  });
+  const duplicatedIds = new Set(
+    Object.keys(placedCount).filter((id) => placedCount[id] > 1)
+  );
+  const unusedPlayers = players.filter((p) => !usedIds.has(p._id));
+  const duplicatePlayers = players.filter((p) =>
+    duplicatedIds.has(p._id)
+  );
+  const usedCount = usedIds.size;
+  const totalCount = players.length;
+  const losersR1 = computeLosersFromMatches(matches);
+  const winnersChosenR1 = losersR1.length;
+
+  function handleRandomizeLB1() {
+    if (winnersChosenR1 === 0) {
+      setSaveMessage("Set R1 winners first.");
+      return;
+    }
+    const shuffled = [...losersR1];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setLbMatches1(buildPairsFromIds(shuffled));
+    setSaveMessage("LB Round 1 built.");
+  }
+  function handleChangeLbMatch1(index, slot, value) {
+    setLbMatches1((prev) => updateMatch(prev, index, slot, value));
+  }
+  function handleSetWinnerLB1(index, which) {
+    setLbMatches1((prev) => setWinner(prev, index, which));
+  }
+
+  function updateMatch(prev, index, field, value) {
+    const copy = prev.map((m) => ({ ...m }));
+    if (!copy[index]) return copy;
+    copy[index][field] = value || null;
+    const m = copy[index];
+    if (
+      m.winnerId &&
+      m.winnerId !== m.player1Id &&
+      m.winnerId !== m.player2Id
+    )
+      m.winnerId = null;
+    return copy;
+  }
+  function setWinner(prev, index, which) {
+    const copy = prev.map((m) => ({ ...m }));
+    const m = copy[index];
+    if (which === "p1") {
+      if (!m.player1Id) return prev;
+      m.winnerId = m.player1Id;
+    }
+    if (which === "p2") {
+      if (!m.player2Id) return prev;
+      m.winnerId = m.player2Id;
+    }
+    return copy;
+  }
+
+  function handleBuildQF() {
+    if (!matches.length) {
+      setSaveMessage("Need R1 matches.");
+      return;
+    }
+    const nextQF = buildNextRound(matches);
+    setQfMatches(nextQF);
+    setSfMatches([]);
+    setLbMatches2([]);
+    setLbMatches3a([]);
+    setLbMatches3b([]);
+    setLbMatches4([]);
+    setWbFinalMatches([emptyFinalMatch]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
+    setSaveMessage("Quarterfinals built.");
+  }
+  function buildNextRound(prevRoundMatches) {
+    const numNext = Math.ceil(prevRoundMatches.length / 2);
+    const next = [];
+    for (let i = 0; i < numNext; i++) {
+      const mA = prevRoundMatches[i * 2] || {};
+      const mB = prevRoundMatches[i * 2 + 1] || {};
+      next.push({
+        player1Id: mA.winnerId || null,
+        player2Id: mB.winnerId || null,
+        winnerId: null,
+      });
+    }
+    return next;
+  }
+  function handleChangeQFMatch(index, f, v) {
+    setQfMatches((prev) => updateMatch(prev, index, f, v));
+  }
+  function handleSetWinnerQF(index, w) {
+    setQfMatches((prev) => setWinner(prev, index, w));
+  }
+
+  function handleBuildLB2() {
+    const num = Math.max(lbMatches1.length, qfMatches.length);
+    if (!num) {
+      setSaveMessage("Need LB1 & QF.");
+      return;
+    }
+    const next = [];
+    for (let i = 0; i < num; i++) {
+      const lb1 = lbMatches1[i] || {};
+      const qf = qfMatches[i] || {};
+      const qfLoser =
+        qf.winnerId && qf.player1Id && qf.player2Id
+          ? qf.winnerId === qf.player1Id
+            ? qf.player2Id
+            : qf.player1Id
+          : null;
+      next.push({
+        player1Id: lb1.winnerId || null,
+        player2Id: qfLoser || null,
+        winnerId: null,
+      });
+    }
+    setLbMatches2(next);
+    setLbMatches3a([]);
+    setLbMatches3b([]);
+    setLbMatches4([]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
+    setSaveMessage("LB Round 2 built.");
+  }
+  function handleChangeLbMatch2(i, s, v) {
+    setLbMatches2((p) => updateMatch(p, i, s, v));
+  }
+  function handleSetWinnerLB2(i, w) {
+    setLbMatches2((p) => setWinner(p, i, w));
+  }
+
+  function handleBuildSF() {
+    if (!qfMatches.length) {
+      setSaveMessage("Need QF matches.");
+      return;
+    }
+    setSfMatches(buildNextRound(qfMatches));
+    setLbMatches3a([]);
+    setLbMatches3b([]);
+    setLbMatches4([]);
+    setWbFinalMatches([emptyFinalMatch]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
+    setSaveMessage("Semifinals built.");
+  }
+  function handleChangeSFMatch(i, f, v) {
+    setSfMatches((p) => updateMatch(p, i, f, v));
+  }
+  function handleSetWinnerSF(i, w) {
+    setSfMatches((p) => setWinner(p, i, w));
+  }
+
+  function handleBuildLB3A() {
+    if (!lbMatches2.length) {
+      setSaveMessage("Need LB2.");
+      return;
+    }
+    setLbMatches3a(buildNextRound(lbMatches2));
+    setLbMatches3b([]);
+    setLbMatches4([]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
+    setSaveMessage("LB Round 3A built.");
+  }
+  function handleChangeLbMatch3A(i, s, v) {
+    setLbMatches3a((p) => updateMatch(p, i, s, v));
+  }
+  function handleSetWinnerLB3A(i, w) {
+    setLbMatches3a((p) => setWinner(p, i, w));
+  }
+
+  function handleBuildLB3B() {
+    const num = Math.max(lbMatches3a.length, sfMatches.length);
+    const next = [];
+    for (let i = 0; i < num; i++) {
+      const lb3a = lbMatches3a[i] || {};
+      const sf = sfMatches[i] || {};
+      const sfLoser =
+        sf.winnerId && sf.player1Id && sf.player2Id
+          ? sf.winnerId === sf.player1Id
+            ? sf.player2Id
+            : sf.player1Id
+          : null;
+      next.push({
+        player1Id: lb3a.winnerId || null,
+        player2Id: sfLoser || null,
+        winnerId: null,
+      });
+    }
+    setLbMatches3b(next);
+    setLbMatches4([]);
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
+    setSaveMessage("LB Round 3B built.");
+  }
+  function handleChangeLbMatch3B(i, s, v) {
+    setLbMatches3b((p) => updateMatch(p, i, s, v));
+  }
+  function handleSetWinnerLB3B(i, w) {
+    setLbMatches3b((p) => setWinner(p, i, w));
+  }
+
+  function handleBuildLB4() {
+    if (!lbMatches3b.length) {
+      setSaveMessage("Need LB3B.");
+      return;
+    }
+    setLbMatches4(buildNextRound(lbMatches3b));
+    setLbFinalMatches([emptyFinalMatch]);
+    setGrandFinalMatches([emptyFinalMatch]);
+    setSaveMessage("LB Round 4 built.");
+  }
+  function handleChangeLbMatch4(i, s, v) {
+    setLbMatches4((p) => updateMatch(p, i, s, v));
+  }
+  function handleSetWinnerLB4(i, w) {
+    setLbMatches4((p) => setWinner(p, i, w));
+  }
+
+  function handleChangeWbFinal(i, f, v) {
+    setWbFinalMatches((p) => updateMatch(p, i, f, v));
+  }
+  function handleSetWinnerWbFinal(i, w) {
+    setWbFinalMatches((prev) => {
+      const copy = setWinner(prev, i, w);
+      const m = copy[i];
+      const winner = m.winnerId;
+      const loser =
+        m.player1Id && m.player2Id && winner
+          ? winner === m.player1Id
+            ? m.player2Id
+            : m.player1Id
+          : null;
+
+      if (winner || loser) {
+        const lb4Winner = (computeWinnersFromMatches(lbMatches4) || [])[0];
+        if (lb4Winner || loser) {
+          setLbFinalMatches((lbPrev) => {
+            const next = lbPrev.map((x) => ({ ...x }));
+            if (!next[0]) next[0] = {};
+            if (!next[0].player1Id && lb4Winner)
+              next[0].player1Id = lb4Winner;
+            if (!next[0].player2Id && loser) next[0].player2Id = loser;
+            return next;
+          });
+        }
+        if (winner) {
+          setGrandFinalMatches((gfPrev) => {
+            const next = gfPrev.map((x) => ({ ...x }));
+            if (!next[0]) next[0] = {};
+            if (!next[0].player1Id) next[0].player1Id = winner;
+            return next;
+          });
+        }
+      }
+      return copy;
+    });
+  }
+  function handleChangeLbFinal(i, f, v) {
+    setLbFinalMatches((p) => updateMatch(p, i, f, v));
+  }
+  function handleSetWinnerLbFinal(i, w) {
+    setLbFinalMatches((prev) => {
+      const copy = setWinner(prev, i, w);
+      const winner = copy[i].winnerId;
+      if (winner) {
+        setGrandFinalMatches((gfPrev) => {
+          const next = gfPrev.map((x) => ({ ...x }));
+          if (!next[0]) next[0] = {};
+          if (!next[0].player2Id) next[0].player2Id = winner;
+          return next;
+        });
+      }
+      return copy;
+    });
+  }
+  function handleChangeGrandFinal(i, f, v) {
+    setGrandFinalMatches((p) => updateMatch(p, i, f, v));
+  }
+  function handleSetWinnerGrandFinal(i, w) {
+    setGrandFinalMatches((p) => setWinner(p, i, w));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const uniq = (arr) =>
+        Array.from(new Set((arr || []).filter(Boolean)));
+      const ranking = {
+        first: grandFinalMatches[0]?.winnerId || null,
+        second: grandFinalMatches[0]?.winnerId
+          ? grandFinalMatches[0].winnerId ===
+            grandFinalMatches[0].player1Id
+            ? grandFinalMatches[0].player2Id
+            : grandFinalMatches[0].player1Id
+          : null,
+        third: lbFinalMatches[0]?.winnerId
+          ? lbFinalMatches[0].winnerId === lbFinalMatches[0].player1Id
+            ? lbFinalMatches[0].player2Id
+            : lbFinalMatches[0].player1Id
+          : null,
+        fourth: lbMatches4[0]?.winnerId
+          ? lbMatches4[0].winnerId === lbMatches4[0].player1Id
+            ? lbMatches4[0].player2Id
+            : lbMatches4[0].player1Id
+          : null,
+        fiveToSix: uniq(computeLosersFromMatches(lbMatches3b)),
+        sevenToEight: uniq(computeLosersFromMatches(lbMatches3a)),
+        nineToTwelve: uniq(computeLosersFromMatches(lbMatches2)),
+        thirteenToSixteen: uniq(computeLosersFromMatches(lbMatches1)),
+      };
+
+      const res = await fetch(
+        `/api/admin/brackets/${encodeURIComponent(
+          tournamentId
+        )}/save`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            matches,
+            matches2: qfMatches,
+            matches3: sfMatches,
+            lbMatches: lbMatches1,
+            lbMatches2: lbMatches2,
+            lbMatches3: lbMatches3a,
+            lbMatches4: lbMatches3b,
+            lbMatches5: lbMatches4,
+            winnersFinal: wbFinalMatches,
+            lbFinal: lbFinalMatches,
+            grandFinal: grandFinalMatches,
+            ranking,
+          }),
+        }
+      );
+      if (!res.ok) setSaveMessage("Failed to save.");
+      else setSaveMessage("Saved.");
+    } catch (err) {
+      setSaveMessage("Error saving.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function handleReset() {
+    if (!window.confirm("Reset bracket?")) return;
+    setResetting(true);
+    try {
+      await fetch(
+        `/api/admin/brackets/${encodeURIComponent(
+          tournamentId
+        )}/reset`,
+        { method: "POST", headers: { "Content-Type": "application/json" } }
+      );
+      window.location.reload();
+    } catch (e) {
+      setSaveMessage("Error resetting");
+    } finally {
+      setResetting(false);
+    }
+  }
   // ------- existing handlers & rendering below are unchanged -------
   // (they’re exactly the same as the version you pasted before)
   // NOTE: we just add the HomepageFeaturedForm above the toolbar
