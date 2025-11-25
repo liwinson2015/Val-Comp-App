@@ -61,12 +61,16 @@ export async function getServerSideProps({ req, params }) {
   const t = await Tournament.findOne({ tournamentId }).lean();
   const isPublished = !!t?.bracket?.isPublished;
 
-  // NEW: pull tournament status ("ongoing" / "completed")
+  // NEW: pull tournament status ("ongoing" / "completed") + featured flag
   let tournamentStatus = "ongoing";
+  let isFeatured = false;
   try {
     const state = await TournamentState.findOne({ tournamentId }).lean();
     if (state?.status) {
       tournamentStatus = state.status;
+    }
+    if (typeof state?.isFeatured === "boolean") {
+      isFeatured = state.isFeatured;
     }
   } catch (e) {
     console.error("Error reading TournamentState:", e);
@@ -78,6 +82,7 @@ export async function getServerSideProps({ req, params }) {
       players: playerRows,
       isPublished,
       tournamentStatus,
+      isFeatured,
     },
   };
 }
@@ -118,7 +123,7 @@ function EndTournamentSection({ tournamentId }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tournamentId,
-          // winnerTeamId: null // optional
+          // winnerTeamId: null // optional future field
         }),
       });
 
@@ -128,6 +133,8 @@ function EndTournamentSection({ tournamentId }) {
       } else {
         setDone(true);
         setShowConfirm(false);
+        // Optionally refresh page to update badges
+        window.location.reload();
       }
     } catch (e) {
       console.error(e);
@@ -206,7 +213,7 @@ function EndTournamentSection({ tournamentId }) {
             >
               <li>It will no longer appear in current tournaments.</li>
               <li>Players will see it in their tournament history.</li>
-              <li>Stats and announcements can use this state.</li>
+              <li>Announcements can fall back to “Coming soon”.</li>
             </ul>
             <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
               To confirm, type this exactly:
@@ -353,6 +360,7 @@ function ReopenTournamentSection({ tournamentId }) {
       } else {
         setDone(true);
         setShowConfirm(false);
+        window.location.reload();
       }
     } catch (e) {
       console.error(e);
@@ -526,12 +534,250 @@ function ReopenTournamentSection({ tournamentId }) {
   );
 }
 
+// ---------- FEATURE TOURNAMENT UI ----------
+function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
+  const [isFeatured, setIsFeatured] = useState(!!initialIsFeatured);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmInput, setConfirmInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const REQUIRED_PHRASE = isFeatured
+    ? `UNFEATURE ${tournamentId}`
+    : `FEATURE ${tournamentId}`;
+
+  function openConfirm() {
+    setErr("");
+    setConfirmInput("");
+    setShowConfirm(true);
+  }
+
+  function closeConfirm() {
+    if (loading) return;
+    setShowConfirm(false);
+  }
+
+  async function handleConfirmFeature() {
+    if (confirmInput.trim() !== REQUIRED_PHRASE) {
+      setErr("Confirmation phrase does not match.");
+      return;
+    }
+
+    setLoading(true);
+    setErr("");
+
+    try {
+      const res = await fetch("/api/tournaments/feature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tournamentId,
+          isFeatured: !isFeatured,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        setErr(data.error || "Failed to update featured state.");
+      } else {
+        setIsFeatured(!!data.isFeatured);
+        setShowConfirm(false);
+      }
+    } catch (e) {
+      console.error(e);
+      setErr("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ marginLeft: "0.5rem" }}>
+      <button
+        type="button"
+        onClick={openConfirm}
+        className={`${styles["btn"]} ${styles["btn-primary"]}`}
+        style={{
+          backgroundColor: isFeatured ? "#0f172a" : "#eab308",
+          borderColor: isFeatured ? "#0f172a" : "#eab308",
+          color: isFeatured ? "#facc15" : "#0f172a",
+        }}
+      >
+        {isFeatured ? "⭐ Unfeature" : "⭐ Feature Tournament"}
+      </button>
+
+      {showConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          onClick={closeConfirm}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#020617",
+              borderRadius: "10px",
+              padding: "20px 24px",
+              width: "100%",
+              maxWidth: "420px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+              color: "#e5e7eb",
+              fontFamily:
+                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            }}
+          >
+            <h2
+              style={{
+                margin: "0 0 8px",
+                fontSize: "1.1rem",
+                color: "#facc15",
+              }}
+            >
+              {isFeatured ? "Unfeature Tournament?" : "Feature Tournament?"}
+            </h2>
+            <p
+              style={{
+                margin: "0 0 8px",
+                fontSize: "0.9rem",
+                lineHeight: 1.4,
+              }}
+            >
+              {isFeatured ? (
+                <>
+                  This tournament is currently{" "}
+                  <strong>featured on your homepage</strong>. Unfeaturing
+                  it will remove it from the announcement block.
+                </>
+              ) : (
+                <>
+                  This will make this tournament the{" "}
+                  <strong>featured tournament</strong> on your homepage
+                  (and un-feature any other tournament).
+                </>
+              )}
+            </p>
+            <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
+              To confirm, type this exactly:
+            </p>
+            <code
+              style={{
+                display: "inline-block",
+                padding: "4px 6px",
+                borderRadius: "4px",
+                background: "#0f172a",
+                fontSize: "0.75rem",
+                marginBottom: "6px",
+                color: "#facc15",
+              }}
+            >
+              {REQUIRED_PHRASE}
+            </code>
+
+            <input
+              type="text"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder="Type confirmation phrase here"
+              style={{
+                width: "100%",
+                marginTop: "4px",
+                padding: "6px 8px",
+                borderRadius: "4px",
+                border: "1px solid #475569",
+                background: "#020617",
+                color: "#e5e7eb",
+                fontSize: "0.85rem",
+              }}
+            />
+
+            {err && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "0.8rem",
+                  color: "#f97316",
+                }}
+              >
+                {err}
+              </div>
+            )}
+
+            <div
+              style={{
+                marginTop: "12px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={closeConfirm}
+                disabled={loading}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "none",
+                  background: "#334155",
+                  color: "#e5e7eb",
+                  fontSize: "0.8rem",
+                  cursor: loading ? "default" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmFeature}
+                disabled={
+                  loading || confirmInput.trim() !== REQUIRED_PHRASE
+                }
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "none",
+                  background:
+                    loading || confirmInput.trim() !== REQUIRED_PHRASE
+                      ? "#78350f"
+                      : "#eab308",
+                  color: "#0f172a",
+                  fontSize: "0.8rem",
+                  cursor:
+                    loading || confirmInput.trim() !== REQUIRED_PHRASE
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                {loading
+                  ? isFeatured
+                    ? "Unfeaturing..."
+                    : "Featuring..."
+                  : isFeatured
+                  ? "Confirm Unfeature"
+                  : "Confirm Feature"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- MAIN PAGE COMPONENT ----------
 export default function BracketAdminPage({
   tournamentId,
   players,
   isPublished,
   tournamentStatus,
+  isFeatured,
 }) {
   return (
     <div className={styles["admin-container"]}>
@@ -560,6 +806,18 @@ export default function BracketAdminPage({
               {tournamentStatus === "completed"
                 ? "🏁 Completed"
                 : "▶ Ongoing"}
+            </span>
+            <br />
+            <span
+              className={styles["status-badge"]}
+              style={{
+                marginTop: "0.25rem",
+                backgroundColor: isFeatured ? "#eab30822" : "#020617",
+                borderColor: isFeatured ? "#eab308" : "#4b5563",
+                color: isFeatured ? "#facc15" : "#9ca3af",
+              }}
+            >
+              {isFeatured ? "⭐ FEATURED" : "Not featured"}
             </span>
           </div>
         </div>
@@ -592,6 +850,12 @@ export default function BracketAdminPage({
               📢 Publish Bracket
             </button>
           </form>
+
+          {/* Feature toggle */}
+          <FeatureTournamentSection
+            tournamentId={tournamentId}
+            initialIsFeatured={isFeatured}
+          />
 
           {/* Show End or Reopen depending on status */}
           {tournamentStatus !== "completed" && (
