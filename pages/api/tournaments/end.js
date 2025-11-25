@@ -1,9 +1,10 @@
 // pages/api/tournaments/end.js
 
-import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer"; // or ../getCurrentPlayer if that's your file
+import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
 import Registration from "../../../models/Registration";
+import Player from "../../../models/Player";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -34,11 +35,12 @@ export default async function handler(req, res) {
     await connectToDatabase();
 
     // 1) Update TournamentState: mark it completed and un-feature it
+    const endedAt = new Date();
     const update = {
       tournamentId,
       status: "completed",
       isFeatured: false,
-      endedAt: new Date(),
+      endedAt,
       endedBy: player._id,
     };
 
@@ -56,27 +58,71 @@ export default async function handler(req, res) {
     // Your Registration model uses `tournament` but we also allow `tournamentId`
     await Registration.updateMany(
       {
-        $or: [
-          { tournament: tournamentId },
-          { tournamentId: tournamentId },
-        ],
+        $or: [{ tournament: tournamentId }, { tournamentId: tournamentId }],
       },
       {
         $set: {
           status: "completed",
-          completedAt: new Date(),
+          completedAt: endedAt,
           // Keep tournamentId in sync going forward
           tournamentId: tournamentId,
         },
       }
     );
 
+    // 3) Move players' active registrations into tournamentHistory
+    //    - copy matching registeredFor entries
+    //    - remove them from registeredFor
+    const playersWithReg = await Player.find({
+      "registeredFor.tournamentId": tournamentId,
+    }).lean();
+
+    if (playersWithReg.length > 0) {
+      const bulkOps = playersWithReg.map((p) => {
+        const activeRegs = (p.registeredFor || []).filter(
+          (r) => r.tournamentId === tournamentId
+        );
+
+        if (!activeRegs.length) return null;
+
+        const historyEntries = activeRegs.map((r) => ({
+          tournamentId: r.tournamentId,
+          ign: r.ign,
+          fullIgn: r.fullIgn,
+          rank: r.rank,
+          // placement can be filled later from bracket ranking if you want
+          placement: "",
+          endedAt,
+        }));
+
+        return {
+          updateOne: {
+            filter: { _id: p._id },
+            update: {
+              // remove from active registrations
+              $pull: { registeredFor: { tournamentId } },
+              // add to history
+              $push: {
+                tournamentHistory: { $each: historyEntries },
+              },
+            },
+          },
+        };
+      }).filter(Boolean);
+
+      if (bulkOps.length > 0) {
+        await Player.bulkWrite(bulkOps);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
-      state: {
-        ...doc,
-        _id: doc._id.toString(),
-      },
+      state: doc
+        ? {
+            ...doc,
+            _id: doc._id.toString(),
+          }
+        : null,
     });
   } catch (err) {
     console.error("Error ending tournament:", err);
