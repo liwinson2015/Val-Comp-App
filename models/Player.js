@@ -94,8 +94,7 @@ const PlayerSchema = new mongoose.Schema(
       default: "",
     },
 
-    // ACTIVE registrations for tournaments
-    // (what you are currently using everywhere)
+    // Tournament history (legacy per-tournament IGN snapshot)
     registeredFor: [
       {
         tournamentId: String,
@@ -108,31 +107,6 @@ const PlayerSchema = new mongoose.Schema(
 
         rank: String,
         createdAt: { type: Date, default: Date.now },
-      },
-    ],
-
-    // ✅ NEW: Completed / past tournaments
-    // When you click "End Tournament" we will:
-    // - copy the matching entry from registeredFor into here
-    // - remove it from registeredFor
-    tournamentHistory: [
-      {
-        tournamentId: String,
-        ign: String,
-        fullIgn: String,
-        rank: String,
-
-        // optional place to store placement like "1st", "Top 4" later
-        placement: {
-          type: String,
-          default: "",
-        },
-
-        // when this tournament was moved to history
-        endedAt: {
-          type: Date,
-          default: Date.now,
-        },
       },
     ],
 
