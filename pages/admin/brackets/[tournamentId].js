@@ -553,32 +553,11 @@ function ReopenTournamentSection({ tournamentId }) {
 // ---------- FEATURE TOURNAMENT UI ----------
 function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
   const [isFeatured, setIsFeatured] = useState(!!initialIsFeatured);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmInput, setConfirmInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const REQUIRED_PHRASE = isFeatured
-    ? `UNFEATURE ${tournamentId}`
-    : `FEATURE ${tournamentId}`;
-
-  function openConfirm() {
-    setErr("");
-    setConfirmInput("");
-    setShowConfirm(true);
-  }
-
-  function closeConfirm() {
+  async function handleToggle() {
     if (loading) return;
-    setShowConfirm(false);
-  }
-
-  async function handleConfirmFeature() {
-    if (confirmInput.trim() !== REQUIRED_PHRASE) {
-      setErr("Confirmation phrase does not match.");
-      return;
-    }
-
     setLoading(true);
     setErr("");
 
@@ -597,7 +576,6 @@ function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
         setErr(data.error || "Failed to update featured state.");
       } else {
         setIsFeatured(!!data.isFeatured);
-        setShowConfirm(false);
       }
     } catch (e) {
       console.error(e);
@@ -611,176 +589,34 @@ function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
     <div style={{ marginLeft: "0.5rem" }}>
       <button
         type="button"
-        onClick={openConfirm}
+        onClick={handleToggle}
+        disabled={loading}
         className={`${styles["btn"]} ${styles["btn-primary"]}`}
         style={{
           backgroundColor: isFeatured ? "#0f172a" : "#eab308",
           borderColor: isFeatured ? "#0f172a" : "#eab308",
           color: isFeatured ? "#facc15" : "#0f172a",
+          opacity: loading ? 0.7 : 1,
         }}
       >
-        {isFeatured ? "⭐ Unfeature" : "⭐ Feature Tournament"}
+        {loading
+          ? isFeatured
+            ? "Unfeaturing..."
+            : "Featuring..."
+          : isFeatured
+          ? "⭐ Unfeature"
+          : "⭐ Feature Tournament"}
       </button>
 
-      {showConfirm && (
+      {err && (
         <div
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
+            marginTop: "4px",
+            fontSize: "0.8rem",
+            color: "#f97316",
           }}
-          onClick={closeConfirm}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#020617",
-              borderRadius: "10px",
-              padding: "20px 24px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-              color: "#e5e7eb",
-              fontFamily:
-                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            }}
-          >
-            <h2
-              style={{
-                margin: "0 0 8px",
-                fontSize: "1.1rem",
-                color: "#facc15",
-              }}
-            >
-              {isFeatured ? "Unfeature Tournament?" : "Feature Tournament?"}
-            </h2>
-            <p
-              style={{
-                margin: "0 0 8px",
-                fontSize: "0.9rem",
-                lineHeight: 1.4,
-              }}
-            >
-              {isFeatured ? (
-                <>
-                  This tournament is currently{" "}
-                  <strong>featured on your homepage</strong>. Unfeaturing
-                  it will remove it from the announcement block.
-                </>
-              ) : (
-                <>
-                  This will make this tournament the{" "}
-                  <strong>featured tournament</strong> on your homepage
-                  (and un-feature any other tournament).
-                </>
-              )}
-            </p>
-            <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
-              To confirm, type this exactly:
-            </p>
-            <code
-              style={{
-                display: "inline-block",
-                padding: "4px 6px",
-                borderRadius: "4px",
-                background: "#0f172a",
-                fontSize: "0.75rem",
-                marginBottom: "6px",
-                color: "#facc15",
-              }}
-            >
-              {REQUIRED_PHRASE}
-            </code>
-
-            <input
-              type="text"
-              value={confirmInput}
-              onChange={(e) => setConfirmInput(e.target.value)}
-              placeholder="Type confirmation phrase here"
-              style={{
-                width: "100%",
-                marginTop: "4px",
-                padding: "6px 8px",
-                borderRadius: "4px",
-                border: "1px solid #475569",
-                background: "#020617",
-                color: "#e5e7eb",
-                fontSize: "0.85rem",
-              }}
-            />
-
-            {err && (
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "0.8rem",
-                  color: "#f97316",
-                }}
-              >
-                {err}
-              </div>
-            )}
-
-            <div
-              style={{
-                marginTop: "12px",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "8px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={closeConfirm}
-                disabled={loading}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background: "#334155",
-                  color: "#e5e7eb",
-                  fontSize: "0.8rem",
-                  cursor: loading ? "default" : "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmFeature}
-                disabled={
-                  loading || confirmInput.trim() !== REQUIRED_PHRASE
-                }
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "none",
-                  background:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "#78350f"
-                      : "#eab308",
-                  color: "#0f172a",
-                  fontSize: "0.8rem",
-                  cursor:
-                    loading || confirmInput.trim() !== REQUIRED_PHRASE
-                      ? "default"
-                      : "pointer",
-                }}
-              >
-                {loading
-                  ? isFeatured
-                    ? "Unfeaturing..."
-                    : "Featuring..."
-                  : isFeatured
-                  ? "Confirm Unfeature"
-                  : "Confirm Feature"}
-              </button>
-            </div>
-          </div>
+          {err}
         </div>
       )}
     </div>
