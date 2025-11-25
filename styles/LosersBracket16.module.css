@@ -21,7 +21,7 @@
   margin-right: -50vw;
   min-height: auto;
   
-  /* FORCE TRANSPARENCY so the Master Background shows through */
+  /* Transparent background */
   background: transparent !important;
   background-image: none !important;
   background-color: transparent !important;
@@ -33,10 +33,12 @@
   justify-content: center;
   align-items: center;
   overflow-x: auto;
-  padding: 0 0 100px 0; /* Extra padding at bottom for scroll comfort */
+  
+  /* REDUCED PADDING: Was 80px, now 20px */
+  padding: 0 0 20px 0;
 }
 
-/* ... (Keep everything else below the same) ... */
+/* ... (Keep all existing styling below exactly the same) ... */
 
 .bracketWrapper { display: flex; flex-direction: row; justify-content: center; align-items: stretch; gap: 20px; width: 100%; max-width: 1800px; padding: 0 20px; }
 .column { display: flex; flex-direction: column; justify-content: space-around; flex: 1 1 0px; min-width: 0; position: relative; gap: 20px; }
