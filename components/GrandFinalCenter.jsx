@@ -1,4 +1,4 @@
-// components/testGrandFinalCenter.jsx
+// components/GrandFinalCenter.jsx
 import React, { useEffect, useRef, useState } from "react";
 import s from "../styles/GrandFinalCenter.module.css";
 
