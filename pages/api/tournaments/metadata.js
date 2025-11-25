@@ -1,7 +1,7 @@
-// pages/api/admin/featured-meta/[tournamentId].js
-import { connectToDatabase } from "../../../../lib/mongodb";
-import { getCurrentPlayerFromReq } from "../../../../lib/getCurrentPlayer";
-import TournamentState from "../../../../models/TournamentState";
+// pages/api/tournaments/metadata.js
+import { connectToDatabase } from "../../../lib/mongodb";
+import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
+import TournamentState from "../../../models/TournamentState";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -9,14 +9,14 @@ export default async function handler(req, res) {
   }
 
   await connectToDatabase();
-  const player = await getCurrentPlayerFromReq(req);
 
+  const player = await getCurrentPlayerFromReq(req);
   if (!player || !player.isAdmin) {
     return res.status(403).json({ ok: false, error: "Admin only" });
   }
 
-  const { tournamentId } = req.query;
   const {
+    tournamentId,
     displayName,
     displayDescription,
     displayTime,
@@ -24,6 +24,10 @@ export default async function handler(req, res) {
     displayModeLabel,
     ctaPath,
   } = req.body || {};
+
+  if (!tournamentId) {
+    return res.status(400).json({ ok: false, error: "Missing tournamentId" });
+  }
 
   try {
     const doc = await TournamentState.findOneAndUpdate(
@@ -43,9 +47,10 @@ export default async function handler(req, res) {
 
     return res.json({ ok: true, state: doc });
   } catch (err) {
-    console.error("Error saving featured meta:", err);
-    return res
-      .status(500)
-      .json({ ok: false, error: "Failed to save featured metadata" });
+    console.error("Error saving featured metadata:", err);
+    return res.status(500).json({
+      ok: false,
+      error: "Failed to save featured metadata",
+    });
   }
 }
