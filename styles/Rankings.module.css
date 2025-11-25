@@ -3,14 +3,30 @@
 .shell {
   width: 100%;
   min-height: 100vh;
+  position: relative;
+  /* Create a stacking context so children z-indexes work relative to this */
+  isolation: isolate; 
   padding-bottom: 100px;
+  color: #fff;
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+}
+
+/* --- THE MASTER BACKGROUND (FIXED POSITION) --- */
+/* This puts the background on a separate layer that stays locked to the screen */
+.shell::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1; /* Put it behind everything */
   
-  /* --- MASTER BACKGROUND --- */
   background-color: #050505;
   background-image:
     /* Top Glow (Blue/Ice) */
     radial-gradient(circle at 50% 20%, rgba(0, 198, 255, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
-    /* Bottom Glow (Orange/Fire) - Keeps the bottom from looking dead/black */
+    /* Bottom Glow (Orange/Fire) */
     radial-gradient(circle at 50% 80%, rgba(255, 75, 31, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
     /* Base Dark Gradient */
     linear-gradient(
@@ -19,13 +35,8 @@
       #0a0f18 50%,
       #050505 100%
     );
-  
-  background-attachment: fixed; 
   background-size: cover;
   background-position: center;
-  
-  color: #fff;
-  font-family: "Rajdhani", "Segoe UI", sans-serif;
 }
 
 .contentWrap {
@@ -42,9 +53,9 @@
   margin-bottom: 40px;
 }
 
-/* Glass Cards */
+/* --- GLASS CARDS --- */
 .infoCard, .rankingContainer {
-  background: rgba(20, 25, 35, 0.5); /* Slightly more transparent */
+  background: rgba(20, 25, 35, 0.5);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
