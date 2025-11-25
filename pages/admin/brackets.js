@@ -3,6 +3,7 @@ import React from "react";
 import { getCurrentPlayerFromReq } from "../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
+import TournamentState from "../../models/TournamentState";
 
 export async function getServerSideProps({ req }) {
   const player = await getCurrentPlayerFromReq(req);
@@ -29,13 +30,12 @@ export async function getServerSideProps({ req }) {
 
   await connectToDatabase();
 
-  // Get all players that have at least one registration
+  // ---- 1) Build a map of registration counts per tournamentId ----
   const players = await Player.find({
     "registeredFor.0": { $exists: true },
   }).lean();
 
-  // Group by tournamentId
-  const tournamentsMap = {};
+  const countMap = {}; // { [tournamentId]: number }
 
   for (const p of players) {
     if (!Array.isArray(p.registeredFor)) continue;
@@ -43,21 +43,57 @@ export async function getServerSideProps({ req }) {
     for (const reg of p.registeredFor) {
       const tid = reg?.tournamentId;
       if (!tid) continue;
-
-      if (!tournamentsMap[tid]) {
-        tournamentsMap[tid] = {
-          tournamentId: tid,
-          count: 0,
-        };
-      }
-      tournamentsMap[tid].count += 1;
+      countMap[tid] = (countMap[tid] || 0) + 1;
     }
   }
 
-  // Convert to array + sort: most players first
-  const tournaments = Object.values(tournamentsMap).sort(
-    (a, b) => b.count - a.count
-  );
+  // ---- 2) Read TournamentState for all tournaments you’ve touched ----
+  const stateDocs = await TournamentState.find({}).lean();
+
+  const byId = {};
+  const tournaments = [];
+
+  // First, create entries from TournamentState (these will include completed ones)
+  for (const s of stateDocs) {
+    const tid = s.tournamentId;
+    if (!tid) continue;
+
+    const item = {
+      tournamentId: tid,
+      count: countMap[tid] || 0,
+      status: s.status || "ongoing", // upcoming / ongoing / completed
+      isFeatured: !!s.isFeatured,
+      // you can surface more fields later if you want (displayName, etc.)
+    };
+    tournaments.push(item);
+    byId[tid] = item;
+  }
+
+  // Then, add any tournaments that only exist via registrations (no TournamentState yet)
+  for (const tid of Object.keys(countMap)) {
+    if (!byId[tid]) {
+      tournaments.push({
+        tournamentId: tid,
+        count: countMap[tid] || 0,
+        status: "ongoing",
+        isFeatured: false,
+      });
+    }
+  }
+
+  // ---- 3) Sort: ongoing → upcoming → completed, then by player count desc ----
+  const statusOrder = {
+    ongoing: 0,
+    upcoming: 1,
+    completed: 2,
+  };
+
+  tournaments.sort((a, b) => {
+    const sa = statusOrder[a.status] ?? 99;
+    const sb = statusOrder[b.status] ?? 99;
+    if (sa !== sb) return sa - sb;
+    return (b.count || 0) - (a.count || 0);
+  });
 
   return {
     props: {
@@ -83,33 +119,54 @@ export default function AdminBracketsPage({ tournaments }) {
           <h2 className="admin-section-title">Tournaments</h2>
           <span className="admin-section-meta">
             {tournaments.length} event
-            {tournaments.length === 1 ? "" : "s"} with registrations
+            {tournaments.length === 1 ? "" : "s"} with registrations or state
           </span>
         </div>
 
         {tournaments.length === 0 ? (
           <div className="admin-empty">
-            <p>No registrations found yet.</p>
+            <p>No tournaments found yet.</p>
             <p className="admin-empty-sub">
-              Once players register for a tournament, it will appear here for
-              bracket management.
+              Once players register for a tournament or you manage its state,
+              it will appear here for bracket management.
             </p>
           </div>
         ) : (
           <div className="admin-tournament-list">
             {tournaments.map((t) => {
               const encodedId = encodeURIComponent(t.tournamentId);
+
+              const statusLabel =
+                t.status === "completed"
+                  ? "Completed"
+                  : t.status === "upcoming"
+                  ? "Upcoming"
+                  : "Ongoing";
+
               return (
                 <article
                   key={t.tournamentId}
                   className="admin-tournament-card"
                 >
                   <div className="admin-tournament-main">
-                    <div className="admin-tournament-chip">Tournament</div>
+                    <div className="admin-tournament-chip">
+                      {statusLabel}
+                      {t.isFeatured && (
+                        <span
+                          style={{
+                            marginLeft: "0.5rem",
+                            fontSize: "0.75rem",
+                            opacity: 0.85,
+                          }}
+                        >
+                          ⭐ Featured
+                        </span>
+                      )}
+                    </div>
                     <h3 className="admin-tournament-name">
                       {t.tournamentId}
                     </h3>
-                    {/* If you later add a nicer display name, you can put it here */}
+                    {/* later you can show a nicer display name from TournamentState here */}
                     {/* <p className="admin-tournament-id">{t.displayName}</p> */}
                   </div>
 
