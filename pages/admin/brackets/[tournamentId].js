@@ -62,8 +62,14 @@ export async function getServerSideProps({ req, params }) {
   const t = await Tournament.findOne({ tournamentId }).lean();
   const isPublished = !!t?.bracket?.isPublished;
 
-  // Load TournamentState for homepage featured info
+  // TournamentState: status + featured + end info + homepage meta
   const state = await TournamentState.findOne({ tournamentId }).lean();
+
+  const tournamentState = {
+    isFeatured: !!state?.isFeatured,
+    isEnded: !!state?.isEnded,
+    status: state?.status || "upcoming", // upcoming / ongoing / completed
+  };
 
   const featuredMeta = state
     ? {
@@ -88,6 +94,7 @@ export async function getServerSideProps({ req, params }) {
       tournamentId,
       players: playerRows,
       isPublished,
+      tournamentState,
       featuredMeta,
     },
   };
@@ -129,11 +136,70 @@ export default function BracketAdminPage({
   tournamentId,
   players,
   isPublished,
+  tournamentState,
   featuredMeta,
 }) {
+  const { isFeatured, isEnded, status } = tournamentState || {};
+
+  const [actionMessage, setActionMessage] = useState("");
+
+  async function callTournamentAction(path, body = {}) {
+    try {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        setActionMessage(data.error || "Action failed.");
+      } else {
+        // simple: reload to reflect new state
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      setActionMessage("Action error.");
+    }
+  }
+
+  async function handleEndTournament() {
+    if (
+      !window.confirm(
+        "End this tournament? This will archive it and close registrations."
+      )
+    )
+      return;
+    await callTournamentAction(
+      `/api/admin/tournaments/${encodeURIComponent(tournamentId)}/end`
+    );
+  }
+
+  async function handleReopenTournament() {
+    if (!window.confirm("Reopen this tournament for editing / debugging?"))
+      return;
+    await callTournamentAction(
+      `/api/admin/tournaments/${encodeURIComponent(tournamentId)}/reopen`
+    );
+  }
+
+  async function handleSetFeatured() {
+    await callTournamentAction(
+      `/api/admin/tournaments/${encodeURIComponent(tournamentId)}/feature`,
+      { isFeatured: true }
+    );
+  }
+
+  async function handleClearFeatured() {
+    await callTournamentAction(
+      `/api/admin/tournaments/${encodeURIComponent(tournamentId)}/feature`,
+      { isFeatured: false }
+    );
+  }
+
   return (
     <div className={styles["admin-container"]}>
-      {/* Header & Publish Actions */}
+      {/* Header & Publish / Tournament Actions */}
       <header className={styles["header-section"]}>
         <div className={styles["header-content"]}>
           <h1>Bracket Editor</h1>
@@ -149,10 +215,26 @@ export default function BracketAdminPage({
             >
               {isPublished ? "● Live (Published)" : "○ Draft (Hidden)"}
             </span>
+            {isEnded && (
+              <span className={`${styles["status-badge"]} ${styles["status-ended"]}`}>
+                ⏹ Ended
+              </span>
+            )}
+            {isFeatured && (
+              <span
+                className={`${styles["status-badge"]} ${styles["status-featured"]}`}
+              >
+                ★ Featured on Homepage
+              </span>
+            )}
+            <span className={styles["status-text"]}>
+              State: {status || "upcoming"}
+            </span>
           </div>
         </div>
 
         <div className={styles["action-bar"]}>
+          {/* Publish / Unpublish */}
           <form
             method="POST"
             action={`/api/admin/brackets/${encodeURIComponent(
@@ -180,7 +262,41 @@ export default function BracketAdminPage({
               📢 Publish Bracket
             </button>
           </form>
+
+          {/* Tournament state controls */}
+          <button
+            type="button"
+            onClick={handleEndTournament}
+            className={`${styles["btn"]} ${styles["btn-danger"]}`}
+          >
+            End Tournament
+          </button>
+          <button
+            type="button"
+            onClick={handleReopenTournament}
+            className={`${styles["btn"]} ${styles["btn-success"]}`}
+          >
+            Reopen
+          </button>
+          <button
+            type="button"
+            onClick={handleSetFeatured}
+            className={`${styles["btn"]} ${styles["btn-primary"]}`}
+          >
+            Set Featured
+          </button>
+          <button
+            type="button"
+            onClick={handleClearFeatured}
+            className={`${styles["btn"]} ${styles["btn-ghost"]}`}
+          >
+            Clear Featured
+          </button>
         </div>
+
+        {actionMessage && (
+          <div className={styles["alert-box"]}>{actionMessage}</div>
+        )}
       </header>
 
       {/* HOMEPAGE FEATURED INFO EDITOR */}
@@ -287,7 +403,7 @@ function HomepageMetaEditor({ tournamentId, initialMeta }) {
             className={styles["meta-input"]}
             value={displayTime}
             onChange={(e) => setDisplayTime(e.target.value)}
-            placeholder="e.g. NOV 2 • 7PM ET"
+            placeholder="e.g. NOV 2nd at 7:00PM"
           />
         </div>
 
@@ -549,37 +665,43 @@ function BracketEditor({ tournamentId, players }) {
     return idToLabel[id] || "TBD";
   }
 
-  // --- Match Handlers ---
+  // Generic update/winner helpers
+  function updateMatch(prev, index, field, value) {
+    const copy = prev.map((m) => ({ ...m }));
+    if (!copy[index]) return copy;
+    copy[index][field] = value || null;
+    const m = copy[index];
+    if (
+      m.winnerId &&
+      m.winnerId !== m.player1Id &&
+      m.winnerId !== m.player2Id
+    ) {
+      m.winnerId = null;
+    }
+    return copy;
+  }
+  function setWinner(prev, index, which) {
+    const copy = prev.map((m) => ({ ...m }));
+    const m = copy[index];
+    if (which === "p1") {
+      if (!m.player1Id) return prev;
+      m.winnerId = m.player1Id;
+    }
+    if (which === "p2") {
+      if (!m.player2Id) return prev;
+      m.winnerId = m.player2Id;
+    }
+    return copy;
+  }
+
+  // --- Match Handlers (R1) ---
   function handleChangeMatch(index, field, value) {
-    setMatches((prev) => {
-      const copy = prev.map((m) => ({ ...m }));
-      copy[index] = { ...copy[index], [field]: value || null };
-      const m = copy[index];
-      if (
-        (field === "player1Id" || field === "player2Id") &&
-        m.winnerId &&
-        m.winnerId !== m.player1Id &&
-        m.winnerId !== m.player2Id
-      ) {
-        m.winnerId = null;
-      }
-      return copy;
-    });
+    setMatches((prev) => updateMatch(prev, index, field, value));
   }
   function handleSetWinnerR1(index, which) {
-    setMatches((prev) => {
-      const copy = prev.map((m) => ({ ...m }));
-      const m = copy[index];
-      if (which === "p1") {
-        if (!m.player1Id) return prev;
-        m.winnerId = m.player1Id;
-      } else if (which === "p2") {
-        if (!m.player2Id) return prev;
-        m.winnerId = m.player2Id;
-      }
-      return copy;
-    });
+    setMatches((prev) => setWinner(prev, index, which));
   }
+
   async function handleRandomizeR1() {
     setRandomizing(true);
     setSaveMessage("");
@@ -620,6 +742,7 @@ function BracketEditor({ tournamentId, players }) {
       setRandomizing(false);
     }
   }
+
   function handleAddPlayerToBracket(playerId) {
     setMatches((prev) => {
       const copy = prev.map((m) => ({ ...m }));
@@ -671,35 +794,6 @@ function BracketEditor({ tournamentId, players }) {
   const totalCount = players.length;
   const losersR1 = computeLosersFromMatches(matches);
   const winnersChosenR1 = losersR1.length;
-
-  // Generic update/winner helpers
-  function updateMatch(prev, index, field, value) {
-    const copy = prev.map((m) => ({ ...m }));
-    if (!copy[index]) return copy;
-    copy[index][field] = value || null;
-    const m = copy[index];
-    if (
-      m.winnerId &&
-      m.winnerId !== m.player1Id &&
-      m.winnerId !== m.player2Id
-    ) {
-      m.winnerId = null;
-    }
-    return copy;
-  }
-  function setWinner(prev, index, which) {
-    const copy = prev.map((m) => ({ ...m }));
-    const m = copy[index];
-    if (which === "p1") {
-      if (!m.player1Id) return prev;
-      m.winnerId = m.player1Id;
-    }
-    if (which === "p2") {
-      if (!m.player2Id) return prev;
-      m.winnerId = m.player2Id;
-    }
-    return copy;
-  }
 
   // LB Handlers
   function handleRandomizeLB1() {
@@ -930,6 +1024,7 @@ function BracketEditor({ tournamentId, players }) {
       return copy;
     });
   }
+
   function handleChangeLbFinal(i, f, v) {
     setLbFinalMatches((p) => updateMatch(p, i, f, v));
   }
@@ -948,6 +1043,7 @@ function BracketEditor({ tournamentId, players }) {
       return copy;
     });
   }
+
   function handleChangeGrandFinal(i, f, v) {
     setGrandFinalMatches((p) => updateMatch(p, i, f, v));
   }
