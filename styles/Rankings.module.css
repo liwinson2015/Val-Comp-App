@@ -6,14 +6,14 @@
   position: relative;
   isolation: isolate; 
   
-  /* REDUCED PADDING: Was 100px, now 20px */
+  /* FIXED: Reduced from 100px to 20px to remove bottom gap */
   padding-bottom: 20px;
   
   color: #fff;
   font-family: "Rajdhani", "Segoe UI", sans-serif;
 }
 
-/* --- THE MASTER BACKGROUND (FIXED) --- */
+/* --- THE MASTER BACKGROUND --- */
 .shell::before {
   content: "";
   position: fixed;

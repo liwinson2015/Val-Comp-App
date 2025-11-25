@@ -21,7 +21,7 @@
   margin-right: -50vw;
   min-height: auto;
   
-  /* Transparent background */
+  /* Transparent Background */
   background: transparent !important;
   background-image: none !important;
   background-color: transparent !important;
@@ -34,11 +34,9 @@
   align-items: center;
   overflow-x: auto;
   
-  /* REDUCED PADDING: Was 80px, now 20px */
+  /* FIXED: Reduced from 80px to 20px to remove bottom gap */
   padding: 0 0 20px 0;
 }
-
-/* ... (Keep all existing styling below exactly the same) ... */
 
 .bracketWrapper { display: flex; flex-direction: row; justify-content: center; align-items: stretch; gap: 20px; width: 100%; max-width: 1800px; padding: 0 20px; }
 .column { display: flex; flex-direction: column; justify-content: space-around; flex: 1 1 0px; min-width: 0; position: relative; gap: 20px; }
