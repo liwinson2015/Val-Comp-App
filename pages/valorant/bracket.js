@@ -318,7 +318,7 @@ export default function BracketPage({
               </div>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Format</span>
-                <span className={styles.statValue}>Standard</span>
+                <span className={styles.statValue}>Double Elimination</span>
               </div>
             </div>
           </div>

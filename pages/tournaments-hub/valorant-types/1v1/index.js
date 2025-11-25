@@ -43,7 +43,7 @@ export default function Valorant1v1ListPage() {
       title: "Valorant Skirmish Tournament #1",
       host: "5TQ",
       start: "Nov 2, 2025",
-      format: "1v1 • Single Elimination",
+      format: "1v1 • Double Elimination",
       checkIn: "15 min before start",
       // UPDATED PRIZE
       prize: "$20 Valorant Gift Card",
