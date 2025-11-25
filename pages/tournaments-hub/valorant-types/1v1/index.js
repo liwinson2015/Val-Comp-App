@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-// Use the new module
 import styles from "../../../../styles/Valorant1v1.module.css";
 
 const TID = "VALO-SOLO-SKIRMISH-1";
@@ -36,20 +35,21 @@ export default function Valorant1v1ListPage() {
   const capacity = info?.capacity ?? 16;
   const registered = info?.registered ?? 0;
   const isFull = info?.isFull || registered >= capacity;
-  const statusLabel = loading ? "Checking..." : isFull ? "Closed" : "Open For Registration";
+  const statusLabel = loading ? "CHECKING…" : isFull ? "CLOSED" : "OPEN";
 
   const tournaments = [
     {
       id: TID,
       title: "Valorant Skirmish Tournament #1",
       host: "5TQ",
-      start: "Nov 2, 2025",
+      start: "Starts November 2nd, 2025",
       format: "1v1 • Single Elimination",
-      checkIn: "15 min before start",
-      prize: "Skin (TBD)",
-      server: "NA (Custom)",
-      maps: "Ascent / Haven",
-      rules: "No Cheats",
+      checkIn: "15 min before start (Discord)",
+      prize: "Skin (TBD) + bragging rights",
+      server: "NA (custom lobby)",
+      maps: "Skirmish A / B / C (random)",
+      rules: "No smurfing • No cheats",
+      // IMPORTANT: this is where View details goes
       detailsUrl: "/valorant",
     },
   ];
@@ -57,36 +57,50 @@ export default function Valorant1v1ListPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        
         {/* Hero */}
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>VALORANT 1v1</div>
-          <h1 className={styles.heroTitle}>Upcoming Tournaments</h1>
-          <p className={styles.heroSubtitle}>
-            Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.
-          </p>
+          <div className={styles.heroInner}>
+            <div className={styles.heroBadge}>VALORANT 1v1</div>
+            <h1 className={styles.heroTitle}>Upcoming 1v1 Tournaments</h1>
+            <p className={styles.heroSubtitle}>
+              Solo skirmish duels hosted by 5TQ. Claim your slot and climb the
+              bracket.
+            </p>
+          </div>
         </section>
 
-        {/* List Panel */}
+        {/* Panel */}
         <section className={styles.panel}>
           <div className={styles.cardGrid}>
             {tournaments.map((t) => (
               <article key={t.id} className={styles.tCard}>
-                
+                <div className={styles.tGlow} />
+
                 <header className={styles.tHead}>
                   <span className={styles.tag}>{statusLabel}</span>
                   <h3 className={styles.tTitle}>{t.title}</h3>
-                  
-                  <div className={styles.tID}>
-                    ID: <span>{t.id}</span>
-                  </div>
-                  
+
+                  <p
+                    style={{
+                      color: "#9fb0c5",
+                      fontSize: "13px",
+                      margin: "4px 0",
+                    }}
+                  >
+                    Tournament ID:{" "}
+                    <span
+                      style={{ fontWeight: 700, color: "#c9d4e6" }}
+                    >
+                      {t.id}
+                    </span>
+                  </p>
+
                   <p className={styles.tMeta}>
-                    Hosted by <span style={{color:'#fff'}}>{t.host}</span> • Starts {t.start}
+                    Hosted by {t.host} • {t.start}
                   </p>
                 </header>
 
-                {/* Info Grid */}
+                {/* Info rows */}
                 <div className={styles.tBody}>
                   <div className={styles.factRow}>
                     <div className={styles.factLabel}>Format</div>
@@ -104,40 +118,38 @@ export default function Valorant1v1ListPage() {
                     <div className={styles.factLabel}>Slots</div>
                     <div className={styles.factValue}>
                       {loading
-                        ? "..."
-                        : <span style={{ color: isFull ? '#ef4444' : '#00c6ff' }}>
-                            {registered} / {capacity} {isFull ? "(FULL)" : ""}
-                          </span>
-                      }
+                        ? "…"
+                        : `${registered} / ${capacity}${
+                            isFull ? " • FULL" : ""
+                          }`}
                     </div>
                   </div>
                 </div>
 
-                {/* Pills */}
+                {/* Pill row */}
                 <div className={styles.pillRow}>
                   <div className={styles.pill}>{t.server}</div>
                   <div className={styles.pill}>{t.maps}</div>
                   <div className={styles.pill}>{t.rules}</div>
                 </div>
 
-                {/* Actions */}
+                {/* Button */}
                 <div className={styles.tActions}>
                   {isFull ? (
                     <span
                       className={styles.primaryBtn}
+                      aria-disabled="true"
                       style={{
-                        background: "#333",
-                        color: "#666",
+                        pointerEvents: "none",
+                        opacity: 0.6,
                         cursor: "default",
-                        boxShadow: "none",
-                        transform: "none"
                       }}
                     >
-                      Tournament Full
+                      FULL
                     </span>
                   ) : (
                     <Link href={t.detailsUrl} className={styles.primaryBtn}>
-                      View Details
+                      View details
                     </Link>
                   )}
                 </div>
@@ -155,7 +167,6 @@ export default function Valorant1v1ListPage() {
             ← Back
           </button>
         </div>
-        
       </div>
     </div>
   );
