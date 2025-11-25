@@ -3,9 +3,9 @@
 .shell {
   width: 100%;
   min-height: 100vh;
-  padding-bottom: 100px; /* Extra space at the bottom */
+  padding-bottom: 100px;
   
-  /* --- THE MASTER BACKGROUND --- */
+  /* --- MASTER BACKGROUND (Applied to whole page) --- */
   background-color: #050505;
   background-image:
     radial-gradient(circle at 50% 20%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%),
@@ -25,7 +25,6 @@
   font-family: "Rajdhani", "Segoe UI", sans-serif;
 }
 
-/* Content Wrapper */
 .contentWrap {
   width: 100%;
   max-width: 1200px;
@@ -33,7 +32,6 @@
   padding: 40px 20px;
 }
 
-/* --- UPDATED HEADER CARDS (Glassmorphism) --- */
 .headerGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -41,8 +39,8 @@
   margin-bottom: 40px;
 }
 
+/* --- GLASS CARDS (So they blend with the new background) --- */
 .infoCard, .rankingContainer {
-  /* Make background semi-transparent dark to blend */
   background: rgba(20, 25, 35, 0.6);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -50,8 +48,6 @@
   padding: 30px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
-
-/* ... (Keep your existing internal styles for titles/text/badges below) ... */
 
 .tournamentTitle {
   font-size: 2rem;
@@ -89,13 +85,11 @@
 .statValue { font-size: 1rem; font-weight: 700; color: #fff; }
 .statValueHighlight { color: #00c6ff; text-shadow: 0 0 10px rgba(0,198,255,0.4); }
 
-/* Rankings */
 .rankingHeader { display: flex; justify-content: space-between; color: #667799; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .rankRow { display: flex; align-items: center; margin-bottom: 10px; }
 .rankBadge { width: 40px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; background: rgba(255,255,255,0.1); border-radius: 4px; margin-right: 15px; color: #fff; }
 .rankName { font-weight: 600; color: #eef; }
 
-/* Medal Colors */
 .gold { background: linear-gradient(135deg, #FFD700, #B8860B); color: #000; box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
 .silver { background: linear-gradient(135deg, #E0E0E0, #A9A9A9); color: #000; }
 .bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #000; }

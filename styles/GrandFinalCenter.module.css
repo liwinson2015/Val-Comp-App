@@ -13,27 +13,14 @@
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   
-  background-color: #050505;
-  background-image:
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%),
-    linear-gradient(
-      90deg,
-      rgba(0, 20, 40, 0.9) 0%,
-      rgba(0, 20, 40, 0.9) 30%,
-      rgba(5, 5, 10, 1) 50%,
-      rgba(40, 10, 0, 0.9) 70%,
-      rgba(40, 10, 0, 0.9) 100%
-    );
-  background-position: center;
-  background-size: cover;
+  /* TRANSPARENT BACKGROUND */
+  background: transparent;
 
   display: grid;
   place-items: center;
   padding: 60px 0;
-  
-  /* CRITICAL FIX: Allow lines to draw outside this box */
   overflow: visible !important;
-  z-index: 5; /* Ensure it sits above the section below it */
+  z-index: 5;
 }
 
 .row {
@@ -46,87 +33,23 @@
   overflow: visible !important;
 }
 
-/* --- THE SVG LAYER --- */
-.svgOverlay {
-  position: absolute;
-  /* Start way above to catch the Winners Bracket */
-  top: -500px; 
-  left: 0;
-  width: 100%;
-  /* Tall enough to reach the bottom */
-  height: 1500px; 
-  pointer-events: none;
-  /* Ensure it sits on top of backgrounds but behind text */
-  z-index: 10; 
-  overflow: visible !important;
-}
-
-.source {
-  position: relative;
-  display: flex;
-  align-items: center;
-  z-index: 20; /* Content above lines */
-}
-
+.svgOverlay { position: absolute; top: -500px; left: 0; width: 100%; height: 1500px; pointer-events: none; z-index: 10; overflow: visible !important; }
+.source { position: relative; display: flex; align-items: center; z-index: 20; }
 .left { justify-content: flex-end; }
 .right { justify-content: flex-start; }
+.slotWrapper { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 20; }
 
-.slotWrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 20;
-}
-
-/* --- SLOTS --- */
-.slot {
-  height: 44px;
-  min-width: 180px;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(20, 25, 35, 0.95);
-  backdrop-filter: blur(5px);
-  color: #fff;
-  border: 1px solid transparent;
-  font-weight: 700;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 20;
-}
-
-.ice { 
-  border-color: rgba(0, 198, 255, 0.3); 
-  box-shadow: 0 0 10px rgba(0, 198, 255, 0.1);
-  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
-}
+.slot { height: 44px; min-width: 180px; padding: 0 10px; display: flex; align-items: center; justify-content: center; background: rgba(20, 25, 35, 0.95); backdrop-filter: blur(5px); color: #fff; border: 1px solid transparent; font-weight: 700; font-size: 14px; transition: all 0.3s ease; position: relative; z-index: 20; }
+.ice { border-color: rgba(0, 198, 255, 0.3); box-shadow: 0 0 10px rgba(0, 198, 255, 0.1); clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
 .ice:hover { border-color: var(--ice-primary); box-shadow: 0 0 20px var(--ice-glow); }
-
-.fire { 
-  border-color: rgba(255, 75, 31, 0.3); 
-  box-shadow: 0 0 10px rgba(255, 75, 31, 0.1);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
-}
+.fire { border-color: rgba(255, 75, 31, 0.3); box-shadow: 0 0 10px rgba(255, 75, 31, 0.1); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
 .fire:hover { border-color: var(--fire-primary); box-shadow: 0 0 20px var(--fire-glow); }
 
 .arm { height: 2px; flex: 1; min-width: 20px; }
 .armLeft { background: linear-gradient(90deg, var(--ice-primary), rgba(0, 198, 255, 0.2)); box-shadow: 0 0 5px var(--ice-glow); }
 .armRight { background: linear-gradient(90deg, rgba(255, 75, 31, 0.2), var(--fire-primary)); box-shadow: 0 0 5px var(--fire-glow); }
 
-.sideLabel {
-  position: absolute;
-  width: 100%; 
-  text-align: center;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  pointer-events: none; 
-  white-space: nowrap;
-}
+.sideLabel { position: absolute; width: 100%; text-align: center; font-size: 0.75rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; pointer-events: none; white-space: nowrap; }
 .iceLabel { bottom: 100%; margin-bottom: 8px; color: var(--ice-primary); text-shadow: 0 0 15px var(--ice-glow); }
 .fireLabel { top: 100%; margin-top: 8px; color: var(--fire-primary); text-shadow: 0 0 15px var(--fire-glow); }
 
@@ -137,7 +60,4 @@
 .trophyIcon { width: 50px; height: 50px; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
 @keyframes floatTrophy { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
-@media (max-width: 900px){ 
-  .row{ grid-template-columns: 1fr; gap: 40px; }
-  .arm, .svgOverlay { display: none; }
-}
+@media (max-width: 900px){ .row{ grid-template-columns: 1fr; gap: 40px; } .arm, .svgOverlay { display: none; } }
