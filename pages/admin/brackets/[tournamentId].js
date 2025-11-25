@@ -786,6 +786,7 @@ function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
     </div>
   );
 }
+
 // ---------- HOMEPAGE FEATURED INFO FORM ----------
 function HomepageFeaturedForm({ tournamentId, initialMeta }) {
   const [displayName, setDisplayName] = useState(
@@ -1149,11 +1150,13 @@ export default function BracketAdminPage({
             </button>
           </form>
 
+          {/* Feature toggle */}
           <FeatureTournamentSection
             tournamentId={tournamentId}
             initialIsFeatured={isFeatured}
           />
 
+          {/* Show End or Reopen depending on status */}
           {tournamentStatus !== "completed" && (
             <EndTournamentSection tournamentId={tournamentId} />
           )}
@@ -1881,18 +1884,6 @@ function BracketEditor({ tournamentId, players, featuredMeta }) {
       setResetting(false);
     }
   }
-  // ------- existing handlers & rendering below are unchanged -------
-  // (they’re exactly the same as the version you pasted before)
-  // NOTE: we just add the HomepageFeaturedForm above the toolbar
-
-  // ... ALL THE REST OF YOUR BRACKETEDITOR CODE STAYS THE SAME ...
-
-  // (For brevity I'm not re-pasting the rest again, but when you copy
-  // this into your file, keep everything after labelFromId exactly as in
-  // your current version: handleChangeMatch, handleSetWinnerR1, etc.,
-  // toolbar, main grid, finals section, RoundBlock component.)
-
-  // IMPORTANT: right before the toolbar, render the form:
 
   if (loading)
     return (
@@ -1907,8 +1898,267 @@ function BracketEditor({ tournamentId, players, featuredMeta }) {
         initialMeta={featuredMeta}
       />
 
-      {/* your existing toolbar + rest of UI */}
-      {/* ... toolbar, player pool, rounds, finals, save bar ... */}
+      <div className={styles["toolbar"]}>
+        <button
+          type="button"
+          onClick={handleRandomizeR1}
+          disabled={randomizing || players.length < 2}
+          className={`${styles["btn"]} ${styles["btn-primary"]}`}
+        >
+          {randomizing ? "Randomizing..." : "🔀 Randomize R1"}
+        </button>
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={resetting}
+          className={`${styles["btn"]} ${styles["btn-danger"]}`}
+        >
+          {resetting ? "Resetting..." : "🧹 Reset Bracket"}
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className={`${styles["btn"]} ${styles["btn-success"]}`}
+        >
+          {saving ? "Saving..." : "💾 Save Changes"}
+        </button>
+
+        <div className={styles["stats-grid"]}>
+          <div className={styles["stat-pill"]}>
+            Placed: {usedCount}/{totalCount}
+          </div>
+          <div className={styles["stat-pill"]}>
+            R1 Winners: {winnersChosenR1}
+          </div>
+          <div className={styles["stat-pill"]}>
+            LB2 Winners: {computeWinnersFromMatches(lbMatches2).length}
+          </div>
+        </div>
+      </div>
+
+      <div className={styles["player-pool"]}>
+        <div className={styles["pool-title"]}>Unplaced Players (Round 1)</div>
+        {unusedPlayers.length === 0 ? (
+          <span
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.85rem",
+            }}
+          >
+            All players placed.
+          </span>
+        ) : (
+          <div className={styles["tag-cloud"]}>
+            {unusedPlayers.map((p) => (
+              <div key={p._id} className={styles["player-tag"]}>
+                <span>{p.ign || p.username || "Unknown"}</span>
+                <button
+                  type="button"
+                  onClick={() => handleAddPlayerToBracket(p._id)}
+                  className={styles["add-btn"]}
+                >
+                  +
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {duplicatePlayers.length > 0 && (
+        <div
+          className={`${styles["alert-box"]} ${styles["alert-danger"]}`}
+        >
+          <strong>Warning:</strong> Duplicates:{" "}
+          {duplicatePlayers.map(
+            (p) =>
+              `${p.ign || p.username} (x${placedCount[p._id]}), `
+          )}
+        </div>
+      )}
+
+      <div className={styles["main-grid"]}>
+        <div className={styles["bracket-column"]}>
+          <div
+            className={`${styles["column-header"]} ${styles["header-winners"]}`}
+          >
+            Winners Bracket
+          </div>
+
+          <RoundBlock
+            title="Round 1"
+            matches={matches}
+            onChange={handleChangeMatch}
+            onSetWinner={handleSetWinnerR1}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+            showDupWarning
+            placedCount={placedCount}
+          />
+
+          <button
+            type="button"
+            onClick={handleBuildQF}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build QF
+          </button>
+          <RoundBlock
+            title="Quarterfinals"
+            matches={qfMatches}
+            onChange={handleChangeQFMatch}
+            onSetWinner={handleSetWinnerQF}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+
+          <button
+            type="button"
+            onClick={handleBuildSF}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build SF
+          </button>
+          <RoundBlock
+            title="Semifinals"
+            matches={sfMatches}
+            onChange={handleChangeSFMatch}
+            onSetWinner={handleSetWinnerSF}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+        </div>
+
+        <div className={styles["bracket-column"]}>
+          <div
+            className={`${styles["column-header"]} ${styles["header-losers"]}`}
+          >
+            Losers Bracket
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRandomizeLB1}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build LB1 from R1 Losers
+          </button>
+          <RoundBlock
+            title="LB Round 1"
+            matches={lbMatches1}
+            onChange={handleChangeLbMatch1}
+            onSetWinner={handleSetWinnerLB1}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+
+          <button
+            type="button"
+            onClick={handleBuildLB2}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build LB2
+          </button>
+          <RoundBlock
+            title="LB Round 2"
+            matches={lbMatches2}
+            onChange={handleChangeLbMatch2}
+            onSetWinner={handleSetWinnerLB2}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+
+          <button
+            type="button"
+            onClick={handleBuildLB3A}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build LB3A
+          </button>
+          <RoundBlock
+            title="LB Round 3A"
+            matches={lbMatches3a}
+            onChange={handleChangeLbMatch3A}
+            onSetWinner={handleSetWinnerLB3A}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+
+          <button
+            type="button"
+            onClick={handleBuildLB3B}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build LB3B
+          </button>
+          <RoundBlock
+            title="LB Round 3B"
+            matches={lbMatches3b}
+            onChange={handleChangeLbMatch3B}
+            onSetWinner={handleSetWinnerLB3B}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+
+          <button
+            type="button"
+            onClick={handleBuildLB4}
+            className={`${styles["btn"]} ${styles["btn-block"]} ${styles["btn-ghost"]} ${styles["btn-sm"]}`}
+          >
+            ▼ Build LB4
+          </button>
+          <RoundBlock
+            title="LB Round 4"
+            matches={lbMatches4}
+            onChange={handleChangeLbMatch4}
+            onSetWinner={handleSetWinnerLB4}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+        </div>
+      </div>
+
+      <div className={styles["finals-section"]}>
+        <div
+          className={`${styles["column-header"]} ${styles["header-finals"]}`}
+        >
+          Championship Finals
+        </div>
+        <div className={styles["finals-grid"]}>
+          <RoundBlock
+            title="Winners Final"
+            matches={wbFinalMatches}
+            onChange={handleChangeWbFinal}
+            onSetWinner={handleSetWinnerWbFinal}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+          <RoundBlock
+            title="Losers Final"
+            matches={lbFinalMatches}
+            onChange={handleChangeLbFinal}
+            onSetWinner={handleSetWinnerLbFinal}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+          <RoundBlock
+            title="Grand Final"
+            matches={grandFinalMatches}
+            onChange={handleChangeGrandFinal}
+            onSetWinner={handleSetWinnerGrandFinal}
+            allOptions={allOptions}
+            labelFromId={labelFromId}
+          />
+        </div>
+      </div>
+
+      {(saveMessage || saving) && (
+        <div className={styles["save-bar"]}>
+          <span className={styles["save-msg"]}>{saveMessage}</span>
+          {saving && <span>Processing...</span>}
+        </div>
+      )}
     </div>
   );
 }
