@@ -1,0 +1,218 @@
+/* styles/ValTour.module.css */
+
+.shell {
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px 20px 100px;
+  
+  /* --- MASTER BACKGROUND (Matches Bracket Page) --- */
+  background-color: #050505;
+  background-image:
+    radial-gradient(circle at 80% 20%, rgba(255, 70, 85, 0.15) 0%, rgba(0, 0, 0, 0) 50%), /* Valorant Red hint */
+    radial-gradient(circle at 20% 80%, rgba(255, 70, 85, 0.1) 0%, rgba(0, 0, 0, 0) 50%),
+    linear-gradient(180deg, #050505 0%, #0a0f18 100%);
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
+  
+  color: #fff;
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.contentWrap {
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* === Hero === */
+.hero {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #ff4655; /* Valorant Red */
+  background: rgba(255, 70, 85, 0.1);
+  border: 1px solid rgba(255, 70, 85, 0.3);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 15px rgba(255, 70, 85, 0.2);
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  line-height: 1;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #fff, #999);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroSubtitle {
+  color: #8b9bb4;
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* === Panel (Glass) === */
+.panel {
+  position: relative;
+  padding: 40px;
+  border-radius: 12px;
+  /* Glassmorphism */
+  background: rgba(20, 25, 35, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+/* === Mode Card === */
+.modeCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  
+  /* Clip Path for Tech Look */
+  clip-path: polygon(
+    20px 0, 100% 0, 
+    100% calc(100% - 20px), calc(100% - 20px) 100%, 
+    0 100%, 0 20px
+  );
+}
+
+/* Active State Hover */
+.modeCard:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 70, 85, 0.05);
+  border-color: #ff4655;
+  box-shadow: 0 10px 30px rgba(255, 70, 85, 0.15);
+}
+
+.modeInner {
+  position: relative;
+  z-index: 2;
+}
+
+.modeBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ff4655;
+  margin-bottom: 15px;
+}
+
+.modeTitle {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+}
+
+.modeDesc {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.modeCtaRow {
+  margin-top: auto;
+}
+
+.modeCta {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #fff;
+  transition: transform 0.3s ease;
+}
+
+.modeCard:hover .modeCta {
+  transform: translateX(5px);
+  color: #ff4655;
+}
+
+/* Disabled State */
+.modeDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.modeDisabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.modeBadgeMuted { color: #64748b; }
+.modeTitleMuted { color: #64748b; }
+.modeDescMuted { color: #4b5563; }
+.modeCtaMuted { color: #4b5563; }
+
+/* === Info Strip === */
+.infoRow {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.infoItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 15px 20px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.infoLabel {
+  color: #64748b;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.infoValue {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .heroTitle { font-size: 2.5rem; }
+  .infoRow { grid-template-columns: 1fr; }
+}
