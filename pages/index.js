@@ -5,7 +5,6 @@ import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import TournamentState from "../models/TournamentState";
 
-const DEFAULT_TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const DEFAULT_MAX_SLOTS = 16;
 
 export async function getServerSideProps() {
@@ -15,10 +14,11 @@ export async function getServerSideProps() {
   const state = await TournamentState.findOne({ isFeatured: true }).lean();
 
   if (!state) {
+    // No featured tournament at all
     return { props: { featured: null } };
   }
 
-  const tournamentId = state.tournamentId || DEFAULT_TOURNAMENT_ID;
+  const tournamentId = state.tournamentId;
 
   // 2) Count registrations for this tournament
   const currentCount = await Player.countDocuments({
@@ -67,32 +67,47 @@ export default function HomePage({ featured }) {
     ? `${currentCount} REGISTERED`
     : "COMING SOON";
 
-  // --- FALLBACKS TO YOUR ORIGINAL HARD-CODED TEXT ---
-  const titleText =
-    (hasFeatured && featured.displayName) || "SOLO SKIRMISH #1";
+  // ----- TEXT WHEN THERE IS / ISN'T A FEATURED TOURNAMENT -----
 
-  const descriptionText =
-    (hasFeatured && featured.displayDescription) ||
-    "Double elimination bracket. Winner takes all. Screenshot score verification required.";
+  // Title of the big card
+  const titleText = hasFeatured
+    ? featured.displayName || "SOLO SKIRMISH #1"
+    : "NEXT BRACKET COMING SOON";
 
-  const startTimeText =
-    (hasFeatured && featured.displayTime) || "NOV 2 • 7PM ET";
+  // Subtitle line
+  const descriptionText = hasFeatured
+    ? featured.displayDescription ||
+      "Double elimination bracket. Winner takes all. Screenshot score verification required."
+    : "We’re lining up the next community tournament. Check back soon or follow announcements on Discord.";
 
-  const gameLabel =
-    (hasFeatured && featured.displayGameLabel) || "VALORANT";
-  const modeLabel =
-    (hasFeatured && featured.displayModeLabel) || "1v1";
+  // Start time text
+  const startTimeText = hasFeatured
+    ? featured.displayTime || "NOV 2 • 7PM ET"
+    : "TBD";
+
+  // Chip in the top right of the card
+  const gameLabel = hasFeatured
+    ? featured.displayGameLabel || "VALORANT"
+    : "TBA";
+
+  const modeLabel = hasFeatured
+    ? featured.displayModeLabel || "1v1"
+    : "SOON";
+
+  const pillText = hasFeatured
+    ? `${gameLabel.toUpperCase()} • ${modeLabel}`
+    : "COMING SOON";
 
   const canRegister = hasFeatured && isOngoing && !isFull;
 
   const ctaHref =
-    (hasFeatured && featured.ctaPath) ||
-    "/tournaments-hub/valorant-types/1v1";
+    hasFeatured && featured.ctaPath
+      ? featured.ctaPath
+      : "/tournaments-hub/valorant-types/1v1";
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        
         {/* HERO SECTION */}
         <section className={styles.hero}>
           <div className={styles.heroBadge}>COMPETITIVE BRACKETS</div>
@@ -124,14 +139,11 @@ export default function HomePage({ featured }) {
 
         {/* FEATURED + UPCOMING GRID */}
         <section className={styles.cardGrid}>
-          
           {/* LEFT: Featured Tournament */}
           <div className={styles.featuredColumn}>
             <div className={styles.cardHeaderRow}>
               <h2 className={styles.cardTitle}>FEATURED EVENT</h2>
-              <span className={styles.gamePill}>
-                {`${gameLabel.toUpperCase()} • ${modeLabel}`}
-              </span>
+              <span className={styles.gamePill}>{pillText}</span>
             </div>
 
             <h3 className={styles.featuredTitle}>{titleText}</h3>
