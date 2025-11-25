@@ -508,7 +508,7 @@ export default function TeamsPage({
                 </select>
               </div>
               <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
-                <label className={styles.label}>Team Name</label>
+                <label className={styles.label}>Team Name(想用中文名复制粘贴进来便可)</label>
                 <input type="text" value={name} onChange={handleNameChange} placeholder="e.g. EDWARD GAMING" className={styles.input} style={{ width: "100%" }} />
               </div>
               <div className={styles.inputGroup} style={{ marginBottom: "1rem" }}>
