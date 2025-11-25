@@ -1,6 +1,6 @@
 // pages/api/tournaments/end.js
 
-import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayerFromReq"; // or ../getCurrentPlayer if that's your file
+import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer"; // or ../getCurrentPlayer if that's your file
 import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
 import Registration from "../../../models/Registration";
