@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-// Import the CSS Module
 import styles from "../../../styles/BracketsAdmin.module.css";
 
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
+import TournamentState from "../../../models/TournamentState";
 
-// ---------- SERVER SIDE (UNCHANGED) ----------
+// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
   const player = await getCurrentPlayerFromReq(req);
 
@@ -61,16 +61,28 @@ export async function getServerSideProps({ req, params }) {
   const t = await Tournament.findOne({ tournamentId }).lean();
   const isPublished = !!t?.bracket?.isPublished;
 
+  // NEW: pull tournament status ("ongoing" / "completed")
+  let tournamentStatus = "ongoing";
+  try {
+    const state = await TournamentState.findOne({ tournamentId }).lean();
+    if (state?.status) {
+      tournamentStatus = state.status;
+    }
+  } catch (e) {
+    console.error("Error reading TournamentState:", e);
+  }
+
   return {
     props: {
       tournamentId,
       players: playerRows,
       isPublished,
+      tournamentStatus,
     },
   };
 }
 
-// ---------- END TOURNAMENT UI (NEW) ----------
+// ---------- END TOURNAMENT UI ----------
 function EndTournamentSection({ tournamentId }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
@@ -78,7 +90,6 @@ function EndTournamentSection({ tournamentId }) {
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
 
-  // "Password"-style phrase you must type to confirm
   const REQUIRED_PHRASE = `END ${tournamentId}`;
 
   function openConfirm() {
@@ -107,7 +118,7 @@ function EndTournamentSection({ tournamentId }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tournamentId,
-          // winnerTeamId: null // can pass a winner later if you want
+          // winnerTeamId: null // optional
         }),
       });
 
@@ -127,17 +138,12 @@ function EndTournamentSection({ tournamentId }) {
   }
 
   return (
-    <div style={{ marginTop: "0.75rem" }}>
+    <div style={{ marginLeft: "0.5rem" }}>
       <button
         type="button"
         onClick={openConfirm}
         disabled={done}
         className={`${styles["btn"]} ${styles["btn-danger"]}`}
-        style={{
-          marginLeft: "0.5rem",
-          backgroundColor: done ? "#16a34a" : undefined,
-          borderColor: done ? "#16a34a" : undefined,
-        }}
       >
         {done ? "Tournament Ended" : "⛔ End Tournament"}
       </button>
@@ -200,7 +206,7 @@ function EndTournamentSection({ tournamentId }) {
             >
               <li>It will no longer appear in current tournaments.</li>
               <li>Players will see it in their tournament history.</li>
-              <li>Stats and announcements can update based on this state.</li>
+              <li>Stats and announcements can use this state.</li>
             </ul>
             <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
               To confirm, type this exactly:
@@ -304,11 +310,228 @@ function EndTournamentSection({ tournamentId }) {
   );
 }
 
+// ---------- REOPEN TOURNAMENT UI ----------
+function ReopenTournamentSection({ tournamentId }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmInput, setConfirmInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [done, setDone] = useState(false);
+
+  const REQUIRED_PHRASE = `REOPEN ${tournamentId}`;
+
+  function openConfirm() {
+    setErr("");
+    setConfirmInput("");
+    setShowConfirm(true);
+  }
+
+  function closeConfirm() {
+    if (loading) return;
+    setShowConfirm(false);
+  }
+
+  async function handleConfirmReopen() {
+    if (confirmInput.trim() !== REQUIRED_PHRASE) {
+      setErr("Confirmation phrase does not match.");
+      return;
+    }
+
+    setLoading(true);
+    setErr("");
+
+    try {
+      const res = await fetch("/api/tournaments/reopen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tournamentId }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        setErr(data.error || "Failed to reopen tournament.");
+      } else {
+        setDone(true);
+        setShowConfirm(false);
+      }
+    } catch (e) {
+      console.error(e);
+      setErr("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ marginLeft: "0.5rem" }}>
+      <button
+        type="button"
+        onClick={openConfirm}
+        disabled={done}
+        className={`${styles["btn"]} ${styles["btn-primary"]}`}
+        style={{
+          backgroundColor: "#16a34a",
+          borderColor: "#16a34a",
+        }}
+      >
+        {done ? "Tournament Reopened" : "♻ Reopen Tournament"}
+      </button>
+
+      {showConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          onClick={closeConfirm}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#020617",
+              borderRadius: "10px",
+              padding: "20px 24px",
+              width: "100%",
+              maxWidth: "420px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+              color: "#e5e7eb",
+              fontFamily:
+                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            }}
+          >
+            <h2
+              style={{
+                margin: "0 0 8px",
+                fontSize: "1.1rem",
+                color: "#22c55e",
+              }}
+            >
+              Reopen Tournament?
+            </h2>
+            <p
+              style={{
+                margin: "0 0 8px",
+                fontSize: "0.9rem",
+                lineHeight: 1.4,
+              }}
+            >
+              This will set the tournament back to{" "}
+              <strong>ongoing</strong> and mark registrations as{" "}
+              <strong>active</strong> again.
+            </p>
+            <p style={{ margin: "0 0 4px", fontSize: "0.8rem" }}>
+              To confirm, type this exactly:
+            </p>
+            <code
+              style={{
+                display: "inline-block",
+                padding: "4px 6px",
+                borderRadius: "4px",
+                background: "#0f172a",
+                fontSize: "0.75rem",
+                marginBottom: "6px",
+                color: "#bbf7d0",
+              }}
+            >
+              {REQUIRED_PHRASE}
+            </code>
+
+            <input
+              type="text"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder="Type confirmation phrase here"
+              style={{
+                width: "100%",
+                marginTop: "4px",
+                padding: "6px 8px",
+                borderRadius: "4px",
+                border: "1px solid #475569",
+                background: "#020617",
+                color: "#e5e7eb",
+                fontSize: "0.85rem",
+              }}
+            />
+
+            {err && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "0.8rem",
+                  color: "#f97316",
+                }}
+              >
+                {err}
+              </div>
+            )}
+
+            <div
+              style={{
+                marginTop: "12px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={closeConfirm}
+                disabled={loading}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "none",
+                  background: "#334155",
+                  color: "#e5e7eb",
+                  fontSize: "0.8rem",
+                  cursor: loading ? "default" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReopen}
+                disabled={
+                  loading || confirmInput.trim() !== REQUIRED_PHRASE
+                }
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "none",
+                  background:
+                    loading || confirmInput.trim() !== REQUIRED_PHRASE
+                      ? "#065f46"
+                      : "#16a34a",
+                  color: "#dcfce7",
+                  fontSize: "0.8rem",
+                  cursor:
+                    loading || confirmInput.trim() !== REQUIRED_PHRASE
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                {loading ? "Reopening..." : "Confirm Reopen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- MAIN PAGE COMPONENT ----------
 export default function BracketAdminPage({
   tournamentId,
   players,
   isPublished,
+  tournamentStatus,
 }) {
   return (
     <div className={styles["admin-container"]}>
@@ -327,6 +550,16 @@ export default function BracketAdminPage({
               }`}
             >
               {isPublished ? "● Live (Published)" : "○ Draft (Hidden)"}
+            </span>
+            <br />
+            <span
+              className={styles["status-badge"]}
+              style={{ marginTop: "0.25rem" }}
+            >
+              STATE:{" "}
+              {tournamentStatus === "completed"
+                ? "🏁 Completed"
+                : "▶ Ongoing"}
             </span>
           </div>
         </div>
@@ -360,8 +593,13 @@ export default function BracketAdminPage({
             </button>
           </form>
 
-          {/* NEW: End Tournament button with confirmation */}
-          <EndTournamentSection tournamentId={tournamentId} />
+          {/* Show End or Reopen depending on status */}
+          {tournamentStatus !== "completed" && (
+            <EndTournamentSection tournamentId={tournamentId} />
+          )}
+          {tournamentStatus === "completed" && (
+            <ReopenTournamentSection tournamentId={tournamentId} />
+          )}
         </div>
       </header>
 
@@ -370,7 +608,7 @@ export default function BracketAdminPage({
   );
 }
 
-// ---------- HELPER FUNCTIONS (UNCHANGED) ----------
+// ---------- HELPER FUNCTIONS ----------
 function computeLosersFromMatches(matches) {
   const losers = [];
   (matches || []).forEach((m) => {
@@ -429,7 +667,6 @@ function BracketEditor({ tournamentId, players }) {
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
-  // label map
   const idToLabel = {};
   for (const p of players || []) {
     const base = p.ign || p.username || "Unknown";
@@ -441,7 +678,6 @@ function BracketEditor({ tournamentId, players }) {
     label: idToLabel[p._id],
   }));
 
-  // ===== Load existing bracket on mount =====
   useEffect(() => {
     async function loadBracket() {
       try {
@@ -552,7 +788,6 @@ function BracketEditor({ tournamentId, players }) {
           setLbMatches4([]);
         }
 
-        // Finals
         const wf = bracket?.winnersFinal || emptyFinalMatch;
         setWbFinalMatches([
           {
@@ -586,7 +821,6 @@ function BracketEditor({ tournamentId, players }) {
     loadBracket();
   }, [tournamentId]);
 
-  // ===== AUTO-BUILD =====
   useEffect(() => {
     const winnersSF = computeWinnersFromMatches(sfMatches);
     if (winnersSF.length < 2) return;
@@ -612,8 +846,6 @@ function BracketEditor({ tournamentId, players }) {
     if (!id) return "TBD";
     return idToLabel[id] || "TBD";
   }
-
-  // ... handlers and rest of file remain UNCHANGED below ...
 
   function handleChangeMatch(index, field, value) {
     setMatches((prev) => {
@@ -709,7 +941,6 @@ function BracketEditor({ tournamentId, players }) {
     });
   }
 
-  // Counts
   const usedIds = new Set();
   const placedCount = {};
   matches.forEach((m) => {
@@ -734,7 +965,6 @@ function BracketEditor({ tournamentId, players }) {
   const losersR1 = computeLosersFromMatches(matches);
   const winnersChosenR1 = losersR1.length;
 
-  // LB Handlers
   function handleRandomizeLB1() {
     if (winnersChosenR1 === 0) {
       setSaveMessage("Set R1 winners first.");
@@ -755,7 +985,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches1((prev) => setWinner(prev, index, which));
   }
 
-  // Generic helpers
   function updateMatch(prev, index, field, value) {
     const copy = prev.map((m) => ({ ...m }));
     if (!copy[index]) return copy;
@@ -783,7 +1012,6 @@ function BracketEditor({ tournamentId, players }) {
     return copy;
   }
 
-  // QF
   function handleBuildQF() {
     if (!matches.length) {
       setSaveMessage("Need R1 matches.");
@@ -822,7 +1050,6 @@ function BracketEditor({ tournamentId, players }) {
     setQfMatches((prev) => setWinner(prev, index, w));
   }
 
-  // LB2
   function handleBuildLB2() {
     const num = Math.max(lbMatches1.length, qfMatches.length);
     if (!num) {
@@ -860,7 +1087,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches2((p) => setWinner(p, i, w));
   }
 
-  // SF
   function handleBuildSF() {
     if (!qfMatches.length) {
       setSaveMessage("Need QF matches.");
@@ -882,7 +1108,6 @@ function BracketEditor({ tournamentId, players }) {
     setSfMatches((p) => setWinner(p, i, w));
   }
 
-  // LB3A
   function handleBuildLB3A() {
     if (!lbMatches2.length) {
       setSaveMessage("Need LB2.");
@@ -902,7 +1127,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3a((p) => setWinner(p, i, w));
   }
 
-  // LB3B
   function handleBuildLB3B() {
     const num = Math.max(lbMatches3a.length, sfMatches.length);
     const next = [];
@@ -934,7 +1158,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches3b((p) => setWinner(p, i, w));
   }
 
-  // LB4
   function handleBuildLB4() {
     if (!lbMatches3b.length) {
       setSaveMessage("Need LB3B.");
@@ -952,7 +1175,6 @@ function BracketEditor({ tournamentId, players }) {
     setLbMatches4((p) => setWinner(p, i, w));
   }
 
-  // Finals
   function handleChangeWbFinal(i, f, v) {
     setWbFinalMatches((p) => updateMatch(p, i, f, v));
   }
@@ -1017,7 +1239,6 @@ function BracketEditor({ tournamentId, players }) {
     setGrandFinalMatches((p) => setWinner(p, i, w));
   }
 
-  // Save/Reset (unchanged logic)
   async function handleSave() {
     setSaving(true);
     setSaveMessage("");
@@ -1104,7 +1325,6 @@ function BracketEditor({ tournamentId, players }) {
 
   return (
     <div className={styles["bracket-editor-wrapper"]}>
-      {/* TOP TOOLBAR */}
       <div className={styles["toolbar"]}>
         <button
           type="button"
@@ -1144,7 +1364,6 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       </div>
 
-      {/* UNPLACED PLAYERS */}
       <div className={styles["player-pool"]}>
         <div className={styles["pool-title"]}>Unplaced Players (Round 1)</div>
         {unusedPlayers.length === 0 ? (
@@ -1174,7 +1393,6 @@ function BracketEditor({ tournamentId, players }) {
         )}
       </div>
 
-      {/* DUPLICATES ALERT */}
       {duplicatePlayers.length > 0 && (
         <div
           className={`${styles["alert-box"]} ${styles["alert-danger"]}`}
@@ -1187,9 +1405,7 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       )}
 
-      {/* --- SPLIT GRID LAYOUT --- */}
       <div className={styles["main-grid"]}>
-        {/* COLUMN 1: WINNERS BRACKET */}
         <div className={styles["bracket-column"]}>
           <div
             className={`${styles["column-header"]} ${styles["header-winners"]}`}
@@ -1241,7 +1457,6 @@ function BracketEditor({ tournamentId, players }) {
           />
         </div>
 
-        {/* COLUMN 2: LOSERS BRACKET */}
         <div className={styles["bracket-column"]}>
           <div
             className={`${styles["column-header"]} ${styles["header-losers"]}`}
@@ -1331,7 +1546,6 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       </div>
 
-      {/* --- FINALS SECTION --- */}
       <div className={styles["finals-section"]}>
         <div
           className={`${styles["column-header"]} ${styles["header-finals"]}`}
@@ -1366,7 +1580,6 @@ function BracketEditor({ tournamentId, players }) {
         </div>
       </div>
 
-      {/* FLOATING SAVE BAR */}
       {(saveMessage || saving) && (
         <div className={styles["save-bar"]}>
           <span className={styles["save-msg"]}>{saveMessage}</span>
@@ -1377,7 +1590,7 @@ function BracketEditor({ tournamentId, players }) {
   );
 }
 
-// ---------- REUSABLE COMPONENT ----------
+// ---------- ROUND BLOCK ----------
 function RoundBlock({
   title,
   matches,
