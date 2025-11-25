@@ -1,6 +1,6 @@
 // pages/api/tournaments/feature.js
 
-import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayerFromReq";
+import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
 
