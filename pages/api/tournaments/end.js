@@ -5,6 +5,7 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
 import Registration from "../../../models/Registration";
 import Player from "../../../models/Player";
+import Tournament from "../../../models/Tournament";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -34,8 +35,43 @@ export default async function handler(req, res) {
 
     await connectToDatabase();
 
-    // 1) Update TournamentState: mark it completed and un-feature it
     const endedAt = new Date();
+
+    // -------------------------------------------------------------------
+    // 0) Read bracket.ranking from Tournament so we know placements
+    // -------------------------------------------------------------------
+    const tournamentDoc = await Tournament.findOne({ tournamentId }).lean();
+    const ranking = tournamentDoc?.bracket?.ranking || null;
+
+    const placementByPlayerId = {};
+
+    if (ranking) {
+      const addPlacement = (ids, label) => {
+        if (!ids) return;
+        const arr = Array.isArray(ids) ? ids : [ids];
+        arr.forEach((id) => {
+          if (!id) return;
+          const key = id.toString();
+          // don't overwrite if already assigned a better placement
+          if (!placementByPlayerId[key]) {
+            placementByPlayerId[key] = label;
+          }
+        });
+      };
+
+      addPlacement(ranking.first, "1st");
+      addPlacement(ranking.second, "2nd");
+      addPlacement(ranking.third, "3rd");
+      addPlacement(ranking.fourth, "4th");
+      addPlacement(ranking.fiveToSix, "5th-6th");
+      addPlacement(ranking.sevenToEight, "7th-8th");
+      addPlacement(ranking.nineToTwelve, "9th-12th");
+      addPlacement(ranking.thirteenToSixteen, "13th-16th");
+    }
+
+    // -------------------------------------------------------------------
+    // 1) Update TournamentState: mark it completed and un-feature it
+    // -------------------------------------------------------------------
     const update = {
       tournamentId,
       status: "completed",
@@ -54,8 +90,9 @@ export default async function handler(req, res) {
       { upsert: true, new: true }
     ).lean();
 
+    // -------------------------------------------------------------------
     // 2) Update all registrations for this tournament
-    // Your Registration model uses `tournament` but we also allow `tournamentId`
+    // -------------------------------------------------------------------
     await Registration.updateMany(
       {
         $or: [{ tournament: tournamentId }, { tournamentId: tournamentId }],
@@ -70,45 +107,50 @@ export default async function handler(req, res) {
       }
     );
 
+    // -------------------------------------------------------------------
     // 3) Move players' active registrations into tournamentHistory
-    //    - copy matching registeredFor entries
-    //    - remove them from registeredFor
+    //    and attach placement if we know it from the bracket
+    // -------------------------------------------------------------------
     const playersWithReg = await Player.find({
       "registeredFor.tournamentId": tournamentId,
     }).lean();
 
     if (playersWithReg.length > 0) {
-      const bulkOps = playersWithReg.map((p) => {
-        const activeRegs = (p.registeredFor || []).filter(
-          (r) => r.tournamentId === tournamentId
-        );
+      const bulkOps = playersWithReg
+        .map((p) => {
+          const activeRegs = (p.registeredFor || []).filter(
+            (r) => r.tournamentId === tournamentId
+          );
 
-        if (!activeRegs.length) return null;
+          if (!activeRegs.length) return null;
 
-        const historyEntries = activeRegs.map((r) => ({
-          tournamentId: r.tournamentId,
-          ign: r.ign,
-          fullIgn: r.fullIgn,
-          rank: r.rank,
-          // placement can be filled later from bracket ranking if you want
-          placement: "",
-          endedAt,
-        }));
+          const placementKey = p._id.toString();
+          const placement = placementByPlayerId[placementKey] || "";
 
-        return {
-          updateOne: {
-            filter: { _id: p._id },
-            update: {
-              // remove from active registrations
-              $pull: { registeredFor: { tournamentId } },
-              // add to history
-              $push: {
-                tournamentHistory: { $each: historyEntries },
+          const historyEntries = activeRegs.map((r) => ({
+            tournamentId: r.tournamentId,
+            ign: r.ign,
+            fullIgn: r.fullIgn,
+            rank: r.rank,
+            placement, // ⭐ pulled from bracket.ranking (or "" if unknown)
+            endedAt,
+          }));
+
+          return {
+            updateOne: {
+              filter: { _id: p._id },
+              update: {
+                // remove from active registrations
+                $pull: { registeredFor: { tournamentId } },
+                // add to history
+                $push: {
+                  tournamentHistory: { $each: historyEntries },
+                },
               },
             },
-          },
-        };
-      }).filter(Boolean);
+          };
+        })
+        .filter(Boolean);
 
       if (bulkOps.length > 0) {
         await Player.bulkWrite(bulkOps);

@@ -4,19 +4,6 @@ import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import styles from "../styles/Profile.module.css";
 
-/**
- * Expected (optional) shape for player.registeredFor items if you later populate it:
- * {
- * id: "skirmish-1",
- * name: "Valorant Skirmish #1",
- * game: "VALORANT",
- * mode: "1v1",
- * date: "2025-11-02T23:00:00Z",
- * placement: 5,
- * result: "Round of 8"
- * }
- */
-
 // ---------- Game config (UI only) ----------
 // Alphabetical by label: HONOR OF KINGS, TEAMFIGHT TACTICS, VALORANT
 const GAME_DEFS = [
@@ -140,23 +127,27 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  // History source: use player.registeredFor if present.
-  const history = Array.isArray(player.registeredFor)
-    ? player.registeredFor
+  // 🔹 History + stats now come from tournamentHistory, not registeredFor
+  const rawHistory = Array.isArray(player.tournamentHistory)
+    ? player.tournamentHistory
     : [];
 
-  // Compute simple stats from history if placement exists
-  const played = history.length;
-  const wins = history.filter((h) => Number(h.placement) === 1).length;
-  const top4 = history.filter(
-    (h) => Number(h.placement) > 0 && Number(h.placement) <= 4
-  ).length;
+  const played = rawHistory.length;
+  const wins = rawHistory.filter((h) => Number(h.placement) === 1).length;
+  const top4 = rawHistory.filter((h) => {
+    const p = Number(h.placement);
+    return p > 0 && p <= 4;
+  }).length;
+
+  const bestFinishRaw = rawHistory.reduce((best, h) => {
+    const p = Number(h.placement);
+    if (!p || p <= 0) return best;
+    return Math.min(best, p);
+  }, Infinity);
   const bestFinish =
-    history.reduce((best, h) => {
-      const p = Number(h.placement);
-      if (!p || p <= 0) return best;
-      return Math.min(best, p);
-    }, Infinity) || null;
+    Number.isFinite(bestFinishRaw) && bestFinishRaw !== Infinity
+      ? bestFinishRaw
+      : null;
 
   // Normalize gameProfiles into a simple shape for the client (keyed by game code)
   const rawProfiles = player.gameProfiles || {};
@@ -203,28 +194,8 @@ export async function getServerSideProps({ req }) {
         played,
         wins,
         top4,
-        bestFinish: Number.isFinite(bestFinish) ? bestFinish : null,
+        bestFinish,
       },
-      history: history
-        .map((h) => ({
-          id: h.id || h.tournamentId || h.name || "tbd",
-          name: h.name || h.tournament || "Tournament",
-          game: h.game || "VALORANT",
-          mode: h.mode || "—",
-          date: h.date || h.start || null,
-          placement:
-            typeof h.placement === "number"
-              ? h.placement
-              : h.placement
-              ? Number(h.placement)
-              : null,
-          result: h.result || null,
-        }))
-        .sort((a, b) => {
-          const da = a.date ? new Date(a.date).getTime() : 0;
-          const db = b.date ? new Date(b.date).getTime() : 0;
-          return db - da;
-        }),
       gameProfiles,
       initialFeaturedGames: featuredGames,
     },
@@ -237,7 +208,6 @@ export default function Profile({
   discordId,
   avatar,
   stats,
-  history,
   gameProfiles,
   initialFeaturedGames,
 }) {
@@ -470,81 +440,6 @@ export default function Profile({
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Tournament History */}
-        <section className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>TOURNAMENT HISTORY</h2>
-            {history?.length ? (
-              <span className={styles.badgeSoft}>{history.length} entries</span>
-            ) : null}
-          </div>
-
-          {history?.length ? (
-            <div className={styles.tableWrap}>
-              <div className={styles.tableHead}>
-                <div>Event</div>
-                <div>Game</div>
-                <div>Mode</div>
-                <div>Date</div>
-                <div>Result</div>
-                <div>Placement</div>
-              </div>
-              <div className={styles.tableBody}>
-                {history.map((h) => {
-                  const dateStr = h.date
-                    ? new Date(h.date).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "—";
-                  return (
-                    <div key={h.id} className={styles.tableRow}>
-                      <div className={styles.eventCell}>
-                        <div className={styles.eventName}>{h.name}</div>
-                        <div className={styles.eventSubtle}>
-                          #{h.id.toString().slice(0, 8)}
-                        </div>
-                      </div>
-                      <div className={styles.cell}>{h.game}</div>
-                      <div className={styles.cell}>{h.mode}</div>
-                      <div className={styles.cell}>{dateStr}</div>
-                      <div className={styles.cell}>{h.result || "—"}</div>
-                      <div className={styles.cell}>
-                        {typeof h.placement === "number" ? (
-                          <span
-                            className={
-                              h.placement === 1
-                                ? styles.placementGold
-                                : styles.placement
-                            }
-                          >
-                            {`#${h.placement}`}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className={styles.empty}>
-              <div className={styles.emptyTitle}>No tournaments yet</div>
-              <div className={styles.emptyText}>
-                Join your first bracket to build your competitive profile.
-              </div>
-              <div className={styles.emptyActions}>
-                <a href="/tournaments-hub" className={styles.primaryBtn}>
-                  Browse Tournaments
-                </a>
-              </div>
-            </div>
-          )}
         </section>
 
         {/* Linked Accounts (Discord) */}
@@ -1022,7 +917,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
           display: "grid",
           gridTemplateColumns:
             gameDef.code === "HOK"
-              ? "minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr)" // CHANGED: Gave more space to Peak Score
+              ? "minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr)" // more space to Peak Score
               : showDivision
               ? "minmax(0, 2fr) minmax(0, 1fr)" +
                 (!showRegionTop ? " minmax(0, 1.3fr)" : "")
@@ -1153,7 +1048,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
         </div>
       )}
 
-      {/* Bottom explanatory text – per game, talking about future tournaments */}
+      {/* Bottom explanatory text */}
       <div
         style={{
           marginTop: "0.25rem",
