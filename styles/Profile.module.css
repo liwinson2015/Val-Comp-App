@@ -120,6 +120,7 @@
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap; /* keep labels like "BEST FINISH" on one line */
 }
 
 .statValue {
