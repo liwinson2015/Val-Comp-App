@@ -53,9 +53,7 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  return {
-    props: {},
-  };
+  return { props: {} };
 }
 
 // ---- CLIENT SIDE PAGE ----
@@ -63,7 +61,8 @@ export default function AdminCreateTournamentPage() {
   const router = useRouter();
 
   const [tournamentId, setTournamentId] = useState("");
-  const [capacity, setCapacity] = useState(16);
+  // capacity starts EMPTY; you must type something
+  const [capacity, setCapacity] = useState("");
 
   // game + mode + type (start empty so nothing is prepopulated)
   const [game, setGame] = useState("");        // "valorant", "tft", ...
@@ -90,6 +89,7 @@ export default function AdminCreateTournamentPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [createdId, setCreatedId] = useState("");
 
+  // ── helpers ──────────────────────────────────────────────────────
   function buildDisplayTimePreview() {
     if (
       !month ||
@@ -118,9 +118,7 @@ export default function AdminCreateTournamentPage() {
 
   function buildDisplayTimeFinal() {
     const preview = buildDisplayTimePreview();
-    if (preview === "—") {
-      return "";
-    }
+    if (preview === "—") return "";
     return preview;
   }
 
@@ -130,12 +128,27 @@ export default function AdminCreateTournamentPage() {
     setSuccessMsg("");
     setCreatedId("");
 
+    // required-field checks
     if (!tournamentId.trim()) {
       setErrorMsg("Tournament ID is required.");
       return;
     }
+    if (!capacity.toString().trim()) {
+      setErrorMsg("Capacity is required.");
+      return;
+    }
+    const capNum = Number(capacity);
+    if (!Number.isFinite(capNum) || capNum <= 0) {
+      setErrorMsg("Capacity must be a positive number.");
+      return;
+    }
+
     if (!displayName.trim()) {
       setErrorMsg("Display Name is required.");
+      return;
+    }
+    if (!displayDescription.trim()) {
+      setErrorMsg("Display Description is required.");
       return;
     }
     if (!game) {
@@ -164,7 +177,6 @@ export default function AdminCreateTournamentPage() {
     }
 
     const trimmedId = tournamentId.trim();
-
     const displayTime = buildDisplayTimeFinal();
 
     // Game label: JUST the game (no mode)
@@ -181,18 +193,15 @@ export default function AdminCreateTournamentPage() {
     try {
       const res = await fetch("/api/admin/tournaments/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tournamentId: trimmedId,
           // no separate internal name: use displayName
           name: displayName.trim(),
           game,
-          capacity: Number(capacity),
-
+          capacity: capNum,
           displayName: displayName.trim(),
-          displayDescription,
+          displayDescription: displayDescription.trim(),
           displayTime,
           displayGameLabel,
           displayModeLabel,
@@ -367,6 +376,7 @@ export default function AdminCreateTournamentPage() {
                 max={128}
                 value={capacity}
                 onChange={(e) => setCapacity(e.target.value)}
+                placeholder="16"
                 style={inputStyle}
               />
             </div>
@@ -525,7 +535,7 @@ export default function AdminCreateTournamentPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr 1.4fr",
+                gridTemplateColumns: "1.6fr 1.2fr 1.7fr",
                 gap: "0.75rem",
               }}
             >
@@ -533,14 +543,14 @@ export default function AdminCreateTournamentPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gridTemplateColumns: "1.2fr 1.2fr 1.2fr",
                   gap: "0.4rem",
                 }}
               >
                 <select
                   value={hour}
                   onChange={(e) => setHour(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, minWidth: "72px" }}
                 >
                   <option value="">Hr</option>
                   {HOURS.map((h) => (
@@ -552,7 +562,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={minute}
                   onChange={(e) => setMinute(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, minWidth: "72px" }}
                 >
                   <option value="">Min</option>
                   {MINUTES.map((m) => (
@@ -564,7 +574,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={ampm}
                   onChange={(e) => setAmpm(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, minWidth: "72px" }}
                 >
                   <option value="">AM/PM</option>
                   <option value="AM">AM</option>
@@ -577,7 +587,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, minWidth: "100px" }}
                 >
                   <option value="">Time zone</option>
                   {TIMEZONES.map((tz) => (
@@ -597,9 +607,7 @@ export default function AdminCreateTournamentPage() {
                 }}
               >
                 Saved as:&nbsp;
-                <span style={{ fontWeight: 500 }}>
-                  {previewTime}
-                </span>
+                <span style={{ fontWeight: 500 }}>{previewTime}</span>
               </div>
             </div>
           </div>
