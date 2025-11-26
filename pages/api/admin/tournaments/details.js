@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   try {
     await connectToDatabase();
 
+    // Admin check
     const player = await getCurrentPlayerFromReq(req);
     if (!player || !player.isAdmin) {
       return res
@@ -26,45 +27,43 @@ export default async function handler(req, res) {
       displayHost,
     } = req.body || {};
 
-    if (!tournamentId) {
+    if (!tournamentId || typeof tournamentId !== "string") {
       return res
         .status(400)
         .json({ ok: false, error: "tournamentId is required." });
     }
 
-    const t = await Tournament.findOne({ tournamentId });
-    if (!t) {
+    // Write into Tournament.meta using findOneAndUpdate
+    const update = {
+      $set: {
+        "meta.displayDescription": (displayDescription || "").trim(),
+        "meta.displayPrize": (displayPrize || "").trim(),
+        "meta.displayEntry": (displayEntry || "").trim(),
+        "meta.displayHost": (displayHost || "").trim(),
+      },
+    };
+
+    const doc = await Tournament.findOneAndUpdate(
+      { tournamentId },
+      update,
+      { new: true }
+    ).lean();
+
+    if (!doc) {
       return res
         .status(404)
         .json({ ok: false, error: "Tournament not found." });
     }
 
-    // Ensure meta object exists
-    t.meta = t.meta || {};
-
-    // Update fields (trim on the client, but safe to do again)
-    if (typeof displayDescription === "string") {
-      t.meta.displayDescription = displayDescription.trim();
-    }
-    if (typeof displayPrize === "string") {
-      t.meta.displayPrize = displayPrize.trim();
-    }
-    if (typeof displayEntry === "string") {
-      t.meta.displayEntry = displayEntry.trim();
-    }
-    if (typeof displayHost === "string") {
-      t.meta.displayHost = displayHost.trim();
-    }
-
-    await t.save();
+    const meta = doc.meta || {};
 
     return res.json({
       ok: true,
       meta: {
-        displayDescription: t.meta.displayDescription || "",
-        displayPrize: t.meta.displayPrize || "",
-        displayEntry: t.meta.displayEntry || "",
-        displayHost: t.meta.displayHost || "",
+        displayDescription: meta.displayDescription || "",
+        displayPrize: meta.displayPrize || "",
+        displayEntry: meta.displayEntry || "",
+        displayHost: meta.displayHost || "",
       },
     });
   } catch (err) {
