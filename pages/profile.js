@@ -90,7 +90,6 @@ const HOK_DIVISIONS_BY_TIER = {
   // Grandmaster family uses stars instead of divisions
 };
 
-// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req }) {
   // Parse cookie -> playerId
   const cookieHeader = req.headers.cookie || "";
@@ -127,29 +126,40 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  // 🔹 History + stats now come from tournamentHistory, not registeredFor
+  // ✅ COMPLETED HISTORY SOURCE: use player.tournamentHistory
   const rawHistory = Array.isArray(player.tournamentHistory)
     ? player.tournamentHistory
     : [];
 
+  // helper: turn "1st" or "5th-6th" into a number (1, 5, etc.)
+  function placementToNumber(placement) {
+    if (!placement) return null;
+    const str = String(placement).trim();
+    if (!str) return null;
+
+    // take the first part before "-" or "–"
+    const [front] = str.split(/[-–]/);
+    const num = parseInt(front, 10);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  }
+
   const played = rawHistory.length;
-  const wins = rawHistory.filter((h) => Number(h.placement) === 1).length;
-  const top4 = rawHistory.filter((h) => {
-    const p = Number(h.placement);
-    return p > 0 && p <= 4;
-  }).length;
+  let wins = 0;
+  let top4 = 0;
+  let bestFinish = null;
 
-  const bestFinishRaw = rawHistory.reduce((best, h) => {
-    const p = Number(h.placement);
-    if (!p || p <= 0) return best;
-    return Math.min(best, p);
-  }, Infinity);
-  const bestFinish =
-    Number.isFinite(bestFinishRaw) && bestFinishRaw !== Infinity
-      ? bestFinishRaw
-      : null;
+  for (const h of rawHistory) {
+    const n = placementToNumber(h.placement);
+    if (!n) continue;
 
-  // Normalize gameProfiles into a simple shape for the client (keyed by game code)
+    if (n === 1) wins += 1;
+    if (n <= 4) top4 += 1;
+    if (bestFinish === null || n < bestFinish) {
+      bestFinish = n;
+    }
+  }
+
+  // ---------- gameProfiles normalization ----------
   const rawProfiles = player.gameProfiles || {};
 
   function normalizeProfile(code) {
@@ -194,13 +204,16 @@ export async function getServerSideProps({ req }) {
         played,
         wins,
         top4,
-        bestFinish,
+        bestFinish: bestFinish,
       },
+      // history prop no longer needed for this page,
+      // but it's fine if your component ignores it.
       gameProfiles,
       initialFeaturedGames: featuredGames,
     },
   };
 }
+
 
 // ---------- MAIN COMPONENT ----------
 export default function Profile({
