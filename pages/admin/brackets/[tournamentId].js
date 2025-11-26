@@ -58,10 +58,20 @@ export async function getServerSideProps({ req, params }) {
     };
   });
 
+  // Main tournament doc
   const t = await Tournament.findOne({ tournamentId }).lean();
   const isPublished = !!t?.bracket?.isPublished;
 
-  // State + Featured + Homepage metadata
+  // --- DETAILS / HUB META (from Tournament.meta) ---
+  const meta = t?.meta || {};
+  const detailsMeta = {
+    displayDescription: meta.displayDescription || "",
+    displayPrize: meta.displayPrize || "",
+    displayEntry: meta.displayEntry || "",
+    displayHost: meta.displayHost || "",
+  };
+
+  // State + Featured + Homepage metadata (from TournamentState)
   let tournamentStatus = "ongoing";
   let isFeatured = false;
   let featuredMeta = {
@@ -101,6 +111,7 @@ export async function getServerSideProps({ req, params }) {
       tournamentStatus,
       isFeatured,
       featuredMeta,
+      detailsMeta, // ⭐ for details + hub cards
     },
   };
 }
@@ -623,6 +634,236 @@ function FeatureTournamentSection({ tournamentId, initialIsFeatured }) {
   );
 }
 
+// ---------- DETAILS & HUB FORM (Tournament.meta) ----------
+function DetailsHubForm({ tournamentId, initialMeta }) {
+  const [displayDescription, setDisplayDescription] = useState(
+    initialMeta?.displayDescription || ""
+  );
+  const [displayPrize, setDisplayPrize] = useState(
+    initialMeta?.displayPrize || ""
+  );
+  const [displayEntry, setDisplayEntry] = useState(
+    initialMeta?.displayEntry || ""
+  );
+  const [displayHost, setDisplayHost] = useState(
+    initialMeta?.displayHost || ""
+  );
+
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setMsg("");
+
+    try {
+      const res = await fetch("/api/admin/tournaments/details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tournamentId,
+          displayDescription: displayDescription.trim(),
+          displayPrize: displayPrize.trim(),
+          displayEntry: displayEntry.trim(),
+          displayHost: displayHost.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        setMsg(data.error || "Failed to save details.");
+      } else {
+        setMsg("Details + hub info saved.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMsg("Error saving details.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section
+      style={{
+        marginBottom: "1rem",
+        padding: "1rem 1.25rem",
+        borderRadius: "0.5rem",
+        background: "#020617",
+        border: "1px solid #1e293b",
+      }}
+    >
+      <h2
+        style={{
+          margin: 0,
+          marginBottom: "0.4rem",
+          fontSize: "1rem",
+          fontWeight: 600,
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          color: "#e5e7eb",
+        }}
+      >
+        Details &amp; Hub Cards
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          marginBottom: "0.6rem",
+          fontSize: "0.8rem",
+          color: "#9ca3af",
+        }}
+      >
+        Controls the <strong>tournament detail page</strong> and the{" "}
+        <strong>1v1 hub cards</strong> (description, entry fee, prize, host).
+      </p>
+
+      <form onSubmit={handleSave}>
+        {/* Description */}
+        <div style={{ marginBottom: "0.5rem" }}>
+          <label
+            style={{ display: "block", fontSize: "0.75rem", color: "#9ca3af" }}
+          >
+            Description
+          </label>
+          <textarea
+            value={displayDescription}
+            onChange={(e) => setDisplayDescription(e.target.value)}
+            rows={2}
+            placeholder="Short description shown under the title on the detail page and hub card."
+            style={{
+              width: "100%",
+              marginTop: "0.15rem",
+              padding: "6px 8px",
+              borderRadius: "4px",
+              border: "1px solid #334155",
+              background: "#020617",
+              color: "#e5e7eb",
+              fontSize: "0.85rem",
+              resize: "vertical",
+            }}
+          />
+        </div>
+
+        {/* Entry + Prize + Host */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+          <div style={{ flex: "1 1 140px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "#9ca3af",
+              }}
+            >
+              Entry (Fee)
+            </label>
+            <input
+              type="text"
+              value={displayEntry}
+              onChange={(e) => setDisplayEntry(e.target.value)}
+              placeholder="Free / $5 per player / Invite only"
+              style={{
+                width: "100%",
+                marginTop: "0.15rem",
+                padding: "6px 8px",
+                borderRadius: "4px",
+                border: "1px solid #334155",
+                background: "#020617",
+                color: "#e5e7eb",
+                fontSize: "0.85rem",
+              }}
+            />
+          </div>
+
+          <div style={{ flex: "1 1 160px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "#9ca3af",
+              }}
+            >
+              Prize
+            </label>
+            <input
+              type="text"
+              value={displayPrize}
+              onChange={(e) => setDisplayPrize(e.target.value)}
+              placeholder="$20 Valorant Gift Card / Skins / Cash prize"
+              style={{
+                width: "100%",
+                marginTop: "0.15rem",
+                padding: "6px 8px",
+                borderRadius: "4px",
+                border: "1px solid #334155",
+                background: "#020617",
+                color: "#e5e7eb",
+                fontSize: "0.85rem",
+              }}
+            />
+          </div>
+
+          <div style={{ flex: "1 1 160px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "#9ca3af",
+              }}
+            >
+              Hosted By
+            </label>
+            <input
+              type="text"
+              value={displayHost}
+              onChange={(e) => setDisplayHost(e.target.value)}
+              placeholder="5TQ / Winson / Friend's org"
+              style={{
+                width: "100%",
+                marginTop: "0.15rem",
+                padding: "6px 8px",
+                borderRadius: "4px",
+                border: "1px solid #334155",
+                background: "#020617",
+                color: "#e5e7eb",
+                fontSize: "0.85rem",
+              }}
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <button
+            type="submit"
+            disabled={saving}
+            className={styles["btn"]}
+            style={{
+              backgroundColor: "#22c55e",
+              borderColor: "#22c55e",
+              color: "#022c22",
+              fontSize: "0.8rem",
+              padding: "6px 12px",
+            }}
+          >
+            {saving ? "Saving..." : "Save Details + Hub"}
+          </button>
+          {msg && (
+            <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>{msg}</span>
+          )}
+        </div>
+      </form>
+    </section>
+  );
+}
+
 // ---------- HOMEPAGE FEATURED INFO FORM ----------
 function HomepageFeaturedForm({ tournamentId, initialMeta }) {
   const [displayName, setDisplayName] = useState(
@@ -913,6 +1154,7 @@ export default function BracketAdminPage({
   tournamentStatus,
   isFeatured,
   featuredMeta,
+  detailsMeta,
 }) {
   return (
     <div className={styles["admin-container"]}>
@@ -1006,6 +1248,7 @@ export default function BracketAdminPage({
         tournamentId={tournamentId}
         players={players}
         featuredMeta={featuredMeta}
+        detailsMeta={detailsMeta}
       />
     </div>
   );
@@ -1043,7 +1286,7 @@ function buildPairsFromIds(ids) {
 }
 
 // ---------- BRACKET EDITOR ----------
-function BracketEditor({ tournamentId, players, featuredMeta }) {
+function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
   const emptyFinalMatch = { player1Id: null, player2Id: null, winnerId: null };
   const [loading, setLoading] = useState(true);
 
@@ -1728,7 +1971,13 @@ function BracketEditor({ tournamentId, players, featuredMeta }) {
 
   return (
     <div className={styles["bracket-editor-wrapper"]}>
-      {/* NEW: homepage metadata form */}
+      {/* NEW: details + hub form */}
+      <DetailsHubForm
+        tournamentId={tournamentId}
+        initialMeta={detailsMeta}
+      />
+
+      {/* Homepage metadata form */}
       <HomepageFeaturedForm
         tournamentId={tournamentId}
         initialMeta={featuredMeta}
