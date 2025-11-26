@@ -5,20 +5,21 @@ import { useRouter } from "next/router";
 import styles from "../../../../styles/Valorant1v1.module.css";
 
 import { connectToDatabase } from "../../../../lib/mongodb";
-import TournamentState from "../../../../models/TournamentState";
+import Tournament from "../../../../models/Tournament"; // NEW
 import Player from "../../../../models/Player";
 
-// ----- SERVER SIDE: load all non-completed Valorant 1v1 tournaments -----
+// ----- SERVER SIDE: load Valorant 1v1 tournaments from Tournament collection -----
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // Right now we only care about tournaments that are not completed.
-  // Later you can tighten this with game/mode fields if you add them.
-  const states = await TournamentState.find({
-    status: { $ne: "completed" }, // "ongoing" or anything else that's not completed
-  }).lean();
+  // For now, grab ALL tournaments in the collection.
+  // Later, once new tournaments have fields like game/status,
+  // we can add filters like { game: "valorant" }.
+  const docs = await Tournament.find({})
+    .sort({ createdAt: -1 })
+    .lean();
 
-  if (!states || states.length === 0) {
+  if (!docs || docs.length === 0) {
     return {
       props: {
         tournaments: [],
@@ -28,37 +29,79 @@ export async function getServerSideProps() {
 
   const tournaments = [];
 
-  for (const s of states) {
-    const tid = s.tournamentId;
+  for (const doc of docs) {
+    const tid = doc.tournamentId;
 
     // Count how many players are registered for this tournament
     const registered = await Player.countDocuments({
       "registeredFor.tournamentId": tid,
     });
 
-    // You can later store capacity in Tournament or TournamentState.
-    // For now we default to 16.
-    const capacity = s.capacity || 16;
+    const capacity = doc.capacity || 16;
+
+    // If there's no status field yet, just default to "upcoming"
+    const status = doc.status || "upcoming";
+
+    const meta = doc.meta || {};
+
+    const displayName =
+      doc.name ||
+      meta.displayName ||
+      "Valorant Skirmish Tournament #1";
+
+    const displayDescription =
+      meta.displayDescription ||
+      "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.";
+
+    const displayTime =
+      meta.displayTime ||
+      "Nov 2, 2025";
+
+    const displayFormat =
+      meta.displayFormat ||
+      "1v1 • Double Elimination";
+
+    const displayCheckIn =
+      meta.displayCheckIn ||
+      "15 min before start";
+
+    const displayPrize =
+      meta.displayPrize ||
+      "$20 Valorant Gift Card";
+
+    const displayServer =
+      meta.displayServer ||
+      "NA (Custom)";
+
+    const displayMaps =
+      meta.displayMaps ||
+      "Skirmish A / B / C (random)";
+
+    const displayRules =
+      meta.displayRules ||
+      "No Cheats";
+
+    // For now, still point to your existing detail page.
+    // Later we'll change this to `/tournaments/${tid}` once we build that page.
+    const detailsUrl =
+      meta.detailsUrl ||
+      "/valorant";
 
     tournaments.push({
       tournamentId: tid,
-      status: s.status || "ongoing",
+      status,
       capacity,
       registered,
-
-      // Display fields with fallbacks to your old hard-coded copy
-      displayName: s.displayName || "Valorant Skirmish Tournament #1",
-      displayDescription:
-        s.displayDescription ||
-        "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.",
-      displayTime: s.displayTime || "Nov 2, 2025",
-      displayFormat: s.displayFormat || "1v1 • Double Elimination",
-      displayCheckIn: s.displayCheckIn || "15 min before start",
-      displayPrize: s.displayPrize || "$20 Valorant Gift Card",
-      displayServer: s.displayServer || "NA (Custom)",
-      displayMaps: s.displayMaps || "Skirmish A / B / C (random)",
-      displayRules: s.displayRules || "No Cheats",
-      detailsUrl: s.detailsUrl || "/valorant",
+      displayName,
+      displayDescription,
+      displayTime,
+      displayFormat,
+      displayCheckIn,
+      displayPrize,
+      displayServer,
+      displayMaps,
+      displayRules,
+      detailsUrl,
     });
   }
 
