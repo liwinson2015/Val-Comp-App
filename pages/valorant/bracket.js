@@ -69,15 +69,20 @@ export async function getServerSideProps() {
     playerDocs = await Player.find({ _id: { $in: objectIds } }).lean();
   }
 
+  // ⭐ NEW: look in both registeredFor (ongoing) and tournamentHistory (ended)
   const players = playerDocs.map((p) => {
-    const reg = (p.registeredFor || []).find(
+    const activeReg = (p.registeredFor || []).find(
       (r) => r.tournamentId === tournamentId
     );
+    const historyReg = (p.tournamentHistory || []).find(
+      (r) => r.tournamentId === tournamentId
+    );
+    const reg = activeReg || historyReg || null;
 
     return {
       _id: p._id.toString(),
       username: p.username || "",
-      ign: reg?.ign || "",
+      ign: reg?.ign || "", // prefer the IGN used for this tournament
     };
   });
 
@@ -289,10 +294,9 @@ export default function BracketPage({
 
   return (
     <div className={styles.shell}>
-      {/* ===== HEADER + RANKINGS (RESTORED FULL CONTENT) ===== */}
+      {/* ===== HEADER + RANKINGS ===== */}
       <div className={styles.contentWrap}>
         <div className={styles.headerGrid}>
-          
           {/* LEFT: Info Card */}
           <div className={styles.infoCard}>
             <h2 className={styles.tournamentTitle}>Championship Bracket</h2>
@@ -307,11 +311,12 @@ export default function BracketPage({
               </div>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Status</span>
-                <span className={`${styles.statValue} ${styles.statValueHighlight}`}>
+                <span
+                  className={`${styles.statValue} ${styles.statValueHighlight}`}
+                >
                   LIVE
                 </span>
               </div>
-              {/* RESTORED: Stream and Format boxes */}
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Stream</span>
                 <span className={styles.statValue}>5TQ_TV</span>
@@ -323,7 +328,7 @@ export default function BracketPage({
             </div>
           </div>
 
-          {/* RIGHT: Rankings (RESTORED FULL LIST) */}
+          {/* RIGHT: Rankings */}
           <div className={styles.rankingContainer}>
             <div className={styles.rankingHeader}>
               <span>Place</span>
