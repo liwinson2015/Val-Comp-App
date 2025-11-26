@@ -2,7 +2,7 @@
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-import styles from "../../styles/TournamentHistory.module.css";
+import styles from "../../styles/History.module.css";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
 function parseCookies(cookieHeader = "") {
