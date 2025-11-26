@@ -55,38 +55,28 @@ export async function getServerSideProps() {
       "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.";
 
     const displayTime =
-      meta.displayTime ||
-      "Nov 2, 2025";
+      meta.displayTime || "Nov 2, 2025";
 
     const displayFormat =
-      meta.displayFormat ||
-      "1v1 • Double Elimination";
+      meta.displayFormat || "1v1 • Double Elimination";
 
     const displayCheckIn =
-      meta.displayCheckIn ||
-      "15 min before start";
+      meta.displayCheckIn || "15 min before start";
 
     const displayPrize =
-      meta.displayPrize ||
-      "$20 Valorant Gift Card";
+      meta.displayPrize || "$20 Valorant Gift Card";
 
     const displayServer =
-      meta.displayServer ||
-      "NA (Custom)";
+      meta.displayServer || "NA (Custom)";
 
     const displayMaps =
-      meta.displayMaps ||
-      "Skirmish A / B / C (random)";
+      meta.displayMaps || "Skirmish A / B / C (random)";
 
     const displayRules =
-      meta.displayRules ||
-      "No Cheats";
+      meta.displayRules || "No Cheats";
 
-    // For now this still points to your existing detail route.
-    // Later we'll switch this to `/tournaments/${tid}` once we build that page.
-    const detailsUrl =
-      meta.detailsUrl ||
-      "/valorant";
+    // 🔗 NEW: always point to dynamic tournament page
+    const detailsUrl = `/tournaments/${tid}`;
 
     tournaments.push({
       tournamentId: tid,
