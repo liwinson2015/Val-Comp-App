@@ -55,28 +55,48 @@ export async function getServerSideProps() {
       "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.";
 
     const displayTime =
-      meta.displayTime || "Nov 2, 2025";
+      meta.displayTime ||
+      "Nov 2, 2025";
 
     const displayFormat =
-      meta.displayFormat || "1v1 • Double Elimination";
+      meta.displayFormat ||
+      meta.displayModeLabel || // in case you're using displayModeLabel instead
+      "1v1 • Double Elimination";
 
     const displayCheckIn =
-      meta.displayCheckIn || "15 min before start";
+      meta.displayCheckIn ||
+      "15 min before start";
 
     const displayPrize =
-      meta.displayPrize || "$20 Valorant Gift Card";
+      meta.displayPrize ||
+      "$20 Valorant Gift Card";
+
+    // 💵 NEW: entry / fee
+    const displayEntry =
+      meta.displayEntry ||
+      "Free";
+
+    // 👤 NEW: host name
+    const displayHost =
+      meta.displayHost ||
+      "5TQ";
 
     const displayServer =
-      meta.displayServer || "NA (Custom)";
+      meta.displayServer ||
+      "NA (Custom)";
 
     const displayMaps =
-      meta.displayMaps || "Skirmish A / B / C (random)";
+      meta.displayMaps ||
+      "Skirmish A / B / C (random)";
 
     const displayRules =
-      meta.displayRules || "No Cheats";
+      meta.displayRules ||
+      "No Cheats";
 
-    // 🔗 NEW: always point to dynamic tournament page
-    const detailsUrl = `/tournaments/${tid}`;
+    // Detail page: use meta override if present, else dynamic tournaments route
+    const detailsUrl =
+      meta.detailsUrl ||
+      `/tournaments/${tid}`;
 
     tournaments.push({
       tournamentId: tid,
@@ -89,6 +109,8 @@ export async function getServerSideProps() {
       displayFormat,
       displayCheckIn,
       displayPrize,
+      displayEntry,   // ⭐ include entry
+      displayHost,    // ⭐ include host
       displayServer,
       displayMaps,
       displayRules,
@@ -151,8 +173,10 @@ export default function Valorant1v1ListPage({ tournaments }) {
                       </div>
 
                       <p className={styles.tMeta}>
-                        Hosted by <span style={{ color: "#fff" }}>5TQ</span> •
-                        &nbsp;Starts {t.displayTime}
+                        Hosted by{" "}
+                        <span style={{ color: "#fff" }}>{t.displayHost}</span>
+                        {" • "}
+                        Starts {t.displayTime}
                       </p>
                     </header>
 
@@ -168,6 +192,12 @@ export default function Valorant1v1ListPage({ tournaments }) {
                         <div className={styles.factLabel}>Check-in</div>
                         <div className={styles.factValue}>
                           {t.displayCheckIn}
+                        </div>
+                      </div>
+                      <div className={styles.factRow}>
+                        <div className={styles.factLabel}>Entry</div>
+                        <div className={styles.factValue}>
+                          {t.displayEntry}
                         </div>
                       </div>
                       <div className={styles.factRow}>
