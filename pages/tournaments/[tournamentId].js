@@ -106,6 +106,9 @@ export async function getServerSideProps({ req, params }) {
       startsText = "November 2, 2025";
     }
 
+    // Status from Tournament doc (optional for now)
+    const status = tournamentDoc.status || "upcoming";
+
     return {
       props: {
         tournamentId,
@@ -115,6 +118,8 @@ export async function getServerSideProps({ req, params }) {
         displaySubtitle,
         heroBadge,
         startsText,
+        status,
+        isFull, // initial full flag from server
       },
     };
   } catch (err) {
@@ -129,6 +134,8 @@ export async function getServerSideProps({ req, params }) {
           "Solo skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.",
         heroBadge: "Valorant 1v1",
         startsText: "TBD",
+        status: "upcoming",
+        isFull: false,
       },
     };
   }
@@ -143,6 +150,8 @@ export default function TournamentDetailPage({
   displaySubtitle,
   heroBadge,
   startsText,
+  status,
+  isFull,
 }) {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -195,10 +204,28 @@ export default function TournamentDetailPage({
     };
   }, [tournamentId]);
 
+  // Compute full status on the client as well (in case slots change)
+  const effectiveIsFull =
+    slotsUsed != null && slotsCapacity != null
+      ? slotsUsed >= slotsCapacity
+      : !!isFull;
+
+  // Decide the status chip label + color
+  let statusLabel = "OPEN";
+  let statusColor = "#22c55e";
+
+  if (status === "completed") {
+    statusLabel = "COMPLETED";
+    statusColor = "#9ca3af";
+  } else if (effectiveIsFull) {
+    statusLabel = "FULL";
+    statusColor = "#f97316";
+  }
+
   // Decide what the red button should do
   let registerHref = `/valorant/register`; // still using existing register page
   let registerLabel = "Register now";
-  let disabled = false;
+  let buttonDisabled = false;
 
   if (!loggedIn) {
     registerHref = `/api/auth/discord?next=${encodeURIComponent(
@@ -208,7 +235,17 @@ export default function TournamentDetailPage({
   } else if (isRegistered) {
     registerHref = "/account/registrations";
     registerLabel = "View my registration";
-    disabled = false;
+    buttonDisabled = false;
+  }
+
+  // Override behavior if tournament is FULL or COMPLETED
+  if (status === "completed") {
+    registerLabel = "Tournament completed";
+    buttonDisabled = true;
+  } else if (effectiveIsFull && !isRegistered) {
+    // full and you're not registered
+    registerLabel = "Tournament full";
+    buttonDisabled = true;
   }
 
   return (
@@ -286,12 +323,12 @@ export default function TournamentDetailPage({
                 style={{
                   fontSize: "0.8rem",
                   fontWeight: 600,
-                  color: "#22c55e",
+                  color: statusColor,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
                 }}
               >
-                OPEN
+                {statusLabel}
               </div>
               <div
                 style={{
@@ -411,7 +448,7 @@ export default function TournamentDetailPage({
                 <a
                   href={registerHref}
                   onClick={(e) => {
-                    if (disabled || loading) e.preventDefault();
+                    if (buttonDisabled || loading) e.preventDefault();
                   }}
                   style={{
                     display: "inline-flex",
@@ -421,22 +458,22 @@ export default function TournamentDetailPage({
                     padding: "0.75rem 1rem",
                     borderRadius: "0.7rem",
                     backgroundColor:
-                      disabled || loading ? "#4b5563" : "#ff0046",
+                      buttonDisabled || loading ? "#4b5563" : "#ff0046",
                     color: "white",
                     fontWeight: 600,
                     fontSize: "0.9rem",
                     border: "none",
                     textDecoration: "none",
                     boxShadow:
-                      disabled || loading
+                      buttonDisabled || loading
                         ? "none"
                         : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
                     cursor:
-                      disabled || loading ? "not-allowed" : "pointer",
-                    opacity: disabled || loading ? 0.6 : 1,
+                      buttonDisabled || loading ? "not-allowed" : "pointer",
+                    opacity: buttonDisabled || loading ? 0.6 : 1,
                     transition: "background-color .15s",
                   }}
-                  aria-disabled={disabled || loading}
+                  aria-disabled={buttonDisabled || loading}
                 >
                   {loading ? "Checking status…" : registerLabel}
                 </a>
