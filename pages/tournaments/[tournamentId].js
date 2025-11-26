@@ -100,6 +100,12 @@ export async function getServerSideProps({ req, params }) {
       legacy.displayPrize ||
       "$20 Valorant Gift Card";
 
+    // Entry / fee: meta → legacy → default
+    const displayEntry =
+      meta.displayEntry ||
+      legacy.displayEntry ||
+      "Free";
+
     // Nicely formatted start time:
     // prefer meta.displayTime, then legacy.start, and format either if it looks like a date
     let startsText = "TBD";
@@ -125,8 +131,9 @@ export async function getServerSideProps({ req, params }) {
         heroBadge,
         startsText,
         status,
-        isFull,      // initial full flag from server
-        displayPrize // ⭐ pass prize down
+        isFull,       // initial full flag from server
+        displayPrize, // dynamic prize
+        displayEntry, // ⭐ dynamic entry / fee
       },
     };
   } catch (err) {
@@ -144,6 +151,7 @@ export async function getServerSideProps({ req, params }) {
         status: "upcoming",
         isFull: false,
         displayPrize: "$20 Valorant Gift Card",
+        displayEntry: "Free",
       },
     };
   }
@@ -160,7 +168,8 @@ export default function TournamentDetailPage({
   startsText,
   status,
   isFull,
-  displayPrize, // ⭐ coming from server
+  displayPrize,
+  displayEntry, // ⭐ coming from server
 }) {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -385,8 +394,8 @@ export default function TournamentDetailPage({
                 ["Map", "Randomized: Skirmish A / B / C"],
                 ["Server", "NA (custom lobby)"],
                 ["Check-in", "15 minutes before start (Discord)"],
-                ["Entry", "Free"],
-                // ⭐ Prize now comes from DB / form
+                // 💵 NEW: entry + prize both dynamic
+                ["Entry", displayEntry],
                 ["Prize", displayPrize],
               ].map(([label, value]) => (
                 <div

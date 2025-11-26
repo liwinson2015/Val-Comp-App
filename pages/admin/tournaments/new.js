@@ -69,12 +69,13 @@ export default function AdminCreateTournamentPage() {
   const [mode, setMode] = useState("");        // "1v1", "2v2", "5v5"
   const [elimType, setElimType] = useState(""); // "single" | "double"
 
-  // display name + description + prize
+  // display name + description + prize + entry
   const [displayName, setDisplayName] = useState("");
   const [displayDescription, setDisplayDescription] = useState(
     "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket."
   );
-  const [prize, setPrize] = useState(""); // required, but not prepopulated
+  const [prize, setPrize] = useState("");  // required, but not prepopulated
+  const [entry, setEntry] = useState("");  // ⭐ NEW: entry / fee text
 
   // date / time pieces (empty initially)
   const [month, setMonth] = useState("");   // 1–12
@@ -156,6 +157,10 @@ export default function AdminCreateTournamentPage() {
       setErrorMsg("Prize is required.");
       return;
     }
+    if (!entry.trim()) {
+      setErrorMsg("Entry / fee is required.");
+      return;
+    }
     if (!game) {
       setErrorMsg("Game is required.");
       return;
@@ -210,7 +215,8 @@ export default function AdminCreateTournamentPage() {
           displayTime,
           displayGameLabel,
           displayModeLabel,
-          displayPrize: prize.trim(), // ⭐ NEW: send prize to backend
+          displayPrize: prize.trim(),
+          displayEntry: entry.trim(), // ⭐ send entry / fee to backend
         }),
       });
 
@@ -503,6 +509,22 @@ export default function AdminCreateTournamentPage() {
             />
           </div>
 
+          {/* Entry / fee */}
+          <div>
+            <label
+              style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
+            >
+              Entry / Fee
+            </label>
+            <input
+              type="text"
+              value={entry}
+              onChange={(e) => setEntry(e.target.value)}
+              placeholder='e.g. "Free" or "$5 via PayPal"'
+              style={inputStyle}
+            />
+          </div>
+
           {/* Display Time: Date */}
           <div>
             <label
@@ -596,7 +618,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={ampm}
                   onChange={(e) => setAmpm(e.target.value)}
-                  style={{ ...inputStyle, minWidth: "96px" }} // ⭐ wider AM/PM
+                  style={{ ...inputStyle, minWidth: "96px" }} // wider AM/PM
                 >
                   <option value="">AM/PM</option>
                   <option value="AM">AM</option>
