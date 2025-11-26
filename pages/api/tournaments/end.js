@@ -91,6 +91,23 @@ export default async function handler(req, res) {
     ).lean();
 
     // -------------------------------------------------------------------
+    // 1.5) NEW: Update the main Tournament doc so the frontend sees it
+    // -------------------------------------------------------------------
+    const tournamentUpdate = {
+      status: "completed",
+      endedAt,
+    };
+
+    if (winnerTeamId && typeof winnerTeamId === "string") {
+      tournamentUpdate.winnerTeamId = winnerTeamId;
+    }
+
+    await Tournament.updateOne(
+      { tournamentId },
+      { $set: tournamentUpdate }
+    );
+
+    // -------------------------------------------------------------------
     // 2) Update all registrations for this tournament
     // -------------------------------------------------------------------
     await Registration.updateMany(

@@ -5,6 +5,7 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
 import Registration from "../../../models/Registration";
 import Player from "../../../models/Player";
+import Tournament from "../../../models/Tournament";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -54,6 +55,20 @@ export default async function handler(req, res) {
       },
       { upsert: true, new: true }
     ).lean();
+
+    // 1.5) NEW: Update the main Tournament doc so the frontend sees it as active again
+    await Tournament.updateOne(
+      { tournamentId },
+      {
+        $set: {
+          status: "ongoing",
+        },
+        $unset: {
+          endedAt: "",
+          winnerTeamId: "",
+        },
+      }
+    );
 
     // 2) Set registrations back to active
     await Registration.updateMany(
