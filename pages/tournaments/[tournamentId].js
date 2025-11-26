@@ -9,6 +9,25 @@ import { getCurrentPlayerFromReq } from "../../lib/getCurrentPlayer";
 
 const FALLBACK_CAPACITY = 16;
 
+// Helper to format ISO-ish strings nicely; otherwise return as-is
+function formatMaybeDate(input) {
+  if (!input || typeof input !== "string") return input;
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) {
+    // not a real date, just return the original string
+    return input;
+  }
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone: "America/New_York", // change if you want different default tz
+  });
+}
+
 // ---------- SERVER SIDE: block page if FULL *and* user not registered ----------
 export async function getServerSideProps({ req, params }) {
   const { tournamentId } = params;
@@ -75,31 +94,15 @@ export async function getServerSideProps({ req, params }) {
       legacy.game ||
       "Valorant 1v1";
 
-    // Nicely formatted start time
+    // Nicely formatted start time:
+    // prefer meta.displayTime, then legacy.start, and format either if it looks like a date
     let startsText = "TBD";
 
     if (meta.displayTime) {
-      // If it's an ISO date, format it nicely
-      const d = new Date(meta.displayTime);
-      if (!Number.isNaN(d.getTime())) {
-        startsText = d.toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          timeZoneName: "short",
-          timeZone: "America/New_York", // adjust if you want a different default tz
-        });
-      } else {
-        // If it's already a nice manual string, just use it
-        startsText = meta.displayTime;
-      }
+      startsText = formatMaybeDate(meta.displayTime);
     } else if (legacy.start) {
-      // fall back to legacy catalog field
-      startsText = legacy.start;
+      startsText = formatMaybeDate(legacy.start);
     } else {
-      // final fallback
       startsText = "November 2, 2025";
     }
 
