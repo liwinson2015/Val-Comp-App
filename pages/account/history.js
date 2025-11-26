@@ -2,8 +2,9 @@
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-import styles from "../../styles/History.module.css";
-import { tournamentsById as catalog } from "../../lib/tournaments";
+import TournamentState from "../../models/TournamentState";
+import Tournament from "../../models/Tournament";
+import styles from "../../styles/TournamentHistory.module.css";
 
 function parseCookies(cookieHeader = "") {
   return Object.fromEntries(
@@ -44,57 +45,137 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  const rawHistory = Array.isArray(player.tournamentHistory)
+  const history = Array.isArray(player.tournamentHistory)
     ? player.tournamentHistory
     : [];
 
-  const history = rawHistory
-    .map((h) => {
-      const id = h.tournamentId || h.id || "";
-      const meta = catalog[id] || {};
+  if (history.length === 0) {
+    return {
+      props: {
+        rows: [],
+      },
+    };
+  }
 
-      const start = meta.start || h.endedAt || h.date || null;
+  // Unique tournamentIds from history
+  const tournamentIds = Array.from(
+    new Set(
+      history
+        .map((h) => h.tournamentId)
+        .filter((id) => typeof id === "string" && id.trim())
+    )
+  );
+
+  // Read TournamentState for label info
+  const states = await TournamentState.find({
+    tournamentId: { $in: tournamentIds },
+  }).lean();
+
+  const stateById = {};
+  for (const s of states) {
+    stateById[s.tournamentId] = s;
+  }
+
+  // Also read Tournament for fallback name/game/mode if you want
+  const tournaments = await Tournament.find({
+    tournamentId: { $in: tournamentIds },
+  }).lean();
+
+  const tourneyById = {};
+  for (const t of tournaments) {
+    tourneyById[t.tournamentId] = t;
+  }
+
+  const rows = history
+    .map((entry) => {
+      const tId = entry.tournamentId || "";
+      const state = stateById[tId] || null;
+      const tourney = tourneyById[tId] || null;
+
+      const name =
+        (state && state.displayName) ||
+        (tourney && tourney.name) ||
+        tId ||
+        "Tournament";
+
+      const game =
+        (state && state.displayGameLabel) ||
+        (tourney && tourney.game) ||
+        "Game";
+
+      const mode =
+        (state && state.displayModeLabel) ||
+        (tourney && tourney.meta && tourney.meta.mode) ||
+        "";
+
+      const endedAt =
+        entry.endedAt ||
+        (state && state.endedAt) ||
+        (tourney && tourney.updatedAt) ||
+        null;
+
+      const dateStr = endedAt
+        ? new Date(endedAt).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : "—";
+
+      const placement = entry.placement || "";
+
+      // IGN – keep your fullIgn if present
+      const ign = entry.fullIgn || entry.ign || "";
+
+      // View results URL:
+      // Prefer TournamentState.ctaPath, otherwise fallback.
+      // For now, if nothing is set but this is your 1v1 skirmish,
+      // we default to /valorant/bracket.
+      let viewUrl = "#";
+      if (state && state.ctaPath && state.ctaPath.trim()) {
+        viewUrl = state.ctaPath.trim();
+      } else if (tId === "VALO-SOLO-SKIRMISH-1") {
+        viewUrl = "/valorant/bracket";
+      }
 
       return {
-        id,
-        name: meta.name || h.name || "Tournament",
-        game: meta.game || h.game || "Valorant",
-        mode: meta.mode || h.mode || "—",
-        start,
-        placement: h.placement || "",
-        ign: h.ign || "",
-        bracketUrl: meta.bracketUrl || h.bracketUrl || "#",
+        tournamentId: tId,
+        name,
+        game,
+        mode,
+        ign,
+        placement,
+        dateStr,
+        viewUrl,
+        rawEndedAt: endedAt ? new Date(endedAt).getTime() : 0,
       };
     })
-    .sort((a, b) => {
-      const da = a.start ? new Date(a.start).getTime() : 0;
-      const db = b.start ? new Date(b.start).getTime() : 0;
-      return db - da;
-    });
+    // sort newest first
+    .sort((a, b) => b.rawEndedAt - a.rawEndedAt);
 
   return {
     props: {
-      history,
+      rows,
     },
   };
 }
 
-export default function TournamentHistoryPage({ history }) {
-  const count = history.length;
+export default function TournamentHistoryPage({ rows }) {
+  const count = rows.length;
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Hero */}
+        {/* Hero header */}
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>// PLAYER_HISTORY</div>
-          <h1 className={styles.heroTitle}>Tournament History</h1>
+          <div className={styles.heroBadge}>// TOURNAMENT_HISTORY</div>
+          <h1 className={styles.heroTitle}>Match Records</h1>
           <p className={styles.heroSubtitle}>
-            View your past events, placements, and results.
+            View your past events, placements, and jump back into the results.
           </p>
         </section>
 
-        {/* Header with count */}
+        {/* Header row with count */}
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>
             Completed Tournaments
@@ -102,59 +183,74 @@ export default function TournamentHistoryPage({ history }) {
           </div>
         </div>
 
-        {/* History table */}
         {count === 0 ? (
           <div className={styles.emptyState}>
-            <h2>No completed tournaments yet</h2>
+            <h2>No finished tournaments yet</h2>
             <p>
-              Once brackets are ended, they will appear here with your placement.
+              Once a bracket is completed, you&apos;ll see your history and
+              placements here.
             </p>
           </div>
         ) : (
-          <div className={styles.tableCard}>
-            {/* Header row */}
-            <div className={styles.tableHeadRow}>
-              <div>Name</div>
-              <div>Game</div>
-              <div>ID</div>
-              <div>IGN</div>
-              <div>Placement</div>
-              <div>Date</div>
-              <div className={styles.headResults}>Results</div>
+          <div className={styles.table}>
+            {/* Table header */}
+            <div className={`${styles.row} ${styles.headerRow}`}>
+              <div className={styles.colName}>Name</div>
+              <div className={styles.colGame}>Game</div>
+              <div className={styles.colId}>ID</div>
+              <div className={styles.colIgn}>IGN</div>
+              <div className={styles.colPlacement}>Placement</div>
+              <div className={styles.colDate}>Date</div>
+              <div className={styles.colActions}></div>
             </div>
 
-            {/* Rows */}
-            {history.map((h) => {
-              const dateStr = h.start
-                ? new Date(h.start).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })
+            {/* Table body */}
+            {rows.map((r) => {
+              const shortId = r.tournamentId
+                ? r.tournamentId.slice(0, 10)
                 : "—";
 
-              const hasBracket = h.bracketUrl && h.bracketUrl !== "#";
+              // simple highlight for top placements
+              let placementClass = styles.placementTag;
+              if (r.placement.startsWith("1st")) {
+                placementClass = `${styles.placementTag} ${styles.gold}`;
+              } else if (r.placement.startsWith("2nd")) {
+                placementClass = `${styles.placementTag} ${styles.silver}`;
+              } else if (r.placement.startsWith("3rd")) {
+                placementClass = `${styles.placementTag} ${styles.bronze}`;
+              }
 
               return (
-                <div key={h.id + dateStr} className={styles.tableRow}>
-                  <div className={styles.cellName}>{h.name}</div>
-                  <div className={styles.cellGame}>{h.game}</div>
-                  <div className={styles.cellId}>{h.id || "—"}</div>
-                  <div className={styles.cellIgn}>{h.ign || "—"}</div>
-                  <div className={styles.cellPlacement}>
-                    {h.placement || "—"}
+                <div key={`${r.tournamentId}-${r.dateStr}`} className={styles.row}>
+                  <div className={styles.colName}>
+                    <div className={styles.mainName}>{r.name}</div>
+                    {r.mode && (
+                      <div className={styles.subInfo}>{r.mode}</div>
+                    )}
                   </div>
-                  <div className={styles.cellDate}>{dateStr}</div>
-                  <div className={styles.cellResults}>
-                    {hasBracket ? (
+                  <div className={styles.colGame}>{r.game}</div>
+                  <div className={styles.colId}>
+                    <span className={styles.idChip}>{shortId}</span>
+                  </div>
+                  <div className={styles.colIgn}>{r.ign || "—"}</div>
+                  <div className={styles.colPlacement}>
+                    {r.placement ? (
+                      <span className={placementClass}>{r.placement}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </div>
+                  <div className={styles.colDate}>{r.dateStr}</div>
+                  <div className={styles.colActions}>
+                    {r.viewUrl && r.viewUrl !== "#" && (
                       <a
-                        href={h.bracketUrl}
-                        className={styles.btnPrimary}
+                        href={r.viewUrl}
+                        className={styles.viewBtn}
+                        target="_blank"
+                        rel="noreferrer"
                       >
                         View Results
                       </a>
-                    ) : (
-                      <span className={styles.btnSecondary}>No Bracket</span>
                     )}
                   </div>
                 </div>
@@ -163,11 +259,10 @@ export default function TournamentHistoryPage({ history }) {
           </div>
         )}
 
-        {/* Footer */}
         <footer className={styles.footer}>
-          <div>VALCOMP // COMPETITIVE PLATFORM</div>
+          <div>VALCOMP // TOURNAMENT HISTORY</div>
           <div style={{ opacity: 0.5, marginTop: 5 }}>
-            Past results are locked once brackets are ended.
+            Brackets are archived when tournaments end.
           </div>
         </footer>
       </div>
