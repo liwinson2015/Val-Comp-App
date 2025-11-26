@@ -5,17 +5,18 @@ import { useRouter } from "next/router";
 import styles from "../../../../styles/Valorant1v1.module.css";
 
 import { connectToDatabase } from "../../../../lib/mongodb";
-import Tournament from "../../../../models/Tournament"; // NEW
+import Tournament from "../../../../models/Tournament";
 import Player from "../../../../models/Player";
 
 // ----- SERVER SIDE: load Valorant 1v1 tournaments from Tournament collection -----
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // For now, grab ALL tournaments in the collection.
-  // Later, once new tournaments have fields like game/status,
-  // we can add filters like { game: "valorant" }.
-  const docs = await Tournament.find({})
+  // Show all tournaments that are NOT completed.
+  // If a doc has no status yet, it will be included (treated as upcoming).
+  const docs = await Tournament.find({
+    status: { $ne: "completed" },
+  })
     .sort({ createdAt: -1 })
     .lean();
 
@@ -39,7 +40,7 @@ export async function getServerSideProps() {
 
     const capacity = doc.capacity || 16;
 
-    // If there's no status field yet, just default to "upcoming"
+    // Read status directly (default to "upcoming" if missing)
     const status = doc.status || "upcoming";
 
     const meta = doc.meta || {};
@@ -81,8 +82,8 @@ export async function getServerSideProps() {
       meta.displayRules ||
       "No Cheats";
 
-    // For now, still point to your existing detail page.
-    // Later we'll change this to `/tournaments/${tid}` once we build that page.
+    // For now this still points to your existing detail route.
+    // Later we'll switch this to `/tournaments/${tid}` once we build that page.
     const detailsUrl =
       meta.detailsUrl ||
       "/valorant";
