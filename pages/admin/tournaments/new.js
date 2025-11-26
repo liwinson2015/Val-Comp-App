@@ -69,11 +69,12 @@ export default function AdminCreateTournamentPage() {
   const [mode, setMode] = useState("");        // "1v1", "2v2", "5v5"
   const [elimType, setElimType] = useState(""); // "single" | "double"
 
-  // display name + description
+  // display name + description + prize
   const [displayName, setDisplayName] = useState("");
   const [displayDescription, setDisplayDescription] = useState(
     "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket."
   );
+  const [prize, setPrize] = useState(""); // required, but not prepopulated
 
   // date / time pieces (empty initially)
   const [month, setMonth] = useState("");   // 1–12
@@ -151,6 +152,10 @@ export default function AdminCreateTournamentPage() {
       setErrorMsg("Display Description is required.");
       return;
     }
+    if (!prize.trim()) {
+      setErrorMsg("Prize is required.");
+      return;
+    }
     if (!game) {
       setErrorMsg("Game is required.");
       return;
@@ -205,6 +210,7 @@ export default function AdminCreateTournamentPage() {
           displayTime,
           displayGameLabel,
           displayModeLabel,
+          displayPrize: prize.trim(), // ⭐ NEW: send prize to backend
         }),
       });
 
@@ -481,6 +487,22 @@ export default function AdminCreateTournamentPage() {
             />
           </div>
 
+          {/* Prize */}
+          <div>
+            <label
+              style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
+            >
+              Prize
+            </label>
+            <input
+              type="text"
+              value={prize}
+              onChange={(e) => setPrize(e.target.value)}
+              placeholder="$20 Valorant Gift Card / Skin / Cash prize"
+              style={inputStyle}
+            />
+          </div>
+
           {/* Display Time: Date */}
           <div>
             <label
@@ -535,7 +557,7 @@ export default function AdminCreateTournamentPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.6fr 1.2fr 1.7fr",
+                gridTemplateColumns: "1.8fr 1.2fr 1.8fr",
                 gap: "0.75rem",
               }}
             >
@@ -543,7 +565,7 @@ export default function AdminCreateTournamentPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1.2fr 1.2fr 1.2fr",
+                  gridTemplateColumns: "1.1fr 1.1fr 1.4fr",
                   gap: "0.4rem",
                 }}
               >
@@ -574,7 +596,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={ampm}
                   onChange={(e) => setAmpm(e.target.value)}
-                  style={{ ...inputStyle, minWidth: "72px" }}
+                  style={{ ...inputStyle, minWidth: "96px" }} // ⭐ wider AM/PM
                 >
                   <option value="">AM/PM</option>
                   <option value="AM">AM</option>
@@ -587,7 +609,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  style={{ ...inputStyle, minWidth: "100px" }}
+                  style={{ ...inputStyle, minWidth: "110px" }}
                 >
                   <option value="">Time zone</option>
                   {TIMEZONES.map((tz) => (
