@@ -225,7 +225,7 @@ export default function Navbar() {
                     style={dropdownItem}
                     onClick={() => setProfileOpen(false)}
                   >
-                    Tournament History
+                    Match History
                   </a>
                   <a
                     href="/api/auth/logout"
