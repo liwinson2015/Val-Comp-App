@@ -1,7 +1,8 @@
+// pages/account/registrations.js
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-// Ensure this points to the new CSS module we just made
+import TournamentState from "../../models/TournamentState"; // NEW
 import styles from "../../styles/Registrations.module.css";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
@@ -45,20 +46,81 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  const rawRegs = Array.isArray(player.registeredFor) ? player.registeredFor : [];
+  const rawRegs = Array.isArray(player.registeredFor)
+    ? player.registeredFor
+    : [];
+
+  // --- NEW: pull TournamentState for these tournamentIds ---
+  const tournamentIds = [
+    ...new Set(
+      rawRegs
+        .map((r) => r.tournamentId || r.id || "")
+        .filter((id) => !!id)
+    ),
+  ];
+
+  let statesById = {};
+  if (tournamentIds.length > 0) {
+    const states = await TournamentState.find({
+      tournamentId: { $in: tournamentIds },
+    }).lean();
+
+    statesById = states.reduce((acc, s) => {
+      if (s.tournamentId) {
+        acc[s.tournamentId] = s;
+      }
+      return acc;
+    }, {});
+  }
 
   const registrations = rawRegs.map((r) => {
     const id = r.tournamentId || r.id || "";
     const meta = catalog[id] || {};
+    const state = statesById[id] || {};
+
+    // ---- STATUS from TournamentState.status ----
+    const rawStatus =
+      state.status || r.status || meta.status || "ongoing";
+
+    let statusLabel = "Active";
+    if (rawStatus === "completed") statusLabel = "Completed";
+    else if (rawStatus === "upcoming") statusLabel = "Upcoming";
+    else statusLabel = "Active";
+
+    // ---- NAME from TournamentState.displayName (fallback to old behavior) ----
+    const name =
+      state.displayName ||
+      meta.name ||
+      r.name ||
+      "Tournament";
+
+    // ---- GAME (for now still from catalog/player) ----
+    const game = meta.game || r.game || "Valorant";
+
+    // ---- FORMAT / MODE from TournamentState.displayModeLabel ----
+    const mode =
+      state.displayModeLabel ||
+      meta.mode ||
+      r.mode ||
+      "5v5";
+
+    // ---- START TIME: use state.startTime if you add it later, otherwise fall back ----
+    const start =
+      state.startTime || meta.start || r.start || null;
+
+    // ---- URLs (unchanged, still from catalog or registration) ----
+    const detailsUrl = meta.detailsUrl || r.detailsUrl || "#";
+    const bracketUrl = meta.bracketUrl || r.bracketUrl || "#";
+
     return {
       id,
-      name: meta.name || r.name || "Tournament",
-      game: meta.game || r.game || "Valorant",
-      mode: meta.mode || r.mode || "5v5",
-      status: meta.status || r.status || "Active",
-      start: meta.start || r.start || null,
-      detailsUrl: meta.detailsUrl || r.detailsUrl || "#",
-      bracketUrl: meta.bracketUrl || r.bracketUrl || "#",
+      name,
+      game,
+      mode,
+      status: statusLabel,
+      start,
+      detailsUrl,
+      bracketUrl,
     };
   });
 
@@ -149,7 +211,9 @@ export default function MyRegistrations({ registrations }) {
         {/* Footer */}
         <footer className={styles.footer}>
           <div>VALCOMP // COMPETITIVE PLATFORM</div>
-          <div style={{ opacity: 0.5, marginTop: 5 }}>© 2025 ALL RIGHTS RESERVED</div>
+          <div style={{ opacity: 0.5, marginTop: 5 }}>
+            © 2025 ALL RIGHTS RESERVED
+          </div>
         </footer>
       </div>
     </div>
