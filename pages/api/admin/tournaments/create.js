@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       displayTime,
       displayGameLabel,
       displayModeLabel,
+      displayPrize, // ⭐ NEW: prize coming from the admin form
     } = req.body || {};
 
     // 3) Minimal validation
@@ -83,6 +84,10 @@ export default async function handler(req, res) {
         displayTime: displayTime || "",
         displayGameLabel: displayGameLabel || "VALORANT 1v1",
         displayModeLabel: displayModeLabel || "1v1 • Double Elimination",
+        // ⭐ NEW: store prize so 1v1 hub / detail can use it
+        displayPrize:
+          displayPrize ||
+          "$20 Valorant Gift Card",
       },
 
       // bracket is created with its default empty structure from the schema

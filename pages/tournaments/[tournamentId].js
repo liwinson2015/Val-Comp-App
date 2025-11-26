@@ -94,6 +94,12 @@ export async function getServerSideProps({ req, params }) {
       legacy.game ||
       "Valorant 1v1";
 
+    // Prize: read from meta, then legacy, then default
+    const displayPrize =
+      meta.displayPrize ||
+      legacy.displayPrize ||
+      "$20 Valorant Gift Card";
+
     // Nicely formatted start time:
     // prefer meta.displayTime, then legacy.start, and format either if it looks like a date
     let startsText = "TBD";
@@ -119,7 +125,8 @@ export async function getServerSideProps({ req, params }) {
         heroBadge,
         startsText,
         status,
-        isFull, // initial full flag from server
+        isFull,      // initial full flag from server
+        displayPrize // ⭐ pass prize down
       },
     };
   } catch (err) {
@@ -136,6 +143,7 @@ export async function getServerSideProps({ req, params }) {
         startsText: "TBD",
         status: "upcoming",
         isFull: false,
+        displayPrize: "$20 Valorant Gift Card",
       },
     };
   }
@@ -152,6 +160,7 @@ export default function TournamentDetailPage({
   startsText,
   status,
   isFull,
+  displayPrize, // ⭐ coming from server
 }) {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -377,7 +386,8 @@ export default function TournamentDetailPage({
                 ["Server", "NA (custom lobby)"],
                 ["Check-in", "15 minutes before start (Discord)"],
                 ["Entry", "Free"],
-                ["Prize", "Skin (TBD) + bragging rights"],
+                // ⭐ Prize now comes from DB / form
+                ["Prize", displayPrize],
               ].map(([label, value]) => (
                 <div
                   key={label}
