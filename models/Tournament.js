@@ -59,21 +59,37 @@ const BracketSchema = new Schema(
       default: [],
     },
 
-    // ✅ NEW: Winners bracket final (upper final)
+    // ✅ Winners bracket final (upper final)
     winnersFinal: {
       type: MatchSchema,
       default: null,
     },
 
-    // ✅ NEW: Losers bracket final
+    // ✅ Losers bracket final
     losersFinal: {
       type: MatchSchema,
       default: null,
     },
 
-    // ✅ NEW: True grand final (winner of WB vs winner of LB)
+    // ✅ True grand final (winner of WB vs winner of LB)
     grandFinal: {
       type: MatchSchema,
+      default: null,
+    },
+
+    // ✅ NEW: ranking / placements (1st–16th buckets)
+    // {
+    //   first: ObjectId | null,
+    //   second: ObjectId | null,
+    //   third: ObjectId | null,
+    //   fourth: ObjectId | null,
+    //   fiveToSix: [ObjectId],
+    //   sevenToEight: [ObjectId],
+    //   nineToTwelve: [ObjectId],
+    //   thirteenToSixteen: [ObjectId]
+    // }
+    ranking: {
+      type: Schema.Types.Mixed,
       default: null,
     },
   },
