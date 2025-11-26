@@ -111,11 +111,15 @@ export async function getServerSideProps({ req }) {
         null,
 
       // links
+      // ✅ CHANGE: prefer catalog / registration detailsUrl over state.ctaPath
+      // This ensures registered players always go to the real details page
+      // (e.g. /valorant) instead of the generic 1v1 hub.
       detailsUrl:
-        state.ctaPath ||
         meta.detailsUrl ||
         r.detailsUrl ||
+        state.ctaPath ||
         "#",
+
       bracketUrl:
         meta.bracketUrl ||
         r.bracketUrl ||
