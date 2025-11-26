@@ -31,7 +31,6 @@ export async function getServerSideProps({ req }) {
 
   await connectToDatabase();
   const totalPlayers = await Player.countDocuments({});
-  // const totalTournaments = 0; 
 
   return {
     props: {
@@ -58,7 +57,8 @@ export default function AdminDashboard({ player, stats }) {
         <div>
           <h1 className={styles.title}>Dashboard</h1>
           <p className={styles.subtitle}>
-            Command Center for <span className={styles.highlight}>{player.username}</span>
+            Command Center for{" "}
+            <span className={styles.highlight}>{player.username}</span>
           </p>
         </div>
         <div className={styles.badge}>Admin Access</div>
@@ -67,19 +67,20 @@ export default function AdminDashboard({ player, stats }) {
       <main className={styles.grid}>
         {/* LEFT: Account Info */}
         <section className={styles.card}>
-          <h2 className={styles.cardTitle}>
-             Current Session
-          </h2>
-          
+          <h2 className={styles.cardTitle}>Current Session</h2>
+
           <div className={styles.cardMeta}>
-            <span>Username:</span> <span className={styles.bold}>{player.username}</span>
+            <span>Username:</span>{" "}
+            <span className={styles.bold}>{player.username}</span>
           </div>
           <div className={styles.cardMeta}>
-            <span>Discord ID:</span> <span className={styles.mono}>{player.discordId}</span>
+            <span>Discord ID:</span>{" "}
+            <span className={styles.mono}>{player.discordId}</span>
           </div>
           {player.email && (
             <div className={styles.cardMeta}>
-              <span>Email:</span> <span className={styles.mono}>{player.email}</span>
+              <span>Email:</span>{" "}
+              <span className={styles.mono}>{player.email}</span>
             </div>
           )}
 
@@ -90,7 +91,12 @@ export default function AdminDashboard({ player, stats }) {
             </div>
             <div className={styles.statBox}>
               <div className={styles.statLabel}>Active Events</div>
-              <div className={styles.statValue} style={{ color: '#64748b' }}>0</div>
+              <div
+                className={styles.statValue}
+                style={{ color: "#64748b" }}
+              >
+                0
+              </div>
             </div>
           </div>
 
@@ -128,15 +134,19 @@ export default function AdminDashboard({ player, stats }) {
               <span>👥</span> Manage Players
             </button>
 
-            <button className={styles.disabledButton} disabled>
-              🏆 Create Tournament (Soon)
+            {/* NEW: live link to the create-tournament form */}
+            <button
+              className={styles.secondaryButton}
+              onClick={() => router.push("/admin/tournaments/new")}
+            >
+              <span>🏆</span> Create Tournament
             </button>
-            
+
             <button className={styles.disabledButton} disabled>
               📢 Broadcast (Soon)
             </button>
           </div>
-          
+
           <div className={styles.helperText}>
             More features coming in v2.0
           </div>
