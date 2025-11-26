@@ -107,7 +107,7 @@ export default function AdminBracketsPage({ tournaments }) {
     <main className="admin-shell">
       <section className="admin-header">
         <div className="admin-breadcrumb">Admin / Brackets</div>
-        <h1 className="admin-title">Manage Brackets</h1>
+        <h1 className="admin-title">Manage Tournaments</h1>
         <p className="admin-subtitle">
           Choose a tournament to see everyone registered and build or edit the
           bracket.
