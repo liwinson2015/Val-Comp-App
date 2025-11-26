@@ -3,12 +3,38 @@ import React, { useState } from "react";
 import { useRouter } from "next/router";
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 
+// ---- constants for dropdowns ----
+const GAME_OPTIONS = [
+  { value: "valorant", label: "VALORANT" },
+  { value: "tft", label: "TFT" },
+  { value: "hok", label: "HONOR OF KINGS" },
+];
+
+const MONTHS = [
+  { value: 1, short: "Jan", label: "January" },
+  { value: 2, short: "Feb", label: "February" },
+  { value: 3, short: "Mar", label: "March" },
+  { value: 4, short: "Apr", label: "April" },
+  { value: 5, short: "May", label: "May" },
+  { value: 6, short: "Jun", label: "June" },
+  { value: 7, short: "Jul", label: "July" },
+  { value: 8, short: "Aug", label: "August" },
+  { value: 9, short: "Sep", label: "September" },
+  { value: 10, short: "Oct", label: "October" },
+  { value: 11, short: "Nov", label: "November" },
+  { value: 12, short: "Dec", label: "December" },
+];
+
+const YEARS = Array.from({ length: 26 }, (_, i) => 2025 + i);
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTES = ["00", "15", "30", "45"];
+const TIMEZONES = ["EST", "CST", "MST", "PST", "UTC"];
+
 // ---- SERVER SIDE: admin gate ----
 export async function getServerSideProps({ req }) {
   const player = await getCurrentPlayerFromReq(req);
 
   if (!player) {
-    // not logged in → go login, then come back here
     const next = "/admin/tournaments/new";
     return {
       redirect: {
@@ -19,7 +45,6 @@ export async function getServerSideProps({ req }) {
   }
 
   if (!player.isAdmin) {
-    // logged in but not admin → send away (you can change destination)
     return {
       redirect: {
         destination: "/",
@@ -29,7 +54,7 @@ export async function getServerSideProps({ req }) {
   }
 
   return {
-    props: {}, // no extra props needed yet
+    props: {},
   };
 }
 
@@ -38,24 +63,47 @@ export default function AdminCreateTournamentPage() {
   const router = useRouter();
 
   const [tournamentId, setTournamentId] = useState("");
-  const [name, setName] = useState("");
-  const [game, setGame] = useState("valorant");
   const [capacity, setCapacity] = useState(16);
 
+  // game + mode + type
+  const [game, setGame] = useState("valorant");
+  const [mode, setMode] = useState("1v1"); // 1v1, 2v2, 5v5
+  const [elimType, setElimType] = useState("double"); // single | double
+
+  // display name + description
   const [displayName, setDisplayName] = useState("");
   const [displayDescription, setDisplayDescription] = useState(
     "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket."
   );
-  const [displayTime, setDisplayTime] = useState("");
-  const [displayGameLabel, setDisplayGameLabel] = useState("VALORANT 1v1");
-  const [displayModeLabel, setDisplayModeLabel] = useState(
-    "1v1 • Double Elimination"
-  );
+
+  // date / time pieces
+  const [month, setMonth] = useState(11); // default November
+  const [day, setDay] = useState(2);
+  const [year, setYear] = useState(2025);
+  const [hour, setHour] = useState(7);
+  const [minute, setMinute] = useState("00");
+  const [ampm, setAmpm] = useState("PM");
+  const [timezone, setTimezone] = useState("EST");
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [createdId, setCreatedId] = useState("");
+
+  function buildDisplayTime() {
+    const mInfo = MONTHS.find((m) => m.value === Number(month));
+    const shortMonth = mInfo ? mInfo.short : "Jan";
+
+    const d = Number(day) || 1;
+    const y = Number(year) || 2025;
+    const h = Number(hour) || 7;
+    const mm = minute.toString().padStart(2, "0");
+    const tz = timezone || "EST";
+    const ap = ampm === "AM" || ampm === "PM" ? ampm : "PM";
+
+    // Example: "Nov 25, 2025 • 7:00PM EST"
+    return `${shortMonth} ${d}, ${y} • ${h}:${mm}${ap} ${tz}`;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -64,9 +112,28 @@ export default function AdminCreateTournamentPage() {
     setCreatedId("");
 
     if (!tournamentId.trim()) {
-      setErrorMsg("tournamentId is required.");
+      setErrorMsg("Tournament ID is required.");
       return;
     }
+
+    if (!displayName.trim()) {
+      setErrorMsg("Display Name is required.");
+      return;
+    }
+
+    const trimmedId = tournamentId.trim();
+
+    // build displayTime string from pieces
+    const displayTime = buildDisplayTime();
+
+    // figure out game label (for pill)
+    const gameOpt = GAME_OPTIONS.find((g) => g.value === game);
+    const gameLabel = gameOpt ? gameOpt.label : game.toUpperCase();
+
+    const displayGameLabel = `${gameLabel} ${mode}`;
+    const elimText =
+      elimType === "double" ? "Double Elimination" : "Single Elimination";
+    const displayModeLabel = `${mode} • ${elimText}`;
 
     setSubmitting(true);
     try {
@@ -76,11 +143,13 @@ export default function AdminCreateTournamentPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tournamentId: tournamentId.trim(),
-          name,
+          tournamentId: trimmedId,
+          // we don't expose separate internal name; use displayName as name
+          name: displayName.trim(),
           game,
           capacity: Number(capacity),
-          displayName,
+
+          displayName: displayName.trim(),
           displayDescription,
           displayTime,
           displayGameLabel,
@@ -93,7 +162,7 @@ export default function AdminCreateTournamentPage() {
       if (!data.ok) {
         setErrorMsg(data.error || "Failed to create tournament.");
       } else {
-        const tid = data.tournament?.tournamentId || tournamentId.trim();
+        const tid = data.tournament?.tournamentId || trimmedId;
         setCreatedId(tid);
         setSuccessMsg(`Tournament "${tid}" created successfully.`);
       }
@@ -259,28 +328,14 @@ export default function AdminCreateTournamentPage() {
             </div>
           </div>
 
-          {/* Row: name + game */}
+          {/* Row: game + mode */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1.8fr 1.2fr",
+              gridTemplateColumns: "1.4fr 1.1fr 1.1fr",
               gap: "0.75rem",
             }}
           >
-            <div>
-              <label
-                style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
-              >
-                Internal Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Valorant Skirmish Tournament #2"
-                style={inputStyle}
-              />
-            </div>
             <div>
               <label
                 style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
@@ -292,9 +347,44 @@ export default function AdminCreateTournamentPage() {
                 onChange={(e) => setGame(e.target.value)}
                 style={inputStyle}
               >
-                <option value="valorant">Valorant</option>
-                <option value="tft">TFT</option>
-                <option value="hok">Honor of Kings</option>
+                {GAME_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
+              >
+                Mode
+              </label>
+              <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="1v1">1v1</option>
+                <option value="2v2">2v2</option>
+                <option value="5v5">5v5</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
+              >
+                Type
+              </label>
+              <select
+                value={elimType}
+                onChange={(e) => setElimType(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="single">Single Elimination</option>
+                <option value="double">Double Elimination</option>
               </select>
             </div>
           </div>
@@ -304,7 +394,7 @@ export default function AdminCreateTournamentPage() {
             <label
               style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
             >
-              Display Name (card title)
+              Display Name
             </label>
             <input
               type="text"
@@ -334,66 +424,130 @@ export default function AdminCreateTournamentPage() {
             />
           </div>
 
-          {/* Display time */}
+          {/* Display Time: Date */}
           <div>
             <label
               style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
             >
-              Display Time (can be ISO or text)
+              Display Time
             </label>
-            <input
-              type="text"
-              value={displayTime}
-              onChange={(e) => setDisplayTime(e.target.value)}
-              placeholder='e.g. "2025-11-30T19:00:00-05:00" or "Nov 30, 7 PM EST"'
-              style={inputStyle}
-            />
-            <p
+            <div
               style={{
-                margin: "0.35rem 0 0",
-                fontSize: "0.75rem",
-                color: "#9ca3af",
+                display: "grid",
+                gridTemplateColumns: "1.4fr 0.8fr 0.8fr",
+                gap: "0.75rem",
+                marginBottom: "0.5rem",
               }}
             >
-              If it looks like a date, the details page will format it nicely.
-            </p>
-          </div>
-
-          {/* Labels */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
-            }}
-          >
-            <div>
-              <label
-                style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
-              >
-                Game Label (pill)
-              </label>
-              <input
-                type="text"
-                value={displayGameLabel}
-                onChange={(e) => setDisplayGameLabel(e.target.value)}
-                placeholder="VALORANT 1v1"
+              <select
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
                 style={inputStyle}
+              >
+                {MONTHS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+                style={inputStyle}
+                placeholder="Day"
               />
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                style={inputStyle}
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div>
-              <label
-                style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
+
+            {/* Time row */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1.2fr",
+                gap: "0.75rem",
+              }}
+            >
+              {/* Hour:Minute + AM/PM */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "0.4rem",
+                }}
               >
-                Mode Label
-              </label>
-              <input
-                type="text"
-                value={displayModeLabel}
-                onChange={(e) => setDisplayModeLabel(e.target.value)}
-                placeholder="1v1 • Double Elimination"
-                style={inputStyle}
-              />
+                <select
+                  value={hour}
+                  onChange={(e) => setHour(e.target.value)}
+                  style={inputStyle}
+                >
+                  {HOURS.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={minute}
+                  onChange={(e) => setMinute(e.target.value)}
+                  style={inputStyle}
+                >
+                  {MINUTES.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={ampm}
+                  onChange={(e) => setAmpm(e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+
+              {/* Timezone */}
+              <div>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  style={inputStyle}
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#9ca3af",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                Saved as:{" "}
+                <span style={{ marginLeft: 4, fontWeight: 500 }}>
+                  {buildDisplayTime()}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -448,7 +602,7 @@ export default function AdminCreateTournamentPage() {
   );
 }
 
-// shared inline style so inputs look consistent
+// shared inline style so inputs and selects look consistent
 const inputStyle = {
   width: "100%",
   padding: "0.5rem 0.6rem",
