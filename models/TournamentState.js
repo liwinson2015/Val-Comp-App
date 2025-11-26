@@ -10,7 +10,6 @@ const TournamentStateSchema = new mongoose.Schema(
     isFeatured: { type: Boolean, default: false },
 
     // Logical status of the tournament
-    // (you can set this in your feature / end routes)
     status: {
       type: String,
       enum: ["upcoming", "ongoing", "completed"],
@@ -30,6 +29,9 @@ const TournamentStateSchema = new mongoose.Schema(
     // Short description text under the title
     displayDescription: { type: String, default: "" },
 
+    // Host / organizer name
+    displayHost: { type: String, default: "" },
+
     // Start time / date string (human readable)
     displayTime: { type: String, default: "" },
 
@@ -37,7 +39,7 @@ const TournamentStateSchema = new mongoose.Schema(
     displayGameLabel: { type: String, default: "" },
     displayModeLabel: { type: String, default: "" },
 
-    // Where the "Claim your spot" button should send players
+    // Where the button should send players
     ctaPath: { type: String, default: "" },
   },
   { timestamps: true }

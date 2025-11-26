@@ -37,8 +37,9 @@ export default async function handler(req, res) {
       displayTime,
       displayGameLabel,
       displayModeLabel,
-      displayPrize,   // already added earlier
-      displayEntry,   // ⭐ NEW: entry / fee text from the form
+      displayPrize,
+      displayEntry,
+      displayHost,
     } = req.body || {};
 
     // 3) Minimal validation
@@ -48,7 +49,6 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "tournamentId (string) is required" });
     }
 
-    // Optional: keep IDs uppercase to be consistent
     const trimmedId = tournamentId.trim();
     if (!trimmedId) {
       return res
@@ -69,15 +69,22 @@ export default async function handler(req, res) {
     const capacityValue =
       typeof capacity === "number" && capacity > 0 ? capacity : 16;
 
+    const fallbackPrize =
+      displayPrize ||
+      "Skin / Gift Card (set in admin)";
+    const fallbackEntry = displayEntry || "Free";
+    const fallbackHost = displayHost || "5TQ";
+
     const tDoc = {
       tournamentId: trimmedId,
       name: name || displayName || trimmedId,
       game: game || "valorant",
       capacity: capacityValue,
-      status: "upcoming", // default lifecycle status
+      status: "upcoming",
+
+      host: fallbackHost, // optional top-level host
 
       meta: {
-        // These are optional; your pages already fall back if missing
         displayName: displayName || name || "",
         displayDescription:
           displayDescription ||
@@ -85,19 +92,15 @@ export default async function handler(req, res) {
         displayTime: displayTime || "",
         displayGameLabel: displayGameLabel || "VALORANT 1v1",
         displayModeLabel: displayModeLabel || "1v1 • Double Elimination",
-        // 💰 Prize & Entry wired from form
-        displayPrize:
-          displayPrize || "$20 Valorant Gift Card",
-        displayEntry:
-          displayEntry || "Free",
+        displayPrize: fallbackPrize,
+        displayEntry: fallbackEntry,
+        displayHost: fallbackHost,
       },
-
-      // bracket is created with its default empty structure from the schema
     };
 
     const createdTournament = await Tournament.create(tDoc);
 
-    // 5) Create / upsert matching TournamentState for homepage / hub usage
+    // 5) Create / upsert matching TournamentState
     const stateUpdate = {
       tournamentId: trimmedId,
       status: "upcoming",
@@ -110,11 +113,11 @@ export default async function handler(req, res) {
       displayDescription:
         displayDescription ||
         "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.",
+      displayHost: fallbackHost,
       displayTime: displayTime || "",
       displayGameLabel: displayGameLabel || "VALORANT • 1v1",
       displayModeLabel: displayModeLabel || "1v1 • Double Elimination",
 
-      // CTA path can point to the dynamic tournament detail page
       ctaPath: `/tournaments/${trimmedId}`,
     };
 
@@ -124,7 +127,7 @@ export default async function handler(req, res) {
       { upsert: true, new: true }
     ).lean();
 
-    // 6) Respond with cleaned docs
+    // 6) Respond
     return res.status(200).json({
       ok: true,
       tournament: {

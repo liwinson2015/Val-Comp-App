@@ -61,30 +61,30 @@ export default function AdminCreateTournamentPage() {
   const router = useRouter();
 
   const [tournamentId, setTournamentId] = useState("");
-  // capacity starts EMPTY; you must type something
   const [capacity, setCapacity] = useState("");
 
-  // game + mode + type (start empty so nothing is prepopulated)
+  // game + mode + type
   const [game, setGame] = useState("");        // "valorant", "tft", ...
   const [mode, setMode] = useState("");        // "1v1", "2v2", "5v5"
   const [elimType, setElimType] = useState(""); // "single" | "double"
 
-  // display name + description + prize + entry
+  // display name + description + prize + entry + host
   const [displayName, setDisplayName] = useState("");
   const [displayDescription, setDisplayDescription] = useState(
     "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket."
   );
-  const [prize, setPrize] = useState("");  // required, but not prepopulated
-  const [entry, setEntry] = useState("");  // ⭐ NEW: entry / fee text
+  const [prize, setPrize] = useState("");
+  const [entry, setEntry] = useState("");
+  const [host, setHost] = useState(""); // ⭐ NEW: Host / organizer
 
-  // date / time pieces (empty initially)
-  const [month, setMonth] = useState("");   // 1–12
-  const [day, setDay] = useState("");       // 1–31
-  const [year, setYear] = useState("");     // 2025–2050
-  const [hour, setHour] = useState("");     // 1–12
-  const [minute, setMinute] = useState(""); // "00", "15", "30", "45"
-  const [ampm, setAmpm] = useState("");     // "AM" | "PM"
-  const [timezone, setTimezone] = useState(""); // "EST" etc.
+  // date / time pieces
+  const [month, setMonth] = useState("");
+  const [day, setDay] = useState("");
+  const [year, setYear] = useState("");
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("");
+  const [ampm, setAmpm] = useState("");
+  const [timezone, setTimezone] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -161,6 +161,10 @@ export default function AdminCreateTournamentPage() {
       setErrorMsg("Entry / fee is required.");
       return;
     }
+    if (!host.trim()) {
+      setErrorMsg("Host / organizer is required.");
+      return;
+    }
     if (!game) {
       setErrorMsg("Game is required.");
       return;
@@ -206,7 +210,6 @@ export default function AdminCreateTournamentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tournamentId: trimmedId,
-          // no separate internal name: use displayName
           name: displayName.trim(),
           game,
           capacity: capNum,
@@ -216,7 +219,8 @@ export default function AdminCreateTournamentPage() {
           displayGameLabel,
           displayModeLabel,
           displayPrize: prize.trim(),
-          displayEntry: entry.trim(), // ⭐ send entry / fee to backend
+          displayEntry: entry.trim(),
+          displayHost: host.trim(), // ⭐ send host to backend
         }),
       });
 
@@ -474,6 +478,22 @@ export default function AdminCreateTournamentPage() {
             />
           </div>
 
+          {/* Host */}
+          <div>
+            <label
+              style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
+            >
+              Host / Organizer
+            </label>
+            <input
+              type="text"
+              value={host}
+              onChange={(e) => setHost(e.target.value)}
+              placeholder='e.g. "5TQ", "Winson", or "Winson & Friends"'
+              style={inputStyle}
+            />
+          </div>
+
           {/* Description */}
           <div>
             <label
@@ -525,7 +545,7 @@ export default function AdminCreateTournamentPage() {
             />
           </div>
 
-          {/* Display Time: Date */}
+          {/* Display Time: Date + Time */}
           <div>
             <label
               style={{ display: "block", fontSize: "0.8rem", marginBottom: 4 }}
@@ -618,7 +638,7 @@ export default function AdminCreateTournamentPage() {
                 <select
                   value={ampm}
                   onChange={(e) => setAmpm(e.target.value)}
-                  style={{ ...inputStyle, minWidth: "96px" }} // wider AM/PM
+                  style={{ ...inputStyle, minWidth: "96px" }}
                 >
                   <option value="">AM/PM</option>
                   <option value="AM">AM</option>

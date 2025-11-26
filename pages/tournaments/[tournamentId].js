@@ -94,6 +94,12 @@ export async function getServerSideProps({ req, params }) {
       legacy.game ||
       "Valorant 1v1";
 
+    // Host: meta → legacy → default "5TQ"
+    const displayHost =
+      meta.displayHost ||
+      legacy.displayHost ||
+      "5TQ";
+
     // Prize: read from meta, then legacy, then default
     const displayPrize =
       meta.displayPrize ||
@@ -131,9 +137,10 @@ export async function getServerSideProps({ req, params }) {
         heroBadge,
         startsText,
         status,
-        isFull,       // initial full flag from server
-        displayPrize, // dynamic prize
-        displayEntry, // ⭐ dynamic entry / fee
+        isFull,        // initial full flag from server
+        displayPrize,  // dynamic prize
+        displayEntry,  // dynamic entry / fee
+        displayHost,   // ⭐ dynamic host
       },
     };
   } catch (err) {
@@ -152,6 +159,7 @@ export async function getServerSideProps({ req, params }) {
         isFull: false,
         displayPrize: "$20 Valorant Gift Card",
         displayEntry: "Free",
+        displayHost: "5TQ",
       },
     };
   }
@@ -169,7 +177,8 @@ export default function TournamentDetailPage({
   status,
   isFull,
   displayPrize,
-  displayEntry, // ⭐ coming from server
+  displayEntry,
+  displayHost, // ⭐ coming from server
 }) {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -369,7 +378,7 @@ export default function TournamentDetailPage({
                 color: "#9ca3af",
               }}
             >
-              <div>Hosted by 5TQ</div>
+              <div>Hosted by {displayHost}</div>
               <div>Starts {startsText}</div>
             </div>
           </div>
@@ -394,7 +403,7 @@ export default function TournamentDetailPage({
                 ["Map", "Randomized: Skirmish A / B / C"],
                 ["Server", "NA (custom lobby)"],
                 ["Check-in", "15 minutes before start (Discord)"],
-                // 💵 NEW: entry + prize both dynamic
+                // 💵 dynamic entry + prize
                 ["Entry", displayEntry],
                 ["Prize", displayPrize],
               ].map(([label, value]) => (
