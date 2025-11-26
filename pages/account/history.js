@@ -2,7 +2,7 @@
 import React from "react";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
-import styles from "../../styles/Registrations.module.css";
+import styles from "../../styles/History.module.css";
 import { tournamentsById as catalog } from "../../lib/tournaments";
 
 function parseCookies(cookieHeader = "") {
@@ -21,7 +21,6 @@ export async function getServerSideProps({ req }) {
   const cookies = parseCookies(req.headers.cookie || "");
   const playerId = cookies.playerId || null;
 
-  // Require login
   if (!playerId) {
     const next = "/account/history";
     return {
@@ -49,17 +48,12 @@ export async function getServerSideProps({ req }) {
     ? player.tournamentHistory
     : [];
 
-  // Enrich from catalog + sort newest → oldest
   const history = rawHistory
     .map((h) => {
       const id = h.tournamentId || h.id || "";
       const meta = catalog[id] || {};
 
-      const start =
-        meta.start ||
-        h.endedAt ||
-        h.date ||
-        null;
+      const start = meta.start || h.endedAt || h.date || null;
 
       return {
         id,
@@ -67,8 +61,9 @@ export async function getServerSideProps({ req }) {
         game: meta.game || h.game || "Valorant",
         mode: meta.mode || h.mode || "—",
         start,
-        placement: h.placement || "",       // "1st", "5th-6th", etc.
+        placement: h.placement || "",
         ign: h.ign || "",
+        bracketUrl: meta.bracketUrl || h.bracketUrl || "#",
       };
     })
     .sort((a, b) => {
@@ -77,47 +72,20 @@ export async function getServerSideProps({ req }) {
       return db - da;
     });
 
-  // Simple stats for header
-  const played = history.length;
-  const wins = history.filter((h) => h.placement && h.placement.startsWith("1")).length;
-  const top4 = history.filter((h) => {
-    if (!h.placement) return false;
-    // crude: treat anything starting with "1st", "2nd", "3rd", "4th" or "1st-4th" as top4
-    return /^([1-4]th|[1-4]st|[1-4]nd|[1-4]rd)/.test(h.placement) || h.placement.includes("1st-4th");
-  }).length;
-
-  let bestPlacement = null;
-  history.forEach((h) => {
-    if (!h.placement) return;
-    const match = h.placement.match(/^(\d+)/);
-    if (!match) return;
-    const num = Number(match[1]);
-    if (!Number.isFinite(num)) return;
-    if (bestPlacement === null || num < bestPlacement) {
-      bestPlacement = num;
-    }
-  });
-
   return {
     props: {
       history,
-      stats: {
-        played,
-        wins,
-        top4,
-        bestPlacement: bestPlacement,
-      },
     },
   };
 }
 
-export default function TournamentHistoryPage({ history, stats }) {
+export default function TournamentHistoryPage({ history }) {
   const count = history.length;
 
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* Hero Section */}
+        {/* Hero */}
         <section className={styles.hero}>
           <div className={styles.heroBadge}>// PLAYER_HISTORY</div>
           <h1 className={styles.heroTitle}>Tournament History</h1>
@@ -126,7 +94,7 @@ export default function TournamentHistoryPage({ history, stats }) {
           </p>
         </section>
 
-        {/* Header stats row */}
+        {/* Header with count */}
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>
             Completed Tournaments
@@ -134,31 +102,28 @@ export default function TournamentHistoryPage({ history, stats }) {
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "0.75rem",
-            flexWrap: "wrap",
-            marginBottom: "1rem",
-          }}
-        >
-          <StatPill label="Tournaments" value={stats.played} />
-          <StatPill label="Wins" value={stats.wins} />
-          <StatPill label="Top 4 Finishes" value={stats.top4} />
-          <StatPill
-            label="Best Placement"
-            value={stats.bestPlacement ? `#${stats.bestPlacement}` : "—"}
-          />
-        </div>
-
-        {/* History Grid */}
+        {/* History table */}
         {count === 0 ? (
           <div className={styles.emptyState}>
             <h2>No completed tournaments yet</h2>
-            <p>Once brackets are ended, they will appear here with your placement.</p>
+            <p>
+              Once brackets are ended, they will appear here with your placement.
+            </p>
           </div>
         ) : (
-          <div className={styles.grid}>
+          <div className={styles.tableCard}>
+            {/* Header row */}
+            <div className={styles.tableHeadRow}>
+              <div>Name</div>
+              <div>Game</div>
+              <div>ID</div>
+              <div>IGN</div>
+              <div>Placement</div>
+              <div>Date</div>
+              <div className={styles.headResults}>Results</div>
+            </div>
+
+            {/* Rows */}
             {history.map((h) => {
               const dateStr = h.start
                 ? new Date(h.start).toLocaleDateString("en-US", {
@@ -168,61 +133,29 @@ export default function TournamentHistoryPage({ history, stats }) {
                   })
                 : "—";
 
+              const hasBracket = h.bracketUrl && h.bracketUrl !== "#";
+
               return (
-                <div key={h.id + dateStr} className={styles.card}>
-                  {/* Top row: game + placement */}
-                  <div className={styles.cardStatusRow}>
-                    <div className={styles.statusIndicator}>
-                      <span className={styles.statusDot}></span>
-                      Completed
-                    </div>
-                    <div className={styles.gameIcon}>{h.game}</div>
+                <div key={h.id + dateStr} className={styles.tableRow}>
+                  <div className={styles.cellName}>{h.name}</div>
+                  <div className={styles.cellGame}>{h.game}</div>
+                  <div className={styles.cellId}>{h.id || "—"}</div>
+                  <div className={styles.cellIgn}>{h.ign || "—"}</div>
+                  <div className={styles.cellPlacement}>
+                    {h.placement || "—"}
                   </div>
-
-                  {/* Body */}
-                  <div className={styles.cardBody}>
-                    <h2 className={styles.cardTitle}>{h.name}</h2>
-                    <span className={styles.cardId}>ID: {h.id}</span>
-
-                    <div className={styles.cardStats}>
-                      <div className={styles.statItem}>
-                        <span className={styles.statLabel}>Format</span>
-                        <span className={styles.statValue}>{h.mode}</span>
-                      </div>
-                      <div className={styles.statItem}>
-                        <span className={styles.statLabel}>Date</span>
-                        <span className={styles.statValue}>{dateStr}</span>
-                      </div>
-                      <div className={styles.statItem}>
-                        <span className={styles.statLabel}>Placement</span>
-                        <span className={styles.statValue}>
-                          {h.placement || "—"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {h.ign && (
-                      <div
-                        style={{
-                          marginTop: "0.4rem",
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted, #9ca3af)",
-                        }}
+                  <div className={styles.cellDate}>{dateStr}</div>
+                  <div className={styles.cellResults}>
+                    {hasBracket ? (
+                      <a
+                        href={h.bracketUrl}
+                        className={styles.btnPrimary}
                       >
-                        Played as <span style={{ fontFamily: "monospace" }}>{h.ign}</span>
-                      </div>
+                        View Results
+                      </a>
+                    ) : (
+                      <span className={styles.btnSecondary}>No Bracket</span>
                     )}
-                  </div>
-
-                  {/* Footer */}
-                  <div className={styles.cardActions}>
-                    {/* Later we can add links to VODs / stats / etc */}
-                    <span
-                      className={styles.btnSecondary}
-                      style={{ cursor: "default", opacity: 0.7 }}
-                    >
-                      History entry
-                    </span>
                   </div>
                 </div>
               );
@@ -238,25 +171,6 @@ export default function TournamentHistoryPage({ history, stats }) {
           </div>
         </footer>
       </div>
-    </div>
-  );
-}
-
-function StatPill({ label, value }) {
-  return (
-    <div
-      style={{
-        padding: "0.4rem 0.75rem",
-        borderRadius: "999px",
-        border: "1px solid rgba(148,163,184,0.6)",
-        fontSize: "0.8rem",
-        display: "flex",
-        alignItems: "center",
-        gap: "0.35rem",
-      }}
-    >
-      <span style={{ color: "#9ca3af" }}>{label}</span>
-      <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
   );
 }
