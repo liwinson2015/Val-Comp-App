@@ -65,10 +65,10 @@ export default function AdminCreateTournamentPage() {
   const [tournamentId, setTournamentId] = useState("");
   const [capacity, setCapacity] = useState(16);
 
-  // game + mode + type
-  const [game, setGame] = useState("valorant");
-  const [mode, setMode] = useState("1v1"); // 1v1, 2v2, 5v5
-  const [elimType, setElimType] = useState("double"); // single | double
+  // game + mode + type (start empty so nothing is prepopulated)
+  const [game, setGame] = useState("");        // "valorant", "tft", ...
+  const [mode, setMode] = useState("");        // "1v1", "2v2", "5v5"
+  const [elimType, setElimType] = useState(""); // "single" | "double"
 
   // display name + description
   const [displayName, setDisplayName] = useState("");
@@ -76,33 +76,52 @@ export default function AdminCreateTournamentPage() {
     "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket."
   );
 
-  // date / time pieces
-  const [month, setMonth] = useState(11); // default November
-  const [day, setDay] = useState(2);
-  const [year, setYear] = useState(2025);
-  const [hour, setHour] = useState(7);
-  const [minute, setMinute] = useState("00");
-  const [ampm, setAmpm] = useState("PM");
-  const [timezone, setTimezone] = useState("EST");
+  // date / time pieces (empty initially)
+  const [month, setMonth] = useState("");   // 1–12
+  const [day, setDay] = useState("");       // 1–31
+  const [year, setYear] = useState("");     // 2025–2050
+  const [hour, setHour] = useState("");     // 1–12
+  const [minute, setMinute] = useState(""); // "00", "15", "30", "45"
+  const [ampm, setAmpm] = useState("");     // "AM" | "PM"
+  const [timezone, setTimezone] = useState(""); // "EST" etc.
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [createdId, setCreatedId] = useState("");
 
-  function buildDisplayTime() {
+  function buildDisplayTimePreview() {
+    if (
+      !month ||
+      !day ||
+      !year ||
+      !hour ||
+      !minute ||
+      !ampm ||
+      !timezone
+    ) {
+      return "—";
+    }
+
     const mInfo = MONTHS.find((m) => m.value === Number(month));
-    const shortMonth = mInfo ? mInfo.short : "Jan";
+    const shortMonth = mInfo ? mInfo.short : "???";
 
     const d = Number(day) || 1;
-    const y = Number(year) || 2025;
-    const h = Number(hour) || 7;
+    const y = Number(year);
+    const h = Number(hour);
     const mm = minute.toString().padStart(2, "0");
-    const tz = timezone || "EST";
-    const ap = ampm === "AM" || ampm === "PM" ? ampm : "PM";
+    const tz = timezone;
+    const ap = ampm;
 
-    // Example: "Nov 25, 2025 • 7:00PM EST"
     return `${shortMonth} ${d}, ${y} • ${h}:${mm}${ap} ${tz}`;
+  }
+
+  function buildDisplayTimeFinal() {
+    const preview = buildDisplayTimePreview();
+    if (preview === "—") {
+      return "";
+    }
+    return preview;
   }
 
   async function handleSubmit(e) {
@@ -115,22 +134,45 @@ export default function AdminCreateTournamentPage() {
       setErrorMsg("Tournament ID is required.");
       return;
     }
-
     if (!displayName.trim()) {
       setErrorMsg("Display Name is required.");
+      return;
+    }
+    if (!game) {
+      setErrorMsg("Game is required.");
+      return;
+    }
+    if (!mode) {
+      setErrorMsg("Mode is required.");
+      return;
+    }
+    if (!elimType) {
+      setErrorMsg("Type (single/double elim) is required.");
+      return;
+    }
+    if (
+      !month ||
+      !day ||
+      !year ||
+      !hour ||
+      !minute ||
+      !ampm ||
+      !timezone
+    ) {
+      setErrorMsg("Please complete the date, time, and time zone.");
       return;
     }
 
     const trimmedId = tournamentId.trim();
 
-    // build displayTime string from pieces
-    const displayTime = buildDisplayTime();
+    const displayTime = buildDisplayTimeFinal();
 
-    // figure out game label (for pill)
+    // Game label: JUST the game (no mode)
     const gameOpt = GAME_OPTIONS.find((g) => g.value === game);
     const gameLabel = gameOpt ? gameOpt.label : game.toUpperCase();
+    const displayGameLabel = gameLabel;
 
-    const displayGameLabel = `${gameLabel} ${mode}`;
+    // Mode label: mode • type
     const elimText =
       elimType === "double" ? "Double Elimination" : "Single Elimination";
     const displayModeLabel = `${mode} • ${elimText}`;
@@ -144,7 +186,7 @@ export default function AdminCreateTournamentPage() {
         },
         body: JSON.stringify({
           tournamentId: trimmedId,
-          // we don't expose separate internal name; use displayName as name
+          // no separate internal name: use displayName
           name: displayName.trim(),
           game,
           capacity: Number(capacity),
@@ -173,6 +215,8 @@ export default function AdminCreateTournamentPage() {
       setSubmitting(false);
     }
   }
+
+  const previewTime = buildDisplayTimePreview();
 
   return (
     <div
@@ -328,7 +372,7 @@ export default function AdminCreateTournamentPage() {
             </div>
           </div>
 
-          {/* Row: game + mode */}
+          {/* Row: game + mode + type */}
           <div
             style={{
               display: "grid",
@@ -347,6 +391,7 @@ export default function AdminCreateTournamentPage() {
                 onChange={(e) => setGame(e.target.value)}
                 style={inputStyle}
               >
+                <option value="">Select game</option>
                 {GAME_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -366,6 +411,7 @@ export default function AdminCreateTournamentPage() {
                 onChange={(e) => setMode(e.target.value)}
                 style={inputStyle}
               >
+                <option value="">Select mode</option>
                 <option value="1v1">1v1</option>
                 <option value="2v2">2v2</option>
                 <option value="5v5">5v5</option>
@@ -383,6 +429,7 @@ export default function AdminCreateTournamentPage() {
                 onChange={(e) => setElimType(e.target.value)}
                 style={inputStyle}
               >
+                <option value="">Select type</option>
                 <option value="single">Single Elimination</option>
                 <option value="double">Double Elimination</option>
               </select>
@@ -444,6 +491,7 @@ export default function AdminCreateTournamentPage() {
                 onChange={(e) => setMonth(Number(e.target.value))}
                 style={inputStyle}
               >
+                <option value="">Month</option>
                 {MONTHS.map((m) => (
                   <option key={m.value} value={m.value}>
                     {m.label}
@@ -464,6 +512,7 @@ export default function AdminCreateTournamentPage() {
                 onChange={(e) => setYear(Number(e.target.value))}
                 style={inputStyle}
               >
+                <option value="">Year</option>
                 {YEARS.map((y) => (
                   <option key={y} value={y}>
                     {y}
@@ -476,7 +525,7 @@ export default function AdminCreateTournamentPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr 1.2fr",
+                gridTemplateColumns: "1fr 1fr 1.4fr",
                 gap: "0.75rem",
               }}
             >
@@ -493,6 +542,7 @@ export default function AdminCreateTournamentPage() {
                   onChange={(e) => setHour(e.target.value)}
                   style={inputStyle}
                 >
+                  <option value="">Hr</option>
                   {HOURS.map((h) => (
                     <option key={h} value={h}>
                       {h}
@@ -504,6 +554,7 @@ export default function AdminCreateTournamentPage() {
                   onChange={(e) => setMinute(e.target.value)}
                   style={inputStyle}
                 >
+                  <option value="">Min</option>
                   {MINUTES.map((m) => (
                     <option key={m} value={m}>
                       {m}
@@ -515,6 +566,7 @@ export default function AdminCreateTournamentPage() {
                   onChange={(e) => setAmpm(e.target.value)}
                   style={inputStyle}
                 >
+                  <option value="">AM/PM</option>
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
                 </select>
@@ -527,6 +579,7 @@ export default function AdminCreateTournamentPage() {
                   onChange={(e) => setTimezone(e.target.value)}
                   style={inputStyle}
                 >
+                  <option value="">Time zone</option>
                   {TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>
                       {tz}
@@ -543,9 +596,9 @@ export default function AdminCreateTournamentPage() {
                   alignItems: "center",
                 }}
               >
-                Saved as:{" "}
-                <span style={{ marginLeft: 4, fontWeight: 500 }}>
-                  {buildDisplayTime()}
+                Saved as:&nbsp;
+                <span style={{ fontWeight: 500 }}>
+                  {previewTime}
                 </span>
               </div>
             </div>
@@ -602,7 +655,7 @@ export default function AdminCreateTournamentPage() {
   );
 }
 
-// shared inline style so inputs and selects look consistent
+// shared inline style
 const inputStyle = {
   width: "100%",
   padding: "0.5rem 0.6rem",
