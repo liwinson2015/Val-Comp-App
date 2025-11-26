@@ -1,6 +1,5 @@
 // pages/tournaments/[tournamentId].js
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import styles from "../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
@@ -76,10 +75,33 @@ export async function getServerSideProps({ req, params }) {
       legacy.game ||
       "Valorant 1v1";
 
-    const startsText =
-      meta.displayTime ||
-      legacy.start ||
-      "November 2nd, 2025";
+    // Nicely formatted start time
+    let startsText = "TBD";
+
+    if (meta.displayTime) {
+      // If it's an ISO date, format it nicely
+      const d = new Date(meta.displayTime);
+      if (!Number.isNaN(d.getTime())) {
+        startsText = d.toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short",
+          timeZone: "America/New_York", // adjust if you want a different default tz
+        });
+      } else {
+        // If it's already a nice manual string, just use it
+        startsText = meta.displayTime;
+      }
+    } else if (legacy.start) {
+      // fall back to legacy catalog field
+      startsText = legacy.start;
+    } else {
+      // final fallback
+      startsText = "November 2, 2025";
+    }
 
     return {
       props: {
@@ -145,7 +167,9 @@ export default function TournamentDetailPage({
         // Refresh slots from registrations API
         try {
           const regInfoRes = await fetch(
-            `/api/tournaments/${encodeURIComponent(tournamentId)}/registrations`,
+            `/api/tournaments/${encodeURIComponent(
+              tournamentId
+            )}/registrations`,
             { cache: "no-store" }
           );
           const regInfo = await regInfoRes.json();
@@ -454,7 +478,7 @@ export default function TournamentDetailPage({
           </div>
         </section>
 
-        {/* BELOW: re-use your original info sections */}
+        {/* Info sections (same as original /valorant page) */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>FORMAT &amp; SCORING</h2>
