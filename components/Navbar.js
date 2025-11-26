@@ -218,6 +218,15 @@ export default function Navbar() {
                   >
                     Registrations
                   </a>
+                  {/* NEW: Match Records / History */}
+                  <a
+                    href="/account/history"
+                    className="nav-link"
+                    style={dropdownItem}
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    Tournament History
+                  </a>
                   <a
                     href="/api/auth/logout"
                     className="nav-link"
