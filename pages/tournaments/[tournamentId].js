@@ -1,84 +1,73 @@
-// pages/tournaments/[tournamentId]/register.js
-import * as cookie from "cookie";
+// pages/tournaments/[tournamentId].js
+import React, { useEffect, useState } from "react";
+import styles from "../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../lib/mongodb";
 import Player from "../../models/Player";
 import Tournament from "../../models/Tournament";
-import Registration from "../../models/Registration";
-import { useState } from "react";
+import { tournamentsById as catalog } from "../../lib/tournaments";
+import { getCurrentPlayerFromReq } from "../../lib/getCurrentPlayer";
 
 const FALLBACK_CAPACITY = 16;
 
-// ---------- SERVER SIDE ----------
+// Helper to format ISO-ish strings nicely; otherwise return as-is
+function formatMaybeDate(input) {
+  if (!input || typeof input !== "string") return input;
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) {
+    // not a real date, just return the original string
+    return input;
+  }
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone: "America/New_York", // change if you want different default tz
+  });
+}
+
+// ---------- SERVER SIDE: block page if FULL *and* user not registered ----------
 export async function getServerSideProps({ req, params }) {
   const { tournamentId } = params;
 
   try {
+    const player = await getCurrentPlayerFromReq(req);
     await connectToDatabase();
 
-    const cookies = cookie.parse(req.headers.cookie || "");
-    const playerId = cookies.playerId || null;
-
-    // Require login via Discord
-    if (!playerId) {
-      const next = `/tournaments/${encodeURIComponent(
-        tournamentId
-      )}/register`;
-      const encoded = encodeURIComponent(next);
-      return {
-        redirect: {
-          destination: `/api/auth/discord?next=${encoded}`,
-          permanent: false,
-        },
-      };
-    }
-
-    const player = await Player.findById(playerId).lean();
-    if (!player) {
-      const next = `/tournaments/${encodeURIComponent(
-        tournamentId
-      )}/register`;
-      const encoded = encodeURIComponent(next);
-      return {
-        redirect: {
-          destination: `/api/auth/discord?next=${encoded}`,
-          permanent: false,
-        },
-      };
-    }
-
-    // Load the tournament doc so we can check capacity and show labels
-    const tournamentDoc = await Tournament.findOne({
-      tournamentId,
-    }).lean();
+    // Load Tournament doc (new source of truth)
+    const tournamentDoc = await Tournament.findOne({ tournamentId }).lean();
 
     if (!tournamentDoc) {
       return { notFound: true };
     }
 
+    // Legacy catalog fallback (for now, while we still use lib/tournaments)
+    const legacy = catalog[tournamentId] || {};
+
     const capacity =
-      typeof tournamentDoc.capacity === "number"
-        ? tournamentDoc.capacity
-        : FALLBACK_CAPACITY;
+      tournamentDoc.capacity ??
+      legacy.capacity ??
+      FALLBACK_CAPACITY;
 
-    // Check if THIS player is already registered
-    const alreadyInRegistration = await Registration.findOne({
-      discordTag: player.discordId,
-      tournament: tournamentId,
-    }).lean();
-
-    const alreadyInPlayerArray = (player.registeredFor || []).some(
-      (entry) => entry.tournamentId === tournamentId
-    );
-
-    const alreadyRegistered = !!(alreadyInRegistration || alreadyInPlayerArray);
-
-    // Use Player collection as source of truth for slots
-    const currentSlotsUsed = await Player.countDocuments({
+    // How many players are currently registered?
+    const registeredCount = await Player.countDocuments({
       "registeredFor.tournamentId": tournamentId,
     });
 
-    // If full AND user is not already registered → block access to register
-    if (currentSlotsUsed >= capacity && !alreadyRegistered) {
+    const isFull = registeredCount >= capacity;
+
+    // Is this logged-in player registered for THIS tournament?
+    const userIsRegistered =
+      !!player &&
+      Array.isArray(player.registeredFor) &&
+      player.registeredFor.some(
+        (entry) => entry.tournamentId === tournamentId
+      );
+
+    // If full AND user is not registered → redirect away (same behavior as /valorant)
+    if (isFull && !userIsRegistered) {
       return {
         redirect: {
           destination: "/tournaments-hub/valorant-types?full=1",
@@ -89,540 +78,567 @@ export async function getServerSideProps({ req, params }) {
 
     const meta = tournamentDoc.meta || {};
 
-    // Labels for the UI (can be customized per tournament later)
+    // Display fields with fallback to legacy + hard-coded text
     const displayName =
-      tournamentDoc.name || "Valorant Solo Skirmish";
+      tournamentDoc.name ||
+      legacy.name ||
+      "Valorant Skirmish Tournament #1";
+
+    const displaySubtitle =
+      meta.displayDescription ||
+      legacy.subtitle ||
+      "Solo 1v1 skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.";
+
     const heroBadge =
-      meta.displayGameLabel || "Valorant 1v1";
+      meta.displayGameLabel ||
+      legacy.game ||
+      "Valorant 1v1";
+
+    // Host: meta → legacy → default "5TQ"
+    const displayHost =
+      meta.displayHost ||
+      legacy.displayHost ||
+      "5TQ";
+
+    // Prize: read from meta, then legacy, then default
+    const displayPrize =
+      meta.displayPrize ||
+      legacy.displayPrize ||
+      "$20 Valorant Gift Card";
+
+    // Entry / fee: meta → legacy → default
+    const displayEntry =
+      meta.displayEntry ||
+      legacy.displayEntry ||
+      "Free";
+
+    // Nicely formatted start time:
+    // prefer meta.displayTime, then legacy.start, and format either if it looks like a date
+    let startsText = "TBD";
+
+    if (meta.displayTime) {
+      startsText = formatMaybeDate(meta.displayTime);
+    } else if (legacy.start) {
+      startsText = formatMaybeDate(legacy.start);
+    } else {
+      startsText = "November 2, 2025";
+    }
+
+    // Status from Tournament doc (optional for now)
+    const status = tournamentDoc.status || "upcoming";
 
     return {
       props: {
-        username: player.username || player.discordTag || "",
-        discordId: player.discordId || "",
-        avatar: player.avatar || player.discordAvatar || null,
-        playerId: String(player._id),
-        alreadyRegistered,
-        gsspError: false,
-        errorMessage: "",
         tournamentId,
+        initialRegistered: registeredCount,
+        capacity,
         displayName,
+        displaySubtitle,
         heroBadge,
+        startsText,
+        status,
+        isFull,        // initial full flag from server
+        displayPrize,  // dynamic prize
+        displayEntry,  // dynamic entry / fee
+        displayHost,   // dynamic host
       },
     };
   } catch (err) {
-    console.error(
-      "[tournaments/[tournamentId]/register] getServerSideProps error:",
-      err
-    );
+    console.error("[/tournaments/[tournamentId]] getServerSideProps error:", err);
     return {
       props: {
-        username: "",
-        discordId: "",
-        avatar: null,
-        playerId: null,
-        alreadyRegistered: false,
-        gsspError: true,
-        errorMessage: String(err?.message || err),
-        tournamentId: params.tournamentId || "",
-        displayName: "Valorant Tournament",
+        tournamentId,
+        initialRegistered: null,
+        capacity: FALLBACK_CAPACITY,
+        displayName: "Valorant Skirmish Tournament",
+        displaySubtitle:
+          "Solo skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.",
         heroBadge: "Valorant 1v1",
+        startsText: "TBD",
+        status: "upcoming",
+        isFull: false,
+        displayPrize: "$20 Valorant Gift Card",
+        displayEntry: "Free",
+        displayHost: "5TQ",
       },
     };
   }
 }
 
-// ---------- CLIENT SIDE ----------
-export default function DynamicRegisterPage(props) {
-  const {
-    username,
-    discordId,
-    avatar,
-    playerId,
-    alreadyRegistered,
-    gsspError,
-    errorMessage,
-    tournamentId,
-    displayName,
-    heroBadge,
-  } = props || {};
+// ---------- CLIENT SIDE COMPONENT ----------
+export default function TournamentDetailPage({
+  tournamentId,
+  initialRegistered,
+  capacity,
+  displayName,
+  displaySubtitle,
+  heroBadge,
+  startsText,
+  status,
+  isFull,
+  displayPrize,
+  displayEntry,
+  displayHost,
+}) {
+  const [loading, setLoading] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
-  const [riotName, setRiotName] = useState("");
-  const [riotTag, setRiotTag] = useState("");
-  const [peakRankTier, setPeakRankTier] = useState("");
-  const [peakRankDivision, setPeakRankDivision] = useState("");
+  const [slotsUsed, setSlotsUsed] = useState(initialRegistered);
+  const [slotsCapacity] = useState(capacity ?? FALLBACK_CAPACITY);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
+  // 🔹 dynamic path for this tournament's registration page
+  const registerPath = `/tournaments/${encodeURIComponent(
+    tournamentId
+  )}/register`;
 
-  if (gsspError) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#0f0f0f",
-          color: "white",
-          padding: 24,
-        }}
-      >
-        <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-          Something went wrong
-        </h1>
-        <p style={{ opacity: 0.8 }}>Please refresh in a few seconds.</p>
-        <pre
-          style={{
-            marginTop: 12,
-            fontSize: 12,
-            opacity: 0.7,
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {errorMessage}
-        </pre>
-      </div>
-    );
-  }
+  useEffect(() => {
+    let ignore = false;
 
-  const VALORANT_RANK_TIERS = [
-    "Iron",
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Platinum",
-    "Diamond",
-    "Ascendant",
-    "Immortal",
-    "Radiant",
-  ];
+    (async () => {
+      try {
+        // Login + registration status
+        const url = `/api/registration/status?tournamentId=${encodeURIComponent(
+          tournamentId
+        )}`;
+        const res = await fetch(url, { credentials: "same-origin" });
+        const data = await res.json();
+        if (!ignore) {
+          setLoggedIn(!!data.loggedIn);
+          setIsRegistered(!!data.isRegistered);
+        }
 
-  const VALORANT_DIVISIONS = ["1", "2", "3"];
+        // Refresh slots from registrations API
+        try {
+          const regInfoRes = await fetch(
+            `/api/tournaments/${encodeURIComponent(
+              tournamentId
+            )}/registrations`,
+            { cache: "no-store" }
+          );
+          const regInfo = await regInfoRes.json();
+          if (!ignore && typeof regInfo.registered === "number") {
+            setSlotsUsed(regInfo.registered);
+          }
+        } catch (e) {
+          console.error("[tournament detail] slot refresh error:", e);
+        }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (alreadyRegistered) return;
-
-    const nameTrimmed = riotName.trim();
-    const tagTrimmed = riotTag.trim();
-
-    const needsDivision = peakRankTier && peakRankTier !== "Radiant";
-
-    if (
-      !nameTrimmed ||
-      !tagTrimmed ||
-      !peakRankTier ||
-      (needsDivision && !peakRankDivision)
-    ) {
-      setMessage("Please fill in your Riot ID and peak rank.");
-      return;
-    }
-
-    // ign = name only (what your backend already uses)
-    const ign = nameTrimmed;
-    // fullIgn = "name#tag"
-    const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
-
-    // Radiant has no division → store just "Radiant"
-    const rank =
-      peakRankTier === "Radiant"
-        ? "Radiant"
-        : `${peakRankTier} ${peakRankDivision}`; // e.g. "Gold 2"
-
-    setSubmitting(true);
-    setMessage("");
-
-    try {
-      const res = await fetch("/api/registration/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId,
-          tournamentId, // 🔹 dynamic tournament
-          ign, // name only, unchanged behavior for backend
-          fullIgn, // full Riot ID
-          rank,
-        }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        setMessage("Error: " + text);
-      } else {
-        // after dynamic register, you can still reuse same success page for now
-        window.location.href = "/valorant/success";
+        if (!ignore) setLoading(false);
+      } catch (e) {
+        console.error("[tournament detail] status error:", e);
+        if (!ignore) setLoading(false);
       }
-    } catch (err) {
-      console.error("registration submit error:", err);
-      setMessage("Network error submitting registration.");
-    } finally {
-      setSubmitting(false);
-    }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [tournamentId]);
+
+  // Compute full status on the client as well (in case slots change)
+  const effectiveIsFull =
+    slotsUsed != null && slotsCapacity != null
+      ? slotsUsed >= slotsCapacity
+      : !!isFull;
+
+  // Decide the status chip label + color
+  let statusLabel = "OPEN";
+  let statusColor = "#22c55e";
+
+  if (status === "completed") {
+    statusLabel = "COMPLETED";
+    statusColor = "#9ca3af";
+  } else if (effectiveIsFull) {
+    statusLabel = "FULL";
+    statusColor = "#f97316";
   }
 
-  const avatarUrl =
-    avatar && discordId
-      ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
-      : null;
+  // Decide what the red button should do
+  let registerHref = registerPath; // 🔹 dynamic per tournament
+  let registerLabel = "Register now";
+  let buttonDisabled = false;
 
-  const isRadiant = peakRankTier === "Radiant";
+  if (!loggedIn) {
+    registerHref = `/api/auth/discord?next=${encodeURIComponent(
+      registerPath
+    )}`;
+    registerLabel = "Log in with Discord";
+  } else if (isRegistered) {
+    registerHref = "/account/registrations";
+    registerLabel = "View my registration";
+    buttonDisabled = false;
+  }
+
+  // Override behavior if tournament is FULL or COMPLETED
+  if (status === "completed") {
+    registerLabel = "Tournament completed";
+    buttonDisabled = true;
+  } else if (effectiveIsFull && !isRegistered) {
+    // full and you're not registered
+    registerLabel = "Tournament full";
+    buttonDisabled = true;
+  }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#0f0f0f",
-        color: "white",
-        fontFamily:
-          'system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif',
-        padding: "2rem 1rem",
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "480px",
-          background:
-            "radial-gradient(circle at 20% 20%, rgba(255,0,70,0.15) 0%, rgba(20,20,20,0) 60%), #1a1a1a",
-          border: "1px solid #2d2d2d",
-          borderRadius: "1rem",
-          boxShadow:
-            "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
-          padding: "1.5rem 1.5rem 2rem",
-        }}
-      >
-        {/* Header */}
-        <div style={{ marginBottom: "1.5rem" }}>
+    <div className={styles.shell}>
+      <div className={styles.contentWrap}>
+        {/* HERO + MAIN CARD */}
+        <section
+          style={{
+            marginTop: "2.5rem",
+            marginBottom: "1.75rem",
+            textAlign: "center",
+          }}
+        >
           <div
             style={{
+              display: "inline-flex",
+              padding: "0.2rem 0.9rem",
+              borderRadius: "999px",
+              border: "1px solid rgba(248,113,113,0.4)",
               fontSize: "0.7rem",
-              letterSpacing: "0.15em",
-              fontWeight: 600,
-              color: "#ff0046",
+              letterSpacing: "0.16em",
               textTransform: "uppercase",
-              marginBottom: "0.4rem",
+              color: "#f87171",
+              marginBottom: "0.6rem",
             }}
           >
             {heroBadge}
           </div>
-          <div
+          <h1
             style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              lineHeight: 1.2,
-              color: "white",
+              fontSize: "1.9rem",
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              margin: 0,
             }}
           >
             {displayName}
-          </div>
-          <div
+          </h1>
+          <p
             style={{
-              fontSize: "0.8rem",
-              lineHeight: 1.4,
-              color: "#9ca3af",
               marginTop: "0.5rem",
+              fontSize: "0.9rem",
+              color: "#9ca3af",
             }}
           >
-            Tournament Registration (ID: {tournamentId})
-          </div>
-        </div>
+            {displaySubtitle}
+          </p>
+        </section>
 
-        {/* Player card */}
-        <div
+        <section
           style={{
-            display: "flex",
-            gap: "0.75rem",
-            alignItems: "center",
-            backgroundColor: "#262626",
-            border: "1px solid #3f3f46",
-            borderRadius: "0.75rem",
-            padding: "0.75rem 1rem",
-            marginBottom: "1.5rem",
+            background:
+              "radial-gradient(circle at 10% 0%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 55%)",
+            borderRadius: "1.1rem",
+            border: "1px solid #2d2d2d",
+            boxShadow:
+              "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
+            padding: "1.75rem 1.75rem 1.5rem",
+            marginBottom: "2rem",
           }}
         >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="discord avatar"
-              style={{
-                borderRadius: "0.5rem",
-                width: "56px",
-                height: "56px",
-                border: "1px solid #52525b",
-                objectFit: "cover",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                borderRadius: "0.5rem",
-                width: "56px",
-                height: "56px",
-                backgroundColor: "#3f3f46",
-                border: "1px solid #52525b",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "0.6rem",
-                color: "#a1a1aa",
-              }}
-            >
-              no avatar
-            </div>
-          )}
-
-          <div style={{ lineHeight: 1.3 }}>
-            <div
-              style={{ color: "white", fontWeight: 600, fontSize: "0.9rem" }}
-            >
-              {username}
-            </div>
-            <div
-              style={{
-                color: "#a1a1aa",
-                fontSize: "0.7rem",
-                wordBreak: "break-word",
-              }}
-            >
-              Discord ID {discordId}
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <div
-          style={{
-            fontSize: "0.7rem",
-            fontWeight: 600,
-            color: "#9ca3af",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            marginBottom: "0.5rem",
-          }}
-        >
-          Your tournament info
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          {/* Riot ID (IGN) split into name + tag */}
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "#e5e7eb",
-                marginBottom: "0.4rem",
-              }}
-            >
-              Riot ID (IGN) *
-              <span
-                style={{
-                  marginLeft: 4,
-                  color: "#9ca3af",
-                  fontSize: "0.75rem",
-                }}
-              >
-                (Name and Tagline)
-              </span>
-            </label>
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-                alignItems: "center",
-              }}
-            >
-              <input
-                required
-                value={riotName}
-                onChange={(e) => setRiotName(e.target.value)}
-                placeholder="Name (e.g. 5TQ)"
-                disabled={alreadyRegistered}
-                style={{
-                  flex: 2,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color: alreadyRegistered ? "#6b7280" : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              />
+          {/* Top row: status + meta */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: "1.25rem",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+            }}
+          >
+            <div>
               <div
                 style={{
-                  color: "#9ca3af",
-                  fontSize: "0.9rem",
-                  paddingBottom: "0.1rem",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: statusColor,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
                 }}
               >
-                #
+                {statusLabel}
               </div>
-              <input
-                required
-                value={riotTag}
-                onChange={(e) => setRiotTag(e.target.value)}
-                placeholder="Tag (e.g. NA1)"
-                disabled={alreadyRegistered}
-                style={{
-                  flex: 1,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color: alreadyRegistered ? "#6b7280" : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Peak Rank: tier + division */}
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "#e5e7eb",
-                marginBottom: "0.4rem",
-              }}
-            >
-              Peak rank (Valorant) *
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <select
-                required
-                value={peakRankTier}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setPeakRankTier(v);
-                  if (v === "Radiant") {
-                    setPeakRankDivision("");
-                  }
-                }}
-                disabled={alreadyRegistered}
-                style={{
-                  flex: 2,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color: alreadyRegistered ? "#6b7280" : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              >
-                <option value="">Select rank</option>
-                {VALORANT_RANK_TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {tier}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={peakRankDivision}
-                onChange={(e) => setPeakRankDivision(e.target.value)}
-                disabled={alreadyRegistered || !peakRankTier || isRadiant}
-                style={{
-                  flex: 1,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color:
-                    alreadyRegistered || !peakRankTier || isRadiant
-                      ? "#6b7280"
-                      : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              >
-                <option value="">{isRadiant ? "N/A" : "Div"}</option>
-                {!isRadiant &&
-                  VALORANT_DIVISIONS.map((div) => (
-                    <option key={div} value={div}>
-                      {div}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            {isRadiant && (
               <div
                 style={{
-                  marginTop: "0.3rem",
-                  fontSize: "0.75rem",
-                  color: "#9ca3af",
+                  fontSize: "0.78rem",
+                  marginTop: "0.15rem",
+                  color: "#e5e7eb",
                 }}
               >
-                Radiant has no divisions. We’ll store your rank as{" "}
-                <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
+                Tournament ID:{" "}
+                <span style={{ fontWeight: 700, color: "#f9fafb" }}>
+                  {tournamentId}
+                </span>
               </div>
-            )}
-          </div>
+            </div>
 
-          <button
-  type="submit"
-  disabled={submitting || alreadyRegistered}
-  style={{
-    width: "100%",
-    backgroundColor: alreadyRegistered
-      ? "#4b5563"
-      : submitting
-      ? "#4b5563"
-      : "#ff0046",
-    color: "white",
-    fontWeight: 600,
-    fontSize: "0.9rem",
-    border: "none",
-    borderRadius: "0.6rem",
-    padding: "0.75rem 1rem",
-    cursor:
-      submitting || alreadyRegistered ? "not-allowed" : "pointer",
-    boxShadow: alreadyRegistered
-      ? "none"
-      : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
-    opacity: alreadyRegistered ? 0.6 : 1,
-    transition: "background-color .15s",
-  }}
->
-
-            {alreadyRegistered
-              ? "Already Registered"
-              : submitting
-              ? "Submitting..."
-              : "Confirm Registration"}
-          </button>
-
-          {message && (
             <div
               style={{
-                marginTop: "0.75rem",
+                textAlign: "right",
                 fontSize: "0.8rem",
-                color: "#e5e7eb",
-                lineHeight: 1.4,
-                textAlign: "center",
+                color: "#9ca3af",
               }}
             >
-              {message}
+              <div>Hosted by {displayHost}</div>
+              <div>Starts {startsText}</div>
             </div>
-          )}
-        </form>
+          </div>
 
-        <div
-          style={{
-            marginTop: "1.5rem",
-            fontSize: "0.7rem",
-            lineHeight: 1.4,
-            color: "#6b7280",
-            textAlign: "center",
-          }}
-        >
-          By confirming, you agree to play at the scheduled time. No smurfing.
-          No cheats. Clips may be streamed.
-        </div>
+          {/* Middle: info grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1.1fr)",
+              gap: "1.5rem",
+              alignItems: "flex-start",
+            }}
+          >
+            {/* Left: condensed quick facts */}
+            <div>
+              {[
+                ["Mode", "1v1 Skirmish"],
+                [
+                  "Format",
+                  "Best-of-1 • First to 20 kills • Win by 2",
+                ],
+                ["Map", "Randomized: Skirmish A / B / C"],
+                ["Server", "NA (custom lobby)"],
+                ["Check-in", "15 minutes before start (Discord)"],
+                ["Entry", displayEntry],
+                ["Prize", displayPrize],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "0.25rem 0",
+                    fontSize: "0.86rem",
+                  }}
+                >
+                  <span style={{ color: "#9ca3af" }}>{label}</span>
+                  <span style={{ color: "#e5e7eb", marginLeft: "1rem" }}>
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Right: slots + CTA & Discord */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: "0.9rem",
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#111827",
+                  borderRadius: "0.75rem",
+                  padding: "0.8rem 0.85rem",
+                  border: "1px solid #1f2937",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.12em",
+                    color: "#9ca3af",
+                    marginBottom: "0.25rem",
+                  }}
+                >
+                  Slots
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.1rem",
+                    fontWeight: 600,
+                    color: "#f9fafb",
+                  }}
+                >
+                  {slotsUsed == null || slotsCapacity == null
+                    ? "16 / 16"
+                    : `${slotsUsed} / ${slotsCapacity}`}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.55rem",
+                }}
+              >
+                {/* Red primary button */}
+                <a
+                  href={registerHref}
+                  onClick={(e) => {
+                    if (buttonDisabled || loading) e.preventDefault();
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "0.7rem",
+                    backgroundColor:
+                      buttonDisabled || loading ? "#4b5563" : "#ff0046",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    border: "none",
+                    textDecoration: "none",
+                    boxShadow:
+                      buttonDisabled || loading
+                        ? "none"
+                        : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                    cursor:
+                      buttonDisabled || loading ? "not-allowed" : "pointer",
+                    opacity: buttonDisabled || loading ? 0.6 : 1,
+                    transition: "background-color .15s",
+                  }}
+                  aria-disabled={buttonDisabled || loading}
+                >
+                  {loading ? "Checking status…" : registerLabel}
+                </a>
+
+                {/* Gray Discord button */}
+                <a
+                  href="https://discord.gg/qUzCCK8nuc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "0.7rem 1rem",
+                    borderRadius: "0.7rem",
+                    backgroundColor: "#1f2937",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "0.86rem",
+                    border: "1px solid #374151",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Join Discord
+                </a>
+
+                <p
+                  style={{
+                    marginTop: "0.2rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  You&apos;ll need to log in with Discord to secure your slot.
+                  No alt accounts, smurfing, or cheating allowed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Info sections */}
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>FORMAT &amp; SCORING</h2>
+          </div>
+          <ul className={styles.rulesList}>
+            <li>
+              <strong>Match:</strong> <strong>Best-of-1</strong>.
+            </li>
+            <li>
+              <strong>Game Win Condition:</strong> First to{" "}
+              <strong>20</strong> kills and must lead by{" "}
+              <strong>2</strong> (win-by-two).
+            </li>
+            <li>
+              <strong>No time cap.</strong> Play continues until win-by-two is
+              achieved.
+            </li>
+            <li>
+              <strong>Map:</strong> Randomized each match between{" "}
+              <em>Skirmish A / B / C</em>.
+            </li>
+            <li>
+              <strong>Lobby:</strong> Admin/stream host invites both players. Be
+              online and ready at your match time.
+            </li>
+          </ul>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>RULES &amp; CONDUCT</h2>
+          </div>
+          <ul className={styles.rulesList}>
+            <li>No smurfing. No cheats, scripts, or third-party aim tools.</li>
+            <li>No-shows: 5-minute grace, then you may be replaced by a sub.</li>
+            <li>
+              Disconnects before 3 kills → remake; after 3 kills → continue
+              from score unless admin rules otherwise.
+            </li>
+            <li>
+              Report scores in Discord with a screenshot; both players must
+              confirm.
+            </li>
+            <li>Admins have final say on disputes.</li>
+          </ul>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>SCHEDULE &amp; REPORTING</h2>
+          </div>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailLabel}>Check-in</div>
+            <div className={styles.detailValue}>
+              15 minutes before bracket start in <strong>#check-in</strong>
+            </div>
+
+            <div className={styles.detailLabel}>Round Pace</div>
+            <div className={styles.detailValue}>
+              Please be ready; matches fire back-to-back
+            </div>
+
+            <div className={styles.detailLabel}>Report</div>
+            <div className={styles.detailValue}>
+              Post final score + screenshot in{" "}
+              <strong>#match-report</strong>
+            </div>
+
+            <div className={styles.detailLabel}>Stream</div>
+            <div className={styles.detailValue}>
+              Select matches may be streamed or clipped
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>ELIGIBILITY &amp; REGISTRATION</h2>
+          </div>
+          <ul className={styles.rulesList}>
+            <li>Must join Discord and respond to check-in pings.</li>
+            <li>One entry per player. Duplicate entries will be removed.</li>
+            <li>
+              If you’ve already registered, the Register page will show you as
+              locked-in automatically.
+            </li>
+          </ul>
+        </section>
       </div>
     </div>
   );

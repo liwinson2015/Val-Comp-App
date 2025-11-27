@@ -5,7 +5,7 @@ import Player from "../../models/Player";
 import Registration from "../../models/Registration";
 import { useState } from "react";
 
-const DEFAULT_TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1"; // fallback if no query
+const TOURNAMENT_ID = "VALO-SOLO-SKIRMISH-1";
 const MAX_SLOTS = 16;
 
 const VALORANT_RANK_TIERS = [
@@ -23,26 +23,16 @@ const VALORANT_RANK_TIERS = [
 const VALORANT_DIVISIONS = ["1", "2", "3"];
 
 // ---------- SERVER SIDE ----------
-export async function getServerSideProps({ req, query }) {
+export async function getServerSideProps({ req }) {
   try {
     await connectToDatabase();
-
-    // Read tournamentId from query, fallback to default
-    const rawTournamentId =
-      (query && (query.tournamentId || query.t)) || null;
-    const tournamentId =
-      typeof rawTournamentId === "string" && rawTournamentId.trim()
-        ? rawTournamentId.trim()
-        : DEFAULT_TOURNAMENT_ID;
 
     const cookies = cookie.parse(req.headers.cookie || "");
     const playerId = cookies.playerId || null;
 
     // Require login via Discord
     if (!playerId) {
-      const next = `/valorant/register?tournamentId=${encodeURIComponent(
-        tournamentId
-      )}`;
+      const next = "/valorant/register";
       const encoded = encodeURIComponent(next);
       return {
         redirect: {
@@ -54,9 +44,7 @@ export async function getServerSideProps({ req, query }) {
 
     const player = await Player.findById(playerId).lean();
     if (!player) {
-      const next = `/valorant/register?tournamentId=${encodeURIComponent(
-        tournamentId
-      )}`;
+      const next = "/valorant/register";
       const encoded = encodeURIComponent(next);
       return {
         redirect: {
@@ -66,22 +54,21 @@ export async function getServerSideProps({ req, query }) {
       };
     }
 
-    // Check if THIS player is already registered (Registration collection)
+    // Check if THIS player is already registered
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
-      tournament: tournamentId,
+      tournament: TOURNAMENT_ID,
     }).lean();
 
-    // Check Player.registeredFor array
     const alreadyInPlayerArray = (player.registeredFor || []).some(
-      (entry) => entry.tournamentId === tournamentId
+      (entry) => entry.tournamentId === TOURNAMENT_ID
     );
 
     const alreadyRegistered = !!(alreadyInRegistration || alreadyInPlayerArray);
 
-    // Use Player collection as source of truth for slots, scoped to this tournament
+    // Use Player collection as source of truth for slots
     const currentSlotsUsed = await Player.countDocuments({
-      "registeredFor.tournamentId": tournamentId,
+      "registeredFor.tournamentId": TOURNAMENT_ID,
     });
 
     // If full AND user is not already registered → block access to register
@@ -100,7 +87,6 @@ export async function getServerSideProps({ req, query }) {
         discordId: player.discordId || "",
         avatar: player.avatar || player.discordAvatar || null,
         playerId: String(player._id),
-        tournamentId, // ⭐ pass to client
         alreadyRegistered,
         gsspError: false,
         errorMessage: "",
@@ -114,7 +100,6 @@ export async function getServerSideProps({ req, query }) {
         discordId: "",
         avatar: null,
         playerId: null,
-        tournamentId: DEFAULT_TOURNAMENT_ID,
         alreadyRegistered: false,
         gsspError: true,
         errorMessage: String(err?.message || err),
@@ -130,7 +115,6 @@ export default function ValorantRegisterPage(props) {
     discordId,
     avatar,
     playerId,
-    tournamentId,
     alreadyRegistered,
     gsspError,
     errorMessage,
@@ -211,9 +195,9 @@ export default function ValorantRegisterPage(props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           playerId,
-          tournamentId, // ⭐ dynamic: comes from URL / server, not hard-coded
-          ign, // name only, unchanged behavior for backend
-          fullIgn, // full Riot ID
+          tournamentId: TOURNAMENT_ID,
+          ign,      // name only, unchanged behavior for backend
+          fullIgn,  // full Riot ID
           rank,
         }),
       });
@@ -277,7 +261,7 @@ export default function ValorantRegisterPage(props) {
               marginBottom: "0.4rem",
             }}
           >
-            Valorant 1v1 Tournament
+            Valorant Solo Skirmish #1
           </div>
           <div
             style={{
@@ -297,17 +281,8 @@ export default function ValorantRegisterPage(props) {
               marginTop: "0.5rem",
             }}
           >
-            Fill out your Riot ID and peak rank to lock your spot.
-          </div>
-          <div
-            style={{
-              fontSize: "0.7rem",
-              marginTop: "0.35rem",
-              color: "#6b7280",
-            }}
-          >
-            Tournament ID:{" "}
-            <span style={{ color: "#e5e7eb" }}>{tournamentId}</span>
+            1v1 aim duels, bragging rights, prize TBD. Finish below to lock
+            your spot.
           </div>
         </div>
 
