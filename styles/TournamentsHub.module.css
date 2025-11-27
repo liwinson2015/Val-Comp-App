@@ -76,8 +76,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 35px; /* Slightly reduced padding to fit more content */
-  height: 340px; /* Increased height slightly to accommodate 2-line titles comfortably */
+  padding: 35px;
+  height: 340px;
   text-decoration: none;
   
   background: rgba(20, 25, 35, 0.6);
@@ -102,16 +102,14 @@
 
 /* ALIGNMENT LOGIC 
    ------------------------------------------------
-   We separate the Tag and Title heights.
-   This guarantees the Description starts at the exact same pixel 
-   on every card, regardless of title length.
+   Tag + Title heights are fixed so the description
+   and "View Tournaments" link line up across cards.
 */
 
 .cardHeader {
   display: flex;
   flex-direction: column;
   margin-bottom: 15px;
-  /* Removed fixed height from here, moved to children below */
 }
 
 .cardTag {
@@ -124,37 +122,34 @@
   align-items: center;
   gap: 8px;
   
-  /* FORCE ALIGNMENT: Fixed height for tag area */
-  height: 24px; 
+  /* fixed tag area height */
+  height: 24px;
 }
 
 .cardTitle {
-  font-size: 2.2rem; /* Reduced slightly from 2.5rem to handle long names better */
+  font-size: 2.2rem;
   font-weight: 800;
   margin: 0;
   color: #fff;
   letter-spacing: 1px;
-  line-height: 1; /* Tighter line height for multi-line titles */
+  line-height: 1;
   
-  /* FORCE ALIGNMENT: Fixed height allowing for 2 lines */
-  height: 72px; 
+  /* fixed height allowing up to 2 lines */
+  height: 72px;
   display: flex;
-  align-items: flex-end; /* Aligns 1-line titles (Valorant) to the bottom */
+  align-items: flex-end;
 }
 
 .cardDesc {
   font-size: 0.95rem;
   color: #94a3b8;
   line-height: 1.5;
-  
-  /* Ensure it fills available space but doesn't push too hard */
-  flex-grow: 1; 
-  margin-bottom: 0; 
+  flex-grow: 1;
+  margin-bottom: 0;
 }
 
 .cardLink {
-  /* Pins the link to the bottom of the card */
-  margin-top: auto; 
+  margin-top: auto;
   padding-top: 20px;
   
   font-size: 0.9rem;
@@ -169,13 +164,31 @@
 
 /* TAG COLORS */
 
-.tagRed { color: #ff4655; text-shadow: 0 0 10px rgba(255, 70, 85, 0.4); }
-.tagGray { color: #64748b; }
-.tagTft { color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.4); }
+.tagRed {
+  color: #ff4655;
+  text-shadow: 0 0 10px rgba(255, 70, 85, 0.4);
+}
+
+.tagGray {
+  color: #64748b;
+}
+
+.tagTft {
+  color: #4ade80;
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+}
+
+/* NEW: HOK TAG BLUE */
+.tagHok {
+  color: #3b82f6;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
 
 /* VALORANT THEME */
 
-.valorantCard { border-top: 2px solid #ff4655; }
+.valorantCard {
+  border-top: 2px solid #ff4655;
+}
 .valorantCard:hover {
   box-shadow: 0 20px 50px rgba(255, 70, 85, 0.2);
   border-color: #ff4655;
@@ -183,18 +196,31 @@
 .valorantCard::before {
   content: "";
   position: absolute;
-  top: 0; right: 0; width: 300px; height: 300px;
-  background: radial-gradient(circle at 100% 0%, rgba(255, 70, 85, 0.15), transparent 70%);
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(255, 70, 85, 0.15),
+    transparent 70%
+  );
   transition: opacity 0.3s ease;
 }
 .valorantCard:hover::before {
   opacity: 1;
-  background: radial-gradient(circle at 100% 0%, rgba(255, 70, 85, 0.25), transparent 70%);
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(255, 70, 85, 0.25),
+    transparent 70%
+  );
 }
 
 /* TFT THEME */
 
-.tftCard { border-top: 2px solid #22c55e; }
+.tftCard {
+  border-top: 2px solid #22c55e;
+}
 .tftCard:hover {
   box-shadow: 0 20px 50px rgba(34, 197, 94, 0.22);
   border-color: #4ade80;
@@ -202,13 +228,56 @@
 .tftCard::before {
   content: "";
   position: absolute;
-  top: 0; right: 0; width: 300px; height: 300px;
-  background: radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.18), transparent 70%);
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(34, 197, 94, 0.18),
+    transparent 70%
+  );
   transition: opacity 0.3s ease;
 }
 .tftCard:hover::before {
   opacity: 1;
-  background: radial-gradient(circle at 100% 0%, rgba(74, 222, 128, 0.26), transparent 70%);
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(74, 222, 128, 0.26),
+    transparent 70%
+  );
+}
+
+/* HOK THEME (BLUE) */
+
+.hokCard {
+  border-top: 2px solid #3b82f6;
+}
+.hokCard:hover {
+  box-shadow: 0 20px 50px rgba(59, 130, 246, 0.25);
+  border-color: #60a5fa;
+}
+.hokCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(59, 130, 246, 0.2),
+    transparent 70%
+  );
+  transition: opacity 0.3s ease;
+}
+.hokCard:hover::before {
+  opacity: 1;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(96, 165, 250, 0.3),
+    transparent 70%
+  );
 }
 
 /* COMING SOON */
@@ -218,15 +287,34 @@
   opacity: 0.7;
   cursor: default;
 }
-.soonCard:hover { opacity: 1; border-color: rgba(255, 255, 255, 0.2); }
+.soonCard:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.2);
+}
 
-.arrow { transition: transform 0.3s ease; }
-.cardInteractive:hover .arrow { transform: translateX(5px); }
+.arrow {
+  transition: transform 0.3s ease;
+}
+.cardInteractive:hover .arrow {
+  transform: translateX(5px);
+}
 
 /* Responsive */
 @media (max-width: 768px) {
-  .title { font-size: 2.5rem; }
-  .card { height: auto; min-height: 280px; }
-  .cardTitle { height: auto; display: block; margin-bottom: 10px; }
-  .cardTag { height: auto; margin-bottom: 10px; }
+  .title {
+    font-size: 2.5rem;
+  }
+  .card {
+    height: auto;
+    min-height: 280px;
+  }
+  .cardTitle {
+    height: auto;
+    display: block;
+    margin-bottom: 10px;
+  }
+  .cardTag {
+    height: auto;
+    margin-bottom: 10px;
+  }
 }

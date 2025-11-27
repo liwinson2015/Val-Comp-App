@@ -63,6 +63,28 @@ export default function TournamentsHubPage() {
             </div>
           </Link>
 
+          {/* HONOR OF KINGS CARD */}
+          <Link
+            href="/tournaments-hub/hok-types"
+            className={`${s.card} ${s.hokCard} ${s.cardInteractive}`}
+          >
+            <div className={s.cardHeader}>
+              <div className={`${s.cardTag} ${s.tagHok}`}>
+                <span>●</span> MOBA • 5v5
+              </div>
+              <h2 className={s.cardTitle}>HONOR OF KINGS</h2>
+            </div>
+
+            <p className={s.cardDesc}>
+              Full 5v5 team tournaments. Draft your comp, control objectives,
+              and push lanes in organized brackets.
+            </p>
+
+            <div className={s.cardLink}>
+              View Tournaments <span className={s.arrow}>→</span>
+            </div>
+          </Link>
+
           {/* COMING SOON CARD */}
           <div className={`${s.card} ${s.soonCard}`}>
             <div className={s.cardHeader}>
