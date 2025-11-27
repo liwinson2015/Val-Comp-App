@@ -230,7 +230,8 @@
 /* Data Grid inside Featured */
 .featuredMetaRow {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 2.5rem;          /* spacing between STATUS / TIME / SLOTS */
   background: rgba(0,0,0,0.3);
   padding: 1rem;
   margin-bottom: 2rem;
@@ -251,7 +252,7 @@
   color: var(--c-accent);
 }
 
-/* 👇 NEW: keep the date/time on one line */
+/* keep the full date+time on a single line */
 .metaValueTime {
   white-space: nowrap;
 }
@@ -277,7 +278,8 @@
 }
 
 /* Counter-skew text so it's straight */
-.heroPrimary span, .heroPrimary:after { 
+.heroPrimary span,
+.heroPrimary:after { 
   display: block;
   transform: skewX(10deg); 
 }
@@ -348,6 +350,7 @@
   color: #cbd5e1;
   line-height: 1.8;
 }
+
 .rulesList li::marker {
   color: var(--c-primary);
 }
@@ -385,7 +388,11 @@
   font-size: 0.85rem;
   color: var(--c-text-dim);
 }
-.highlight { color: var(--c-primary); font-weight: bold; }
+
+.highlight {
+  color: var(--c-primary);
+  font-weight: bold;
+}
 
 /* --- FOOTER --- */
 .footer {
@@ -404,13 +411,35 @@
   margin-bottom: 0.5rem;
 }
 
-.footerSub { font-size: 0.8rem; color: var(--c-text-dim); margin-bottom: 0.5rem; }
-.footerCopy { font-size: 0.75rem; color: #444; }
+.footerSub {
+  font-size: 0.8rem;
+  color: var(--c-text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.footerCopy {
+  font-size: 0.75rem;
+  color: #444;
+}
 
 /* --- RESPONSIVE --- */
 @media (max-width: 900px) {
-  .cardGrid, .bottomGrid { grid-template-columns: 1fr; }
-  .heroTitle { font-size: 2.5rem; }
-  .featuredMetaRow { grid-template-columns: 1fr; gap: 1rem; }
-  .heroStats { flex-direction: column; gap: 1.5rem; }
+  .cardGrid,
+  .bottomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+
+  .featuredMetaRow {
+    grid-template-columns: 1fr;
+    column-gap: 1rem;
+  }
+
+  .heroStats {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 }
