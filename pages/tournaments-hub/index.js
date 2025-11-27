@@ -13,7 +13,7 @@ export default function TournamentsHubPage() {
           <h1 className={s.title}>Select Your Game</h1>
           <p className={s.description}>
             Browse competitive events by title. Join the arena, compete for glory,
-            and climb the leaderboards. New titles arriving soon.
+            and climb the leaderboards.
           </p>
         </header>
 
