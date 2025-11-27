@@ -191,7 +191,12 @@ export default function HomePage({ featured }) {
               </div>
               <div>
                 <div className={styles.metaLabel}>START TIME</div>
-                <div className={styles.metaValue}>{startTimeText}</div>
+                {/* 👇 force this to stay on a single line */}
+                <div
+                  className={`${styles.metaValue} ${styles.metaValueTime}`}
+                >
+                  {startTimeText}
+                </div>
               </div>
               <div>
                 <div className={styles.metaLabel}>SLOTS</div>
