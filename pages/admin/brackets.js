@@ -58,10 +58,15 @@ export async function getServerSideProps({ req }) {
     const tid = s.tournamentId;
     if (!tid) continue;
 
+    // normalize old "upcoming" → "ongoing"
+    const rawStatus = s.status || "ongoing";
+    const normalizedStatus =
+      rawStatus === "completed" ? "completed" : "ongoing";
+
     const item = {
       tournamentId: tid,
       count: countMap[tid] || 0,
-      status: s.status || "ongoing", // ongoing / completed
+      status: normalizedStatus, // ongoing / completed
       isFeatured: !!s.isFeatured,
       // you can surface more fields later if you want (displayName, etc.)
     };
@@ -81,11 +86,11 @@ export async function getServerSideProps({ req }) {
     }
   }
 
-  // ---- 3) Sort: ongoing → upcoming → completed, then by player count desc ----
+  // ---- 3) Sort: ongoing (incl. old 'upcoming') → completed, then by player count desc ----
   const statusOrder = {
     ongoing: 0,
-    upcoming: 1,
-    completed: 2,
+    upcoming: 0, // treat old "upcoming" the same as ongoing
+    completed: 1,
   };
 
   tournaments.sort((a, b) => {
@@ -136,12 +141,9 @@ export default function AdminBracketsPage({ tournaments }) {
             {tournaments.map((t) => {
               const encodedId = encodeURIComponent(t.tournamentId);
 
+              // ✅ Only two labels now: ONGOING or COMPLETED
               const statusLabel =
-                t.status === "completed"
-                  ? "Completed"
-                  : t.status === "ongoing"
-                  ? "Upcoming"
-                  : "Ongoing";
+                t.status === "completed" ? "Completed" : "Ongoing";
 
               return (
                 <article
