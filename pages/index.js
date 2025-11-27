@@ -31,17 +31,16 @@ export async function getServerSideProps() {
       ? state.maxSlots
       : DEFAULT_MAX_SLOTS;
 
-  // Normalize status so it’s always one of these three
-  const allowedStatuses = ["upcoming", "ongoing", "completed"];
-  const safeStatus = allowedStatuses.includes(state.status)
-    ? state.status
-    : "upcoming";
+  // 🔹 Normalize status so we only ever have "ongoing" or "completed"
+  const rawStatus = state.status || "ongoing";
+  const normalizedStatus =
+    rawStatus === "completed" ? "completed" : "ongoing";
 
   const featured = {
     tournamentId,
     currentCount: Number(currentCount) || 0,
     maxSlots: Number(maxSlots) || DEFAULT_MAX_SLOTS,
-    status: safeStatus, // "upcoming" | "ongoing" | "completed"
+    status: normalizedStatus, // "ongoing" | "completed"
 
     // Homepage display fields (may be empty)
     displayName: state.displayName || "",
@@ -62,9 +61,9 @@ export default function HomePage({ featured }) {
   const maxSlots = hasFeatured ? featured.maxSlots : DEFAULT_MAX_SLOTS;
 
   const isFull = hasFeatured && currentCount >= maxSlots;
-  const status = hasFeatured ? featured.status : null;
+  const status = hasFeatured ? featured.status : null; // "ongoing" | "completed" | null
 
-  // ----- STATUS TEXT + COLOR (fixed) -----
+  // ----- STATUS TEXT + COLOR (only ongoing / completed) -----
   let statusText;
   if (!hasFeatured) {
     statusText = "COMING SOON";
@@ -72,8 +71,6 @@ export default function HomePage({ featured }) {
     statusText = "COMPLETED";
   } else if (isFull) {
     statusText = "FULL / CLOSED";
-  } else if (status === "upcoming") {
-    statusText = "UPCOMING";
   } else {
     // ongoing and not full
     statusText = "OPEN ENTRY";
@@ -86,8 +83,6 @@ export default function HomePage({ featured }) {
     statusColor = "#9ca3af"; // gray
   } else if (isFull) {
     statusColor = "#ff4655"; // red
-  } else if (status === "upcoming") {
-    statusColor = "#eab308"; // yellow
   } else {
     // ongoing + open
     statusColor = "#4ade80"; // green
@@ -129,10 +124,11 @@ export default function HomePage({ featured }) {
     ? `${gameLabel.toUpperCase()} • ${modeLabel}`
     : "COMING SOON";
 
+  // Only allow registration if ongoing + not full
   const canRegister =
     hasFeatured && status === "ongoing" && !isFull;
 
-  // 🔹 CTA: prefer explicit ctaPath, otherwise go to the dynamic tournament page
+  // CTA: prefer explicit ctaPath, otherwise go to the dynamic tournament page
   const ctaHref = hasFeatured
     ? featured.ctaPath || `/tournaments/${featured.tournamentId}`
     : "/tournaments-hub/valorant-types/1v1";
@@ -227,7 +223,7 @@ export default function HomePage({ featured }) {
             </div>
           </div>
 
-          {/* RIGHT: Upcoming List (unchanged) */}
+          {/* RIGHT: Upcoming List */}
           <div className={styles.upcomingColumn}>
             <div className={styles.cardHeaderRow}>
               <h2 className={styles.cardTitle}>IN THE PIPELINE</h2>
