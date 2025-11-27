@@ -74,6 +74,7 @@ export async function getServerSideProps({ req }) {
 
     return {
       id,
+
       // name/title of the tournament
       name:
         state.displayName ||
@@ -111,13 +112,14 @@ export async function getServerSideProps({ req }) {
         null,
 
       // links
-      // 🔗 NEW: always go to the dynamic tournament detail page
+      // Details → dynamic tournament detail page
       detailsUrl: `/tournaments/${id}`,
 
+      // Bracket → NEW dynamic bracket page for that tournamentId
       bracketUrl:
         meta.bracketUrl ||
         r.bracketUrl ||
-        "#",
+        `/tournaments/${id}/bracket`,
     };
   });
 
@@ -145,7 +147,6 @@ export default function MyRegistrations({ registrations }) {
             Active Tournaments
             <span className={styles.countBadge}>{count}</span>
           </div>
-          {/* Optional: Add filters here later */}
         </div>
 
         {/* Tournament Grid */}
