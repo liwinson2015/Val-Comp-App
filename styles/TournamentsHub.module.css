@@ -77,8 +77,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 40px;
-  height: 300px;
+  justify-content: space-between;       /* spread title/desc/CTA nicely */
+  padding: 32px 36px;
+  min-height: 240px;                    /* enough height, but not huge */
   text-decoration: none;
   
   /* Glass Effect */
@@ -175,7 +176,7 @@
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-weight: 700;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -196,9 +197,9 @@
 }
 
 .cardTitle {
-  font-size: 2.5rem;
+  font-size: 2.3rem;
   font-weight: 800;
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   color: #fff;
   letter-spacing: 1px;
 }
@@ -207,11 +208,11 @@
   font-size: 0.95rem;
   color: #94a3b8;
   line-height: 1.5;
-  margin-bottom: auto; /* Push link to bottom */
+  margin-bottom: 14px;          /* small, not auto -> keeps CTA visible */
 }
 
 .cardLink {
-  margin-top: 20px;
+  margin-top: 6px;
   font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -235,7 +236,7 @@
     font-size: 2.5rem;
   }
   .card {
-    height: auto;
-    min-height: 250px;
+    min-height: 0;
+    padding: 28px 24px;
   }
 }
