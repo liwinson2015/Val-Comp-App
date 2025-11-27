@@ -70,8 +70,7 @@ export default async function handler(req, res) {
       typeof capacity === "number" && capacity > 0 ? capacity : 16;
 
     const fallbackPrize =
-      displayPrize ||
-      "Skin / Gift Card (set in admin)";
+      displayPrize || "Skin / Gift Card (set in admin)";
     const fallbackEntry = displayEntry || "Free";
     const fallbackHost = displayHost || "5TQ";
 
@@ -80,7 +79,9 @@ export default async function handler(req, res) {
       name: name || displayName || trimmedId,
       game: game || "valorant",
       capacity: capacityValue,
-      status: "upcoming",
+
+      // 🔹 status is now only "ongoing" or "completed". New tournaments start as "ongoing"
+      status: "ongoing",
 
       host: fallbackHost, // optional top-level host
 
@@ -103,7 +104,9 @@ export default async function handler(req, res) {
     // 5) Create / upsert matching TournamentState
     const stateUpdate = {
       tournamentId: trimmedId,
-      status: "upcoming",
+
+      // 🔹 match the new enum: "ongoing" | "completed"
+      status: "ongoing",
       isEnded: false,
       endedAt: null,
       endNotes: "",
@@ -118,6 +121,7 @@ export default async function handler(req, res) {
       displayGameLabel: displayGameLabel || "VALORANT • 1v1",
       displayModeLabel: displayModeLabel || "1v1 • Double Elimination",
 
+      // Button sends players straight to the dynamic tournament page
       ctaPath: `/tournaments/${trimmedId}`,
     };
 
