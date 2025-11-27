@@ -116,10 +116,11 @@ export async function getServerSideProps({ req }) {
         : 0;
 
       // Where "View Results" goes.
-      // For now: prefer lib/tournaments.bracketUrl, otherwise
-      // fall back to a convention route like /brackets/:id
+      // Prefer lib/tournaments.bracketUrl (for the legacy first event),
+      // otherwise use the dynamic route: /tournaments/:id/bracket
       const bracketUrl =
-        meta.bracketUrl || `/brackets/${encodeURIComponent(id)}`;
+        meta.bracketUrl ||
+        `/tournaments/${encodeURIComponent(id)}/bracket`;
 
       return {
         id,
