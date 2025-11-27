@@ -2,11 +2,11 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import styles from "../../../../../styles/Tft1v1.module.css";
+import styles from "../../../../styles/Tft1v1.module.css";
 
-import { connectToDatabase } from "../../../../../lib/mongodb";
-import Tournament from "../../../../../models/Tournament";
-import Player from "../../../../../models/Player";
+import { connectToDatabase } from "../../../../lib/mongodb";
+import Tournament from "../../../../models/Tournament";
+import Player from "../../../../models/Player";
 
 // Load TFT Solo tournaments
 export async function getServerSideProps() {
