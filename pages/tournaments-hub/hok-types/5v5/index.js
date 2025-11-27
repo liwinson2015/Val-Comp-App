@@ -8,20 +8,24 @@ import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
 import Player from "../../../../models/Player";
 
-// Load Honor of Kings 5v5 tournaments
+// ----- SERVER SIDE: load HOK 5v5 tournaments from Tournament collection -----
 export async function getServerSideProps() {
   await connectToDatabase();
 
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    game: "hok",
-    mode: "5v5",
+    game: "hok",  // 🔹 Honor of Kings only
+    mode: "5v5",  // 🔹 full team format
   })
     .sort({ createdAt: -1 })
     .lean();
 
   if (!docs || docs.length === 0) {
-    return { props: { tournaments: [] } };
+    return {
+      props: {
+        tournaments: [],
+      },
+    };
   }
 
   const tournaments = [];
@@ -29,29 +33,32 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
+    // Count how many teams/entries are registered for this tournament
     const registered = await Player.countDocuments({
       "registeredFor.tournamentId": tid,
     });
 
-    const capacity = doc.capacity || 8; // 8 team slots by default
-    const status = doc.status || "ongoing";
+    const capacity = doc.capacity || 8; // often fewer full teams
+    const status = doc.status || "upcoming";
     const meta = doc.meta || {};
 
     const displayName =
       doc.name ||
       meta.displayName ||
-      "Honor of Kings 5v5 Tournament #1";
+      "Honor of Kings Team Tournament #1";
 
     const displayDescription =
       meta.displayDescription ||
-      "Full 5v5 team bracket hosted by 5TQ. Draft your comp, rotate as a squad, and push for the crystal.";
+      "Bring your full squad and push lanes through organised 5v5 tournaments hosted by 5TQ.";
 
-    const displayTime = meta.displayTime || "TBD";
+    const displayTime =
+      meta.displayTime ||
+      "TBD";
 
     const displayFormat =
       meta.displayFormat ||
       meta.displayModeLabel ||
-      "5v5 • Single Elimination";
+      "5v5 • Standard Team Format";
 
     const displayCheckIn =
       meta.displayCheckIn ||
@@ -59,25 +66,31 @@ export async function getServerSideProps() {
 
     const displayPrize =
       meta.displayPrize ||
-      "Skins / in-game packs / gift cards";
+      "Skins / gift cards (per team)";
 
     const displayEntry =
       meta.displayEntry ||
       "Free";
 
-    const displayHost = meta.displayHost || "5TQ";
+    const displayHost =
+      meta.displayHost ||
+      "5TQ";
 
-    const displayServer = meta.displayServer || "NA";
+    const displayServer =
+      meta.displayServer ||
+      "NA (Custom Lobbies)";
 
-    const displayMap =
-      meta.displayMap ||
-      "Standard 5v5 map";
+    const displayMaps =
+      meta.displayMaps ||
+      "Classic 5v5 lane map";
 
     const displayRules =
       meta.displayRules ||
-      "No cheats • No account sharing • Captains report results.";
+      "No cheating • No AFK • Captain reports scores";
 
-    const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
+    const detailsUrl =
+      meta.detailsUrl ||
+      `/tournaments/${tid}`;
 
     tournaments.push({
       tournamentId: tid,
@@ -93,7 +106,7 @@ export async function getServerSideProps() {
       displayEntry,
       displayHost,
       displayServer,
-      displayMap,
+      displayMaps,
       displayRules,
       detailsUrl,
     });
@@ -106,6 +119,7 @@ export async function getServerSideProps() {
   };
 }
 
+// ----- PAGE COMPONENT -----
 export default function Hok5v5ListPage({ tournaments }) {
   const router = useRouter();
   const hasAny = tournaments && tournaments.length > 0;
@@ -113,22 +127,22 @@ export default function Hok5v5ListPage({ tournaments }) {
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
-        {/* HERO */}
+        {/* Hero */}
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>HONOR OF KINGS • 5v5</div>
-          <h1 className={styles.heroTitle}>Upcoming 5v5 Tournaments</h1>
+          <div className={styles.heroBadge}>HONOR OF KINGS 5v5</div>
+          <h1 className={styles.heroTitle}>UPCOMING TEAM TOURNAMENTS</h1>
           <p className={styles.heroSubtitle}>
-            Full-team brackets for coordinated squads. Matches are run in custom
-            lobbies and coordinated through the 5TQ Discord.
+            Organised 5v5 team brackets for coordinated squads. Matches are run
+            in custom lobbies and organised through the 5TQ Discord server.
           </p>
         </section>
 
-        {/* LIST PANEL */}
+        {/* List Panel */}
         <section className={styles.panel}>
           {!hasAny ? (
             <div style={{ padding: "2rem 0", color: "#9ca3af" }}>
               <p>No Honor of Kings 5v5 tournaments are scheduled yet.</p>
-              <p>Keep an eye on Discord announcements for roster signup dates.</p>
+              <p>Watch Discord announcements for future roster signups.</p>
             </div>
           ) : (
             <div className={styles.cardGrid}>
@@ -154,7 +168,7 @@ export default function Hok5v5ListPage({ tournaments }) {
 
                       <p className={styles.tMeta}>
                         Team bracket hosted by{" "}
-                        <span style={{ color: "#e5f0ff" }}>{t.displayHost}</span>
+                        <span style={{ color: "#e0f2fe" }}>{t.displayHost}</span>
                         {" • "}
                         Starts {t.displayTime}
                       </p>
@@ -168,34 +182,30 @@ export default function Hok5v5ListPage({ tournaments }) {
                           {t.displayFormat}
                         </div>
                       </div>
-
                       <div className={styles.factRow}>
                         <div className={styles.factLabel}>Check-in</div>
                         <div className={styles.factValue}>
                           {t.displayCheckIn}
                         </div>
                       </div>
-
                       <div className={styles.factRow}>
                         <div className={styles.factLabel}>Entry</div>
                         <div className={styles.factValue}>
                           {t.displayEntry}
                         </div>
                       </div>
-
                       <div className={styles.factRow}>
                         <div className={styles.factLabel}>Prize</div>
                         <div className={styles.factValue}>
                           {t.displayPrize}
                         </div>
                       </div>
-
                       <div className={styles.factRow}>
                         <div className={styles.factLabel}>Team Slots</div>
                         <div className={styles.factValue}>
                           <span
                             style={{
-                              color: isFull ? "#f97373" : "#60a5fa",
+                              color: isFull ? "#fb7185" : "#38bdf8",
                             }}
                           >
                             {registered} / {capacity}{" "}
@@ -208,7 +218,7 @@ export default function Hok5v5ListPage({ tournaments }) {
                     {/* Pills */}
                     <div className={styles.pillRow}>
                       <div className={styles.pill}>{t.displayServer}</div>
-                      <div className={styles.pill}>{t.displayMap}</div>
+                      <div className={styles.pill}>{t.displayMaps}</div>
                       <div className={styles.pill}>{t.displayRules}</div>
                     </div>
 
@@ -218,7 +228,7 @@ export default function Hok5v5ListPage({ tournaments }) {
                         <span
                           className={styles.primaryBtn}
                           style={{
-                            background: "#1f2933",
+                            background: "#1f2937",
                             color: "#6b7280",
                             cursor: "default",
                             boxShadow: "none",
@@ -231,7 +241,7 @@ export default function Hok5v5ListPage({ tournaments }) {
                         <span
                           className={styles.primaryBtn}
                           style={{
-                            background: "#1f2933",
+                            background: "#1f2937",
                             color: "#6b7280",
                             cursor: "default",
                             boxShadow: "none",
