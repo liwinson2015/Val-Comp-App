@@ -25,13 +25,23 @@ export async function getServerSideProps() {
     "registeredFor.tournamentId": tournamentId,
   });
 
-  const maxSlots = DEFAULT_MAX_SLOTS;
+  // Allow capacity override from state if you ever add it
+  const maxSlots =
+    typeof state.maxSlots === "number" && state.maxSlots > 0
+      ? state.maxSlots
+      : DEFAULT_MAX_SLOTS;
+
+  // Normalize status so it’s always one of these three
+  const allowedStatuses = ["upcoming", "ongoing", "completed"];
+  const safeStatus = allowedStatuses.includes(state.status)
+    ? state.status
+    : "upcoming";
 
   const featured = {
     tournamentId,
     currentCount: Number(currentCount) || 0,
     maxSlots: Number(maxSlots) || DEFAULT_MAX_SLOTS,
-    status: state.status || "ongoing", // upcoming / ongoing / completed
+    status: safeStatus, // "upcoming" | "ongoing" | "completed"
 
     // Homepage display fields (may be empty)
     displayName: state.displayName || "",
@@ -52,15 +62,36 @@ export default function HomePage({ featured }) {
   const maxSlots = hasFeatured ? featured.maxSlots : DEFAULT_MAX_SLOTS;
 
   const isFull = hasFeatured && currentCount >= maxSlots;
-  const isOngoing = hasFeatured && featured.status === "ongoing";
+  const status = hasFeatured ? featured.status : null;
 
-  const statusText = !hasFeatured
-    ? "COMING SOON"
-    : !isOngoing
-    ? "COMPLETED"
-    : isFull
-    ? "FULL / CLOSED"
-    : "OPEN ENTRY";
+  // ----- STATUS TEXT + COLOR (fixed) -----
+  let statusText;
+  if (!hasFeatured) {
+    statusText = "COMING SOON";
+  } else if (status === "completed") {
+    statusText = "COMPLETED";
+  } else if (isFull) {
+    statusText = "FULL / CLOSED";
+  } else if (status === "upcoming") {
+    statusText = "UPCOMING";
+  } else {
+    // ongoing and not full
+    statusText = "OPEN ENTRY";
+  }
+
+  let statusColor;
+  if (!hasFeatured) {
+    statusColor = "#eab308"; // yellow
+  } else if (status === "completed") {
+    statusColor = "#9ca3af"; // gray
+  } else if (isFull) {
+    statusColor = "#ff4655"; // red
+  } else if (status === "upcoming") {
+    statusColor = "#eab308"; // yellow
+  } else {
+    // ongoing + open
+    statusColor = "#4ade80"; // green
+  }
 
   const slotsText = hasFeatured ? `${currentCount} / ${maxSlots}` : "-- / --";
   const playersText = hasFeatured
@@ -98,12 +129,13 @@ export default function HomePage({ featured }) {
     ? `${gameLabel.toUpperCase()} • ${modeLabel}`
     : "COMING SOON";
 
-  const canRegister = hasFeatured && isOngoing && !isFull;
+  const canRegister =
+    hasFeatured && status === "ongoing" && !isFull;
 
-  const ctaHref =
-    hasFeatured && featured.ctaPath
-      ? featured.ctaPath
-      : "/tournaments-hub/valorant-types/1v1";
+  // 🔹 CTA: prefer explicit ctaPath, otherwise go to the dynamic tournament page
+  const ctaHref = hasFeatured
+    ? featured.ctaPath || `/tournaments/${featured.tournamentId}`
+    : "/tournaments-hub/valorant-types/1v1";
 
   return (
     <div className={styles.shell}>
@@ -155,13 +187,7 @@ export default function HomePage({ featured }) {
                 <div
                   className={styles.metaValue}
                   style={{
-                    color: !hasFeatured
-                      ? "#eab308"
-                      : !isOngoing
-                      ? "#f97316"
-                      : isFull
-                      ? "#ff4655"
-                      : "#4ade80",
+                    color: statusColor,
                   }}
                 >
                   {statusText}
@@ -189,7 +215,9 @@ export default function HomePage({ featured }) {
                 >
                   <span>
                     {hasFeatured
-                      ? isOngoing && isFull
+                      ? status === "completed"
+                        ? "BRACKET COMPLETED"
+                        : isFull
                         ? "BRACKET FULL"
                         : "REGISTRATION CLOSED"
                       : "COMING SOON"}
@@ -224,7 +252,7 @@ export default function HomePage({ featured }) {
           </div>
         </section>
 
-        {/* BOTTOM GRID (unchanged) */}
+        {/* BOTTOM GRID */}
         <section className={styles.bottomGrid}>
           <section className={styles.howCard}>
             <div className={styles.cardHeaderRow}>
@@ -246,7 +274,7 @@ export default function HomePage({ featured }) {
             <div className={styles.gamesRow}>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>VAL</div>
-                <div className={styles.gameDesc}>Solo & Team Brackets</div>
+                <div className={styles.gameDesc}>Solo &amp; Team Brackets</div>
               </div>
               <div className={styles.gameTag}>
                 <div className={styles.gameBadge}>TFT</div>
@@ -260,7 +288,8 @@ export default function HomePage({ featured }) {
               </div>
             </div>
             <p className={styles.gamesFooter}>
-              Suggest a game in <span className={styles.highlight}>#ideas</span> on Discord.
+              Suggest a game in{" "}
+              <span className={styles.highlight}>#ideas</span> on Discord.
             </p>
           </section>
         </section>
