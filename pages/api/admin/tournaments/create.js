@@ -5,17 +5,28 @@ import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
 import TournamentState from "../../../../models/TournamentState";
 
+// ─────────────────────────────────────────────────────────────
+// Helpers: normalize game / mode / bracket style + labels
+// ─────────────────────────────────────────────────────────────
+
 function normalizeGame(game) {
   if (!game || typeof game !== "string") return "valorant";
   const g = game.toLowerCase();
+
   if (g === "tft" || g === "teamfight tactics") return "tft";
   if (g === "valorant" || g === "val") return "valorant";
+  if (g === "hok" || g === "honor of kings" || g === "honour of kings") {
+    return "hok";
+  }
+
+  // fallback: keep lowercase version
   return g;
 }
 
 function defaultModeForGame(game) {
-  if (game === "tft") return "solo";    // TFT default = solo queue
-  return "1v1";                         // Valorant default = 1v1
+  if (game === "tft") return "solo";  // TFT default = solo lobbies
+  if (game === "hok") return "5v5";   // HOK default idea
+  return "1v1";                       // Valorant default
 }
 
 function normalizeMode(mode, game) {
@@ -23,27 +34,44 @@ function normalizeMode(mode, game) {
     return defaultModeForGame(game);
   }
   const m = mode.toLowerCase();
-  // Valorant modes
+
+  // TFT modes – also coerce old "1v1"/"2v2" to the new canonical modes
+  if (game === "tft") {
+    if (m === "1v1" || m === "solo" || m === "ffa") return "solo";
+    if (m === "2v2" || m === "doubleup" || m === "double up" || m === "duo") {
+      return "doubleup";
+    }
+    // default fallback for TFT
+    return "solo";
+  }
+
+  // HOK – mostly going to be 5v5
+  if (game === "hok") {
+    if (m === "5v5" || m === "team") return "5v5";
+    return "5v5";
+  }
+
+  // Valorant + everything else
   if (m === "1v1" || m === "solo") return "1v1";
   if (m === "2v2" || m === "duo") return "2v2";
   if (m === "5v5" || m === "team") return "5v5";
-  // TFT modes
-  if (m === "doubleup" || m === "double up" || m === "2v2") return "doubleup";
-  if (m === "solo" || m === "ffa") return "solo";
+
   return m;
 }
 
 function normalizeBracketStyle(bracketStyle, game) {
   if (typeof bracketStyle !== "string") {
     // default by game
-    if (game === "tft") return "lobby";     // TFT uses lobby/points-style
-    return "double";                        // Valorant default: double elim
+    if (game === "tft") return "lobby"; // TFT is lobby/points-based
+    return "double";                   // Valorant/HOK default: double elim
   }
+
   const b = bracketStyle.toLowerCase();
   if (b === "single" || b === "single_elim") return "single";
   if (b === "double" || b === "double_elim") return "double";
   if (b === "lobby" || b === "ffa") return "lobby";
-  // Fallback by game again
+
+  // fallback by game
   if (game === "tft") return "lobby";
   return "double";
 }
@@ -55,11 +83,17 @@ function getDefaultGameLabel(game, mode) {
     if (mode === "5v5") return "VALORANT • 5v5";
     return "VALORANT";
   }
+
   if (game === "tft") {
     if (mode === "solo") return "TFT • SOLO";
     if (mode === "doubleup") return "TFT • DOUBLE UP";
     return "TEAMFIGHT TACTICS";
   }
+
+  if (game === "hok") {
+    return "HONOR OF KINGS";
+  }
+
   return "TOURNAMENT";
 }
 
@@ -81,8 +115,22 @@ function getDefaultModeLabel(game, mode, bracketStyle) {
     return "TFT Lobbies";
   }
 
+  if (game === "hok") {
+    // you can tweak this later if you want groups/league style
+    if (mode === "5v5") {
+      return bracketStyle === "double"
+        ? "5v5 • Double Elimination"
+        : "5v5 • Single Elimination";
+    }
+    return "HOK Tournament";
+  }
+
   return "Tournament Format";
 }
+
+// ─────────────────────────────────────────────────────────────
+// Handler
+// ─────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -146,7 +194,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ---- NEW: normalize game / mode / bracketStyle ----
+    // ---- normalize game / mode / bracketStyle ----
     const normalizedGame = normalizeGame(game);
     const normalizedMode = normalizeMode(mode, normalizedGame);
     const normalizedBracketStyle = normalizeBracketStyle(
@@ -155,8 +203,9 @@ export default async function handler(req, res) {
     );
 
     // 4) Build the Tournament document
+    const capNum = Number(capacity);
     const capacityValue =
-      typeof capacity === "number" && capacity > 0 ? capacity : 16;
+      Number.isFinite(capNum) && capNum > 0 ? capNum : 16;
 
     const fallbackPrize =
       displayPrize || "Skin / Gift Card (set in admin)";
@@ -178,17 +227,17 @@ export default async function handler(req, res) {
       tournamentId: trimmedId,
       name: name || displayName || trimmedId,
 
-      // 🔹 structured routing fields
-      game: normalizedGame,          // "valorant" | "tft"
-      mode: normalizedMode,          // "1v1" | "2v2" | "5v5" | "solo" | "doubleup"
+      // structured routing fields
+      game: normalizedGame,                // "valorant" | "tft" | "hok"
+      mode: normalizedMode,                // "1v1" | "2v2" | "5v5" | "solo" | "doubleup"
       bracketStyle: normalizedBracketStyle, // "single" | "double" | "lobby"
 
       capacity: capacityValue,
 
-      // 🔹 status is now only "ongoing" or "completed". New tournaments start as "ongoing"
+      // status is only "ongoing" or "completed". New tournaments start as "ongoing"
       status: "ongoing",
 
-      host: fallbackHost, // optional top-level host
+      host: fallbackHost,
 
       meta: {
         displayName: displayName || name || "",
@@ -210,7 +259,6 @@ export default async function handler(req, res) {
     const stateUpdate = {
       tournamentId: trimmedId,
 
-      // 🔹 match the new enum: "ongoing" | "completed"
       status: "ongoing",
       isEnded: false,
       endedAt: null,
@@ -224,11 +272,9 @@ export default async function handler(req, res) {
       displayHost: fallbackHost,
       displayTime: displayTime || "",
 
-      // use same labeling logic as tournament.meta
       displayGameLabel: fallbackGameLabel,
       displayModeLabel: fallbackModeLabel,
 
-      // Button sends players straight to the dynamic tournament page
       ctaPath: `/tournaments/${trimmedId}`,
     };
 
