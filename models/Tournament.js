@@ -106,10 +106,17 @@ const TournamentSchema = new Schema(
       index: true,
     },
 
-    // Optional metadata (you can extend as you like)
+    // Optional metadata
     name: { type: String },
     game: { type: String }, // e.g. "valorant"
     capacity: { type: Number },
+
+    // 🔹 Only two statuses now: "ongoing" or "completed"
+    status: {
+      type: String,
+      enum: ["ongoing", "completed"],
+      default: "ongoing",
+    },
 
     // Anything else you might have stored before
     meta: { type: Schema.Types.Mixed },
