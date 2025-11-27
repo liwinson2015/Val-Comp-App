@@ -41,7 +41,7 @@ export default function TournamentsHubPage() {
             </div>
           </Link>
 
-          {/* TEAMFIGHT TACTICS CARD */}
+          {/* TFT CARD */}
           <Link
             href="/tournaments-hub/tft-types"
             className={`${s.card} ${s.tftCard} ${s.cardInteractive}`}
@@ -75,7 +75,7 @@ export default function TournamentsHubPage() {
             </div>
 
             <p className={s.cardDesc}>
-              We’re expanding to more games in the future.
+              We&apos;re expanding to more games in the future.
               Drop suggestions in Discord for what you want to see next.
             </p>
           </div>
