@@ -61,7 +61,7 @@ export async function getServerSideProps({ req }) {
     const item = {
       tournamentId: tid,
       count: countMap[tid] || 0,
-      status: s.status || "ongoing", // upcoming / ongoing / completed
+      status: s.status || "ongoing", // ongoing / completed
       isFeatured: !!s.isFeatured,
       // you can surface more fields later if you want (displayName, etc.)
     };
@@ -139,7 +139,7 @@ export default function AdminBracketsPage({ tournaments }) {
               const statusLabel =
                 t.status === "completed"
                   ? "Completed"
-                  : t.status === "upcoming"
+                  : t.status === "ongoing"
                   ? "Upcoming"
                   : "Ongoing";
 

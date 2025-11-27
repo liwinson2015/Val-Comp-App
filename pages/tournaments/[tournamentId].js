@@ -28,6 +28,17 @@ function formatMaybeDate(input) {
   });
 }
 
+// Normalize tournament status so we only ever use "ongoing" or "completed"
+function normalizeTournamentStatus(doc) {
+  const raw =
+    doc.status ||          // future top-level status
+    (doc.meta && doc.meta.status) ||    // older data
+    (doc.bracket && doc.bracket.status); // older data
+
+  if (raw === "completed") return "completed";
+  return "ongoing"; // treat missing/anything-else as ongoing
+}
+
 // ---------- SERVER SIDE: block page if FULL *and* user not registered ----------
 export async function getServerSideProps({ req, params }) {
   const { tournamentId } = params;
@@ -124,8 +135,8 @@ export async function getServerSideProps({ req, params }) {
       startsText = "November 2, 2025";
     }
 
-    // Status from Tournament doc (optional for now)
-    const status = tournamentDoc.status || "ongoing";
+    // Status from Tournament doc (normalize to "ongoing" | "completed")
+    const status = normalizeTournamentStatus(tournamentDoc);
 
     return {
       props: {
@@ -155,7 +166,7 @@ export async function getServerSideProps({ req, params }) {
           "Solo skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.",
         heroBadge: "Valorant 1v1",
         startsText: "TBD",
-        status: "upcoming",
+        status: "ongoing", // fallback is ongoing, not upcoming
         isFull: false,
         displayPrize: "$20 Valorant Gift Card",
         displayEntry: "Free",
