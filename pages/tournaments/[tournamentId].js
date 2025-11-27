@@ -125,7 +125,7 @@ export async function getServerSideProps({ req, params }) {
     }
 
     // Status from Tournament doc (optional for now)
-    const status = tournamentDoc.status || "upcoming";
+    const status = tournamentDoc.status || "ongoing";
 
     return {
       props: {
