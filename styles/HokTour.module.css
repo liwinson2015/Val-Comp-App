@@ -1,20 +1,21 @@
 /* styles/HokTour.module.css */
 
+/* OUTER SHELL */
 .shell {
   min-height: 100vh;
   width: 100%;
-  padding: 80px 20px;
+  padding: 80px 20px 90px;
   display: flex;
   justify-content: center;
 
-  background-color: #050505;
+  background-color: #020617;
   background-image:
-    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.18) 0%, rgba(0, 0, 0, 0) 50%),
-    radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.14) 0%, rgba(0, 0, 0, 0) 50%),
-    linear-gradient(180deg, #050505 0%, #020617 100%);
+    radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.18) 0%, rgba(0, 0, 0, 0) 55%),
+    radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.18) 0%, rgba(0, 0, 0, 0) 55%),
+    linear-gradient(180deg, #020617 0%, #020617 40%, #020617 100%);
   background-attachment: fixed;
 
-  color: #e5e7eb;
+  color: #e5f0ff;
   font-family: "Rajdhani", "Segoe UI", sans-serif;
 }
 
@@ -26,155 +27,153 @@
 /* HERO */
 
 .hero {
-  margin-bottom: 50px;
-  text-align: left;
+  text-align: center;
+  margin-bottom: 48px;
 }
 
 .heroBadge {
   display: inline-block;
-  padding: 6px 12px;
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: #bfdbfe;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(129, 140, 248, 0.7);
+  padding: 7px 16px;
   border-radius: 999px;
-  box-shadow: 0 0 18px rgba(129, 140, 248, 0.45);
+  border: 1px solid rgba(59, 130, 246, 0.7);
+  background: radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.45), transparent 55%);
+  color: #bfdbfe;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   margin-bottom: 18px;
+  box-shadow: 0 0 25px rgba(37, 99, 235, 0.5);
 }
 
 .heroTitle {
-  font-size: 2.6rem;
+  margin: 0 0 10px;
+  font-size: 3rem;
   font-weight: 800;
-  margin: 0 0 10px 0;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: linear-gradient(90deg, #ffffff, #bfdbfe);
+  background: linear-gradient(90deg, #f9fafb, #cbd5f5);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .heroSubtitle {
+  margin: 0 auto;
+  max-width: 620px;
   font-size: 1rem;
   color: #9ca3af;
-  max-width: 580px;
-  line-height: 1.6;
 }
 
-/* PANEL + GRID */
+/* PANEL + CARDS */
 
 .panel {
-  margin-top: 20px;
+  margin-bottom: 36px;
 }
 
-.cardGrid {
+.cardRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
 }
 
-/* MODE CARD */
-
 .modeCard {
   position: relative;
-  display: block;
   text-decoration: none;
-  color: inherit;
-
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  padding: 28px;
-  clip-path: polygon(
-    16px 0, 100% 0,
-    100% calc(100% - 16px), calc(100% - 16px) 100%,
-    0 100%, 0 16px
-  );
-  transition: all 0.25s ease;
+  border-radius: 18px;
+  padding: 28px 26px;
+  background: radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.24), #020617);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  backdrop-filter: blur(16px);
   overflow: hidden;
+
+  clip-path: polygon(
+    18px 0,
+    100% 0,
+    100% calc(100% - 18px),
+    calc(100% - 18px) 100%,
+    0 100%,
+    0 18px
+  );
+
+  transition: all 0.28s ease;
 }
 
-.modeCard::before {
+/* Primary active card */
+.primaryCard {
+  border-top: 2px solid #38bdf8;
+}
+
+.primaryCard::before {
   content: "";
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at 100% 0%,
-    rgba(59, 130, 246, 0.22),
-    transparent 70%
-  );
+  background: radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.18), transparent 70%);
   opacity: 0.7;
-  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
 }
 
-.modeCard:hover {
+.primaryCard:hover {
   transform: translateY(-4px);
-  border-color: #60a5fa;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.9);
+  border-color: #0ea5e9;
 }
 
+.primaryCard:hover::before {
+  opacity: 1;
+}
+
+/* Shared inner layout */
 .modeInner {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-
-/* Active card text */
 
 .modeBadge {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-weight: 700;
-  color: #93c5fd;
-  margin-bottom: 10px;
+  color: #7dd3fc;
+  margin-bottom: 8px;
 }
 
 .modeTitle {
+  margin: 0;
   font-size: 1.8rem;
   font-weight: 800;
-  margin: 0 0 8px 0;
-  color: #e5e7eb;
+  color: #e5f0ff;
+  letter-spacing: 0.06em;
 }
 
 .modeDesc {
+  margin: 14px 0 0;
   font-size: 0.95rem;
-  color: #9ca3af;
-  line-height: 1.5;
-  flex-grow: 1;
+  color: #94a3b8;
+  max-width: 420px;
 }
 
 .modeCtaRow {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-start;
+  margin-top: auto;
+  padding-top: 22px;
 }
 
 .modeCta {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: #bfdbfe;
+  letter-spacing: 0.14em;
+  color: #e0f2fe;
 }
 
-/* Disabled / coming soon */
+/* Disabled / locked card */
 
 .modeDisabled {
-  background: rgba(15, 23, 42, 0.85);
   border-style: dashed;
-  border-color: rgba(148, 163, 184, 0.5);
-}
-
-.modeDisabled::before {
-  background: radial-gradient(
-    circle at 0% 0%,
-    rgba(15, 23, 42, 0.7),
-    transparent 70%
-  );
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.7);
+  cursor: default;
 }
 
 .modeBadgeMuted {
@@ -182,29 +181,29 @@
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-weight: 700;
-  color: #6b7280;
-  margin-bottom: 10px;
+  color: #64748b;
+  margin-bottom: 8px;
 }
 
 .modeTitleMuted {
+  margin: 0;
   font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: #9ca3af;
+  font-weight: 800;
+  color: #94a3b8;
 }
 
 .modeDescMuted {
-  font-size: 0.9rem;
+  margin: 14px 0 0;
+  font-size: 0.95rem;
   color: #6b7280;
-  line-height: 1.5;
-  flex-grow: 1;
+  max-width: 420px;
 }
 
 .modeCtaMuted {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   color: #4b5563;
 }
 
@@ -213,38 +212,43 @@
 .infoRow {
   margin-top: 32px;
   padding-top: 18px;
-  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: 20px;
 }
 
 .infoItem {
-  display: flex;
-  flex-direction: column;
-  min-width: 120px;
+  min-width: 140px;
 }
 
 .infoLabel {
+  display: block;
   font-size: 0.75rem;
-  text-transform: uppercase;
   letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: #6b7280;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .infoValue {
-  font-size: 0.9rem;
-  color: #e5e7eb;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e5f0ff;
 }
 
-/* Responsive */
-
+/* Responsive tweaks */
 @media (max-width: 768px) {
-  .hero {
-    text-align: left;
-  }
   .heroTitle {
-    font-size: 2.2rem;
+    font-size: 2.4rem;
+  }
+
+  .shell {
+    padding-top: 64px;
+  }
+
+  .cardRow {
+    grid-template-columns: 1fr;
   }
 }

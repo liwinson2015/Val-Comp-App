@@ -10,27 +10,27 @@ export default function HokTypesPage() {
         {/* HERO */}
         <section className={styles.hero}>
           <div className={styles.heroBadge}>HONOR OF KINGS TOURNAMENTS</div>
-          <h1 className={styles.heroTitle}>Select a Format</h1>
+          <h1 className={styles.heroTitle}>SELECT A FORMAT</h1>
           <p className={styles.heroSubtitle}>
-            Organised 5v5 team tournaments for coordinated squads. Pick your
-            comp, control objectives, and push lanes with your team.
+            Organised 5v5 team tournaments for coordinated squads. Pick your comp,
+            control objectives, and push lanes with your team.
           </p>
         </section>
 
         {/* MAIN PANEL */}
         <section className={styles.panel}>
-          <div className={styles.cardGrid}>
-            {/* 5v5 CARD (Active) */}
+          <div className={styles.cardRow}>
+            {/* 5v5 STANDARD (ACTIVE) */}
             <Link
               href="/tournaments-hub/hok-types/5v5"
-              className={styles.modeCard}
+              className={`${styles.modeCard} ${styles.primaryCard}`}
             >
               <div className={styles.modeInner}>
                 <div className={styles.modeBadge}>● Team Format</div>
                 <h2 className={styles.modeTitle}>5v5 STANDARD</h2>
                 <p className={styles.modeDesc}>
-                  Full team tournaments on the classic map. Draft, rotate, and
-                  fight for towers and objectives.
+                  Full team tournaments on the classic map. Draft, rotate, and fight
+                  for towers and objectives.
                 </p>
                 <div className={styles.modeCtaRow}>
                   <span className={styles.modeCta}>View Tournaments →</span>
@@ -38,14 +38,14 @@ export default function HokTypesPage() {
               </div>
             </Link>
 
-            {/* FUTURE FORMATS (Locked) */}
+            {/* SPECIAL MODES (LOCKED) */}
             <div className={`${styles.modeCard} ${styles.modeDisabled}`}>
               <div className={styles.modeInner}>
                 <div className={styles.modeBadgeMuted}>Locked</div>
                 <h2 className={styles.modeTitleMuted}>Special Modes</h2>
                 <p className={styles.modeDescMuted}>
-                  Experimental rulesets, fun events, and limited-time modes
-                  may unlock here in the future.
+                  Experimental rulesets, fun events, and limited-time modes may
+                  unlock here in the future.
                 </p>
                 <div className={styles.modeCtaRow}>
                   <span className={styles.modeCtaMuted}>Coming Soon</span>
@@ -55,7 +55,7 @@ export default function HokTypesPage() {
           </div>
         </section>
 
-        {/* INFO STRIP */}
+        {/* INFO STRIP (HOST / REGION / FORMAT) */}
         <section className={styles.infoRow}>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>Host</span>
