@@ -27,7 +27,7 @@
 
 .hero {
   margin-bottom: 40px;
-  text-align: left;
+  text-align: center; /* ⬅ centered */
 }
 
 .heroBadge {
@@ -59,6 +59,7 @@
   color: #9ca3af;
   font-size: 1rem;
   max-width: 620px;
+  margin: 0 auto; /* ⬅ center subtitle block */
 }
 
 /* PANEL */
