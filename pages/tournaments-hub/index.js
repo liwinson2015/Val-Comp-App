@@ -24,11 +24,12 @@ export default function TournamentsHubPage() {
             href="/tournaments-hub/valorant-types"
             className={`${s.card} ${s.valorantCard} ${s.cardInteractive}`}
           >
-            <div className={`${s.cardTag} ${s.tagRed}`}>
-              <span>●</span> FPS • Competitive
+            <div className={s.cardHeader}>
+              <div className={`${s.cardTag} ${s.tagRed}`}>
+                <span>●</span> FPS • Competitive
+              </div>
+              <h2 className={s.cardTitle}>VALORANT</h2>
             </div>
-
-            <h2 className={s.cardTitle}>VALORANT</h2>
 
             <p className={s.cardDesc}>
               Solo skirmishes, duo events, and full team tournaments.
@@ -45,11 +46,12 @@ export default function TournamentsHubPage() {
             href="/tournaments-hub/tft-types"
             className={`${s.card} ${s.tftCard} ${s.cardInteractive}`}
           >
-            <div className={`${s.cardTag} ${s.tagTft}`}>
-              <span>●</span> Auto Chess • Strategy
+            <div className={s.cardHeader}>
+              <div className={`${s.cardTag} ${s.tagTft}`}>
+                <span>●</span> Auto Chess • Strategy
+              </div>
+              <h2 className={s.cardTitle}>TEAMFIGHT TACTICS</h2>
             </div>
-
-            <h2 className={s.cardTitle}>TEAMFIGHT TACTICS</h2>
 
             <p className={s.cardDesc}>
               Single lobby tournaments and Double Up brackets.
@@ -63,13 +65,14 @@ export default function TournamentsHubPage() {
 
           {/* COMING SOON CARD */}
           <div className={`${s.card} ${s.soonCard}`}>
-            <div className={`${s.cardTag} ${s.tagGray}`}>
-              Coming Soon
+            <div className={s.cardHeader}>
+              <div className={`${s.cardTag} ${s.tagGray}`}>
+                Coming Soon
+              </div>
+              <h2 className={s.cardTitle} style={{ opacity: 0.5 }}>
+                More Titles
+              </h2>
             </div>
-
-            <h2 className={s.cardTitle} style={{ opacity: 0.5 }}>
-              More Titles
-            </h2>
 
             <p className={s.cardDesc}>
               We’re expanding to more games in the future.

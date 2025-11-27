@@ -10,9 +10,7 @@
   /* --- MASTER BACKGROUND (Matches Bracket Page) --- */
   background-color: #050505;
   background-image:
-    /* Top Right Blue Glow */
     radial-gradient(circle at 80% 20%, rgba(0, 198, 255, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
-    /* Bottom Left Orange Glow */
     radial-gradient(circle at 20% 80%, rgba(255, 75, 31, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
     linear-gradient(180deg, #050505 0%, #0a0f18 100%);
   background-attachment: fixed;
@@ -37,7 +35,7 @@
   font-size: 0.85rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: #00c6ff; /* Ice Blue Accent */
+  color: #00c6ff;
   font-weight: 700;
   margin-bottom: 10px;
   display: block;
@@ -50,7 +48,6 @@
   margin: 0 0 15px 0;
   line-height: 1;
   text-transform: uppercase;
-  /* Gradient Text */
   background: linear-gradient(90deg, #fff, #94a3b8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -77,17 +74,14 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;       /* spread title/desc/CTA nicely */
-  padding: 32px 36px;
-  min-height: 240px;                    /* enough height, but not huge */
+  padding: 40px;
+  height: 300px;
   text-decoration: none;
   
-  /* Glass Effect */
   background: rgba(20, 25, 35, 0.6);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   
-  /* Tech Corners */
   clip-path: polygon(
     20px 0, 100% 0, 
     100% calc(100% - 20px), calc(100% - 20px) 100%, 
@@ -98,6 +92,17 @@
   overflow: hidden;
 }
 
+/* Header block inside each card (tag + title) */
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+
+  /* KEY: same height on every card so description starts aligned */
+  height: 92px; /* tune up/down if needed */
+}
+
 /* Hover State for Interactive Cards */
 .cardInteractive:hover {
   transform: translateY(-5px);
@@ -106,7 +111,7 @@
 
 /* --- VALORANT THEME --- */
 .valorantCard {
-  border-top: 2px solid #ff4655; /* Valorant Red */
+  border-top: 2px solid #ff4655;
 }
 
 .valorantCard:hover {
@@ -114,7 +119,6 @@
   border-color: #ff4655;
 }
 
-/* Background Glow for Valorant */
 .valorantCard::before {
   content: "";
   position: absolute;
@@ -133,7 +137,7 @@
 
 /* --- TFT THEME --- */
 .tftCard {
-  border-top: 2px solid #22c55e; /* Green accent for TFT */
+  border-top: 2px solid #22c55e;
 }
 
 .tftCard:hover {
@@ -141,7 +145,6 @@
   border-color: #4ade80;
 }
 
-/* Background Glow for TFT */
 .tftCard::before {
   content: "";
   position: absolute;
@@ -176,7 +179,7 @@
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -197,9 +200,9 @@
 }
 
 .cardTitle {
-  font-size: 2.3rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  margin: 0 0 10px 0;
+  margin: 0;
   color: #fff;
   letter-spacing: 1px;
 }
@@ -208,11 +211,11 @@
   font-size: 0.95rem;
   color: #94a3b8;
   line-height: 1.5;
-  margin-bottom: 14px;          /* small, not auto -> keeps CTA visible */
+  margin-bottom: auto;
 }
 
 .cardLink {
-  margin-top: 6px;
+  margin-top: 18px;
   font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -236,7 +239,10 @@
     font-size: 2.5rem;
   }
   .card {
-    min-height: 0;
-    padding: 28px 24px;
+    height: auto;
+    min-height: 250px;
+  }
+  .cardHeader {
+    height: auto; /* let it flow naturally on small screens */
   }
 }

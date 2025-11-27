@@ -1,0 +1,244 @@
+/* styles/Tft2v2.module.css */
+
+.shell {
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px 20px 100px;
+
+  background-color: #020617;
+  background-image:
+    radial-gradient(circle at 78% 18%, rgba(56, 189, 248, 0.25), transparent 55%),
+    radial-gradient(circle at 15% 80%, rgba(59, 130, 246, 0.25), transparent 55%),
+    linear-gradient(180deg, #020617 0%, #020617 100%);
+  background-attachment: fixed;
+
+  color: #f9fafb;
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.contentWrap {
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* HERO */
+
+.hero {
+  margin-bottom: 40px;
+  text-align: left;
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.7);
+  border-radius: 4px;
+  margin-bottom: 18px;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+}
+
+.heroTitle {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #f9fafb, #bfdbfe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroSubtitle {
+  color: #9ca3af;
+  font-size: 1rem;
+  max-width: 620px;
+}
+
+/* PANEL */
+
+.panel {
+  margin-top: 40px;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+/* CARD */
+
+.tCard {
+  position: relative;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  padding: 28px 30px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  clip-path: polygon(
+    20px 0, 100% 0,
+    100% calc(100% - 20px), calc(100% - 20px) 100%,
+    0 100%, 0 20px
+  );
+}
+
+.tCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.9);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.85);
+}
+
+/* HEADER */
+
+.tHead {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  margin-bottom: 10px;
+}
+
+.tTitle {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  text-transform: uppercase;
+}
+
+.tID {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.tID span {
+  color: #bfdbfe;
+}
+
+.tMeta {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+/* BODY GRID */
+
+.tBody {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.factRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.factLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.factValue {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+/* PILLS */
+
+.pillRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.pill {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* ACTIONS */
+
+.tActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryBtn {
+  display: inline-block;
+  background: linear-gradient(90deg, #38bdf8, #3b82f6);
+  color: #020617;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 12px 24px;
+  text-decoration: none;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+  transition: all 0.2s ease;
+}
+
+.primaryBtn:hover {
+  background: linear-gradient(90deg, #7dd3fc, #3b82f6);
+  transform: translateX(4px);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
+}
+
+/* BACK */
+
+.backBar {
+  margin-top: 40px;
+}
+
+.ghostBtn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #9ca3af;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.ghostBtn:hover {
+  border-color: #e5e7eb;
+  color: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 2.4rem;
+  }
+  .tCard {
+    padding: 22px 18px;
+  }
+}
