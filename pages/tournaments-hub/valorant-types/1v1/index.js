@@ -136,7 +136,7 @@ export default function Valorant1v1ListPage({ tournaments }) {
         {/* Hero */}
         <section className={styles.hero}>
           <div className={styles.heroBadge}>VALORANT 1v1</div>
-          <h1 className={styles.heroTitle}>UPCOMING TOURNAMENTS</h1>
+          <h1 className={styles.heroTitle}>UPCOMING SOLO TOURNAMENTS</h1>
           <p className={styles.heroSubtitle}>
             Solo skirmish duels hosted by 5TQ. Claim your slot and climb the
             bracket.
