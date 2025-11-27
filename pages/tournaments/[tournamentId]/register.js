@@ -1,9 +1,9 @@
 // pages/tournaments/[tournamentId]/register.js
 import * as cookie from "cookie";
-import { connectToDatabase } from "../../lib/mongodb";
-import Player from "../../models/Player";
-import Tournament from "../../models/Tournament";
-import Registration from "../../models/Registration";
+import { connectToDatabase } from "../../../lib/mongodb";
+import Player from "../../../models/Player";
+import Tournament from "../../../models/Tournament";
+import Registration from "../../../models/Registration";
 import { useState } from "react";
 
 const FALLBACK_CAPACITY = 16;
