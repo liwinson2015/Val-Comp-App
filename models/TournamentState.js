@@ -12,8 +12,8 @@ const TournamentStateSchema = new mongoose.Schema(
     // Logical status of the tournament
     status: {
       type: String,
-      enum: ["upcoming", "ongoing", "completed"],
-      default: "upcoming",
+      enum: ["ongoing", "completed"],
+      default: "ongoing",
     },
 
     // End-tournament tracking
