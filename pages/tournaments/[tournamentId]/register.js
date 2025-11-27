@@ -247,8 +247,10 @@ export default function DynamicRegisterPage(props) {
         setMessage("Error: " + text);
       } else {
         // after dynamic register, you can still reuse same success page for now
-        window.location.href = "/valorant/success";
-      }
+        window.location.href = `/tournaments/${encodeURIComponent(
+    tournamentId
+  )}/success`;
+}
     } catch (err) {
       console.error("registration submit error:", err);
       setMessage("Network error submitting registration.");
