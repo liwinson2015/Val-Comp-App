@@ -1,0 +1,250 @@
+/* styles/HokTour.module.css */
+
+.shell {
+  min-height: 100vh;
+  width: 100%;
+  padding: 80px 20px;
+  display: flex;
+  justify-content: center;
+
+  background-color: #050505;
+  background-image:
+    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.18) 0%, rgba(0, 0, 0, 0) 50%),
+    radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.14) 0%, rgba(0, 0, 0, 0) 50%),
+    linear-gradient(180deg, #050505 0%, #020617 100%);
+  background-attachment: fixed;
+
+  color: #e5e7eb;
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+}
+
+.contentWrap {
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* HERO */
+
+.hero {
+  margin-bottom: 50px;
+  text-align: left;
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #bfdbfe;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(129, 140, 248, 0.7);
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(129, 140, 248, 0.45);
+  margin-bottom: 18px;
+}
+
+.heroTitle {
+  font-size: 2.6rem;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #ffffff, #bfdbfe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroSubtitle {
+  font-size: 1rem;
+  color: #9ca3af;
+  max-width: 580px;
+  line-height: 1.6;
+}
+
+/* PANEL + GRID */
+
+.panel {
+  margin-top: 20px;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* MODE CARD */
+
+.modeCard {
+  position: relative;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 28px;
+  clip-path: polygon(
+    16px 0, 100% 0,
+    100% calc(100% - 16px), calc(100% - 16px) 100%,
+    0 100%, 0 16px
+  );
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.modeCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(59, 130, 246, 0.22),
+    transparent 70%
+  );
+  opacity: 0.7;
+  mix-blend-mode: screen;
+}
+
+.modeCard:hover {
+  transform: translateY(-4px);
+  border-color: #60a5fa;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
+}
+
+.modeInner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Active card text */
+
+.modeBadge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 10px;
+}
+
+.modeTitle {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: #e5e7eb;
+}
+
+.modeDesc {
+  font-size: 0.95rem;
+  color: #9ca3af;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.modeCtaRow {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.modeCta {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #bfdbfe;
+}
+
+/* Disabled / coming soon */
+
+.modeDisabled {
+  background: rgba(15, 23, 42, 0.85);
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.modeDisabled::before {
+  background: radial-gradient(
+    circle at 0% 0%,
+    rgba(15, 23, 42, 0.7),
+    transparent 70%
+  );
+}
+
+.modeBadgeMuted {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.modeTitleMuted {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #9ca3af;
+}
+
+.modeDescMuted {
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.modeCtaMuted {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #4b5563;
+}
+
+/* INFO STRIP */
+
+.infoRow {
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.infoLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.infoValue {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .hero {
+    text-align: left;
+  }
+  .heroTitle {
+    font-size: 2.2rem;
+  }
+}
