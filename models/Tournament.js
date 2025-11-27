@@ -59,25 +59,25 @@ const BracketSchema = new Schema(
       default: [],
     },
 
-    // ✅ Winners bracket final (upper final)
+    // Winners bracket final (upper final)
     winnersFinal: {
       type: MatchSchema,
       default: null,
     },
 
-    // ✅ Losers bracket final
+    // Losers bracket final
     losersFinal: {
       type: MatchSchema,
       default: null,
     },
 
-    // ✅ True grand final (winner of WB vs winner of LB)
+    // True grand final (winner of WB vs winner of LB)
     grandFinal: {
       type: MatchSchema,
       default: null,
     },
 
-    // ✅ NEW: ranking / placements (1st–16th buckets)
+    // Ranking / placements buckets
     // {
     //   first: ObjectId | null,
     //   second: ObjectId | null,
@@ -106,19 +106,51 @@ const TournamentSchema = new Schema(
       index: true,
     },
 
-    // Optional metadata
+    // Display name if you want
     name: { type: String },
-    game: { type: String }, // e.g. "valorant"
+
+    // ------------ NEW STRUCTURED FIELDS ------------
+
+    // Which game this tournament is for
+    // e.g. "valorant", "tft" (keep it consistent with what you send from admin)
+    game: {
+      type: String,
+      default: "valorant",
+      index: true,
+    },
+
+    // Which format / team size / queue type
+    // Examples:
+    //  valorant: "1v1", "2v2", "5v5"
+    //  tft:      "solo", "doubleup"
+    mode: {
+      type: String,
+      default: "1v1",
+      index: true,
+    },
+
+    // How the bracket behaves
+    // "single"  → single elimination tree
+    // "double"  → winners + losers bracket (what you have now)
+    // "lobby"   → TFT-style lobby / points format
+    bracketStyle: {
+      type: String,
+      default: "double",
+    },
+
+    // ------------------------------------------------
+
+    // Max players / teams
     capacity: { type: Number },
 
-    // 🔹 Only two statuses now: "ongoing" or "completed"
+    // Only two statuses now: "ongoing" or "completed"
     status: {
       type: String,
       enum: ["ongoing", "completed"],
       default: "ongoing",
     },
 
-    // Anything else you might have stored before
+    // Any extra display / config data
     meta: { type: Schema.Types.Mixed },
 
     // Bracket data controlled by the admin tools

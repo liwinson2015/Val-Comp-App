@@ -12,12 +12,10 @@ import Player from "../../../../models/Player";
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // Right now this mirrors the 1v1 query.
-  // Later you can add something like: mode: "VALORANT_5V5"
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    // TODO: add a real filter for 5v5 tournaments here when schema is ready
-    // mode: "VALORANT_5V5"
+    game: "valorant", // 🔹 Valorant only
+    mode: "5v5",      // 🔹 full team format
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -35,16 +33,13 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
-    // Count how many players are registered for this tournament
+    // Count how many teams/entries are registered for this tournament
     const registered = await Player.countDocuments({
       "registeredFor.tournamentId": tid,
     });
 
     const capacity = doc.capacity || 8; // often fewer full teams
-
-    // Read status directly (default to "upcoming" if missing)
     const status = doc.status || "upcoming";
-
     const meta = doc.meta || {};
 
     const displayName =

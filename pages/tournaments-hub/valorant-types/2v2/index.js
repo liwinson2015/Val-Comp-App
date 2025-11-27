@@ -12,14 +12,10 @@ import Player from "../../../../models/Player";
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // NOTE:
-  // Right now we mirror the 1v1 query and just pull all non-completed tournaments.
-  // Once you have a field that differentiates 1v1 vs 2v2 (e.g. doc.mode === "VAL_2V2"),
-  // you can add it to this filter.
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    // TODO: add a real filter for 2v2 tournaments here when your schema is ready
-    // mode: "VALORANT_2V2"
+    game: "valorant", // 🔹 must match what you store in admin
+    mode: "2v2",      // 🔹 Valorant 2v2 format
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -37,7 +33,7 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
-    // Count how many players are registered for this tournament
+    // Count how many teams/entries are registered for this tournament
     const registered = await Player.countDocuments({
       "registeredFor.tournamentId": tid,
     });
@@ -58,13 +54,11 @@ export async function getServerSideProps() {
       meta.displayDescription ||
       "Grab your duo and run the gauntlet. Small team skirmishes hosted by 5TQ.";
 
-    const displayTime =
-      meta.displayTime ||
-      "Jan 2025";
+    const displayTime = meta.displayTime || "Jan 2025";
 
     const displayFormat =
       meta.displayFormat ||
-      meta.displayModeLabel || // in case you're using displayModeLabel instead
+      meta.displayModeLabel ||
       "2v2 • Double Elimination";
 
     const displayCheckIn =
@@ -75,29 +69,19 @@ export async function getServerSideProps() {
       meta.displayPrize ||
       "$20 Valorant Gift Card (per team)";
 
-    const displayEntry =
-      meta.displayEntry ||
-      "Free";
+    const displayEntry = meta.displayEntry || "Free";
 
-    const displayHost =
-      meta.displayHost ||
-      "5TQ";
+    const displayHost = meta.displayHost || "5TQ";
 
-    const displayServer =
-      meta.displayServer ||
-      "NA (Custom)";
+    const displayServer = meta.displayServer || "NA (Custom)";
 
-    const displayMaps =
-      meta.displayMaps ||
-      "Competitive map pool";
+    const displayMaps = meta.displayMaps || "Competitive map pool";
 
     const displayRules =
       meta.displayRules ||
       "No cheats • No smurfing";
 
-    const detailsUrl =
-      meta.detailsUrl ||
-      `/tournaments/${tid}`;
+    const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 
     tournaments.push({
       tournamentId: tid,

@@ -12,11 +12,10 @@ import Player from "../../../../models/Player";
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // TODO: once you have fields for game/mode, filter here
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    // game: "TFT",
-    // mode: "solo",
+    game: "tft",   // 🔹 must match what you set in admin
+    mode: "solo",  // 🔹 solo TFT format
   })
     .sort({ createdAt: -1 })
     .lean();

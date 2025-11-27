@@ -14,8 +14,8 @@ export async function getServerSideProps() {
 
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    // game: "TFT",
-    // mode: "doubleup",
+    game: "tft",       // 🔹 must match what you store in admin
+    mode: "doubleup",  // 🔹 TFT double up format
   })
     .sort({ createdAt: -1 })
     .lean();

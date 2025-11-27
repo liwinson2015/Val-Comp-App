@@ -12,10 +12,12 @@ import Player from "../../../../models/Player";
 export async function getServerSideProps() {
   await connectToDatabase();
 
-  // Show all tournaments that are NOT completed.
-  // If a doc has no status yet, it will be included (treated as upcoming).
+  // Show all Valorant 1v1 tournaments that are NOT completed.
+  // We filter by the structured fields: game + mode.
   const docs = await Tournament.find({
     status: { $ne: "completed" },
+    game: "valorant", // 🔹 must match what you save from admin
+    mode: "1v1",
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -71,12 +73,12 @@ export async function getServerSideProps() {
       meta.displayPrize ||
       "$20 Valorant Gift Card";
 
-    // 💵 NEW: entry / fee
+    // entry / fee
     const displayEntry =
       meta.displayEntry ||
       "Free";
 
-    // 👤 NEW: host name
+    // host name
     const displayHost =
       meta.displayHost ||
       "5TQ";
@@ -109,8 +111,8 @@ export async function getServerSideProps() {
       displayFormat,
       displayCheckIn,
       displayPrize,
-      displayEntry,   // ⭐ include entry
-      displayHost,    // ⭐ include host
+      displayEntry,
+      displayHost,
       displayServer,
       displayMaps,
       displayRules,

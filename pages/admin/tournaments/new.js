@@ -10,6 +10,36 @@ const GAME_OPTIONS = [
   { value: "hok", label: "HONOR OF KINGS" },
 ];
 
+const MODE_OPTIONS_BY_GAME = {
+  valorant: [
+    { value: "1v1", label: "1v1 Duel" },
+    { value: "2v2", label: "2v2 Wingman" },
+    { value: "5v5", label: "5v5 Standard" },
+  ],
+  tft: [
+    { value: "solo", label: "Solo FFA" },
+    { value: "doubleup", label: "Double Up (Duo)" },
+  ],
+  hok: [
+    { value: "5v5", label: "5v5 Standard" },
+  ],
+};
+
+const TYPE_OPTIONS_BY_GAME = {
+  valorant: [
+    { value: "single", label: "Single Elimination" },
+    { value: "double", label: "Double Elimination" },
+  ],
+  tft: [
+    { value: "lobby", label: "Lobby / Points System" },
+    { value: "single", label: "Bracket • Single Elim" },
+  ],
+  hok: [
+    { value: "single", label: "Single Elimination" },
+    { value: "double", label: "Double Elimination" },
+  ],
+};
+
 const MONTHS = [
   { value: 1, short: "Jan", label: "January" },
   { value: 2, short: "Feb", label: "February" },
@@ -64,9 +94,9 @@ export default function AdminCreateTournamentPage() {
   const [capacity, setCapacity] = useState("");
 
   // game + mode + type
-  const [game, setGame] = useState("");        // "valorant", "tft", ...
-  const [mode, setMode] = useState("");        // "1v1", "2v2", "5v5"
-  const [elimType, setElimType] = useState(""); // "single" | "double"
+  const [game, setGame] = useState("");        // "valorant", "tft", "hok"
+  const [mode, setMode] = useState("");        // e.g. "1v1", "2v2", "5v5", "solo", "doubleup"
+  const [elimType, setElimType] = useState(""); // "single" | "double" | "lobby"
 
   // display name + description + prize + entry + host
   const [displayName, setDisplayName] = useState("");
@@ -75,7 +105,7 @@ export default function AdminCreateTournamentPage() {
   );
   const [prize, setPrize] = useState("");
   const [entry, setEntry] = useState("");
-  const [host, setHost] = useState(""); // ⭐ NEW: Host / organizer
+  const [host, setHost] = useState("");
 
   // date / time pieces
   const [month, setMonth] = useState("");
@@ -90,6 +120,9 @@ export default function AdminCreateTournamentPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [createdId, setCreatedId] = useState("");
+
+  const currentModeOptions = MODE_OPTIONS_BY_GAME[game] || [];
+  const currentTypeOptions = TYPE_OPTIONS_BY_GAME[game] || [];
 
   // ── helpers ──────────────────────────────────────────────────────
   function buildDisplayTimePreview() {
@@ -122,6 +155,36 @@ export default function AdminCreateTournamentPage() {
     const preview = buildDisplayTimePreview();
     if (preview === "—") return "";
     return preview;
+  }
+
+  function buildDisplayModeLabel() {
+    // Game-aware label for the card / homepage
+    if (!game || !mode || !elimType) return "";
+
+    if (game === "tft") {
+      if (mode === "solo") {
+        if (elimType === "lobby") return "Solo • FFA Lobbies";
+        if (elimType === "single") return "Solo • Bracket (Single Elim)";
+        return "Solo • TFT Event";
+      }
+      if (mode === "doubleup") {
+        if (elimType === "lobby") return "Double Up • Duo Lobbies";
+        if (elimType === "single") return "Double Up • Bracket (Single Elim)";
+        return "Double Up • TFT Event";
+      }
+      return "TFT Tournament";
+    }
+
+    // Valorant / HOK
+    const elimText =
+      elimType === "double"
+        ? "Double Elimination"
+        : elimType === "single"
+        ? "Single Elimination"
+        : "Tournament Format";
+
+    // mode like "1v1", "2v2", "5v5"
+    return `${mode} • ${elimText}`;
   }
 
   async function handleSubmit(e) {
@@ -174,7 +237,7 @@ export default function AdminCreateTournamentPage() {
       return;
     }
     if (!elimType) {
-      setErrorMsg("Type (single/double elim) is required.");
+      setErrorMsg("Type (single/double/lobby) is required.");
       return;
     }
     if (
@@ -198,10 +261,8 @@ export default function AdminCreateTournamentPage() {
     const gameLabel = gameOpt ? gameOpt.label : game.toUpperCase();
     const displayGameLabel = gameLabel;
 
-    // Mode label: mode • type
-    const elimText =
-      elimType === "double" ? "Double Elimination" : "Single Elimination";
-    const displayModeLabel = `${mode} • ${elimText}`;
+    // Mode label: game-aware
+    const displayModeLabel = buildDisplayModeLabel();
 
     setSubmitting(true);
     try {
@@ -211,7 +272,9 @@ export default function AdminCreateTournamentPage() {
         body: JSON.stringify({
           tournamentId: trimmedId,
           name: displayName.trim(),
-          game,
+          game,               // 🔹 valorant / tft / hok
+          mode,               // 🔹 1v1 / 2v2 / 5v5 / solo / doubleup
+          bracketStyle: elimType, // 🔹 single / double / lobby
           capacity: capNum,
           displayName: displayName.trim(),
           displayDescription: displayDescription.trim(),
@@ -220,7 +283,7 @@ export default function AdminCreateTournamentPage() {
           displayModeLabel,
           displayPrize: prize.trim(),
           displayEntry: entry.trim(),
-          displayHost: host.trim(), // ⭐ send host to backend
+          displayHost: host.trim(),
         }),
       });
 
@@ -242,6 +305,14 @@ export default function AdminCreateTournamentPage() {
   }
 
   const previewTime = buildDisplayTimePreview();
+
+  function handleGameChange(e) {
+    const newGame = e.target.value;
+    setGame(newGame);
+    // Reset mode/type when game changes so you don't end up with invalid combos
+    setMode("");
+    setElimType("");
+  }
 
   return (
     <div
@@ -299,8 +370,8 @@ export default function AdminCreateTournamentPage() {
               color: "#9ca3af",
             }}
           >
-            Fill in the fields and save. The event will show on the 1v1 hub and
-            get its own details page automatically.
+            Fill in the fields and save. The event will show on the correct hub
+            page and get its own details automatically.
           </p>
         </div>
 
@@ -414,7 +485,7 @@ export default function AdminCreateTournamentPage() {
               </label>
               <select
                 value={game}
-                onChange={(e) => setGame(e.target.value)}
+                onChange={handleGameChange}
                 style={inputStyle}
               >
                 <option value="">Select game</option>
@@ -436,11 +507,14 @@ export default function AdminCreateTournamentPage() {
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
                 style={inputStyle}
+                disabled={!game}
               >
                 <option value="">Select mode</option>
-                <option value="1v1">1v1</option>
-                <option value="2v2">2v2</option>
-                <option value="5v5">5v5</option>
+                {currentModeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -454,10 +528,14 @@ export default function AdminCreateTournamentPage() {
                 value={elimType}
                 onChange={(e) => setElimType(e.target.value)}
                 style={inputStyle}
+                disabled={!game}
               >
                 <option value="">Select type</option>
-                <option value="single">Single Elimination</option>
-                <option value="double">Double Elimination</option>
+                {currentTypeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

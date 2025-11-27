@@ -5,6 +5,85 @@ import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
 import TournamentState from "../../../../models/TournamentState";
 
+function normalizeGame(game) {
+  if (!game || typeof game !== "string") return "valorant";
+  const g = game.toLowerCase();
+  if (g === "tft" || g === "teamfight tactics") return "tft";
+  if (g === "valorant" || g === "val") return "valorant";
+  return g;
+}
+
+function defaultModeForGame(game) {
+  if (game === "tft") return "solo";    // TFT default = solo queue
+  return "1v1";                         // Valorant default = 1v1
+}
+
+function normalizeMode(mode, game) {
+  if (!mode || typeof mode !== "string") {
+    return defaultModeForGame(game);
+  }
+  const m = mode.toLowerCase();
+  // Valorant modes
+  if (m === "1v1" || m === "solo") return "1v1";
+  if (m === "2v2" || m === "duo") return "2v2";
+  if (m === "5v5" || m === "team") return "5v5";
+  // TFT modes
+  if (m === "doubleup" || m === "double up" || m === "2v2") return "doubleup";
+  if (m === "solo" || m === "ffa") return "solo";
+  return m;
+}
+
+function normalizeBracketStyle(bracketStyle, game) {
+  if (typeof bracketStyle !== "string") {
+    // default by game
+    if (game === "tft") return "lobby";     // TFT uses lobby/points-style
+    return "double";                        // Valorant default: double elim
+  }
+  const b = bracketStyle.toLowerCase();
+  if (b === "single" || b === "single_elim") return "single";
+  if (b === "double" || b === "double_elim") return "double";
+  if (b === "lobby" || b === "ffa") return "lobby";
+  // Fallback by game again
+  if (game === "tft") return "lobby";
+  return "double";
+}
+
+function getDefaultGameLabel(game, mode) {
+  if (game === "valorant") {
+    if (mode === "1v1") return "VALORANT • 1v1";
+    if (mode === "2v2") return "VALORANT • 2v2";
+    if (mode === "5v5") return "VALORANT • 5v5";
+    return "VALORANT";
+  }
+  if (game === "tft") {
+    if (mode === "solo") return "TFT • SOLO";
+    if (mode === "doubleup") return "TFT • DOUBLE UP";
+    return "TEAMFIGHT TACTICS";
+  }
+  return "TOURNAMENT";
+}
+
+function getDefaultModeLabel(game, mode, bracketStyle) {
+  if (game === "valorant") {
+    if (mode === "1v1") return "1v1 • Double Elimination";
+    if (mode === "2v2") return "2v2 • Double Elimination";
+    if (mode === "5v5") {
+      return bracketStyle === "double"
+        ? "5v5 • Double Elimination"
+        : "5v5 • Single Elimination";
+    }
+    return "Valorant Bracket";
+  }
+
+  if (game === "tft") {
+    if (mode === "solo") return "Solo • FFA Lobbies";
+    if (mode === "doubleup") return "Double Up • Duo Lobbies";
+    return "TFT Lobbies";
+  }
+
+  return "Tournament Format";
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -30,6 +109,8 @@ export default async function handler(req, res) {
       tournamentId,
       name,
       game,
+      mode,
+      bracketStyle,
       capacity,
       // homepage / display-ish fields
       displayName,
@@ -65,6 +146,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- NEW: normalize game / mode / bracketStyle ----
+    const normalizedGame = normalizeGame(game);
+    const normalizedMode = normalizeMode(mode, normalizedGame);
+    const normalizedBracketStyle = normalizeBracketStyle(
+      bracketStyle,
+      normalizedGame
+    );
+
     // 4) Build the Tournament document
     const capacityValue =
       typeof capacity === "number" && capacity > 0 ? capacity : 16;
@@ -74,10 +163,26 @@ export default async function handler(req, res) {
     const fallbackEntry = displayEntry || "Free";
     const fallbackHost = displayHost || "5TQ";
 
+    const fallbackGameLabel =
+      displayGameLabel || getDefaultGameLabel(normalizedGame, normalizedMode);
+
+    const fallbackModeLabel =
+      displayModeLabel ||
+      getDefaultModeLabel(
+        normalizedGame,
+        normalizedMode,
+        normalizedBracketStyle
+      );
+
     const tDoc = {
       tournamentId: trimmedId,
       name: name || displayName || trimmedId,
-      game: game || "valorant",
+
+      // 🔹 structured routing fields
+      game: normalizedGame,          // "valorant" | "tft"
+      mode: normalizedMode,          // "1v1" | "2v2" | "5v5" | "solo" | "doubleup"
+      bracketStyle: normalizedBracketStyle, // "single" | "double" | "lobby"
+
       capacity: capacityValue,
 
       // 🔹 status is now only "ongoing" or "completed". New tournaments start as "ongoing"
@@ -91,8 +196,8 @@ export default async function handler(req, res) {
           displayDescription ||
           "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.",
         displayTime: displayTime || "",
-        displayGameLabel: displayGameLabel || "VALORANT 1v1",
-        displayModeLabel: displayModeLabel || "1v1 • Double Elimination",
+        displayGameLabel: fallbackGameLabel,
+        displayModeLabel: fallbackModeLabel,
         displayPrize: fallbackPrize,
         displayEntry: fallbackEntry,
         displayHost: fallbackHost,
@@ -118,8 +223,10 @@ export default async function handler(req, res) {
         "Solo skirmish duels hosted by 5TQ. Claim your slot and climb the bracket.",
       displayHost: fallbackHost,
       displayTime: displayTime || "",
-      displayGameLabel: displayGameLabel || "VALORANT • 1v1",
-      displayModeLabel: displayModeLabel || "1v1 • Double Elimination",
+
+      // use same labeling logic as tournament.meta
+      displayGameLabel: fallbackGameLabel,
+      displayModeLabel: fallbackModeLabel,
 
       // Button sends players straight to the dynamic tournament page
       ctaPath: `/tournaments/${trimmedId}`,
