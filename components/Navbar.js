@@ -97,7 +97,7 @@ export default function Navbar() {
             Tournaments
           </a>
 
-          {/* NEW: My Teams (only when logged in) */}
+          {/* My Teams (only when logged in) */}
           {!loading && loggedIn && (
             <a href="/teams" className="nav-link">
               My Teams
@@ -218,7 +218,16 @@ export default function Navbar() {
                   >
                     Registrations
                   </a>
-                  {/* NEW: Match Records / History */}
+                  {/* NEW: Team Registrations */}
+                  <a
+                    href="/account/team-registrations"
+                    className="nav-link"
+                    style={dropdownItem}
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    Team Registrations
+                  </a>
+                  {/* Match Records / History */}
                   <a
                     href="/account/history"
                     className="nav-link"
