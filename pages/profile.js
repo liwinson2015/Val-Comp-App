@@ -214,7 +214,6 @@ export async function getServerSideProps({ req }) {
   };
 }
 
-
 // ---------- MAIN COMPONENT ----------
 export default function Profile({
   username,
@@ -601,9 +600,10 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
   let divisionOptions = [];
 
   if (gameDef.code === "VALORANT") {
+    // ✅ Immortal should still have divisions; only hide for Radiant
     showDivision =
       rankTier &&
-      !["Immortal", "Radiant"].includes(rankTier) &&
+      rankTier !== "Radiant" &&
       gameDef.rankDivisions.length > 0;
     divisionOptions = gameDef.rankDivisions;
   } else if (gameDef.code === "TFT") {
@@ -704,7 +704,7 @@ function GameProfileEditor({ gameDef, profile, onProfileSaved }) {
     let finalDivision = (rankDivision || "").trim();
     if (
       (gameDef.code === "VALORANT" &&
-        (workingRankTier === "Immortal" || workingRankTier === "Radiant")) ||
+        workingRankTier === "Radiant") ||
       (gameDef.code === "TFT" &&
         (workingRankTier === "Master" ||
           workingRankTier === "Grandmaster" ||
