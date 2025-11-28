@@ -211,7 +211,7 @@
   font-size: 0.9rem;
 }
 
-/* BACK ROW (same pattern as Valorant) */
+/* BACK ROW (match Valorant ghost button style) */
 
 .backRow {
   margin-top: 24px;
@@ -221,8 +221,8 @@
 
 .backBtn {
   background: transparent;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  color: #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
   padding: 10px 20px;
   border-radius: 4px;
   cursor: pointer;
@@ -236,8 +236,8 @@
 }
 
 .backBtn:hover {
-  border-color: #f9fafb;
-  color: #f9fafb;
+  border-color: #ffffff;
+  color: #ffffff;
   background: rgba(15, 23, 42, 0.9);
 }
 
