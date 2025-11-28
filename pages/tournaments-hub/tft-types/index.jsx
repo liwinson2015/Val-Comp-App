@@ -15,8 +15,8 @@ export default function TftTypesPage() {
           <div className={styles.heroBadge}>TEAMFIGHT TACTICS</div>
           <h1 className={styles.heroTitle}>Select a Format</h1>
           <p className={styles.heroSubtitle}>
-            Choose between solo FFA lobbies and Double Up duo brackets. Draft
-            comps, manage econ, and out-position your opponents.
+            Choose between solo FFA lobbies and Double Up duo brackets.
+            Draft comps, manage econ, and out-position your opponents.
           </p>
         </section>
 
@@ -32,8 +32,8 @@ export default function TftTypesPage() {
                 <div className={styles.modeTag}>● Solo Queue</div>
                 <h2 className={styles.modeTitle}>Solo Lobbies</h2>
                 <p className={styles.modeDesc}>
-                  Classic FFA lobbies with 8 players, round-based points, and
-                  cuts after each stage.
+                  Classic FFA lobbies with 8 players, round-based points,
+                  and cuts after each stage.
                 </p>
                 <div className={styles.modeCtaRow}>
                   <span className={styles.modeCta}>View Tournaments →</span>
@@ -58,6 +58,22 @@ export default function TftTypesPage() {
                 </div>
               </div>
             </Link>
+          </div>
+        </section>
+
+        {/* INFO STRIP (match Valorant layout) */}
+        <section className={styles.infoRow}>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Host</span>
+            <span className={styles.infoValue}>5TQ</span>
+          </div>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Region</span>
+            <span className={styles.infoValue}>North America</span>
+          </div>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Rules</span>
+            <span className={styles.infoValue}>Standard TFT & 5TQ Rules</span>
           </div>
         </section>
 
