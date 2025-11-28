@@ -44,7 +44,7 @@ const GAME_DEFS = [
       "Grandmaster",
       "Challenger",
     ],
-    rankDivisions: ["1", "2", "3", "4"],
+    rankDivisions: ["IV", "III", "II", "I"],
     defaultRegion: "NA",
     regions: ["NA", "EUW", "EUNE", "OCE", "KR", "BR", "Other"],
   },
