@@ -61,8 +61,8 @@ const QUICK_FACTS_TEMPLATES = {
   // Valorant 2v2
   "valorant_2v2": {
     mode: "2v2 Wingman",
-    format: "Best-of-1 or Bo3 (see Discord) • First to 9 • OT enabled",
-    map: "Wingman map pool",
+    format: "Best-of-1 or Bo3 (see Discord) • First team to 20 • Overtime enabled",
+    map: "Randomized: Skirmish A / B / C",
     server: "NA (custom lobby)",
     checkIn: "15 minutes before start (Discord)",
   },
@@ -135,11 +135,11 @@ const RULE_TEMPLATES = {
     format: [
       "Match: Wingman (2v2).",
       "Game Win Condition: Standard Wingman rules (see lobby / Discord).",
-      "Map: From the current Wingman map pool.",
+      "Map: Randomized: Skirmish A / B / C",
       "Lobby: Host invites both duos. Captains must be online.",
     ],
     conduct: [
-      "No smurfing, cheating, or exploiting bugs.",
+      "No cheating or exploiting bugs.",
       "Both players on a duo must remain the same for the whole event unless approved by admins.",
       "Disconnects: pause and contact an admin; rulings may vary by round.",
       "Report scores with a screenshot in the assigned Discord channel.",
@@ -152,7 +152,7 @@ const RULE_TEMPLATES = {
     ],
     eligibility: [
       "All players must be in the 5TQ Discord.",
-      "Only one account per player; account must be in good standing.",
+      "Only one account per player.",
       "Admins reserve the right to remove teams for toxicity or rule-breaking.",
     ],
   },
@@ -172,7 +172,7 @@ const RULE_TEMPLATES = {
       "All disputes are handled by admins; their decision is final.",
     ],
     schedule: [
-      ["Check-in", "30 minutes before match time in #team-check-in"],
+      ["Check-in", "15 minutes before match time in #team-check-in"],
       ["Lobby", "Captains will be pinged when lobbies are ready"],
       ["Reporting", "Captains report scores with screenshots in #team-report"],
       ["Stream", "Selected matches may be streamed or highlighted"],

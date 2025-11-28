@@ -75,11 +75,11 @@ export async function getServerSideProps() {
 
     const displayServer = meta.displayServer || "NA (Custom)";
 
-    const displayMaps = meta.displayMaps || "Competitive map pool";
+    const displayMaps = meta.displayMaps || "Skirmish A/B/C(Random)";
 
     const displayRules =
       meta.displayRules ||
-      "No cheats • No smurfing";
+      "No cheats";
 
     const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 

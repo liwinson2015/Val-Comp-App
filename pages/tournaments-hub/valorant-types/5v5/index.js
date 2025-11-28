@@ -82,11 +82,11 @@ export async function getServerSideProps() {
 
     const displayMaps =
       meta.displayMaps ||
-      "Standard competitive map pool";
+      "Competitive Map Pool";
 
     const displayRules =
       meta.displayRules ||
-      "No cheating • No smurfing • Captain reports scores";
+      "No cheating";
 
     const detailsUrl =
       meta.detailsUrl ||
