@@ -64,6 +64,16 @@ export default async function handler(req, res) {
       return res.status(409).json({
         ok: false,
         error: "This team registration has been cancelled.",
+        status: regDoc.status,
+      });
+    }
+
+    // If already fully active, lock it – no more accept/decline
+    if (regDoc.status === "active") {
+      return res.status(409).json({
+        ok: false,
+        error: "This team registration is already active.",
+        status: regDoc.status,
       });
     }
 
@@ -79,7 +89,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // If they already accepted/declined, you can just return current state
+    // If they already accepted/declined, just return current state
     if (member.status === "accepted" && action === "accept") {
       return res.status(200).json({
         ok: true,
@@ -96,6 +106,7 @@ export default async function handler(req, res) {
     }
 
     const now = new Date();
+    let becameActive = false; // track if we just transitioned to active
 
     if (action === "accept") {
       member.status = "accepted";
@@ -107,6 +118,7 @@ export default async function handler(req, res) {
       );
       if (allAccepted) {
         regDoc.status = "active";
+        becameActive = true;
       }
     } else if (action === "decline") {
       member.status = "declined";
@@ -115,6 +127,62 @@ export default async function handler(req, res) {
     }
 
     await regDoc.save();
+
+    // ─────────────────────────────────────────────
+    // If it JUST became active, register every member
+    // into Player.registeredFor for this tournament.
+    // ─────────────────────────────────────────────
+    if (becameActive) {
+      // Be defensive about the tournament id field name
+      const tournamentId =
+        regDoc.tournamentId || regDoc.tournament || regDoc.tournamentSlug;
+
+      if (tournamentId) {
+        const memberIds = regDoc.members
+          .map((m) => m.player)
+          .filter(Boolean)
+          .map((id) => id.toString());
+
+        if (memberIds.length > 0) {
+          const players = await Player.find({ _id: { $in: memberIds } });
+
+          const nowForEntries = new Date();
+
+          for (const p of players) {
+            const pid = p._id.toString();
+            const mInfo = regDoc.members.find(
+              (m) => m.player && m.player.toString() === pid
+            );
+            if (!mInfo) continue;
+
+            const tIdStr = String(tournamentId);
+
+            // Avoid duplicate entries if somehow already registered
+            const already = (p.registeredFor || []).some(
+              (entry) => entry.tournamentId === tIdStr
+            );
+            if (already) continue;
+
+            const entry = {
+              tournamentId: tIdStr,
+              ign: mInfo.ign || "",
+              rank: mInfo.rank || "",
+              createdAt: nowForEntries,
+            };
+
+            if (mInfo.fullIgn) {
+              entry.fullIgn = mInfo.fullIgn;
+            }
+
+            if (!Array.isArray(p.registeredFor)) {
+              p.registeredFor = [];
+            }
+            p.registeredFor.push(entry);
+            await p.save();
+          }
+        }
+      }
+    }
 
     return res.status(200).json({
       ok: true,
