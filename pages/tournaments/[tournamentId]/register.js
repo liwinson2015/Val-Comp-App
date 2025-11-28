@@ -8,41 +8,53 @@ import { useState } from "react";
 
 const FALLBACK_CAPACITY = 16;
 
+// For text/labels
 const GAME_LABELS = {
   VALORANT: "Valorant",
   HOK: "Honor of Kings",
   TFT: "Teamfight Tactics",
 };
 
-// Simple per-game theme so Valorant / TFT / HoK don’t look identical
+// Simple game themes so TFT / HOK look different from Valorant
 const GAME_THEMES = {
-  VALORANT: {
-    accent: "#ff0046",
-    cardBackground:
-      "radial-gradient(circle at 20% 20%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 60%), #1a1a1a",
-    cardBorder: "1px solid rgba(248,113,113,0.35)",
-    cardShadow:
-      "0 30px 120px rgba(255,0,70,0.35), 0 10px 40px rgba(0,0,0,.8)",
+  valorant: {
+    key: "valorant",
+    badgeBorder: "1px solid rgba(248,113,113,0.4)",
+    badgeColor: "#f87171",
+    badgeBg: "rgba(248,113,113,0.06)",
+    cardGradient:
+      "radial-gradient(circle at 10% 0%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 55%)",
+    primaryButton: "#ff0046",
+    primaryShadow:
+      "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
   },
-  TFT: {
-    accent: "#22c55e",
-    cardBackground:
-      "radial-gradient(circle at 20% 20%, rgba(34,197,94,0.2) 0%, rgba(15,23,42,1) 60%), #020617",
-    cardBorder: "1px solid rgba(34,197,94,0.35)",
-    cardShadow:
-      "0 30px 120px rgba(34,197,94,0.35), 0 10px 40px rgba(0,0,0,.8)",
+  tft: {
+    key: "tft",
+    badgeBorder: "1px solid rgba(34,197,94,0.6)",
+    badgeColor: "#4ade80",
+    badgeBg: "rgba(34,197,94,0.12)",
+    cardGradient:
+      "radial-gradient(circle at 10% 0%, rgba(34,197,94,0.22) 0%, rgba(15,15,15,1) 55%)",
+    primaryButton: "#22c55e",
+    primaryShadow:
+      "0 30px 120px rgba(34,197,94,0.25), 0 10px 40px rgba(0,0,0,.8)",
   },
-  HOK: {
-    accent: "#38bdf8",
-    cardBackground:
-      "radial-gradient(circle at 20% 20%, rgba(56,189,248,0.22) 0%, rgba(15,23,42,1) 60%), #020617",
-    cardBorder: "1px solid rgba(56,189,248,0.35)",
-    cardShadow:
-      "0 30px 120px rgba(56,189,248,0.35), 0 10px 40px rgba(0,0,0,.8)",
+  hok: {
+    key: "hok",
+    badgeBorder: "1px solid rgba(56,189,248,0.6)",
+    badgeColor: "#38bdf8",
+    badgeBg: "rgba(56,189,248,0.12)",
+    cardGradient:
+      "radial-gradient(circle at 10% 0%, rgba(56,189,248,0.22) 0%, rgba(15,15,15,1) 55%)",
+    primaryButton: "#38bdf8",
+    primaryShadow:
+      "0 30px 120px rgba(56,189,248,0.25), 0 10px 40px rgba(0,0,0,.8)",
   },
 };
 
-const DEFAULT_THEME = GAME_THEMES.VALORANT;
+const DEFAULT_THEME = GAME_THEMES.valorant;
+
+// ---------- helpers ----------
 
 // Extract per-game profile info from Player.gameProfiles[gameCode]
 function extractGameProfile(player, gameCode) {
@@ -63,13 +75,16 @@ function extractGameProfile(player, gameCode) {
   let ignFromProfile = "";
   let tagFromProfile = "";
 
-  // VALORANT & TFT store "Name#Tag" in ign; HOK uses ign = name only
+  // VALORANT & TFT store "Name#Tag" in ign; HOK uses plain name
   if (gameCode === "VALORANT" || gameCode === "TFT") {
     const storedIgn = profile.ign || "";
-    if (storedIgn) {
-      const parts = storedIgn.split("#");
-      ignFromProfile = (parts[0] || "").trim();
-      tagFromProfile = (parts[1] || "").trim();
+    if (storedIgn && storedIgn.includes("#")) {
+      const idx = storedIgn.indexOf("#");
+      ignFromProfile = storedIgn.slice(0, idx).trim();
+      tagFromProfile = storedIgn.slice(idx + 1).trim();
+    } else {
+      ignFromProfile = storedIgn || "";
+      tagFromProfile = "";
     }
   } else {
     ignFromProfile = profile.ign || "";
@@ -92,27 +107,54 @@ function extractGameProfile(player, gameCode) {
   };
 }
 
-// Robust resolver: look at root `game` OR meta.game
-function resolveGameCodeFromTournament(tournamentDoc) {
-  const meta = tournamentDoc.meta || {};
-
-  const rawRoot = (tournamentDoc.game || "")
+// Map tournamentDoc.game / meta.game → "VALORANT" | "HOK" | "TFT"
+function resolveGameCodeFromDoc(doc) {
+  const meta = doc.meta || {};
+  const raw = (
+    doc.game ||
+    meta.game ||
+    meta.Game ||
+    ""
+  )
     .toString()
     .toLowerCase()
     .trim();
-  const rawMeta = (meta.game || "").toString().toLowerCase().trim();
-
-  const raw = rawRoot || rawMeta;
 
   if (raw === "valorant") return "VALORANT";
   if (raw === "hok" || raw === "honorofkings" || raw === "honor_of_kings")
     return "HOK";
-  if (raw === "tft" || raw === "teamfighttactics" || raw === "teamfight_tactics")
+  if (
+    raw === "tft" ||
+    raw === "teamfighttactics" ||
+    raw === "teamfight_tactics"
+  )
     return "TFT";
 
-  // fallback so nothing breaks
+  // fallback: treat as Valorant so old data doesn't break
   return "VALORANT";
 }
+
+// Decide if this tournament should use team-based registration
+function isTeamMode(gameKey, modeKey) {
+  const g = (gameKey || "").toLowerCase();
+  const m = (modeKey || "").toLowerCase();
+
+  // Your rule:
+  // Solo:  valorant 1v1, tft solo
+  // Team:  valorant 2v2 & 5v5, tft doubleup, hok 5v5
+  if (g === "valorant" && (m === "2v2" || m === "5v5")) return true;
+  if (g === "tft" && m === "doubleup") return true;
+  if (g === "hok" && m === "5v5") return true;
+
+  return false;
+}
+
+// For "full" redirect per game
+const FULL_REDIRECT_BY_GAME = {
+  valorant: "/tournaments-hub/valorant-types",
+  tft: "/tournaments-hub/tft-types",
+  hok: "/tournaments-hub/hok-types",
+};
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
@@ -168,10 +210,26 @@ export async function getServerSideProps({ req, params }) {
 
     const meta = tournamentDoc.meta || {};
 
-    // 🔹 Use robust resolver so older tournaments don’t default to Valorant
-    const gameCode = resolveGameCodeFromTournament(tournamentDoc);
+    // GAME + MODE classification
+    const gameCode = resolveGameCodeFromDoc(tournamentDoc); // "VALORANT" | "HOK" | "TFT"
+    let gameKey = "valorant";
+    if (gameCode === "TFT") gameKey = "tft";
+    if (gameCode === "HOK") gameKey = "hok";
 
-    // Check if THIS player is already registered
+    const rawMode = (
+      tournamentDoc.mode ||
+      meta.mode ||
+      meta.Mode ||
+      ""
+    )
+      .toString()
+      .toLowerCase()
+      .trim();
+    const modeKey = rawMode || "1v1";
+
+    const teamMode = isTeamMode(gameKey, modeKey);
+
+    // Check if THIS player is already registered (solo logic; for teams we'll refine later)
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: tournamentId,
@@ -183,23 +241,31 @@ export async function getServerSideProps({ req, params }) {
 
     const alreadyRegistered = !!(alreadyInRegistration || alreadyInPlayerArray);
 
-    // Use Player collection as source of truth for slots
-    const currentSlotsUsed = await Player.countDocuments({
-      "registeredFor.tournamentId": tournamentId,
-    });
+    // Solo capacity gate: use Player collection as source of truth for slots
+    let currentSlotsUsed = null;
+    if (!teamMode) {
+      currentSlotsUsed = await Player.countDocuments({
+        "registeredFor.tournamentId": tournamentId,
+      });
 
-    // If full AND user is not already registered → block access to register
-    if (currentSlotsUsed >= capacity && !alreadyRegistered) {
-      return {
-        redirect: {
-          destination: "/tournaments-hub/valorant-types?full=1",
-          permanent: false,
-        },
-      };
+      // If full AND user is not already registered → block access to register
+      if (currentSlotsUsed >= capacity && !alreadyRegistered) {
+        const redirectBase =
+          FULL_REDIRECT_BY_GAME[gameKey] || "/tournaments-hub";
+        return {
+          redirect: {
+            destination: `${redirectBase}?full=1`,
+            permanent: false,
+          },
+        };
+      }
     }
 
     const displayName = tournamentDoc.name || "Tournament";
-    const heroBadge = meta.displayGameLabel || "Tournament";
+    const heroBadge =
+      meta.displayGameLabel ||
+      GAME_LABELS[gameCode] ||
+      "Tournament";
 
     const {
       ignFromProfile,
@@ -209,6 +275,8 @@ export async function getServerSideProps({ req, params }) {
       regionFromProfile,
       hokPeakScoreFromProfile,
     } = extractGameProfile(player, gameCode);
+
+    const theme = GAME_THEMES[gameKey] || DEFAULT_THEME;
 
     return {
       props: {
@@ -223,6 +291,10 @@ export async function getServerSideProps({ req, params }) {
         displayName,
         heroBadge,
         gameCode,
+        gameKey,
+        modeKey,
+        teamMode,
+        theme,
         ignFromProfile: ignFromProfile || "",
         tagFromProfile: tagFromProfile || "",
         rankTierFromProfile: rankTierFromProfile || "",
@@ -249,6 +321,10 @@ export async function getServerSideProps({ req, params }) {
         displayName: "Tournament",
         heroBadge: "Tournament",
         gameCode: "VALORANT",
+        gameKey: "valorant",
+        modeKey: "1v1",
+        teamMode: false,
+        theme: GAME_THEMES.valorant,
         ignFromProfile: "",
         tagFromProfile: "",
         rankTierFromProfile: "",
@@ -274,6 +350,10 @@ export default function DynamicRegisterPage(props) {
     displayName,
     heroBadge,
     gameCode,
+    gameKey,
+    modeKey,
+    teamMode,
+    theme,
     ignFromProfile,
     tagFromProfile,
     rankTierFromProfile,
@@ -285,89 +365,15 @@ export default function DynamicRegisterPage(props) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const combinedRankFromProfile =
-    rankTierFromProfile && rankDivisionFromProfile
-      ? `${rankTierFromProfile} ${rankDivisionFromProfile}`
-      : rankTierFromProfile || "";
-
-  // ---------- Rank constants ----------
-  const VALORANT_RANK_TIERS = [
-    "Iron",
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Platinum",
-    "Diamond",
-    "Ascendant",
-    "Immortal",
-    "Radiant",
-  ];
-  const VALORANT_DIVISIONS = ["1", "2", "3"];
-
-  const TFT_RANK_TIERS = [
-    "Iron",
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Platinum",
-    "Emerald",
-    "Diamond",
-    "Master",
-    "Grandmaster",
-    "Challenger",
-  ];
-  const TFT_DIVISIONS = ["IV", "III", "II", "I"];
-  const TFT_HIGH_TIERS = ["Master", "Grandmaster", "Challenger"];
-
-  // --- VALORANT state ---
-  const [riotName, setRiotName] = useState(
-    gameCode === "VALORANT" ? ignFromProfile || "" : ""
-  );
-  const [riotTag, setRiotTag] = useState(
-    gameCode === "VALORANT" ? tagFromProfile || "" : ""
-  );
-  const [peakRankTier, setPeakRankTier] = useState(
-    gameCode === "VALORANT" ? rankTierFromProfile || "" : ""
-  );
-  const [peakRankDivision, setPeakRankDivision] = useState(
-    gameCode === "VALORANT" ? rankDivisionFromProfile || "" : ""
-  );
-
-  // --- HOK state ---
-  const [hokIgn, setHokIgn] = useState(
-    gameCode === "HOK" ? ignFromProfile || "" : ""
-  );
-  const [hokRegion, setHokRegion] = useState(
-    gameCode === "HOK" ? regionFromProfile || "" : ""
-  );
-  const [hokRank, setHokRank] = useState(
-    gameCode === "HOK" ? combinedRankFromProfile || "" : ""
-  );
-  const [hokPeakScore, setHokPeakScore] = useState(
-    gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
-  );
-
-  // --- TFT state (Riot-style IGN + rank tier/division) ---
-  let tftTierFromProfile = "";
-  let tftDivFromProfile = "";
-  if (gameCode === "TFT" && combinedRankFromProfile) {
-    const parts = combinedRankFromProfile.split(/\s+/);
-    tftTierFromProfile = parts[0] || "";
-    tftDivFromProfile = parts.slice(1).join(" ") || "";
-  }
-
-  const [tftName, setTftName] = useState(
-    gameCode === "TFT" ? ignFromProfile || "" : ""
-  );
-  const [tftTag, setTftTag] = useState(
-    gameCode === "TFT" ? tagFromProfile || "" : ""
-  );
-  const [tftRankTier, setTftRankTier] = useState(
-    gameCode === "TFT" ? tftTierFromProfile : ""
-  );
-  const [tftRankDivision, setTftRankDivision] = useState(
-    gameCode === "TFT" ? tftDivFromProfile : ""
-  );
+  const effectiveGameKey =
+    gameKey ||
+    (gameCode === "HOK"
+      ? "hok"
+      : gameCode === "TFT"
+      ? "tft"
+      : "valorant");
+  const resolvedTheme =
+    theme || GAME_THEMES[effectiveGameKey] || DEFAULT_THEME;
 
   if (gsspError) {
     return (
@@ -397,10 +403,6 @@ export default function DynamicRegisterPage(props) {
     );
   }
 
-  const hasProfileIgn = !!ignFromProfile;
-  const hasProfileRank = !!rankTierFromProfile;
-  const hasAnyProfileData = hasProfileIgn || hasProfileRank;
-
   const gameLabel = GAME_LABELS[gameCode] || "Game";
 
   const avatarUrl =
@@ -408,12 +410,292 @@ export default function DynamicRegisterPage(props) {
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
 
+  // ---------- TEAM MODE PLACEHOLDER ----------
+  // (VALORANT 2v2/5v5, TFT Double Up, HOK 5v5)
+  if (teamMode) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "#050816",
+          color: "white",
+          fontFamily:
+            'system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif',
+          padding: "2rem 1rem",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "520px",
+            background: resolvedTheme.cardGradient,
+            border: "1px solid #2d2d2d",
+            borderRadius: "1rem",
+            boxShadow: resolvedTheme.primaryShadow,
+            padding: "1.6rem 1.6rem 2.1rem",
+          }}
+        >
+          {/* header */}
+          <div style={{ marginBottom: "1.5rem" }}>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                letterSpacing: "0.18em",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                marginBottom: "0.45rem",
+                padding: "0.15rem 0.8rem",
+                display: "inline-flex",
+                borderRadius: "999px",
+                border: resolvedTheme.badgeBorder,
+                color: resolvedTheme.badgeColor,
+                background: resolvedTheme.badgeBg,
+              }}
+            >
+              {heroBadge}
+            </div>
+            <div
+              style={{
+                fontSize: "1.35rem",
+                fontWeight: 600,
+                lineHeight: 1.2,
+                color: "white",
+              }}
+            >
+              {displayName}
+            </div>
+            <div
+              style={{
+                fontSize: "0.8rem",
+                lineHeight: 1.4,
+                color: "#9ca3af",
+                marginTop: "0.5rem",
+              }}
+            >
+              Team Tournament Registration (ID: {tournamentId})
+            </div>
+          </div>
+
+          {/* player card */}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.75rem",
+              alignItems: "center",
+              backgroundColor: "#111827",
+              border: "1px solid #374151",
+              borderRadius: "0.75rem",
+              padding: "0.75rem 1rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="discord avatar"
+                style={{
+                  borderRadius: "0.5rem",
+                  width: "56px",
+                  height: "56px",
+                  border: "1px solid #52525b",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  borderRadius: "0.5rem",
+                  width: "56px",
+                  height: "56px",
+                  backgroundColor: "#3f3f46",
+                  border: "1px solid #52525b",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  fontSize: "0.6rem",
+                  color: "#a1a1aa",
+                }}
+              >
+                no avatar
+              </div>
+            )}
+
+            <div style={{ lineHeight: 1.3 }}>
+              <div
+                style={{
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                }}
+              >
+                {username}
+              </div>
+              <div
+                style={{
+                  color: "#a1a1aa",
+                  fontSize: "0.7rem",
+                  wordBreak: "break-word",
+                }}
+              >
+                Discord ID {discordId}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "1rem",
+              padding: "0.7rem 0.8rem",
+              borderRadius: "0.7rem",
+              backgroundColor: "#020617",
+              border: "1px solid #1f2937",
+              fontSize: "0.8rem",
+              lineHeight: 1.5,
+              color: "#e5e7eb",
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+              Team-based registration coming next.
+            </div>
+            <div style={{ color: "#9ca3af" }}>
+              This is a team tournament for {gameLabel}. Only team captains
+              will be able to register a team. When we finish this feature,
+              your captain will submit your team once, and every teammate will
+              confirm their spot from their account page.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled
+            style={{
+              width: "100%",
+              backgroundColor: "#4b5563",
+              color: "#e5e7eb",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              border: "none",
+              borderRadius: "0.6rem",
+              padding: "0.75rem 1rem",
+              cursor: "not-allowed",
+              opacity: 0.8,
+            }}
+          >
+            Team registration not enabled yet
+          </button>
+
+          <div
+            style={{
+              marginTop: "1.4rem",
+              fontSize: "0.7rem",
+              lineHeight: 1.4,
+              color: "#6b7280",
+              textAlign: "center",
+            }}
+          >
+            This tournament uses a team-based format (
+            <span style={{ fontWeight: 600 }}>
+              {gameKey.toUpperCase()} {modeKey.toUpperCase()}
+            </span>
+            ). We&apos;ll hook this screen into your Teams system next so captains
+            can register everyone at once and teammates can accept or decline.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- SOLO MODE (VAL 1v1, TFT solo, etc.) ----------
+
+  // VALORANT rank options
+  const VALORANT_RANK_TIERS = [
+    "Iron",
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Diamond",
+    "Ascendant",
+    "Immortal",
+    "Radiant",
+  ];
+  const VALORANT_DIVISIONS = ["1", "2", "3"];
+
+  // TFT rank options
+  const TFT_RANK_TIERS = [
+    "Iron",
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Emerald",
+    "Diamond",
+    "Master",
+    "Grandmaster",
+    "Challenger",
+  ];
+  const TFT_DIVISIONS = ["IV", "III", "II", "I"];
+
+  // Profile flags
+  const hasProfileIgn = !!ignFromProfile;
+  const hasProfileRank = !!rankTierFromProfile;
+  const hasAnyProfileData = hasProfileIgn || hasProfileRank;
+
+  // ---- VALORANT state ----
+  const [riotName, setRiotName] = useState(
+    gameCode === "VALORANT" ? ignFromProfile || "" : ""
+  );
+  const [riotTag, setRiotTag] = useState(
+    gameCode === "VALORANT" ? tagFromProfile || "" : ""
+  );
+  const [peakRankTier, setPeakRankTier] = useState(
+    gameCode === "VALORANT" ? rankTierFromProfile || "" : ""
+  );
+  const [peakRankDivision, setPeakRankDivision] = useState(
+    gameCode === "VALORANT" ? rankDivisionFromProfile || "" : ""
+  );
+
   const isRadiant =
     gameCode === "VALORANT" && peakRankTier === "Radiant";
-  const isTftHighTier =
-    gameCode === "TFT" && TFT_HIGH_TIERS.includes(tftRankTier);
 
-  const theme = GAME_THEMES[gameCode] || DEFAULT_THEME;
+  // ---- HOK state ----
+  const [hokIgn, setHokIgn] = useState(
+    gameCode === "HOK" ? ignFromProfile || "" : ""
+  );
+  const [hokRegion, setHokRegion] = useState(
+    gameCode === "HOK" ? regionFromProfile || "" : ""
+  );
+  const [hokRank, setHokRank] = useState(
+    gameCode === "HOK"
+      ? (rankTierFromProfile &&
+          rankDivisionFromProfile &&
+          `${rankTierFromProfile} ${rankDivisionFromProfile}`) ||
+        rankTierFromProfile ||
+        ""
+      : ""
+  );
+  const [hokPeakScore, setHokPeakScore] = useState(
+    gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
+  );
+
+  // ---- TFT state (Riot-style, Name#Tag + tier/div) ----
+  const [tftName, setTftName] = useState(
+    gameCode === "TFT" ? ignFromProfile || "" : ""
+  );
+  const [tftTag, setTftTag] = useState(
+    gameCode === "TFT" ? tagFromProfile || "" : ""
+  );
+  const [tftRankTier, setTftRankTier] = useState(
+    gameCode === "TFT" ? rankTierFromProfile || "" : ""
+  );
+  const [tftRankDivision, setTftRankDivision] = useState(
+    gameCode === "TFT" ? rankDivisionFromProfile || "" : ""
+  );
+  const isTftHighRank =
+    gameCode === "TFT" &&
+    ["Master", "Grandmaster", "Challenger"].includes(tftRankTier);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -441,8 +723,8 @@ export default function DynamicRegisterPage(props) {
         return;
       }
 
-      const ign = nameTrimmed;
-      const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
+      const ign = nameTrimmed; // name only
+      const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // name#tag
 
       const rank =
         peakRankTier === "Radiant"
@@ -467,8 +749,8 @@ export default function DynamicRegisterPage(props) {
         return;
       }
 
-      payload.ign = ignTrimmed;
-      payload.fullIgn = ignTrimmed;
+      payload.ign = ignTrimmed; // name only
+      payload.fullIgn = ignTrimmed; // no tag concept
       payload.rank = rankTrimmed;
       if (regionTrimmed) {
         payload.region = regionTrimmed;
@@ -481,14 +763,13 @@ export default function DynamicRegisterPage(props) {
       }
     }
 
-    // --- TFT SOLO (Riot ID + tier/division) ---
+    // --- TFT SOLO (Riot-style) ---
     else if (gameCode === "TFT") {
       const nameTrimmed = tftName.trim();
       const tagTrimmed = tftTag.trim();
-
       const needsDivision =
         tftRankTier &&
-        !TFT_HIGH_TIERS.includes(tftRankTier);
+        !["Master", "Grandmaster", "Challenger"].includes(tftRankTier);
 
       if (
         !nameTrimmed ||
@@ -502,17 +783,16 @@ export default function DynamicRegisterPage(props) {
         return;
       }
 
-      const ign = nameTrimmed;
+      const ign = nameTrimmed; // name only
       const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
 
-      const rank = TFT_HIGH_TIERS.includes(tftRankTier)
+      const rank = isTftHighRank
         ? tftRankTier
         : `${tftRankTier} ${tftRankDivision}`;
 
       payload.ign = ign;
       payload.fullIgn = fullIgn;
       payload.rank = rank;
-      // no server / region field needed for TFT here
     }
 
     // Unsupported game
@@ -556,7 +836,7 @@ export default function DynamicRegisterPage(props) {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#050816",
+        backgroundColor: "#0f0f0f",
         color: "white",
         fontFamily:
           'system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif',
@@ -569,10 +849,10 @@ export default function DynamicRegisterPage(props) {
         style={{
           width: "100%",
           maxWidth: "480px",
-          background: theme.cardBackground,
-          border: theme.cardBorder,
+          background: resolvedTheme.cardGradient,
+          border: "1px solid #2d2d2d",
           borderRadius: "1rem",
-          boxShadow: theme.cardShadow,
+          boxShadow: resolvedTheme.primaryShadow,
           padding: "1.5rem 1.5rem 2rem",
         }}
       >
@@ -581,11 +861,16 @@ export default function DynamicRegisterPage(props) {
           <div
             style={{
               fontSize: "0.7rem",
-              letterSpacing: "0.15em",
+              letterSpacing: "0.18em",
               fontWeight: 600,
-              color: theme.accent,
               textTransform: "uppercase",
-              marginBottom: "0.4rem",
+              marginBottom: "0.45rem",
+              padding: "0.15rem 0.8rem",
+              display: "inline-flex",
+              borderRadius: "999px",
+              border: resolvedTheme.badgeBorder,
+              color: resolvedTheme.badgeColor,
+              background: resolvedTheme.badgeBg,
             }}
           >
             {heroBadge}
@@ -604,7 +889,7 @@ export default function DynamicRegisterPage(props) {
             style={{
               fontSize: "0.8rem",
               lineHeight: 1.4,
-              color: "#9ca3af",
+              color: "#e5e7eb",
               marginTop: "0.5rem",
             }}
           >
@@ -619,7 +904,7 @@ export default function DynamicRegisterPage(props) {
             gap: "0.75rem",
             alignItems: "center",
             backgroundColor: "#111827",
-            border: "1px solid #1f2937",
+            border: "1px solid #374151",
             borderRadius: "0.75rem",
             padding: "0.75rem 1rem",
             marginBottom: "1.5rem",
@@ -680,8 +965,8 @@ export default function DynamicRegisterPage(props) {
             marginBottom: "1rem",
             padding: "0.6rem 0.75rem",
             borderRadius: "0.6rem",
-            backgroundColor: "#111827",
-            border: "1px solid #374151",
+            backgroundColor: "#020617",
+            border: "1px solid #1f2937",
             fontSize: "0.8rem",
             lineHeight: 1.4,
             color: "#e5e7eb",
@@ -698,10 +983,10 @@ export default function DynamicRegisterPage(props) {
               </>
             ) : (
               <>
-                We weren’t able to find {gameLabel} details on your profile.
-                Please fill everything in carefully — these values will be used
-                as your profile info for this game and must match your in-game
-                details, otherwise you may not be able to play.
+                We weren&apos;t able to find {gameLabel} details on your
+                profile. Please fill everything in carefully — these values
+                will be used as your profile info for this game and must match
+                your in-game details, otherwise you may not be able to play.
               </>
             )}
           </div>
@@ -900,7 +1185,10 @@ export default function DynamicRegisterPage(props) {
                     }}
                   >
                     Radiant has no divisions. We’ll store your rank as{" "}
-                    <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
+                    <span style={{ color: "#e5e7eb" }}>
+                      “Radiant”
+                    </span>
+                    .
                   </div>
                 )}
 
@@ -1071,7 +1359,7 @@ export default function DynamicRegisterPage(props) {
             </>
           )}
 
-          {/* TFT FORM (Riot-style, like Valorant) */}
+          {/* TFT FORM (solo, Riot-style) */}
           {gameCode === "TFT" && (
             <>
               {/* Riot ID */}
@@ -1156,11 +1444,11 @@ export default function DynamicRegisterPage(props) {
                 >
                   {hasProfileIgn
                     ? "Loaded Riot ID from your TFT profile. Update it here if it’s outdated."
-                    : "We couldn’t find your Riot ID on your TFT profile, so we’ll use what you enter here."}
+                    : "We couldn’t find your TFT Riot ID on your profile, so we’ll use what you enter here."}
                 </div>
               </div>
 
-              {/* Peak rank */}
+              {/* Peak Rank */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1180,7 +1468,11 @@ export default function DynamicRegisterPage(props) {
                     onChange={(e) => {
                       const v = e.target.value;
                       setTftRankTier(v);
-                      if (TFT_HIGH_TIERS.includes(v)) {
+                      if (
+                        ["Master", "Grandmaster", "Challenger"].includes(
+                          v
+                        )
+                      ) {
                         setTftRankDivision("");
                       }
                     }}
@@ -1212,7 +1504,7 @@ export default function DynamicRegisterPage(props) {
                     disabled={
                       alreadyRegistered ||
                       !tftRankTier ||
-                      isTftHighTier
+                      isTftHighRank
                     }
                     style={{
                       flex: 1,
@@ -1223,7 +1515,7 @@ export default function DynamicRegisterPage(props) {
                       color:
                         alreadyRegistered ||
                         !tftRankTier ||
-                        isTftHighTier
+                        isTftHighRank
                           ? "#6b7280"
                           : "white",
                       fontSize: "0.9rem",
@@ -1231,9 +1523,9 @@ export default function DynamicRegisterPage(props) {
                     }}
                   >
                     <option value="">
-                      {isTftHighTier ? "N/A" : "Div"}
+                      {isTftHighRank ? "N/A" : "Div"}
                     </option>
-                    {!isTftHighTier &&
+                    {!isTftHighRank &&
                       TFT_DIVISIONS.map((div) => (
                         <option key={div} value={div}>
                           {div}
@@ -1267,7 +1559,7 @@ export default function DynamicRegisterPage(props) {
                 ? "#4b5563"
                 : submitting
                 ? "#4b5563"
-                : theme.accent,
+                : resolvedTheme.primaryButton,
               color: "white",
               fontWeight: 600,
               fontSize: "0.9rem",
@@ -1278,7 +1570,7 @@ export default function DynamicRegisterPage(props) {
                 submitting || alreadyRegistered ? "not-allowed" : "pointer",
               boxShadow: alreadyRegistered
                 ? "none"
-                : "0 15px 60px rgba(0,0,0,0.7)",
+                : resolvedTheme.primaryShadow,
               opacity: alreadyRegistered ? 0.6 : 1,
               transition: "background-color .15s",
             }}
