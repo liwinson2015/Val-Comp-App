@@ -9,6 +9,9 @@ export default function Navbar() {
   // dropdown
   const [profileOpen, setProfileOpen] = useState(false);
 
+  // Team invite count
+  const [teamRegCount, setTeamRegCount] = useState(0);
+
   const profileRef = useRef(null);
   const router = useRouter();
 
@@ -23,6 +26,24 @@ export default function Navbar() {
           setLoggedIn(!!data.loggedIn);
           setUser(data.user || null);
           setLoading(false);
+        }
+
+        // Once we know the user is logged in, fetch team-invite summary
+        if (!ignore && data.loggedIn) {
+          try {
+            const sumRes = await fetch(
+              "/api/team-registrations/summary",
+              { credentials: "same-origin" }
+            );
+            const sumData = await sumRes.json();
+            if (!ignore && sumData && sumData.ok) {
+              setTeamRegCount(sumData.activeCount || 0);
+            }
+          } catch (e) {
+            console.error("[Navbar] team-registrations summary error:", e);
+          }
+        } else if (!ignore && !data.loggedIn) {
+          setTeamRegCount(0);
         }
       } catch {
         if (!ignore) setLoading(false);
@@ -56,6 +77,10 @@ export default function Navbar() {
       : null;
 
   const isAdmin = !!user?.isAdmin;
+
+  // Label with count, like "Team Invites (2)"
+  const teamRegLabel =
+    teamRegCount > 0 ? `Team Invites (${teamRegCount})` : "Team Invites";
 
   return (
     <header
@@ -197,7 +222,7 @@ export default function Navbar() {
                     border: "1px solid #333",
                     borderRadius: "8px",
                     overflow: "hidden",
-                    minWidth: "180px",
+                    minWidth: "200px",
                     zIndex: 3000,
                   }}
                   onClick={(e) => e.stopPropagation()}
@@ -218,14 +243,39 @@ export default function Navbar() {
                   >
                     Registrations
                   </a>
-                  {/* NEW: Team Registrations */}
+                  {/* Team Invites with count badge */}
                   <a
                     href="/account/team-registrations"
                     className="nav-link"
                     style={dropdownItem}
                     onClick={() => setProfileOpen(false)}
                   >
-                    Team Invites
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
+                      }}
+                    >
+                      <span>{teamRegLabel}</span>
+                      {teamRegCount > 0 && (
+                        <span
+                          style={{
+                            minWidth: 18,
+                            padding: "0 6px",
+                            borderRadius: "999px",
+                            backgroundColor: "#ef4444",
+                            color: "white",
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            textAlign: "center",
+                          }}
+                        >
+                          {teamRegCount}
+                        </span>
+                      )}
+                    </span>
                   </a>
                   {/* Match Records / History */}
                   <a
