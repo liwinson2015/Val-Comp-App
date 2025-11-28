@@ -1,9 +1,12 @@
 // pages/tournaments-hub/hok-types/index.js
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import styles from "../../../styles/HokTour.module.css";
 
 export default function HokTypesPage() {
+  const router = useRouter();
+
   return (
     <div className={styles.shell}>
       <div className={styles.contentWrap}>
@@ -72,6 +75,11 @@ export default function HokTypesPage() {
             <span className={styles.infoValue}>Custom Lobbies</span>
           </div>
         </section>
+
+        {/* BACK BUTTON */}
+        <div className={styles.backRow}>
+          <button onClick={() => router.back()}>← Back</button>
+        </div>
       </div>
     </div>
   );
