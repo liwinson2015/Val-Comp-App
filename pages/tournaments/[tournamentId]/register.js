@@ -316,7 +316,7 @@ export default function DynamicRegisterPage(props) {
     "Grandmaster",
     "Challenger",
   ];
-  const TFT_DIVISIONS = ["1", "2", "3", "4"];
+  const TFT_DIVISIONS = ["IV", "III", "II", "I"];
   const TFT_HIGH_TIERS = ["Master", "Grandmaster", "Challenger"];
 
   // --- VALORANT state ---
