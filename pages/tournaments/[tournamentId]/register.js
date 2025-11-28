@@ -4,6 +4,7 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 import Registration from "../../../models/Registration";
+import Team from "../../../models/Team";
 import { useState } from "react";
 
 const FALLBACK_CAPACITY = 16;
@@ -139,7 +140,6 @@ function isTeamMode(gameKey, modeKey) {
   const g = (gameKey || "").toLowerCase();
   const m = (modeKey || "").toLowerCase();
 
-  // Your rule:
   // Solo:  valorant 1v1, tft solo
   // Team:  valorant 2v2 & 5v5, tft doubleup, hok 5v5
   if (g === "valorant" && (m === "2v2" || m === "5v5")) return true;
@@ -229,7 +229,7 @@ export async function getServerSideProps({ req, params }) {
 
     const teamMode = isTeamMode(gameKey, modeKey);
 
-    // Check if THIS player is already registered (solo logic; for teams we'll refine later)
+    // Check if THIS player is already registered (solo logic; team mode will use new model later)
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: tournamentId,
@@ -261,6 +261,37 @@ export async function getServerSideProps({ req, params }) {
       }
     }
 
+    // Find teams this player is on (for team modes)
+    let teamsForGame = [];
+    if (teamMode) {
+      const baseTeams = await Team.find({
+        $or: [
+          { members: player._id },
+          { "members.player": player._id },
+          { "members.playerId": player._id },
+        ],
+      }).lean();
+
+      const gameUpper = gameCode; // "VALORANT", "HOK", "TFT"
+      const gameRegex = new RegExp(gameUpper, "i");
+
+      teamsForGame = baseTeams
+        .filter((t) => {
+          const g = (
+            t.game ||
+            t.gameCode ||
+            t.gameName ||
+            ""
+          ).toString();
+          if (!g) return true; // if team has no game field, still show
+          return gameRegex.test(g);
+        })
+        .map((t) => ({
+          id: t._id.toString(),
+          name: t.name || t.teamName || "Unnamed team",
+        }));
+    }
+
     const displayName = tournamentDoc.name || "Tournament";
     const heroBadge =
       meta.displayGameLabel ||
@@ -284,7 +315,7 @@ export async function getServerSideProps({ req, params }) {
         discordId: player.discordId || "",
         avatar: player.avatar || player.discordAvatar || null,
         playerId: String(player._id),
-        alreadyRegistered,
+        alreadyRegistered: teamMode ? false : alreadyRegistered, // for team modes we handle separately
         gsspError: false,
         errorMessage: "",
         tournamentId,
@@ -295,6 +326,7 @@ export async function getServerSideProps({ req, params }) {
         modeKey,
         teamMode,
         theme,
+        teamsForGame,
         ignFromProfile: ignFromProfile || "",
         tagFromProfile: tagFromProfile || "",
         rankTierFromProfile: rankTierFromProfile || "",
@@ -325,6 +357,7 @@ export async function getServerSideProps({ req, params }) {
         modeKey: "1v1",
         teamMode: false,
         theme: GAME_THEMES.valorant,
+        teamsForGame: [],
         ignFromProfile: "",
         tagFromProfile: "",
         rankTierFromProfile: "",
@@ -354,6 +387,7 @@ export default function DynamicRegisterPage(props) {
     modeKey,
     teamMode,
     theme,
+    teamsForGame,
     ignFromProfile,
     tagFromProfile,
     rankTierFromProfile,
@@ -364,6 +398,11 @@ export default function DynamicRegisterPage(props) {
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Team-mode state
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [teamSubmitting, setTeamSubmitting] = useState(false);
+  const [teamMessage, setTeamMessage] = useState("");
 
   const effectiveGameKey =
     gameKey ||
@@ -410,8 +449,49 @@ export default function DynamicRegisterPage(props) {
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
 
-  // ---------- TEAM MODE PLACEHOLDER ----------
-  // (VALORANT 2v2/5v5, TFT Double Up, HOK 5v5)
+  // ---------- TEAM MODE UI (VAL 2v2/5v5, TFT doubleup, HOK 5v5) ----------
+  async function handleTeamSubmit(e) {
+    e.preventDefault();
+    if (!teamMode) return;
+
+    if (!selectedTeamId) {
+      setTeamMessage("Please select a team to register.");
+      return;
+    }
+
+    setTeamSubmitting(true);
+    setTeamMessage("");
+
+    try {
+      const res = await fetch("/api/registration/team-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          teamId: selectedTeamId,
+          tournamentId,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.ok) {
+        setTeamMessage(
+          data.error || (await res.text()) || "Failed to register team."
+        );
+      } else {
+        setTeamMessage(
+          "Team registered as pending. Your teammates will need to confirm from their accounts."
+        );
+      }
+    } catch (err) {
+      console.error("team registration submit error:", err);
+      setTeamMessage("Network error submitting team registration.");
+    } finally {
+      setTeamSubmitting(false);
+    }
+  }
+
   if (teamMode) {
     return (
       <div
@@ -557,34 +637,130 @@ export default function DynamicRegisterPage(props) {
             }}
           >
             <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
-              Team-based registration coming next.
+              Team-based registration.
             </div>
             <div style={{ color: "#9ca3af" }}>
-              This is a team tournament for {gameLabel}. Only team captains
-              will be able to register a team. When we finish this feature,
-              your captain will submit your team once, and every teammate will
-              confirm their spot from their account page.
+              This is a team tournament for {gameLabel}. Only the{" "}
+              <span style={{ fontWeight: 600 }}>team captain</span> can submit
+              the team. When you register, every teammate will be marked as{" "}
+              <span style={{ fontWeight: 600 }}>pending</span> until they
+              confirm their spot.
             </div>
           </div>
 
-          <button
-            type="button"
-            disabled
-            style={{
-              width: "100%",
-              backgroundColor: "#4b5563",
-              color: "#e5e7eb",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              border: "none",
-              borderRadius: "0.6rem",
-              padding: "0.75rem 1rem",
-              cursor: "not-allowed",
-              opacity: 0.8,
-            }}
-          >
-            Team registration not enabled yet
-          </button>
+          <form onSubmit={handleTeamSubmit}>
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  color: "#e5e7eb",
+                  marginBottom: "0.4rem",
+                }}
+              >
+                Your team for this tournament
+              </label>
+              {teamsForGame && teamsForGame.length > 0 ? (
+                <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                >
+                  <option value="">Select a team</option>
+                  {teamsForGame.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#fbbf24",
+                    padding: "0.5rem 0.35rem",
+                  }}
+                >
+                  You don&apos;t have any teams linked to this account for this
+                  game yet. Create a team first, then come back to register.
+                </div>
+              )}
+              {teamsForGame && teamsForGame.length > 0 && (
+                <div
+                  style={{
+                    marginTop: "0.35rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  We&apos;ll check that you are the captain of this team before
+                  completing the registration.
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={
+                teamSubmitting ||
+                !teamsForGame ||
+                teamsForGame.length === 0
+              }
+              style={{
+                width: "100%",
+                backgroundColor:
+                  !teamsForGame || teamsForGame.length === 0
+                    ? "#4b5563"
+                    : teamSubmitting
+                    ? "#4b5563"
+                    : resolvedTheme.primaryButton,
+                color: "white",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                border: "none",
+                borderRadius: "0.6rem",
+                padding: "0.75rem 1rem",
+                cursor:
+                  !teamsForGame || teamsForGame.length === 0 || teamSubmitting
+                    ? "not-allowed"
+                    : "pointer",
+                boxShadow:
+                  !teamsForGame || teamsForGame.length === 0
+                    ? "none"
+                    : resolvedTheme.primaryShadow,
+                opacity:
+                  !teamsForGame || teamsForGame.length === 0 ? 0.6 : 1,
+              }}
+            >
+              {teamSubmitting
+                ? "Submitting..."
+                : "Register team (pending approval)"}
+            </button>
+
+            {teamMessage && (
+              <div
+                style={{
+                  marginTop: "0.75rem",
+                  fontSize: "0.8rem",
+                  color: "#e5e7eb",
+                  lineHeight: 1.4,
+                  textAlign: "center",
+                }}
+              >
+                {teamMessage}
+              </div>
+            )}
+          </form>
 
           <div
             style={{
@@ -595,12 +771,12 @@ export default function DynamicRegisterPage(props) {
               textAlign: "center",
             }}
           >
-            This tournament uses a team-based format (
+            Format:{" "}
             <span style={{ fontWeight: 600 }}>
               {gameKey.toUpperCase()} {modeKey.toUpperCase()}
             </span>
-            ). We&apos;ll hook this screen into your Teams system next so captains
-            can register everyone at once and teammates can accept or decline.
+            . We&apos;ll add a confirmation screen for teammates so they can
+            accept or decline their spot.
           </div>
         </div>
       </div>
