@@ -70,7 +70,7 @@ const QUICK_FACTS_TEMPLATES = {
   "valorant_5v5": {
     mode: "5v5 Standard",
     format: "Competitive rules • Full team draft • Map picks / bans",
-    map: "Competitive map pool",
+    map: "Competitive Map Pool",
     server: "NA (custom lobby)",
     checkIn: "30 minutes before start (Discord)",
   },

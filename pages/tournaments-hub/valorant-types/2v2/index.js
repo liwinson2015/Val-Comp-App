@@ -79,7 +79,7 @@ export async function getServerSideProps() {
 
     const displayRules =
       meta.displayRules ||
-      "No cheats";
+      "No Cheats";
 
     const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 

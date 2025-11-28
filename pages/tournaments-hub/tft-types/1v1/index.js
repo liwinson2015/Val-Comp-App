@@ -72,7 +72,7 @@ export async function getServerSideProps() {
 
     const displayNotes =
       meta.displayNotes ||
-      "No win-trading • No queue sniping.";
+      "No Win-Trading";
 
     const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 

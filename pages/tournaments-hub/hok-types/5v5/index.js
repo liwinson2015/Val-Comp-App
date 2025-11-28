@@ -82,11 +82,11 @@ export async function getServerSideProps() {
 
     const displayMaps =
       meta.displayMaps ||
-      "Classic 5v5 lane map";
+      "Classic 5v5 Lane Map";
 
     const displayRules =
       meta.displayRules ||
-      "No cheating • No AFK • Captain reports scores";
+      "No Cheating";
 
     const detailsUrl =
       meta.detailsUrl ||

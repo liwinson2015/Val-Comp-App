@@ -86,7 +86,7 @@ export async function getServerSideProps() {
 
     const displayRules =
       meta.displayRules ||
-      "No cheating";
+      "No Cheating";
 
     const detailsUrl =
       meta.detailsUrl ||
