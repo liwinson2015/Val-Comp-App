@@ -1,6 +1,6 @@
 // pages/tournaments/[tournamentId]/index.js
 import React, { useEffect, useState } from "react";
-import Link from "next/link"; // Added this for the button to work
+import Link from "next/link"; 
 import styles from "../../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
@@ -11,22 +11,26 @@ import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 const FALLBACK_CAPACITY = 16;
 
 /** --- BACK BUTTON CONFIGURATION --- */
-/** * This list tells the button where to go based on the Game + Mode.
- * Format: "game_mode" : "link_to_go_back_to"
+/** * I UPDATED THIS SECTION.
+ * Use this list to control exactly where the button takes you.
  */
 const BACK_PATHS = {
-  // If it is Valorant 1v1, go to the Valorant Types list
-  "valorant_1v1": "/tournaments-hub/valorant-types",
+  // IF it is Valorant 1v1 -> Go to the 1v1 List (Change this link if your file is named differently)
+  "valorant_1v1": "/tournaments-hub/valorant-1v1", 
   
-  // Other defaults (you can change these links if you have different pages)
-  "valorant_2v2": "/tournaments-hub/valorant-types",
-  "valorant_5v5": "/tournaments-hub/valorant-types",
+  // IF it is Valorant 2v2 -> Go to the 2v2 List
+  "valorant_2v2": "/tournaments-hub/valorant-2v2",
+  
+  // IF it is Valorant 5v5 -> Go to the 5v5 List
+  "valorant_5v5": "/tournaments-hub/valorant-5v5",
+
+  // Defaults for other games
   "tft_solo": "/tournaments-hub/tft-types",
   "tft_double": "/tournaments-hub/tft-types",
   "hok_5v5": "/tournaments-hub/hok-types",
   
-  // Final safety fallback
-  "default": "/tournaments-hub"
+  // Safety fallback if we don't know the game mode
+  "default": "/tournaments-hub/valorant-types"
 };
 
 /** --- THEME CONFIG PER GAME --- */
