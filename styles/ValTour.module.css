@@ -212,6 +212,32 @@
   font-size: 0.9rem;
 }
 
+/* === Back Button Row === */
+.backRow {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.ghostBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #cbd5f5;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ghostBtn:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .heroTitle { font-size: 2.5rem; }
   .infoRow { grid-template-columns: 1fr; }
