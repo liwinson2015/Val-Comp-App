@@ -9,15 +9,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 🔹 NEW: accept fullIgn (optional extra field)
-    const { playerId, tournamentId, ign, fullIgn, rank } = req.body;
+    const {
+      playerId,
+      tournamentId,
+      ign,      // name only, e.g. "5TQ"
+      fullIgn,  // name#tag, e.g. "5TQ#NA1"
+      rank,     // e.g. "Gold 2" or "Radiant"
+      // optional hint, but we always update profile anyway
+      updateProfileFromRegistration,
+    } = req.body;
 
     const cleanIgn = typeof ign === "string" ? ign.trim() : "";
-    const cleanFullIgn =
-      typeof fullIgn === "string" ? fullIgn.trim() : "";
+    const cleanFullIgn = typeof fullIgn === "string" ? fullIgn.trim() : "";
     const cleanRank = typeof rank === "string" ? rank.trim() : "";
 
-    // We still only *require* ign + rank (same behavior as before)
+    // Same validation as before: playerId, tournamentId, ign, rank required
     if (!playerId || !tournamentId || !cleanIgn || !cleanRank) {
       return res.status(400).send("Missing required fields");
     }
@@ -29,14 +35,14 @@ export default async function handler(req, res) {
       return res.status(404).send("Player not found");
     }
 
-    // Check if already registered (via Registration collection)
+    // Check if already registered via Registration collection
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: tournamentId,
     }).lean();
 
-    // Check if already registered (via Player.registeredFor array)
-    const alreadyInPlayerArray = player.registeredFor?.some(
+    // Check if already registered via Player.registeredFor array
+    const alreadyInPlayerArray = (player.registeredFor || []).some(
       (entry) => entry.tournamentId === tournamentId
     );
 
@@ -47,7 +53,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create registration doc (rank is now the "peak rank" string, e.g. "Gold 2")
+    // Create Registration document (same as before)
     const regDoc = await Registration.create({
       playerName: player.username,
       discordTag: player.discordId,
@@ -57,24 +63,90 @@ export default async function handler(req, res) {
       timestamp: new Date(),
     });
 
-    // Also store on the Player document for history / admin view
-    // 🔹 ign = name only (what your backend already uses)
-    // 🔹 fullIgn = optional full Riot ID (name#tagline)
+    // Store on Player.registeredFor (history of all tournaments)
     const registeredEntry = {
       tournamentId,
-      ign: cleanIgn,          // e.g. "5TQ"  (name only)
-      rank: cleanRank,        // e.g. "Gold 2" (peak rank)
+      ign: cleanIgn,         // name only
+      rank: cleanRank,
+      createdAt: new Date(),
     };
 
     if (cleanFullIgn) {
-      registeredEntry.fullIgn = cleanFullIgn; // e.g. "5TQ#NA1"
+      registeredEntry.fullIgn = cleanFullIgn; // name#tag
     }
 
-    await Player.findByIdAndUpdate(playerId, {
-      $push: {
-        registeredFor: registeredEntry,
-      },
-    });
+    player.registeredFor = player.registeredFor || [];
+    player.registeredFor.push(registeredEntry);
+
+    // ---- Update gameProfiles.VALORANT using existing schema ----
+    // We always sync the profile when they register.
+    const shouldUpdateProfile = true;
+
+    if (shouldUpdateProfile) {
+      if (!player.gameProfiles) {
+        player.gameProfiles = {};
+      }
+      if (!player.gameProfiles.VALORANT) {
+        player.gameProfiles.VALORANT = {};
+      }
+
+      const valorantProfile = player.gameProfiles.VALORANT;
+
+      // IGN: store as "name#tag" when we have fullIgn, otherwise fallback to name only
+      if (cleanFullIgn) {
+        valorantProfile.ign = cleanFullIgn;       // e.g. "5TQ#NA1"
+      } else if (cleanIgn) {
+        valorantProfile.ign = cleanIgn;          // fallback: "5TQ"
+      }
+
+      // Parse rank string (e.g. "Gold 2", "Radiant") into tier + division
+      const VALORANT_RANK_TIERS = [
+        "Iron",
+        "Bronze",
+        "Silver",
+        "Gold",
+        "Platinum",
+        "Diamond",
+        "Ascendant",
+        "Immortal",
+        "Radiant",
+      ];
+
+      if (cleanRank) {
+        let tier = "";
+        let division = "";
+
+        const trimmedRank = cleanRank.trim();
+
+        if (VALORANT_RANK_TIERS.includes(trimmedRank)) {
+          // Exactly matches a tier like "Radiant"
+          tier = trimmedRank;
+          division = "";
+        } else {
+          // Try to split "Gold 2" → tier="Gold", division="2"
+          const parts = trimmedRank.split(/\s+/);
+          if (
+            parts.length >= 1 &&
+            VALORANT_RANK_TIERS.includes(parts[0])
+          ) {
+            tier = parts[0];
+            division = parts[1] || "";
+          } else {
+            // Fallback: store whole string as tier if we don't recognize the format
+            tier = trimmedRank;
+            division = "";
+          }
+        }
+
+        valorantProfile.rankTier = tier;
+        valorantProfile.rankDivision = division;
+      }
+
+      valorantProfile.lastUpdated = new Date();
+      player.gameProfiles.VALORANT = valorantProfile;
+    }
+
+    await player.save();
 
     return res.status(200).json({
       ok: true,

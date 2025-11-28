@@ -8,6 +8,38 @@ import { useState } from "react";
 
 const FALLBACK_CAPACITY = 16;
 
+// Helper to safely pull Valorant profile info from Player.gameProfiles.VALORANT
+function extractValorantProfile(player) {
+  if (!player) return {};
+
+  const valorantProfile =
+    player.gameProfiles && player.gameProfiles.VALORANT
+      ? player.gameProfiles.VALORANT
+      : {};
+
+  const storedIgn = valorantProfile.ign || "";
+
+  // storedIgn is "Name#Tag" (e.g. "彼岸花ya#Win10")
+  let riotNameFromProfile = "";
+  let riotTagFromProfile = "";
+
+  if (storedIgn) {
+    const parts = storedIgn.split("#");
+    riotNameFromProfile = (parts[0] || "").trim();
+    riotTagFromProfile = (parts[1] || "").trim();
+  }
+
+  const peakRankTierFromProfile = valorantProfile.rankTier || "";
+  const peakRankDivisionFromProfile = valorantProfile.rankDivision || "";
+
+  return {
+    riotNameFromProfile,
+    riotTagFromProfile,
+    peakRankTierFromProfile,
+    peakRankDivisionFromProfile,
+  };
+}
+
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
   const { tournamentId } = params;
@@ -89,11 +121,22 @@ export async function getServerSideProps({ req, params }) {
 
     const meta = tournamentDoc.meta || {};
 
-    // Labels for the UI (can be customized per tournament later)
+    // Labels for the UI
     const displayName =
       tournamentDoc.name || "Valorant Solo Skirmish";
     const heroBadge =
       meta.displayGameLabel || "Valorant 1v1";
+
+    // Pull prefill info from the player's Valorant profile
+    const {
+      riotNameFromProfile,
+      riotTagFromProfile,
+      peakRankTierFromProfile,
+      peakRankDivisionFromProfile,
+    } = extractValorantProfile(player);
+
+    const gameCode = tournamentDoc.gameCode || "VALORANT";
+    const registrationType = tournamentDoc.registrationType || "SOLO";
 
     return {
       props: {
@@ -107,6 +150,12 @@ export async function getServerSideProps({ req, params }) {
         tournamentId,
         displayName,
         heroBadge,
+        riotNameFromProfile: riotNameFromProfile || "",
+        riotTagFromProfile: riotTagFromProfile || "",
+        peakRankTierFromProfile: peakRankTierFromProfile || "",
+        peakRankDivisionFromProfile: peakRankDivisionFromProfile || "",
+        gameCode,
+        registrationType,
       },
     };
   } catch (err) {
@@ -126,6 +175,12 @@ export async function getServerSideProps({ req, params }) {
         tournamentId: params.tournamentId || "",
         displayName: "Valorant Tournament",
         heroBadge: "Valorant 1v1",
+        riotNameFromProfile: "",
+        riotTagFromProfile: "",
+        peakRankTierFromProfile: "",
+        peakRankDivisionFromProfile: "",
+        gameCode: "VALORANT",
+        registrationType: "SOLO",
       },
     };
   }
@@ -144,12 +199,22 @@ export default function DynamicRegisterPage(props) {
     tournamentId,
     displayName,
     heroBadge,
+    riotNameFromProfile,
+    riotTagFromProfile,
+    peakRankTierFromProfile,
+    peakRankDivisionFromProfile,
+    gameCode,          // for future multi-game logic
+    registrationType,  // for future solo vs team
   } = props || {};
 
-  const [riotName, setRiotName] = useState("");
-  const [riotTag, setRiotTag] = useState("");
-  const [peakRankTier, setPeakRankTier] = useState("");
-  const [peakRankDivision, setPeakRankDivision] = useState("");
+  const [riotName, setRiotName] = useState(riotNameFromProfile || "");
+  const [riotTag, setRiotTag] = useState(riotTagFromProfile || "");
+  const [peakRankTier, setPeakRankTier] = useState(
+    peakRankTierFromProfile || ""
+  );
+  const [peakRankDivision, setPeakRankDivision] = useState(
+    peakRankDivisionFromProfile || ""
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -196,6 +261,10 @@ export default function DynamicRegisterPage(props) {
 
   const VALORANT_DIVISIONS = ["1", "2", "3"];
 
+  const hasProfileRiotId = !!riotNameFromProfile;
+  const hasProfileRank = !!peakRankTierFromProfile;
+  const hasAnyProfileData = hasProfileRiotId || hasProfileRank;
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (alreadyRegistered) return;
@@ -215,16 +284,13 @@ export default function DynamicRegisterPage(props) {
       return;
     }
 
-    // ign = name only (what your backend already uses)
-    const ign = nameTrimmed;
-    // fullIgn = "name#tag"
-    const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
+    const ign = nameTrimmed; // name only
+    const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // name#tag
 
-    // Radiant has no division → store just "Radiant"
     const rank =
       peakRankTier === "Radiant"
         ? "Radiant"
-        : `${peakRankTier} ${peakRankDivision}`; // e.g. "Gold 2"
+        : `${peakRankTier} ${peakRankDivision}`;
 
     setSubmitting(true);
     setMessage("");
@@ -235,10 +301,11 @@ export default function DynamicRegisterPage(props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           playerId,
-          tournamentId, // 🔹 dynamic tournament
-          ign, // name only, unchanged behavior for backend
-          fullIgn, // full Riot ID
+          tournamentId,
+          ign,
+          fullIgn,
           rank,
+          updateProfileFromRegistration: true,
         }),
       });
 
@@ -246,11 +313,10 @@ export default function DynamicRegisterPage(props) {
         const text = await res.text();
         setMessage("Error: " + text);
       } else {
-        // after dynamic register, you can still reuse same success page for now
         window.location.href = `/tournaments/${encodeURIComponent(
-    tournamentId
-  )}/success`;
-}
+          tournamentId
+        )}/success`;
+      }
     } catch (err) {
       console.error("registration submit error:", err);
       setMessage("Network error submitting registration.");
@@ -390,7 +456,40 @@ export default function DynamicRegisterPage(props) {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Info / warning about profile */}
+        <div
+          style={{
+            marginBottom: "1rem",
+            padding: "0.6rem 0.75rem",
+            borderRadius: "0.6rem",
+            backgroundColor: "#111827",
+            border: "1px solid #374151",
+            fontSize: "0.8rem",
+            lineHeight: 1.4,
+            color: "#e5e7eb",
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+            Make sure this matches your in-game Valorant account.
+          </div>
+          <div style={{ color: "#9ca3af" }}>
+            {hasAnyProfileData ? (
+              <>
+                We pre-filled some details from your Valorant profile. Updating
+                them here will also keep your profile in sync.
+              </>
+            ) : (
+              <>
+                We weren’t able to find Valorant details on your profile. Please
+                fill everything in carefully — these values will be used as your
+                profile info for this game and must match your in-game details,
+                otherwise you may not be able to play.
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Form label */}
         <div
           style={{
             fontSize: "0.7rem",
@@ -405,7 +504,7 @@ export default function DynamicRegisterPage(props) {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Riot ID (IGN) split into name + tag */}
+          {/* Riot ID */}
           <div style={{ marginBottom: "1rem" }}>
             <label
               style={{
@@ -478,9 +577,20 @@ export default function DynamicRegisterPage(props) {
                 }}
               />
             </div>
+            <div
+              style={{
+                marginTop: "0.35rem",
+                fontSize: "0.75rem",
+                color: "#9ca3af",
+              }}
+            >
+              {hasProfileRiotId
+                ? "Loaded IGN from your Valorant profile. Update it here if it’s outdated."
+                : "We couldn’t find your IGN on your Valorant profile, so we’ll use what you enter here."}
+            </div>
           </div>
 
-          {/* Peak Rank: tier + division */}
+          {/* Peak Rank */}
           <div style={{ marginBottom: "1rem" }}>
             <label
               style={{
@@ -551,6 +661,7 @@ export default function DynamicRegisterPage(props) {
                   ))}
               </select>
             </div>
+
             {isRadiant && (
               <div
                 style={{
@@ -563,34 +674,47 @@ export default function DynamicRegisterPage(props) {
                 <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
               </div>
             )}
+
+            {!isRadiant && (
+              <div
+                style={{
+                  marginTop: "0.35rem",
+                  fontSize: "0.75rem",
+                  color: "#9ca3af",
+                }}
+              >
+                {hasProfileRank
+                  ? "Peak rank was loaded from your Valorant profile. Make sure this is still correct."
+                  : "We couldn’t find a peak rank on your Valorant profile, so we’ll use what you enter here."}
+              </div>
+            )}
           </div>
 
           <button
-  type="submit"
-  disabled={submitting || alreadyRegistered}
-  style={{
-    width: "100%",
-    backgroundColor: alreadyRegistered
-      ? "#4b5563"
-      : submitting
-      ? "#4b5563"
-      : "#ff0046",
-    color: "white",
-    fontWeight: 600,
-    fontSize: "0.9rem",
-    border: "none",
-    borderRadius: "0.6rem",
-    padding: "0.75rem 1rem",
-    cursor:
-      submitting || alreadyRegistered ? "not-allowed" : "pointer",
-    boxShadow: alreadyRegistered
-      ? "none"
-      : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
-    opacity: alreadyRegistered ? 0.6 : 1,
-    transition: "background-color .15s",
-  }}
->
-
+            type="submit"
+            disabled={submitting || alreadyRegistered}
+            style={{
+              width: "100%",
+              backgroundColor: alreadyRegistered
+                ? "#4b5563"
+                : submitting
+                ? "#4b5563"
+                : "#ff0046",
+              color: "white",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              border: "none",
+              borderRadius: "0.6rem",
+              padding: "0.75rem 1rem",
+              cursor:
+                submitting || alreadyRegistered ? "not-allowed" : "pointer",
+              boxShadow: alreadyRegistered
+                ? "none"
+                : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+              opacity: alreadyRegistered ? 0.6 : 1,
+              transition: "background-color .15s",
+            }}
+          >
             {alreadyRegistered
               ? "Already Registered"
               : submitting
