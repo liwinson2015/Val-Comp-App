@@ -56,6 +56,34 @@
   position: relative;
 }
 
+/* --- BACK BUTTON NAVIGATION --- */
+.backNav {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.5rem; /* Space between back button and hero */
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-text-dim);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+
+.backLink:hover {
+  color: var(--c-accent); /* Glows Cyan (or theme accent) on hover */
+  transform: translateX(-3px); /* Subtle slide left animation */
+}
+
 /* --- HERO SECTION --- */
 .hero {
   position: relative;

@@ -1,5 +1,6 @@
 // pages/tournaments/[tournamentId]/index.js
 import React, { useEffect, useState } from "react";
+import Link from "next/link"; // Added this for the button to work
 import styles from "../../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
@@ -8,6 +9,25 @@ import { tournamentsById as catalog } from "../../../lib/tournaments";
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 
 const FALLBACK_CAPACITY = 16;
+
+/** --- BACK BUTTON CONFIGURATION --- */
+/** * This list tells the button where to go based on the Game + Mode.
+ * Format: "game_mode" : "link_to_go_back_to"
+ */
+const BACK_PATHS = {
+  // If it is Valorant 1v1, go to the Valorant Types list
+  "valorant_1v1": "/tournaments-hub/valorant-types",
+  
+  // Other defaults (you can change these links if you have different pages)
+  "valorant_2v2": "/tournaments-hub/valorant-types",
+  "valorant_5v5": "/tournaments-hub/valorant-types",
+  "tft_solo": "/tournaments-hub/tft-types",
+  "tft_double": "/tournaments-hub/tft-types",
+  "hok_5v5": "/tournaments-hub/hok-types",
+  
+  // Final safety fallback
+  "default": "/tournaments-hub"
+};
 
 /** --- THEME CONFIG PER GAME --- */
 const GAME_THEMES = {
@@ -439,6 +459,7 @@ export async function getServerSideProps({ req, params }) {
         displayEntry,
         displayHost,
         gameKey,
+        modeKey, // We pass this so the client knows what mode we are in
         theme,
         quickFacts,
         rules,
@@ -472,6 +493,7 @@ export async function getServerSideProps({ req, params }) {
         displayEntry: "Free",
         displayHost: "5TQ",
         gameKey: "valorant",
+        modeKey: "1v1",
         theme,
         quickFacts,
         rules,
@@ -495,6 +517,7 @@ export default function TournamentDetailPage({
   displayEntry,
   displayHost,
   gameKey,
+  modeKey,
   theme,
   quickFacts,
   rules,
@@ -513,6 +536,12 @@ export default function TournamentDetailPage({
   const resolvedTheme = theme || DEFAULT_THEME;
   const facts = quickFacts || [];
   const ruleBlocks = rules || pickRules("valorant", "1v1");
+
+  // --- DETERMINE WHERE THE BACK BUTTON GOES ---
+  // Create a key like "valorant_1v1"
+  const specificKey = `${gameKey}_${modeKey}`;
+  // Look up the URL in our list, or use a default
+  const backHref = BACK_PATHS[specificKey] || BACK_PATHS["default"];
 
   useEffect(() => {
     let ignore = false;
@@ -606,10 +635,31 @@ export default function TournamentDetailPage({
   return (
     <div className={shellClass}>
       <div className={styles.contentWrap}>
+        
+        {/* --- BACK BUTTON --- */}
+        <div className={styles.backNav}>
+          <Link href={backHref} className={styles.backLink}>
+            {/* SVG Arrow Icon */}
+            <svg 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Back to {gameKey} {modeKey}
+          </Link>
+        </div>
+
         {/* HERO */}
         <section
           style={{
-            marginTop: "2.5rem",
+            marginTop: "1.0rem", 
             marginBottom: "1.75rem",
             textAlign: "center",
           }}
