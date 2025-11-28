@@ -12,18 +12,26 @@ export default async function handler(req, res) {
     const {
       playerId,
       tournamentId,
-      ign,      // name only, e.g. "5TQ"
-      fullIgn,  // name#tag, e.g. "5TQ#NA1"
-      rank,     // e.g. "Gold 2" or "Radiant"
-      // optional hint, but we always update profile anyway
-      updateProfileFromRegistration,
+      ign,       // name only
+      fullIgn,   // VALORANT: name#tag, others: can be same as ign
+      rank,      // peak rank string
+      gameCode,  // "VALORANT" | "HOK" | "TFT"
+      region,    // optional region/server (HOK/TFT)
+      hokPeakScore, // optional number for HOK
     } = req.body;
 
     const cleanIgn = typeof ign === "string" ? ign.trim() : "";
     const cleanFullIgn = typeof fullIgn === "string" ? fullIgn.trim() : "";
     const cleanRank = typeof rank === "string" ? rank.trim() : "";
 
-    // Same validation as before: playerId, tournamentId, ign, rank required
+    let rawGameCode =
+      typeof gameCode === "string" ? gameCode.trim().toUpperCase() : "";
+    const allowedGameCodes = ["VALORANT", "HOK", "TFT"];
+    if (!allowedGameCodes.includes(rawGameCode)) {
+      rawGameCode = "VALORANT"; // default for old data
+    }
+    const effectiveGameCode = rawGameCode;
+
     if (!playerId || !tournamentId || !cleanIgn || !cleanRank) {
       return res.status(400).send("Missing required fields");
     }
@@ -35,13 +43,12 @@ export default async function handler(req, res) {
       return res.status(404).send("Player not found");
     }
 
-    // Check if already registered via Registration collection
+    // Check if already registered
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
       tournament: tournamentId,
     }).lean();
 
-    // Check if already registered via Player.registeredFor array
     const alreadyInPlayerArray = (player.registeredFor || []).some(
       (entry) => entry.tournamentId === tournamentId
     );
@@ -53,7 +60,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create Registration document (same as before)
+    // Create Registration document
     const regDoc = await Registration.create({
       playerName: player.username,
       discordTag: player.discordId,
@@ -63,87 +70,117 @@ export default async function handler(req, res) {
       timestamp: new Date(),
     });
 
-    // Store on Player.registeredFor (history of all tournaments)
+    // Store on Player.registeredFor
     const registeredEntry = {
       tournamentId,
-      ign: cleanIgn,         // name only
+      ign: cleanIgn,
       rank: cleanRank,
       createdAt: new Date(),
     };
-
     if (cleanFullIgn) {
-      registeredEntry.fullIgn = cleanFullIgn; // name#tag
+      registeredEntry.fullIgn = cleanFullIgn;
     }
 
     player.registeredFor = player.registeredFor || [];
     player.registeredFor.push(registeredEntry);
 
-    // ---- Update gameProfiles.VALORANT using existing schema ----
-    // We always sync the profile when they register.
+    // ---- Update the correct game profile ----
     const shouldUpdateProfile = true;
 
     if (shouldUpdateProfile) {
       if (!player.gameProfiles) {
         player.gameProfiles = {};
       }
-      if (!player.gameProfiles.VALORANT) {
-        player.gameProfiles.VALORANT = {};
+      if (!player.gameProfiles[effectiveGameCode]) {
+        player.gameProfiles[effectiveGameCode] = {};
       }
 
-      const valorantProfile = player.gameProfiles.VALORANT;
+      const profile = player.gameProfiles[effectiveGameCode];
 
-      // IGN: store as "name#tag" when we have fullIgn, otherwise fallback to name only
-      if (cleanFullIgn) {
-        valorantProfile.ign = cleanFullIgn;       // e.g. "5TQ#NA1"
-      } else if (cleanIgn) {
-        valorantProfile.ign = cleanIgn;          // fallback: "5TQ"
+      // IGN:
+      //  - VALORANT: use fullIgn (name#tag) when available
+      //  - others: just use ign
+      if (effectiveGameCode === "VALORANT") {
+        if (cleanFullIgn) {
+          profile.ign = cleanFullIgn; // "Name#Tag"
+        } else if (cleanIgn) {
+          profile.ign = cleanIgn;
+        }
+      } else {
+        if (cleanIgn) {
+          profile.ign = cleanIgn;
+        }
       }
 
-      // Parse rank string (e.g. "Gold 2", "Radiant") into tier + division
-      const VALORANT_RANK_TIERS = [
-        "Iron",
-        "Bronze",
-        "Silver",
-        "Gold",
-        "Platinum",
-        "Diamond",
-        "Ascendant",
-        "Immortal",
-        "Radiant",
-      ];
+      // Region (for HOK/TFT)
+      if (region && typeof region === "string") {
+        const cleanRegion = region.trim();
+        if (cleanRegion) {
+          profile.region = cleanRegion;
+        }
+      }
 
+      // HOK peak score
+      if (
+        effectiveGameCode === "HOK" &&
+        typeof hokPeakScore !== "undefined"
+      ) {
+        const num = Number(hokPeakScore);
+        if (!Number.isNaN(num)) {
+          profile.hokPeakScore = num;
+        }
+      }
+
+      // Rank parsing
       if (cleanRank) {
-        let tier = "";
-        let division = "";
+        if (effectiveGameCode === "VALORANT") {
+          const VALORANT_RANK_TIERS = [
+            "Iron",
+            "Bronze",
+            "Silver",
+            "Gold",
+            "Platinum",
+            "Diamond",
+            "Ascendant",
+            "Immortal",
+            "Radiant",
+          ];
 
-        const trimmedRank = cleanRank.trim();
+          let tier = "";
+          let division = "";
 
-        if (VALORANT_RANK_TIERS.includes(trimmedRank)) {
-          // Exactly matches a tier like "Radiant"
-          tier = trimmedRank;
-          division = "";
-        } else {
-          // Try to split "Gold 2" → tier="Gold", division="2"
-          const parts = trimmedRank.split(/\s+/);
-          if (
-            parts.length >= 1 &&
-            VALORANT_RANK_TIERS.includes(parts[0])
-          ) {
-            tier = parts[0];
-            division = parts[1] || "";
-          } else {
-            // Fallback: store whole string as tier if we don't recognize the format
+          const trimmedRank = cleanRank.trim();
+
+          if (VALORANT_RANK_TIERS.includes(trimmedRank)) {
             tier = trimmedRank;
             division = "";
+          } else {
+            const parts = trimmedRank.split(/\s+/);
+            if (
+              parts.length >= 1 &&
+              VALORANT_RANK_TIERS.includes(parts[0])
+            ) {
+              tier = parts[0];
+              division = parts[1] || "";
+            } else {
+              // Fallback
+              tier = trimmedRank;
+              division = "";
+            }
           }
-        }
 
-        valorantProfile.rankTier = tier;
-        valorantProfile.rankDivision = division;
+          profile.rankTier = tier;
+          profile.rankDivision = division;
+        } else {
+          // Generic parse: first word = tier, rest = division
+          const parts = cleanRank.split(/\s+/);
+          profile.rankTier = parts[0] || "";
+          profile.rankDivision = parts.slice(1).join(" ") || "";
+        }
       }
 
-      valorantProfile.lastUpdated = new Date();
-      player.gameProfiles.VALORANT = valorantProfile;
+      profile.lastUpdated = new Date();
+      player.gameProfiles[effectiveGameCode] = profile;
     }
 
     await player.save();

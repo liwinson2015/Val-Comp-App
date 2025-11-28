@@ -8,35 +8,57 @@ import { useState } from "react";
 
 const FALLBACK_CAPACITY = 16;
 
-// Helper to safely pull Valorant profile info from Player.gameProfiles.VALORANT
-function extractValorantProfile(player) {
-  if (!player) return {};
+const GAME_LABELS = {
+  VALORANT: "Valorant",
+  HOK: "Honor of Kings",
+  TFT: "Teamfight Tactics",
+};
 
-  const valorantProfile =
-    player.gameProfiles && player.gameProfiles.VALORANT
-      ? player.gameProfiles.VALORANT
-      : {};
-
-  const storedIgn = valorantProfile.ign || "";
-
-  // storedIgn is "Name#Tag" (e.g. "彼岸花ya#Win10")
-  let riotNameFromProfile = "";
-  let riotTagFromProfile = "";
-
-  if (storedIgn) {
-    const parts = storedIgn.split("#");
-    riotNameFromProfile = (parts[0] || "").trim();
-    riotTagFromProfile = (parts[1] || "").trim();
+// Extract per-game profile info from Player.gameProfiles[gameCode]
+function extractGameProfile(player, gameCode) {
+  if (!player) {
+    return {
+      ignFromProfile: "",
+      tagFromProfile: "",
+      rankTierFromProfile: "",
+      rankDivisionFromProfile: "",
+      regionFromProfile: "",
+      hokPeakScoreFromProfile: null,
+    };
   }
 
-  const peakRankTierFromProfile = valorantProfile.rankTier || "";
-  const peakRankDivisionFromProfile = valorantProfile.rankDivision || "";
+  const profiles = player.gameProfiles || {};
+  const profile = profiles[gameCode] || {};
+
+  let ignFromProfile = "";
+  let tagFromProfile = "";
+
+  // VALORANT stores "Name#Tag" in ign; others use ign = name only
+  if (gameCode === "VALORANT") {
+    const storedIgn = profile.ign || "";
+    if (storedIgn) {
+      const parts = storedIgn.split("#");
+      ignFromProfile = (parts[0] || "").trim();
+      tagFromProfile = (parts[1] || "").trim();
+    }
+  } else {
+    ignFromProfile = profile.ign || "";
+    tagFromProfile = "";
+  }
+
+  const rankTierFromProfile = profile.rankTier || "";
+  const rankDivisionFromProfile = profile.rankDivision || "";
+  const regionFromProfile = profile.region || "";
+  const hokPeakScoreFromProfile =
+    typeof profile.hokPeakScore === "number" ? profile.hokPeakScore : null;
 
   return {
-    riotNameFromProfile,
-    riotTagFromProfile,
-    peakRankTierFromProfile,
-    peakRankDivisionFromProfile,
+    ignFromProfile,
+    tagFromProfile,
+    rankTierFromProfile,
+    rankDivisionFromProfile,
+    regionFromProfile,
+    hokPeakScoreFromProfile,
   };
 }
 
@@ -78,7 +100,7 @@ export async function getServerSideProps({ req, params }) {
       };
     }
 
-    // Load the tournament doc so we can check capacity and show labels
+    // Load tournament
     const tournamentDoc = await Tournament.findOne({
       tournamentId,
     }).lean();
@@ -121,22 +143,20 @@ export async function getServerSideProps({ req, params }) {
 
     const meta = tournamentDoc.meta || {};
 
-    // Labels for the UI
-    const displayName =
-      tournamentDoc.name || "Valorant Solo Skirmish";
-    const heroBadge =
-      meta.displayGameLabel || "Valorant 1v1";
-
-    // Pull prefill info from the player's Valorant profile
-    const {
-      riotNameFromProfile,
-      riotTagFromProfile,
-      peakRankTierFromProfile,
-      peakRankDivisionFromProfile,
-    } = extractValorantProfile(player);
+    const displayName = tournamentDoc.name || "Tournament";
+    const heroBadge = meta.displayGameLabel || "Tournament";
 
     const gameCode = tournamentDoc.gameCode || "VALORANT";
     const registrationType = tournamentDoc.registrationType || "SOLO";
+
+    const {
+      ignFromProfile,
+      tagFromProfile,
+      rankTierFromProfile,
+      rankDivisionFromProfile,
+      regionFromProfile,
+      hokPeakScoreFromProfile,
+    } = extractGameProfile(player, gameCode);
 
     return {
       props: {
@@ -150,12 +170,15 @@ export async function getServerSideProps({ req, params }) {
         tournamentId,
         displayName,
         heroBadge,
-        riotNameFromProfile: riotNameFromProfile || "",
-        riotTagFromProfile: riotTagFromProfile || "",
-        peakRankTierFromProfile: peakRankTierFromProfile || "",
-        peakRankDivisionFromProfile: peakRankDivisionFromProfile || "",
         gameCode,
         registrationType,
+        ignFromProfile: ignFromProfile || "",
+        tagFromProfile: tagFromProfile || "",
+        rankTierFromProfile: rankTierFromProfile || "",
+        rankDivisionFromProfile: rankDivisionFromProfile || "",
+        regionFromProfile: regionFromProfile || "",
+        hokPeakScoreFromProfile:
+          hokPeakScoreFromProfile !== null ? hokPeakScoreFromProfile : "",
       },
     };
   } catch (err) {
@@ -173,14 +196,16 @@ export async function getServerSideProps({ req, params }) {
         gsspError: true,
         errorMessage: String(err?.message || err),
         tournamentId: params.tournamentId || "",
-        displayName: "Valorant Tournament",
-        heroBadge: "Valorant 1v1",
-        riotNameFromProfile: "",
-        riotTagFromProfile: "",
-        peakRankTierFromProfile: "",
-        peakRankDivisionFromProfile: "",
+        displayName: "Tournament",
+        heroBadge: "Tournament",
         gameCode: "VALORANT",
         registrationType: "SOLO",
+        ignFromProfile: "",
+        tagFromProfile: "",
+        rankTierFromProfile: "",
+        rankDivisionFromProfile: "",
+        regionFromProfile: "",
+        hokPeakScoreFromProfile: "",
       },
     };
   }
@@ -199,25 +224,63 @@ export default function DynamicRegisterPage(props) {
     tournamentId,
     displayName,
     heroBadge,
-    riotNameFromProfile,
-    riotTagFromProfile,
-    peakRankTierFromProfile,
-    peakRankDivisionFromProfile,
-    gameCode,          // for future multi-game logic
-    registrationType,  // for future solo vs team
+    gameCode,
+    registrationType,
+    ignFromProfile,
+    tagFromProfile,
+    rankTierFromProfile,
+    rankDivisionFromProfile,
+    regionFromProfile,
+    hokPeakScoreFromProfile,
   } = props || {};
-
-  const [riotName, setRiotName] = useState(riotNameFromProfile || "");
-  const [riotTag, setRiotTag] = useState(riotTagFromProfile || "");
-  const [peakRankTier, setPeakRankTier] = useState(
-    peakRankTierFromProfile || ""
-  );
-  const [peakRankDivision, setPeakRankDivision] = useState(
-    peakRankDivisionFromProfile || ""
-  );
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Combined rank string for non-Valorant games (e.g. "King 50 stars")
+  const combinedRankFromProfile =
+    rankTierFromProfile && rankDivisionFromProfile
+      ? `${rankTierFromProfile} ${rankDivisionFromProfile}`
+      : rankTierFromProfile || "";
+
+  // --- VALORANT state ---
+  const [riotName, setRiotName] = useState(
+    gameCode === "VALORANT" ? ignFromProfile || "" : ""
+  );
+  const [riotTag, setRiotTag] = useState(
+    gameCode === "VALORANT" ? tagFromProfile || "" : ""
+  );
+  const [peakRankTier, setPeakRankTier] = useState(
+    gameCode === "VALORANT" ? rankTierFromProfile || "" : ""
+  );
+  const [peakRankDivision, setPeakRankDivision] = useState(
+    gameCode === "VALORANT" ? rankDivisionFromProfile || "" : ""
+  );
+
+  // --- HOK state ---
+  const [hokIgn, setHokIgn] = useState(
+    gameCode === "HOK" ? ignFromProfile || "" : ""
+  );
+  const [hokRegion, setHokRegion] = useState(
+    gameCode === "HOK" ? regionFromProfile || "" : ""
+  );
+  const [hokRank, setHokRank] = useState(
+    gameCode === "HOK" ? combinedRankFromProfile || "" : ""
+  );
+  const [hokPeakScore, setHokPeakScore] = useState(
+    gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
+  );
+
+  // --- TFT state ---
+  const [tftIgn, setTftIgn] = useState(
+    gameCode === "TFT" ? ignFromProfile || "" : ""
+  );
+  const [tftRegion, setTftRegion] = useState(
+    gameCode === "TFT" ? regionFromProfile || "" : ""
+  );
+  const [tftRank, setTftRank] = useState(
+    gameCode === "TFT" ? combinedRankFromProfile || "" : ""
+  );
 
   if (gsspError) {
     return (
@@ -247,6 +310,28 @@ export default function DynamicRegisterPage(props) {
     );
   }
 
+  // For now, we only handle SOLO registration with this page
+  if (registrationType !== "SOLO") {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0f0f0f",
+          color: "white",
+          padding: 24,
+        }}
+      >
+        <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+          Team registration not configured yet
+        </h1>
+        <p style={{ opacity: 0.8 }}>
+          This tournament uses team registration. The new captain + pending flow
+          will go here later.
+        </p>
+      </div>
+    );
+  }
+
   const VALORANT_RANK_TIERS = [
     "Iron",
     "Bronze",
@@ -258,39 +343,108 @@ export default function DynamicRegisterPage(props) {
     "Immortal",
     "Radiant",
   ];
-
   const VALORANT_DIVISIONS = ["1", "2", "3"];
 
-  const hasProfileRiotId = !!riotNameFromProfile;
-  const hasProfileRank = !!peakRankTierFromProfile;
-  const hasAnyProfileData = hasProfileRiotId || hasProfileRank;
+  const hasProfileIgn = !!ignFromProfile;
+  const hasProfileRank = !!rankTierFromProfile;
+  const hasAnyProfileData = hasProfileIgn || hasProfileRank;
+
+  const gameLabel = GAME_LABELS[gameCode] || "Game";
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (alreadyRegistered) return;
 
-    const nameTrimmed = riotName.trim();
-    const tagTrimmed = riotTag.trim();
+    let payload = {
+      playerId,
+      tournamentId,
+      gameCode,
+    };
 
-    const needsDivision = peakRankTier && peakRankTier !== "Radiant";
+    // --- VALORANT SOLO ---
+    if (gameCode === "VALORANT") {
+      const nameTrimmed = riotName.trim();
+      const tagTrimmed = riotTag.trim();
+      const needsDivision = peakRankTier && peakRankTier !== "Radiant";
 
-    if (
-      !nameTrimmed ||
-      !tagTrimmed ||
-      !peakRankTier ||
-      (needsDivision && !peakRankDivision)
-    ) {
-      setMessage("Please fill in your Riot ID and peak rank.");
-      return;
+      if (
+        !nameTrimmed ||
+        !tagTrimmed ||
+        !peakRankTier ||
+        (needsDivision && !peakRankDivision)
+      ) {
+        setMessage("Please fill in your Riot ID and peak rank.");
+        return;
+      }
+
+      const ign = nameTrimmed; // name only
+      const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // name#tag
+
+      const rank =
+        peakRankTier === "Radiant"
+          ? "Radiant"
+          : `${peakRankTier} ${peakRankDivision}`;
+
+      payload.ign = ign;
+      payload.fullIgn = fullIgn;
+      payload.rank = rank;
     }
 
-    const ign = nameTrimmed; // name only
-    const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // name#tag
+    // --- HONOR OF KINGS SOLO ---
+    else if (gameCode === "HOK") {
+      const ignTrimmed = hokIgn.trim();
+      const rankTrimmed = hokRank.trim();
+      const regionTrimmed = hokRegion.trim();
 
-    const rank =
-      peakRankTier === "Radiant"
-        ? "Radiant"
-        : `${peakRankTier} ${peakRankDivision}`;
+      if (!ignTrimmed || !rankTrimmed) {
+        setMessage(
+          "Please fill in your IGN and rank for Honor of Kings."
+        );
+        return;
+      }
+
+      payload.ign = ignTrimmed; // name only
+      payload.fullIgn = ignTrimmed; // for history; no tag concept
+      payload.rank = rankTrimmed;
+      if (regionTrimmed) {
+        payload.region = regionTrimmed;
+      }
+
+      const peakScoreNum =
+        hokPeakScore === "" ? NaN : Number(hokPeakScore);
+      if (!Number.isNaN(peakScoreNum)) {
+        payload.hokPeakScore = peakScoreNum;
+      }
+    }
+
+    // --- TFT SOLO ---
+    else if (gameCode === "TFT") {
+      const ignTrimmed = tftIgn.trim();
+      const rankTrimmed = tftRank.trim();
+      const regionTrimmed = tftRegion.trim();
+
+      if (!ignTrimmed || !rankTrimmed) {
+        setMessage(
+          "Please fill in your IGN and peak rank for Teamfight Tactics."
+        );
+        return;
+      }
+
+      payload.ign = ignTrimmed; // name only
+      payload.fullIgn = ignTrimmed; // no tag concept
+      payload.rank = rankTrimmed;
+      if (regionTrimmed) {
+        payload.region = regionTrimmed;
+      }
+    }
+
+    // Unsupported game
+    else {
+      setMessage(
+        "This game's registration form is not configured yet."
+      );
+      return;
+    }
 
     setSubmitting(true);
     setMessage("");
@@ -300,11 +454,7 @@ export default function DynamicRegisterPage(props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          playerId,
-          tournamentId,
-          ign,
-          fullIgn,
-          rank,
+          ...payload,
           updateProfileFromRegistration: true,
         }),
       });
@@ -330,7 +480,7 @@ export default function DynamicRegisterPage(props) {
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
 
-  const isRadiant = peakRankTier === "Radiant";
+  const isRadiant = gameCode === "VALORANT" && peakRankTier === "Radiant";
 
   return (
     <div
@@ -470,26 +620,26 @@ export default function DynamicRegisterPage(props) {
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
-            Make sure this matches your in-game Valorant account.
+            Make sure this matches your in-game {gameLabel} account.
           </div>
           <div style={{ color: "#9ca3af" }}>
             {hasAnyProfileData ? (
               <>
-                We pre-filled some details from your Valorant profile. Updating
-                them here will also keep your profile in sync.
+                We pre-filled some details from your {gameLabel} profile.
+                Updating them here will also keep your profile in sync.
               </>
             ) : (
               <>
-                We weren’t able to find Valorant details on your profile. Please
-                fill everything in carefully — these values will be used as your
-                profile info for this game and must match your in-game details,
-                otherwise you may not be able to play.
+                We weren’t able to find {gameLabel} details on your profile.
+                Please fill everything in carefully — these values will be used
+                as your profile info for this game and must match your in-game
+                details, otherwise you may not be able to play.
               </>
             )}
           </div>
         </div>
 
-        {/* Form label */}
+        {/* Section label */}
         <div
           style={{
             fontSize: "0.7rem",
@@ -500,196 +650,486 @@ export default function DynamicRegisterPage(props) {
             marginBottom: "0.5rem",
           }}
         >
-          Your tournament info
+          Your {gameLabel} info
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Riot ID */}
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "#e5e7eb",
-                marginBottom: "0.4rem",
-              }}
-            >
-              Riot ID (IGN) *
-              <span
-                style={{
-                  marginLeft: 4,
-                  color: "#9ca3af",
-                  fontSize: "0.75rem",
-                }}
-              >
-                (Name and Tagline)
-              </span>
-            </label>
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-                alignItems: "center",
-              }}
-            >
-              <input
-                required
-                value={riotName}
-                onChange={(e) => setRiotName(e.target.value)}
-                placeholder="Name (e.g. 5TQ)"
-                disabled={alreadyRegistered}
-                style={{
-                  flex: 2,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color: alreadyRegistered ? "#6b7280" : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              />
-              <div
-                style={{
-                  color: "#9ca3af",
-                  fontSize: "0.9rem",
-                  paddingBottom: "0.1rem",
-                }}
-              >
-                #
+          {/* VALORANT FORM */}
+          {gameCode === "VALORANT" && (
+            <>
+              {/* Riot ID */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Riot ID (IGN) *
+                  <span
+                    style={{
+                      marginLeft: 4,
+                      color: "#9ca3af",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    (Name and Tagline)
+                  </span>
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    alignItems: "center",
+                  }}
+                >
+                  <input
+                    required
+                    value={riotName}
+                    onChange={(e) => setRiotName(e.target.value)}
+                    placeholder="Name (e.g. 5TQ)"
+                    disabled={alreadyRegistered}
+                    style={{
+                      flex: 2,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: alreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      color: "#9ca3af",
+                      fontSize: "0.9rem",
+                      paddingBottom: "0.1rem",
+                    }}
+                  >
+                    #
+                  </div>
+                  <input
+                    required
+                    value={riotTag}
+                    onChange={(e) => setRiotTag(e.target.value)}
+                    placeholder="Tag (e.g. NA1)"
+                    disabled={alreadyRegistered}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: alreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    marginTop: "0.35rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  {hasProfileIgn
+                    ? "Loaded IGN from your Valorant profile. Update it here if it’s outdated."
+                    : "We couldn’t find your Riot ID on your Valorant profile, so we’ll use what you enter here."}
+                </div>
               </div>
-              <input
-                required
-                value={riotTag}
-                onChange={(e) => setRiotTag(e.target.value)}
-                placeholder="Tag (e.g. NA1)"
-                disabled={alreadyRegistered}
-                style={{
-                  flex: 1,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color: alreadyRegistered ? "#6b7280" : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              />
-            </div>
-            <div
-              style={{
-                marginTop: "0.35rem",
-                fontSize: "0.75rem",
-                color: "#9ca3af",
-              }}
-            >
-              {hasProfileRiotId
-                ? "Loaded IGN from your Valorant profile. Update it here if it’s outdated."
-                : "We couldn’t find your IGN on your Valorant profile, so we’ll use what you enter here."}
-            </div>
-          </div>
 
-          {/* Peak Rank */}
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "#e5e7eb",
-                marginBottom: "0.4rem",
-              }}
-            >
-              Peak rank (Valorant) *
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <select
-                required
-                value={peakRankTier}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setPeakRankTier(v);
-                  if (v === "Radiant") {
-                    setPeakRankDivision("");
-                  }
-                }}
-                disabled={alreadyRegistered}
-                style={{
-                  flex: 2,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color: alreadyRegistered ? "#6b7280" : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              >
-                <option value="">Select rank</option>
-                {VALORANT_RANK_TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {tier}
-                  </option>
-                ))}
-              </select>
+              {/* Peak rank */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Peak rank (Valorant) *
+                </label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <select
+                    required
+                    value={peakRankTier}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setPeakRankTier(v);
+                      if (v === "Radiant") {
+                        setPeakRankDivision("");
+                      }
+                    }}
+                    disabled={alreadyRegistered}
+                    style={{
+                      flex: 2,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: alreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">Select rank</option>
+                    {VALORANT_RANK_TIERS.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {tier}
+                      </option>
+                    ))}
+                  </select>
 
-              <select
-                value={peakRankDivision}
-                onChange={(e) => setPeakRankDivision(e.target.value)}
-                disabled={alreadyRegistered || !peakRankTier || isRadiant}
-                style={{
-                  flex: 1,
-                  backgroundColor: "#0f0f10",
-                  border: "1px solid #4b5563",
-                  borderRadius: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  color:
-                    alreadyRegistered || !peakRankTier || isRadiant
-                      ? "#6b7280"
-                      : "white",
-                  fontSize: "0.9rem",
-                  outline: "none",
-                }}
-              >
-                <option value="">{isRadiant ? "N/A" : "Div"}</option>
-                {!isRadiant &&
-                  VALORANT_DIVISIONS.map((div) => (
-                    <option key={div} value={div}>
-                      {div}
+                  <select
+                    value={peakRankDivision}
+                    onChange={(e) =>
+                      setPeakRankDivision(e.target.value)
+                    }
+                    disabled={
+                      alreadyRegistered || !peakRankTier || isRadiant
+                    }
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color:
+                        alreadyRegistered ||
+                        !peakRankTier ||
+                        isRadiant
+                          ? "#6b7280"
+                          : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">
+                      {isRadiant ? "N/A" : "Div"}
                     </option>
-                  ))}
-              </select>
-            </div>
+                    {!isRadiant &&
+                      VALORANT_DIVISIONS.map((div) => (
+                        <option key={div} value={div}>
+                          {div}
+                        </option>
+                      ))}
+                  </select>
+                </div>
 
-            {isRadiant && (
-              <div
-                style={{
-                  marginTop: "0.3rem",
-                  fontSize: "0.75rem",
-                  color: "#9ca3af",
-                }}
-              >
-                Radiant has no divisions. We’ll store your rank as{" "}
-                <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
+                {isRadiant && (
+                  <div
+                    style={{
+                      marginTop: "0.3rem",
+                      fontSize: "0.75rem",
+                      color: "#9ca3af",
+                    }}
+                  >
+                    Radiant has no divisions. We’ll store your rank as{" "}
+                    <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
+                  </div>
+                )}
+
+                {!isRadiant && (
+                  <div
+                    style={{
+                      marginTop: "0.35rem",
+                      fontSize: "0.75rem",
+                      color: "#9ca3af",
+                    }}
+                  >
+                    {hasProfileRank
+                      ? "Peak rank was loaded from your Valorant profile. Make sure this is still correct."
+                      : "We couldn’t find a peak rank on your Valorant profile, so we’ll use what you enter here."}
+                  </div>
+                )}
               </div>
-            )}
+            </>
+          )}
 
-            {!isRadiant && (
-              <div
-                style={{
-                  marginTop: "0.35rem",
-                  fontSize: "0.75rem",
-                  color: "#9ca3af",
-                }}
-              >
-                {hasProfileRank
-                  ? "Peak rank was loaded from your Valorant profile. Make sure this is still correct."
-                  : "We couldn’t find a peak rank on your Valorant profile, so we’ll use what you enter here."}
+          {/* HOK FORM */}
+          {gameCode === "HOK" && (
+            <>
+              {/* IGN */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  In-game Name (Honor of Kings) *
+                </label>
+                <input
+                  required
+                  value={hokIgn}
+                  onChange={(e) => setHokIgn(e.target.value)}
+                  placeholder="Your Honor of Kings IGN"
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: "0.35rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  {hasProfileIgn
+                    ? "Loaded IGN from your Honor of Kings profile."
+                    : "We couldn’t find your Honor of Kings IGN on your profile, so we’ll use what you enter here."}
+                </div>
               </div>
-            )}
-          </div>
 
+              {/* Region / Server */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Region / Server
+                </label>
+                <input
+                  value={hokRegion}
+                  onChange={(e) => setHokRegion(e.target.value)}
+                  placeholder="e.g. SEA, Asia, CN, etc."
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* Rank */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Rank (Honor of Kings) *
+                </label>
+                <input
+                  required
+                  value={hokRank}
+                  onChange={(e) => setHokRank(e.target.value)}
+                  placeholder="e.g. King 50 stars"
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: "0.35rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  {hasProfileRank
+                    ? "Loaded your current rank from your Honor of Kings profile."
+                    : "We couldn’t find your rank on your Honor of Kings profile, so we’ll use what you enter here."}
+                </div>
+              </div>
+
+              {/* Peak tournament score */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Peak Tournament Score (optional)
+                </label>
+                <input
+                  type="number"
+                  value={hokPeakScore}
+                  onChange={(e) => setHokPeakScore(e.target.value)}
+                  placeholder="e.g. 1200–3000"
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </>
+          )}
+
+          {/* TFT FORM */}
+          {gameCode === "TFT" && (
+            <>
+              {/* IGN */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  In-game Name (TFT) *
+                </label>
+                <input
+                  required
+                  value={tftIgn}
+                  onChange={(e) => setTftIgn(e.target.value)}
+                  placeholder="Your TFT IGN"
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: "0.35rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  {hasProfileIgn
+                    ? "Loaded IGN from your TFT profile."
+                    : "We couldn’t find your TFT IGN on your profile, so we’ll use what you enter here."}
+                </div>
+              </div>
+
+              {/* Region */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Region
+                </label>
+                <input
+                  value={tftRegion}
+                  onChange={(e) => setTftRegion(e.target.value)}
+                  placeholder="e.g. NA, EUW, SEA"
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* Peak Rank */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Peak rank (TFT) *
+                </label>
+                <input
+                  required
+                  value={tftRank}
+                  onChange={(e) => setTftRank(e.target.value)}
+                  placeholder="e.g. Diamond IV, Master"
+                  disabled={alreadyRegistered}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#0f0f10",
+                    border: "1px solid #4b5563",
+                    borderRadius: "0.5rem",
+                    padding: "0.6rem 0.75rem",
+                    color: alreadyRegistered ? "#6b7280" : "white",
+                    fontSize: "0.9rem",
+                    outline: "none",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: "0.35rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                  }}
+                >
+                  {hasProfileRank
+                    ? "Loaded your current rank from your TFT profile."
+                    : "We couldn’t find your rank on your TFT profile, so we’ll use what you enter here."}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Submit */}
           <button
             type="submit"
             disabled={submitting || alreadyRegistered}
