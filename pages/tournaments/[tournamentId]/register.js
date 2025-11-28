@@ -14,6 +14,36 @@ const GAME_LABELS = {
   TFT: "Teamfight Tactics",
 };
 
+// Simple per-game theme so Valorant / TFT / HoK don’t look identical
+const GAME_THEMES = {
+  VALORANT: {
+    accent: "#ff0046",
+    cardBackground:
+      "radial-gradient(circle at 20% 20%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 60%), #1a1a1a",
+    cardBorder: "1px solid rgba(248,113,113,0.35)",
+    cardShadow:
+      "0 30px 120px rgba(255,0,70,0.35), 0 10px 40px rgba(0,0,0,.8)",
+  },
+  TFT: {
+    accent: "#22c55e",
+    cardBackground:
+      "radial-gradient(circle at 20% 20%, rgba(34,197,94,0.2) 0%, rgba(15,23,42,1) 60%), #020617",
+    cardBorder: "1px solid rgba(34,197,94,0.35)",
+    cardShadow:
+      "0 30px 120px rgba(34,197,94,0.35), 0 10px 40px rgba(0,0,0,.8)",
+  },
+  HOK: {
+    accent: "#38bdf8",
+    cardBackground:
+      "radial-gradient(circle at 20% 20%, rgba(56,189,248,0.22) 0%, rgba(15,23,42,1) 60%), #020617",
+    cardBorder: "1px solid rgba(56,189,248,0.35)",
+    cardShadow:
+      "0 30px 120px rgba(56,189,248,0.35), 0 10px 40px rgba(0,0,0,.8)",
+  },
+};
+
+const DEFAULT_THEME = GAME_THEMES.VALORANT;
+
 // Extract per-game profile info from Player.gameProfiles[gameCode]
 function extractGameProfile(player, gameCode) {
   if (!player) {
@@ -33,8 +63,8 @@ function extractGameProfile(player, gameCode) {
   let ignFromProfile = "";
   let tagFromProfile = "";
 
-  // VALORANT stores "Name#Tag" in ign; others use ign = name only
-  if (gameCode === "VALORANT") {
+  // VALORANT & TFT store "Name#Tag" in ign; HOK uses ign = name only
+  if (gameCode === "VALORANT" || gameCode === "TFT") {
     const storedIgn = profile.ign || "";
     if (storedIgn) {
       const parts = storedIgn.split("#");
@@ -62,21 +92,17 @@ function extractGameProfile(player, gameCode) {
   };
 }
 
-// Map a tournament's game/meta → our internal gameCode
-function resolveGameCodeFromTournament(tournamentDoc) {
-  const meta = tournamentDoc.meta || {};
-  const rawGame =
-    (tournamentDoc.game ||
-      meta.game ||
-      "").toString().toLowerCase().trim();
+// Map meta.game (lowercase) → gameCode we use on the client/API
+function resolveGameCodeFromMeta(meta) {
+  const raw = (meta?.game || "").toString().toLowerCase().trim();
 
-  if (rawGame === "valorant") return "VALORANT";
-  if (rawGame === "hok" || rawGame === "honorofkings" || rawGame === "honor_of_kings")
+  if (raw === "valorant") return "VALORANT";
+  if (raw === "hok" || raw === "honorofkings" || raw === "honor_of_kings")
     return "HOK";
-  if (rawGame === "tft" || rawGame === "teamfighttactics" || rawGame === "teamfight_tactics")
+  if (raw === "tft" || raw === "teamfighttactics" || raw === "teamfight_tactics")
     return "TFT";
 
-  // fallback so nothing explodes
+  // fallback so nothing breaks
   return "VALORANT";
 }
 
@@ -127,15 +153,15 @@ export async function getServerSideProps({ req, params }) {
       return { notFound: true };
     }
 
-    const meta = tournamentDoc.meta || {};
-
     const capacity =
       typeof tournamentDoc.capacity === "number"
         ? tournamentDoc.capacity
         : FALLBACK_CAPACITY;
 
-    // ✅ Use tournament.game/meta.game instead of meta.game only
-    const gameCode = resolveGameCodeFromTournament(tournamentDoc);
+    const meta = tournamentDoc.meta || {};
+
+    // Game code for this tournament
+    const gameCode = resolveGameCodeFromMeta(meta);
 
     // Check if THIS player is already registered
     const alreadyInRegistration = await Registration.findOne({
@@ -154,19 +180,11 @@ export async function getServerSideProps({ req, params }) {
       "registeredFor.tournamentId": tournamentId,
     });
 
-    // Pick correct "full" destination by game
-    let fullDestination = "/tournaments-hub/valorant-types?full=1";
-    if (gameCode === "TFT") {
-      fullDestination = "/tournaments-hub/tft-types?full=1";
-    } else if (gameCode === "HOK") {
-      fullDestination = "/tournaments-hub/hok-types?full=1";
-    }
-
     // If full AND user is not already registered → block access to register
     if (currentSlotsUsed >= capacity && !alreadyRegistered) {
       return {
         redirect: {
-          destination: fullDestination,
+          destination: "/tournaments-hub/valorant-types?full=1",
           permanent: false,
         },
       };
@@ -259,11 +277,39 @@ export default function DynamicRegisterPage(props) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Combined rank string for non-Valorant games (e.g. "King 50 stars", "Diamond IV")
   const combinedRankFromProfile =
     rankTierFromProfile && rankDivisionFromProfile
       ? `${rankTierFromProfile} ${rankDivisionFromProfile}`
       : rankTierFromProfile || "";
+
+  // ---------- Rank constants ----------
+  const VALORANT_RANK_TIERS = [
+    "Iron",
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Diamond",
+    "Ascendant",
+    "Immortal",
+    "Radiant",
+  ];
+  const VALORANT_DIVISIONS = ["1", "2", "3"];
+
+  const TFT_RANK_TIERS = [
+    "Iron",
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Emerald",
+    "Diamond",
+    "Master",
+    "Grandmaster",
+    "Challenger",
+  ];
+  const TFT_DIVISIONS = ["1", "2", "3", "4"];
+  const TFT_HIGH_TIERS = ["Master", "Grandmaster", "Challenger"];
 
   // --- VALORANT state ---
   const [riotName, setRiotName] = useState(
@@ -293,15 +339,26 @@ export default function DynamicRegisterPage(props) {
     gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
   );
 
-  // --- TFT state ---
-  const [tftIgn, setTftIgn] = useState(
+  // --- TFT state (Riot-style IGN + rank tier/division) ---
+  let tftTierFromProfile = "";
+  let tftDivFromProfile = "";
+  if (gameCode === "TFT" && combinedRankFromProfile) {
+    const parts = combinedRankFromProfile.split(/\s+/);
+    tftTierFromProfile = parts[0] || "";
+    tftDivFromProfile = parts.slice(1).join(" ") || "";
+  }
+
+  const [tftName, setTftName] = useState(
     gameCode === "TFT" ? ignFromProfile || "" : ""
   );
-  const [tftRegion, setTftRegion] = useState(
-    gameCode === "TFT" ? regionFromProfile || "" : ""
+  const [tftTag, setTftTag] = useState(
+    gameCode === "TFT" ? tagFromProfile || "" : ""
   );
-  const [tftRank, setTftRank] = useState(
-    gameCode === "TFT" ? combinedRankFromProfile || "" : ""
+  const [tftRankTier, setTftRankTier] = useState(
+    gameCode === "TFT" ? tftTierFromProfile : ""
+  );
+  const [tftRankDivision, setTftRankDivision] = useState(
+    gameCode === "TFT" ? tftDivFromProfile : ""
   );
 
   if (gsspError) {
@@ -332,24 +389,23 @@ export default function DynamicRegisterPage(props) {
     );
   }
 
-  const VALORANT_RANK_TIERS = [
-    "Iron",
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Platinum",
-    "Diamond",
-    "Ascendant",
-    "Immortal",
-    "Radiant",
-  ];
-  const VALORANT_DIVISIONS = ["1", "2", "3"];
-
   const hasProfileIgn = !!ignFromProfile;
   const hasProfileRank = !!rankTierFromProfile;
   const hasAnyProfileData = hasProfileIgn || hasProfileRank;
 
   const gameLabel = GAME_LABELS[gameCode] || "Game";
+
+  const avatarUrl =
+    avatar && discordId
+      ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
+      : null;
+
+  const isRadiant =
+    gameCode === "VALORANT" && peakRankTier === "Radiant";
+  const isTftHighTier =
+    gameCode === "TFT" && TFT_HIGH_TIERS.includes(tftRankTier);
+
+  const theme = GAME_THEMES[gameCode] || DEFAULT_THEME;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -377,8 +433,8 @@ export default function DynamicRegisterPage(props) {
         return;
       }
 
-      const ign = nameTrimmed; // name only
-      const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // name#tag
+      const ign = nameTrimmed;
+      const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
 
       const rank =
         peakRankTier === "Radiant"
@@ -403,8 +459,8 @@ export default function DynamicRegisterPage(props) {
         return;
       }
 
-      payload.ign = ignTrimmed; // name only
-      payload.fullIgn = ignTrimmed; // no tag concept
+      payload.ign = ignTrimmed;
+      payload.fullIgn = ignTrimmed;
       payload.rank = rankTrimmed;
       if (regionTrimmed) {
         payload.region = regionTrimmed;
@@ -417,25 +473,38 @@ export default function DynamicRegisterPage(props) {
       }
     }
 
-    // --- TFT SOLO ---
+    // --- TFT SOLO (Riot ID + tier/division) ---
     else if (gameCode === "TFT") {
-      const ignTrimmed = tftIgn.trim();
-      const rankTrimmed = tftRank.trim();
-      const regionTrimmed = tftRegion.trim();
+      const nameTrimmed = tftName.trim();
+      const tagTrimmed = tftTag.trim();
 
-      if (!ignTrimmed || !rankTrimmed) {
+      const needsDivision =
+        tftRankTier &&
+        !TFT_HIGH_TIERS.includes(tftRankTier);
+
+      if (
+        !nameTrimmed ||
+        !tagTrimmed ||
+        !tftRankTier ||
+        (needsDivision && !tftRankDivision)
+      ) {
         setMessage(
-          "Please fill in your IGN and peak rank for Teamfight Tactics."
+          "Please fill in your Riot ID and peak rank for Teamfight Tactics."
         );
         return;
       }
 
-      payload.ign = ignTrimmed; // name only
-      payload.fullIgn = ignTrimmed; // no tag concept
-      payload.rank = rankTrimmed;
-      if (regionTrimmed) {
-        payload.region = regionTrimmed;
-      }
+      const ign = nameTrimmed;
+      const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
+
+      const rank = TFT_HIGH_TIERS.includes(tftRankTier)
+        ? tftRankTier
+        : `${tftRankTier} ${tftRankDivision}`;
+
+      payload.ign = ign;
+      payload.fullIgn = fullIgn;
+      payload.rank = rank;
+      // no server / region field needed for TFT here
     }
 
     // Unsupported game
@@ -475,19 +544,11 @@ export default function DynamicRegisterPage(props) {
     }
   }
 
-  const avatarUrl =
-    avatar && discordId
-      ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
-      : null;
-
-  const isRadiant =
-    gameCode === "VALORANT" && peakRankTier === "Radiant";
-
   return (
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#0f0f0f",
+        backgroundColor: "#050816",
         color: "white",
         fontFamily:
           'system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif',
@@ -500,12 +561,10 @@ export default function DynamicRegisterPage(props) {
         style={{
           width: "100%",
           maxWidth: "480px",
-          background:
-            "radial-gradient(circle at 20% 20%, rgba(255,0,70,0.15) 0%, rgba(20,20,20,0) 60%), #1a1a1a",
-          border: "1px solid #2d2d2d",
+          background: theme.cardBackground,
+          border: theme.cardBorder,
           borderRadius: "1rem",
-          boxShadow:
-            "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
+          boxShadow: theme.cardShadow,
           padding: "1.5rem 1.5rem 2rem",
         }}
       >
@@ -516,7 +575,7 @@ export default function DynamicRegisterPage(props) {
               fontSize: "0.7rem",
               letterSpacing: "0.15em",
               fontWeight: 600,
-              color: "#ff0046",
+              color: theme.accent,
               textTransform: "uppercase",
               marginBottom: "0.4rem",
             }}
@@ -551,8 +610,8 @@ export default function DynamicRegisterPage(props) {
             display: "flex",
             gap: "0.75rem",
             alignItems: "center",
-            backgroundColor: "#262626",
-            border: "1px solid #3f3f46",
+            backgroundColor: "#111827",
+            border: "1px solid #1f2937",
             borderRadius: "0.75rem",
             padding: "0.75rem 1rem",
             marginBottom: "1.5rem",
@@ -631,7 +690,7 @@ export default function DynamicRegisterPage(props) {
               </>
             ) : (
               <>
-                We weren&apos;t able to find {gameLabel} details on your profile.
+                We weren’t able to find {gameLabel} details on your profile.
                 Please fill everything in carefully — these values will be used
                 as your profile info for this game and must match your in-game
                 details, otherwise you may not be able to play.
@@ -1004,9 +1063,10 @@ export default function DynamicRegisterPage(props) {
             </>
           )}
 
-          {/* TFT FORM */}
+          {/* TFT FORM (Riot-style, like Valorant) */}
           {gameCode === "TFT" && (
             <>
+              {/* Riot ID */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1017,25 +1077,68 @@ export default function DynamicRegisterPage(props) {
                     marginBottom: "0.4rem",
                   }}
                 >
-                  In-game Name (TFT) *
+                  Riot ID (TFT) *
+                  <span
+                    style={{
+                      marginLeft: 4,
+                      color: "#9ca3af",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    (Name and Tagline)
+                  </span>
                 </label>
-                <input
-                  required
-                  value={tftIgn}
-                  onChange={(e) => setTftIgn(e.target.value)}
-                  placeholder="Your TFT IGN"
-                  disabled={alreadyRegistered}
+                <div
                   style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
+                    display: "flex",
+                    gap: "0.5rem",
+                    alignItems: "center",
                   }}
-                />
+                >
+                  <input
+                    required
+                    value={tftName}
+                    onChange={(e) => setTftName(e.target.value)}
+                    placeholder="Name (e.g. 5TQ)"
+                    disabled={alreadyRegistered}
+                    style={{
+                      flex: 2,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: alreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      color: "#9ca3af",
+                      fontSize: "0.9rem",
+                      paddingBottom: "0.1rem",
+                    }}
+                  >
+                    #
+                  </div>
+                  <input
+                    required
+                    value={tftTag}
+                    onChange={(e) => setTftTag(e.target.value)}
+                    placeholder="Tag (e.g. NA1)"
+                    disabled={alreadyRegistered}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: alreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
                 <div
                   style={{
                     marginTop: "0.35rem",
@@ -1044,41 +1147,12 @@ export default function DynamicRegisterPage(props) {
                   }}
                 >
                   {hasProfileIgn
-                    ? "Loaded IGN from your TFT profile."
-                    : "We couldn’t find your TFT IGN on your profile, so we’ll use what you enter here."}
+                    ? "Loaded Riot ID from your TFT profile. Update it here if it’s outdated."
+                    : "We couldn’t find your Riot ID on your TFT profile, so we’ll use what you enter here."}
                 </div>
               </div>
 
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    fontWeight: 500,
-                    color: "#e5e7eb",
-                    marginBottom: "0.4rem",
-                  }}
-                >
-                  Region
-                </label>
-                <input
-                  value={tftRegion}
-                  onChange={(e) => setTftRegion(e.target.value)}
-                  placeholder="e.g. NA, EUW, SEA"
-                  disabled={alreadyRegistered}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
+              {/* Peak rank */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1091,23 +1165,75 @@ export default function DynamicRegisterPage(props) {
                 >
                   Peak rank (TFT) *
                 </label>
-                <input
-                  required
-                  value={tftRank}
-                  onChange={(e) => setTftRank(e.target.value)}
-                  placeholder="e.g. Diamond IV, Master"
-                  disabled={alreadyRegistered}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <select
+                    required
+                    value={tftRankTier}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTftRankTier(v);
+                      if (TFT_HIGH_TIERS.includes(v)) {
+                        setTftRankDivision("");
+                      }
+                    }}
+                    disabled={alreadyRegistered}
+                    style={{
+                      flex: 2,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: alreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">Select rank</option>
+                    {TFT_RANK_TIERS.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {tier}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={tftRankDivision}
+                    onChange={(e) =>
+                      setTftRankDivision(e.target.value)
+                    }
+                    disabled={
+                      alreadyRegistered ||
+                      !tftRankTier ||
+                      isTftHighTier
+                    }
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color:
+                        alreadyRegistered ||
+                        !tftRankTier ||
+                        isTftHighTier
+                          ? "#6b7280"
+                          : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">
+                      {isTftHighTier ? "N/A" : "Div"}
+                    </option>
+                    {!isTftHighTier &&
+                      TFT_DIVISIONS.map((div) => (
+                        <option key={div} value={div}>
+                          {div}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
                 <div
                   style={{
                     marginTop: "0.35rem",
@@ -1116,8 +1242,8 @@ export default function DynamicRegisterPage(props) {
                   }}
                 >
                   {hasProfileRank
-                    ? "Loaded your current rank from your TFT profile."
-                    : "We couldn’t find your rank on your TFT profile, so we’ll use what you enter here."}
+                    ? "Peak rank was loaded from your TFT profile. Make sure this is still correct."
+                    : "We couldn’t find a peak rank on your TFT profile, so we’ll use what you enter here."}
                 </div>
               </div>
             </>
@@ -1133,7 +1259,7 @@ export default function DynamicRegisterPage(props) {
                 ? "#4b5563"
                 : submitting
                 ? "#4b5563"
-                : "#ff0046",
+                : theme.accent,
               color: "white",
               fontWeight: 600,
               fontSize: "0.9rem",
@@ -1144,7 +1270,7 @@ export default function DynamicRegisterPage(props) {
                 submitting || alreadyRegistered ? "not-allowed" : "pointer",
               boxShadow: alreadyRegistered
                 ? "none"
-                : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                : "0 15px 60px rgba(0,0,0,0.7)",
               opacity: alreadyRegistered ? 0.6 : 1,
               transition: "background-color .15s",
             }}
@@ -1167,7 +1293,7 @@ export default function DynamicRegisterPage(props) {
               }}
             >
               {message}
-            </div>
+          </div>
           )}
         </form>
 
