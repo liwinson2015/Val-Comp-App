@@ -1,4 +1,4 @@
-// pages/tournaments/[tournamentId].js
+// pages/tournaments/[tournamentId]/index.js
 import React, { useEffect, useState } from "react";
 import styles from "../../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../../lib/mongodb";
@@ -9,14 +9,267 @@ import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 
 const FALLBACK_CAPACITY = 16;
 
-// Helper to format ISO-ish strings nicely; otherwise return as-is
+/** --- THEME CONFIG PER GAME --- */
+const GAME_THEMES = {
+  valorant: {
+    key: "valorant",
+    badgeBorder: "1px solid rgba(248,113,113,0.4)",
+    badgeColor: "#f87171",
+    badgeBg: "rgba(248,113,113,0.06)",
+    cardGradient:
+      "radial-gradient(circle at 10% 0%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 55%)",
+    primaryButton: "#ff0046",
+    primaryShadow:
+      "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
+  },
+  tft: {
+    key: "tft",
+    badgeBorder: "1px solid rgba(34,197,94,0.6)",
+    badgeColor: "#4ade80",
+    badgeBg: "rgba(34,197,94,0.12)",
+    cardGradient:
+      "radial-gradient(circle at 10% 0%, rgba(34,197,94,0.22) 0%, rgba(15,15,15,1) 55%)",
+    primaryButton: "#22c55e",
+    primaryShadow:
+      "0 30px 120px rgba(34,197,94,0.25), 0 10px 40px rgba(0,0,0,.8)",
+  },
+  hok: {
+    key: "hok",
+    badgeBorder: "1px solid rgba(56,189,248,0.6)",
+    badgeColor: "#38bdf8",
+    badgeBg: "rgba(56,189,248,0.12)",
+    cardGradient:
+      "radial-gradient(circle at 10% 0%, rgba(56,189,248,0.22) 0%, rgba(15,15,15,1) 55%)",
+    primaryButton: "#38bdf8",
+    primaryShadow:
+      "0 30px 120px rgba(56,189,248,0.25), 0 10px 40px rgba(0,0,0,.8)",
+  },
+};
+
+const DEFAULT_THEME = GAME_THEMES.valorant;
+
+/** --- QUICK FACTS & RULES TEMPLATES PER GAME / MODE --- */
+const QUICK_FACTS_TEMPLATES = {
+  // Valorant 1v1 duel
+  "valorant_1v1": {
+    mode: "1v1 Skirmish",
+    format: "Best-of-1 • First to 20 kills • Win by 2",
+    map: "Randomized: Skirmish A / B / C",
+    server: "NA (custom lobby)",
+    checkIn: "15 minutes before start (Discord)",
+  },
+  // Valorant 2v2
+  "valorant_2v2": {
+    mode: "2v2 Wingman",
+    format: "Best-of-1 or Bo3 (see Discord) • First to 9 • OT enabled",
+    map: "Wingman map pool",
+    server: "NA (custom lobby)",
+    checkIn: "15 minutes before start (Discord)",
+  },
+  // Valorant 5v5
+  "valorant_5v5": {
+    mode: "5v5 Standard",
+    format: "Competitive rules • Full team draft • Map picks / bans",
+    map: "Competitive map pool",
+    server: "NA (custom lobby)",
+    checkIn: "30 minutes before start (Discord)",
+  },
+  // TFT solo
+  "tft_solo": {
+    mode: "TFT Solo Lobby",
+    format: "Multi-lobby FFA • Points by placement • Cuts between stages",
+    map: "Current TFT Set",
+    server: "NA (League client)",
+    checkIn: "15 minutes before first lobby (Discord)",
+  },
+  // TFT Double Up
+  "tft_double": {
+    mode: "TFT Double Up Duos",
+    format: "Duos lobbies • Shared HP & econ • Points by placement",
+    map: "Current TFT Set",
+    server: "NA (League client)",
+    checkIn: "15 minutes before first lobby (Discord)",
+  },
+  // Honor of Kings 5v5
+  "hok_5v5": {
+    mode: "5v5 Standard",
+    format: "Full team draft • Best-of series • Objective-focused play",
+    map: "Classic 5v5 map",
+    server: "NA (Honor of Kings)",
+    checkIn: "30 minutes before start (Discord)",
+  },
+};
+
+const RULE_TEMPLATES = {
+  // ----- VALORANT 1v1 -----
+  "valorant_1v1": {
+    format: [
+      "Match: Best-of-1.",
+      "Game Win Condition: First to 20 kills and must lead by 2 (win-by-two).",
+      "No time cap. Play continues until win-by-two is achieved.",
+      "Map: Randomized each match between Skirmish A / B / C.",
+      "Lobby: Admin/stream host invites both players. Be online and ready at your match time.",
+    ],
+    conduct: [
+      "No smurfing. No cheats, scripts, or third-party aim tools.",
+      "No-shows: 5-minute grace, then you may be replaced by a sub.",
+      "Disconnects before 3 kills → remake; after 3 kills → continue from score unless admin rules otherwise.",
+      "Report scores in Discord with a screenshot; both players must confirm.",
+      "Admins have final say on disputes.",
+    ],
+    schedule: [
+      ["Check-in", "15 minutes before bracket start in #check-in"],
+      ["Round Pace", "Please be ready; matches fire back-to-back"],
+      ["Report", "Post final score + screenshot in #match-report"],
+      ["Stream", "Select matches may be streamed or clipped"],
+    ],
+    eligibility: [
+      "Must join Discord and respond to check-in pings.",
+      "One entry per player. Duplicate entries will be removed.",
+      "If you’ve already registered, the Register page will show you as locked-in automatically.",
+    ],
+  },
+
+  // ----- VALORANT 2v2 -----
+  "valorant_2v2": {
+    format: [
+      "Match: Wingman (2v2).",
+      "Game Win Condition: Standard Wingman rules (see lobby / Discord).",
+      "Map: From the current Wingman map pool.",
+      "Lobby: Host invites both duos. Captains must be online.",
+    ],
+    conduct: [
+      "No smurfing, cheating, or exploiting bugs.",
+      "Both players on a duo must remain the same for the whole event unless approved by admins.",
+      "Disconnects: pause and contact an admin; rulings may vary by round.",
+      "Report scores with a screenshot in the assigned Discord channel.",
+    ],
+    schedule: [
+      ["Check-in", "15 minutes before bracket start in #check-in"],
+      ["Round Pace", "Matches run back-to-back; stay in lobby unless told otherwise"],
+      ["Report", "Winning duo posts final score + screenshot in #match-report"],
+      ["Stream", "Featured matches may be streamed or cast"],
+    ],
+    eligibility: [
+      "All players must be in the 5TQ Discord.",
+      "Only one account per player; account must be in good standing.",
+      "Admins reserve the right to remove teams for toxicity or rule-breaking.",
+    ],
+  },
+
+  // ----- VALORANT 5v5 -----
+  "valorant_5v5": {
+    format: [
+      "Mode: 5v5 competitive-style custom lobbies.",
+      "Series: Best-of-1 or Best-of-3 depending on stage (see Discord).",
+      "Map Select: Veto / pick system posted in Discord before the event.",
+      "Overtime: Standard competitive OT settings unless otherwise stated.",
+    ],
+    conduct: [
+      "No cheating, scripting, or unauthorized third-party tools.",
+      "Teams must have at least 4 of the original 5 players; subs require admin approval.",
+      "No stream-sniping or ghosting from spectators.",
+      "All disputes are handled by admins; their decision is final.",
+    ],
+    schedule: [
+      ["Check-in", "30 minutes before match time in #team-check-in"],
+      ["Lobby", "Captains will be pinged when lobbies are ready"],
+      ["Reporting", "Captains report scores with screenshots in #team-report"],
+      ["Stream", "Selected matches may be streamed or highlighted"],
+    ],
+    eligibility: [
+      "Players must be in the 5TQ Discord and on a registered team.",
+      "One roster per event; major roster changes mid-event are not allowed.",
+      "Any unsportsmanlike behavior can result in penalties or disqualification.",
+    ],
+  },
+
+  // ----- TFT SOLO -----
+  "tft_solo": {
+    format: [
+      "Mode: Solo TFT lobbies (8 players each).",
+      "Format: Multi-lobby FFA with points based on placement.",
+      "Advancement: Top players after each stage advance; cuts are posted in Discord.",
+      "Tiebreakers: Sum of placements, then highest single placement, then admin decision.",
+    ],
+    conduct: [
+      "No win-trading or intentional feeding between players.",
+      "No account sharing; you must play on your own account.",
+      "Follow all Riot terms of service and 5TQ community rules.",
+      "Report suspicious behavior to an admin with screenshots or clips.",
+    ],
+    schedule: [
+      ["Check-in", "15 minutes before first lobby in #tft-check-in"],
+      ["Lobbies", "Matches fire back-to-back; stay ready between games"],
+      ["Reporting", "Lobby hosts report placements in the assigned channel"],
+      ["Set / Patch", "Current live set and patch at time of event"],
+    ],
+    eligibility: [
+      "Players must be present in the 5TQ Discord.",
+      "Only one entry per player; duplicate entries will be removed.",
+      "Admins may remove players for repeated no-shows or toxic behavior.",
+    ],
+  },
+
+  // ----- TFT DOUBLE UP -----
+  "tft_double": {
+    format: [
+      "Mode: TFT Double Up (Duos).",
+      "Format: Duo lobbies with shared HP and units.",
+      "Scoring: Points based on final duo placement in each lobby.",
+      "Advancement: Top duos progress according to the format posted in Discord.",
+    ],
+    conduct: [
+      "Duos must remain the same pair for the entire event unless admins approve a sub.",
+      "No collusion or teaming with other duos beyond normal Double Up gameplay.",
+      "Respect all players and staff; toxicity can result in penalties.",
+    ],
+    schedule: [
+      ["Check-in", "15 minutes before first lobby in #tft-double-check-in"],
+      ["Lobby Flow", "Admins will ping duos when lobbies are ready"],
+      ["Reporting", "Lobby hosts report placements; both players should verify"],
+      ["Stream", "Select duos / lobbies may be streamed"],
+    ],
+    eligibility: [
+      "Both players must be in the 5TQ Discord.",
+      "Each player may only be on one duo per event.",
+      "Admins may adjust format or pacing to keep the tournament on schedule.",
+    ],
+  },
+
+  // ----- HONOR OF KINGS 5v5 -----
+  "hok_5v5": {
+    format: [
+      "Mode: 5v5 standard on the classic map.",
+      "Format: Bracket-style team tournament (single or double elim as posted).",
+      "Draft: Standard draft rules; bans and picks follow event rules in Discord.",
+      "Side Selection: Determined by seeding or coin flip unless otherwise stated.",
+    ],
+    conduct: [
+      "No scripts, exploits, or third-party cheating tools.",
+      "Teams must maintain roster integrity; subs require admin approval.",
+      "Verbal abuse, griefing, or intentional feeding will not be tolerated.",
+      "All rule disputes are handled by admins; their decision is final.",
+    ],
+    schedule: [
+      ["Check-in", "30 minutes before match time in the HOK channel"],
+      ["Lobby", "Captains add admins and opponents to join the room"],
+      ["Reporting", "Captains report results with screenshots after each game"],
+      ["Stream", "Featured matches may be streamed or recorded"],
+    ],
+    eligibility: [
+      "Players must be in the 5TQ Discord and queued on the correct server / region.",
+      "Only registered teams with confirmed rosters may participate.",
+      "Failure to check in on time may result in a forfeit.",
+    ],
+  },
+};
+
+/** Helper: format ISO-ish strings nicely; otherwise return as-is */
 function formatMaybeDate(input) {
   if (!input || typeof input !== "string") return input;
   const d = new Date(input);
-  if (Number.isNaN(d.getTime())) {
-    // not a real date, just return the original string
-    return input;
-  }
+  if (Number.isNaN(d.getTime())) return input;
   return d.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -24,22 +277,50 @@ function formatMaybeDate(input) {
     hour: "numeric",
     minute: "2-digit",
     timeZoneName: "short",
-    timeZone: "America/New_York", // change if you want different default tz
+    timeZone: "America/New_York",
   });
 }
 
-// Normalize tournament status so we only ever use "ongoing" or "completed"
+/** Normalize status */
 function normalizeTournamentStatus(doc) {
   const raw =
-    doc.status ||          // future top-level status
-    (doc.meta && doc.meta.status) ||    // older data
-    (doc.bracket && doc.bracket.status); // older data
+    doc.status ||
+    (doc.meta && doc.meta.status) ||
+    (doc.bracket && doc.bracket.status);
 
   if (raw === "completed") return "completed";
-  return "ongoing"; // treat missing/anything-else as ongoing
+  return "ongoing";
 }
 
-// ---------- SERVER SIDE: block page if FULL *and* user not registered ----------
+/** Build quick facts using templates + meta overrides */
+function buildQuickFacts(gameKey, modeKey, meta, displayEntry, displayPrize) {
+  const rulesKey = `${gameKey}_${modeKey}`;
+  const base = QUICK_FACTS_TEMPLATES[rulesKey] || QUICK_FACTS_TEMPLATES["valorant_1v1"];
+
+  const mode = meta.displayMode || base.mode;
+  const format = meta.displayFormat || base.format;
+  const map = meta.displayMap || base.map;
+  const server = meta.displayServer || base.server;
+  const checkIn = meta.displayCheckIn || base.checkIn;
+
+  return [
+    { label: "Mode", value: mode },
+    { label: "Format", value: format },
+    { label: "Map", value: map },
+    { label: "Server", value: server },
+    { label: "Check-in", value: checkIn },
+    { label: "Entry", value: displayEntry },
+    { label: "Prize", value: displayPrize },
+  ];
+}
+
+/** Pick rule-set for this game + mode */
+function pickRules(gameKey, modeKey) {
+  const key = `${gameKey}_${modeKey}`;
+  return RULE_TEMPLATES[key] || RULE_TEMPLATES["valorant_1v1"];
+}
+
+// ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
   const { tournamentId } = params;
 
@@ -47,14 +328,11 @@ export async function getServerSideProps({ req, params }) {
     const player = await getCurrentPlayerFromReq(req);
     await connectToDatabase();
 
-    // Load Tournament doc (new source of truth)
     const tournamentDoc = await Tournament.findOne({ tournamentId }).lean();
-
     if (!tournamentDoc) {
       return { notFound: true };
     }
 
-    // Legacy catalog fallback (for now, while we still use lib/tournaments)
     const legacy = catalog[tournamentId] || {};
 
     const capacity =
@@ -62,22 +340,20 @@ export async function getServerSideProps({ req, params }) {
       legacy.capacity ??
       FALLBACK_CAPACITY;
 
-    // How many players are currently registered?
+    // registered players
     const registeredCount = await Player.countDocuments({
       "registeredFor.tournamentId": tournamentId,
     });
 
     const isFull = registeredCount >= capacity;
 
-    // Is this logged-in player registered for THIS tournament?
+    // is current player registered here?
     const userIsRegistered =
       !!player &&
       Array.isArray(player.registeredFor) &&
-      player.registeredFor.some(
-        (entry) => entry.tournamentId === tournamentId
-      );
+      player.registeredFor.some((entry) => entry.tournamentId === tournamentId);
 
-    // If full AND user is not registered → redirect away (same behavior as /valorant)
+    // if full & not registered → bounce back to hub
     if (isFull && !userIsRegistered) {
       return {
         redirect: {
@@ -89,7 +365,6 @@ export async function getServerSideProps({ req, params }) {
 
     const meta = tournamentDoc.meta || {};
 
-    // Display fields with fallback to legacy + hard-coded text
     const displayName =
       tournamentDoc.name ||
       legacy.name ||
@@ -105,28 +380,30 @@ export async function getServerSideProps({ req, params }) {
       legacy.game ||
       "Valorant 1v1";
 
-    // Host: meta → legacy → default "5TQ"
+    // game / mode keys for theming + rules
+    const gameKey = String(tournamentDoc.game || legacy.game || "valorant").toLowerCase();
+    const modeKey = String(tournamentDoc.mode || legacy.mode || "1v1").toLowerCase();
+
+    // Host
     const displayHost =
       meta.displayHost ||
       legacy.displayHost ||
       "5TQ";
 
-    // Prize: read from meta, then legacy, then default
+    // Prize
     const displayPrize =
       meta.displayPrize ||
       legacy.displayPrize ||
       "$20 Valorant Gift Card";
 
-    // Entry / fee: meta → legacy → default
+    // Entry
     const displayEntry =
       meta.displayEntry ||
       legacy.displayEntry ||
       "Free";
 
-    // Nicely formatted start time:
-    // prefer meta.displayTime, then legacy.start, and format either if it looks like a date
+    // Start time
     let startsText = "TBD";
-
     if (meta.displayTime) {
       startsText = formatMaybeDate(meta.displayTime);
     } else if (legacy.start) {
@@ -135,8 +412,17 @@ export async function getServerSideProps({ req, params }) {
       startsText = "November 2, 2025";
     }
 
-    // Status from Tournament doc (normalize to "ongoing" | "completed")
     const status = normalizeTournamentStatus(tournamentDoc);
+
+    const theme = GAME_THEMES[gameKey] || DEFAULT_THEME;
+    const quickFacts = buildQuickFacts(
+      gameKey,
+      modeKey,
+      meta,
+      displayEntry,
+      displayPrize
+    );
+    const rules = pickRules(gameKey, modeKey);
 
     return {
       props: {
@@ -148,14 +434,28 @@ export async function getServerSideProps({ req, params }) {
         heroBadge,
         startsText,
         status,
-        isFull,        // initial full flag from server
-        displayPrize,  // dynamic prize
-        displayEntry,  // dynamic entry / fee
-        displayHost,   // dynamic host
+        isFull,
+        displayPrize,
+        displayEntry,
+        displayHost,
+        gameKey,
+        theme,
+        quickFacts,
+        rules,
       },
     };
   } catch (err) {
     console.error("[/tournaments/[tournamentId]] getServerSideProps error:", err);
+    const theme = DEFAULT_THEME;
+    const quickFacts = buildQuickFacts(
+      "valorant",
+      "1v1",
+      {},
+      "Free",
+      "$20 Valorant Gift Card"
+    );
+    const rules = pickRules("valorant", "1v1");
+
     return {
       props: {
         tournamentId,
@@ -166,11 +466,15 @@ export async function getServerSideProps({ req, params }) {
           "Solo skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.",
         heroBadge: "Valorant 1v1",
         startsText: "TBD",
-        status: "ongoing", // fallback is ongoing, not upcoming
+        status: "ongoing",
         isFull: false,
         displayPrize: "$20 Valorant Gift Card",
         displayEntry: "Free",
         displayHost: "5TQ",
+        gameKey: "valorant",
+        theme,
+        quickFacts,
+        rules,
       },
     };
   }
@@ -190,6 +494,10 @@ export default function TournamentDetailPage({
   displayPrize,
   displayEntry,
   displayHost,
+  gameKey,
+  theme,
+  quickFacts,
+  rules,
 }) {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -198,17 +506,19 @@ export default function TournamentDetailPage({
   const [slotsUsed, setSlotsUsed] = useState(initialRegistered);
   const [slotsCapacity] = useState(capacity ?? FALLBACK_CAPACITY);
 
-  // 🔹 dynamic path for this tournament's registration page
   const registerPath = `/tournaments/${encodeURIComponent(
     tournamentId
   )}/register`;
+
+  const resolvedTheme = theme || DEFAULT_THEME;
+  const facts = quickFacts || [];
+  const ruleBlocks = rules || pickRules("valorant", "1v1");
 
   useEffect(() => {
     let ignore = false;
 
     (async () => {
       try {
-        // Login + registration status
         const url = `/api/registration/status?tournamentId=${encodeURIComponent(
           tournamentId
         )}`;
@@ -219,7 +529,6 @@ export default function TournamentDetailPage({
           setIsRegistered(!!data.isRegistered);
         }
 
-        // Refresh slots from registrations API
         try {
           const regInfoRes = await fetch(
             `/api/tournaments/${encodeURIComponent(
@@ -247,13 +556,11 @@ export default function TournamentDetailPage({
     };
   }, [tournamentId]);
 
-  // Compute full status on the client as well (in case slots change)
   const effectiveIsFull =
     slotsUsed != null && slotsCapacity != null
       ? slotsUsed >= slotsCapacity
       : !!isFull;
 
-  // Decide the status chip label + color
   let statusLabel = "OPEN";
   let statusColor = "#22c55e";
 
@@ -265,8 +572,7 @@ export default function TournamentDetailPage({
     statusColor = "#f97316";
   }
 
-  // Decide what the red button should do
-  let registerHref = registerPath; // 🔹 dynamic per tournament
+  let registerHref = registerPath;
   let registerLabel = "Register now";
   let buttonDisabled = false;
 
@@ -281,20 +587,26 @@ export default function TournamentDetailPage({
     buttonDisabled = false;
   }
 
-  // Override behavior if tournament is FULL or COMPLETED
   if (status === "completed") {
     registerLabel = "Tournament completed";
     buttonDisabled = true;
   } else if (effectiveIsFull && !isRegistered) {
-    // full and you're not registered
     registerLabel = "Tournament full";
     buttonDisabled = true;
   }
 
+  const shellClass = [
+    styles.shell,
+    gameKey === "tft" ? styles.shellTft : "",
+    gameKey === "hok" ? styles.shellHok : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className={styles.shell}>
+    <div className={shellClass}>
       <div className={styles.contentWrap}>
-        {/* HERO + MAIN CARD */}
+        {/* HERO */}
         <section
           style={{
             marginTop: "2.5rem",
@@ -307,11 +619,12 @@ export default function TournamentDetailPage({
               display: "inline-flex",
               padding: "0.2rem 0.9rem",
               borderRadius: "999px",
-              border: "1px solid rgba(248,113,113,0.4)",
+              border: resolvedTheme.badgeBorder,
               fontSize: "0.7rem",
               letterSpacing: "0.16em",
               textTransform: "uppercase",
-              color: "#f87171",
+              color: resolvedTheme.badgeColor,
+              background: resolvedTheme.badgeBg,
               marginBottom: "0.6rem",
             }}
           >
@@ -338,14 +651,13 @@ export default function TournamentDetailPage({
           </p>
         </section>
 
+        {/* MAIN CARD */}
         <section
           style={{
-            background:
-              "radial-gradient(circle at 10% 0%, rgba(255,0,70,0.18) 0%, rgba(15,15,15,1) 55%)",
+            background: resolvedTheme.cardGradient,
             borderRadius: "1.1rem",
             border: "1px solid #2d2d2d",
-            boxShadow:
-              "0 30px 120px rgba(255,0,70,0.25), 0 10px 40px rgba(0,0,0,.8)",
+            boxShadow: resolvedTheme.primaryShadow,
             padding: "1.75rem 1.75rem 1.5rem",
             marginBottom: "2rem",
           }}
@@ -408,20 +720,9 @@ export default function TournamentDetailPage({
               alignItems: "flex-start",
             }}
           >
-            {/* Left: condensed quick facts */}
+            {/* Left: quick facts */}
             <div>
-              {[
-                ["Mode", "1v1 Skirmish"],
-                [
-                  "Format",
-                  "Best-of-1 • First to 20 kills • Win by 2",
-                ],
-                ["Map", "Randomized: Skirmish A / B / C"],
-                ["Server", "NA (custom lobby)"],
-                ["Check-in", "15 minutes before start (Discord)"],
-                ["Entry", displayEntry],
-                ["Prize", displayPrize],
-              ].map(([label, value]) => (
+              {facts.map(({ label, value }) => (
                 <div
                   key={label}
                   style={{
@@ -439,7 +740,7 @@ export default function TournamentDetailPage({
               ))}
             </div>
 
-            {/* Right: slots + CTA & Discord */}
+            {/* Right: slots + CTAs */}
             <div
               style={{
                 display: "flex",
@@ -487,7 +788,7 @@ export default function TournamentDetailPage({
                   gap: "0.55rem",
                 }}
               >
-                {/* Red primary button */}
+                {/* Primary button */}
                 <a
                   href={registerHref}
                   onClick={(e) => {
@@ -501,7 +802,9 @@ export default function TournamentDetailPage({
                     padding: "0.75rem 1rem",
                     borderRadius: "0.7rem",
                     backgroundColor:
-                      buttonDisabled || loading ? "#4b5563" : "#ff0046",
+                      buttonDisabled || loading
+                        ? "#4b5563"
+                        : resolvedTheme.primaryButton,
                     color: "white",
                     fontWeight: 600,
                     fontSize: "0.9rem",
@@ -510,7 +813,7 @@ export default function TournamentDetailPage({
                     boxShadow:
                       buttonDisabled || loading
                         ? "none"
-                        : "0 15px 60px rgba(255,0,70,0.5), 0 4px 20px rgba(0,0,0,.8)",
+                        : resolvedTheme.primaryShadow,
                     cursor:
                       buttonDisabled || loading ? "not-allowed" : "pointer",
                     opacity: buttonDisabled || loading ? 0.6 : 1,
@@ -521,7 +824,7 @@ export default function TournamentDetailPage({
                   {loading ? "Checking status…" : registerLabel}
                 </a>
 
-                {/* Gray Discord button */}
+                {/* Discord button */}
                 <a
                   href="https://discord.gg/qUzCCK8nuc"
                   target="_blank"
@@ -561,93 +864,54 @@ export default function TournamentDetailPage({
           </div>
         </section>
 
-        {/* Info sections */}
+        {/* FORMAT & SCORING */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>FORMAT &amp; SCORING</h2>
           </div>
           <ul className={styles.rulesList}>
-            <li>
-              <strong>Match:</strong> <strong>Best-of-1</strong>.
-            </li>
-            <li>
-              <strong>Game Win Condition:</strong> First to{" "}
-              <strong>20</strong> kills and must lead by{" "}
-              <strong>2</strong> (win-by-two).
-            </li>
-            <li>
-              <strong>No time cap.</strong> Play continues until win-by-two is
-              achieved.
-            </li>
-            <li>
-              <strong>Map:</strong> Randomized each match between{" "}
-              <em>Skirmish A / B / C</em>.
-            </li>
-            <li>
-              <strong>Lobby:</strong> Admin/stream host invites both players. Be
-              online and ready at your match time.
-            </li>
+            {ruleBlocks.format.map((line, idx) => (
+              <li key={idx}>{line}</li>
+            ))}
           </ul>
         </section>
 
+        {/* RULES & CONDUCT */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>RULES &amp; CONDUCT</h2>
           </div>
           <ul className={styles.rulesList}>
-            <li>No smurfing. No cheats, scripts, or third-party aim tools.</li>
-            <li>No-shows: 5-minute grace, then you may be replaced by a sub.</li>
-            <li>
-              Disconnects before 3 kills → remake; after 3 kills → continue
-              from score unless admin rules otherwise.
-            </li>
-            <li>
-              Report scores in Discord with a screenshot; both players must
-              confirm.
-            </li>
-            <li>Admins have final say on disputes.</li>
+            {ruleBlocks.conduct.map((line, idx) => (
+              <li key={idx}>{line}</li>
+            ))}
           </ul>
         </section>
 
+        {/* SCHEDULE & REPORTING */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>SCHEDULE &amp; REPORTING</h2>
           </div>
           <div className={styles.detailGrid}>
-            <div className={styles.detailLabel}>Check-in</div>
-            <div className={styles.detailValue}>
-              15 minutes before bracket start in <strong>#check-in</strong>
-            </div>
-
-            <div className={styles.detailLabel}>Round Pace</div>
-            <div className={styles.detailValue}>
-              Please be ready; matches fire back-to-back
-            </div>
-
-            <div className={styles.detailLabel}>Report</div>
-            <div className={styles.detailValue}>
-              Post final score + screenshot in{" "}
-              <strong>#match-report</strong>
-            </div>
-
-            <div className={styles.detailLabel}>Stream</div>
-            <div className={styles.detailValue}>
-              Select matches may be streamed or clipped
-            </div>
+            {ruleBlocks.schedule.map(([label, value], idx) => (
+              <React.Fragment key={idx}>
+                <div className={styles.detailLabel}>{label}</div>
+                <div className={styles.detailValue}>{value}</div>
+              </React.Fragment>
+            ))}
           </div>
         </section>
 
+        {/* ELIGIBILITY & REGISTRATION */}
         <section className={styles.card}>
           <div className={styles.cardHeaderRow}>
             <h2 className={styles.cardTitle}>ELIGIBILITY &amp; REGISTRATION</h2>
           </div>
           <ul className={styles.rulesList}>
-            <li>Must join Discord and respond to check-in pings.</li>
-            <li>One entry per player. Duplicate entries will be removed.</li>
-            <li>
-              If you’ve already registered, the Register page will show you as
-              locked-in automatically.
-            </li>
+            {ruleBlocks.eligibility.map((line, idx) => (
+              <li key={idx}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>

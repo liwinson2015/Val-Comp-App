@@ -10,17 +10,17 @@
   --c-accent: #00f0ff; /* Cyber Cyan for contrast */
   --c-text-main: #ece8e1; /* Off-white */
   --c-text-dim: #768079;
-  
+
   --font-stack: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  
+
   width: 100%;
   min-height: 100vh;
   background-color: var(--c-bg);
   color: var(--c-text-main);
   font-family: var(--font-stack);
-  
+
   /* Subtle background grid pattern */
-  background-image: 
+  background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -29,6 +29,21 @@
   flex-direction: column;
   align-items: center;
   padding: 0;
+}
+
+/* THEME VARIANTS FOR OTHER GAMES */
+.shellTft {
+  --c-bg: #020617;
+  --c-primary: #22c55e;
+  --c-primary-dark: #16a34a;
+  --c-accent: #22c55e;
+}
+
+.shellHok {
+  --c-bg: #020617;
+  --c-primary: #38bdf8;
+  --c-primary-dark: #0ea5e9;
+  --c-accent: #38bdf8;
 }
 
 .contentWrap {
@@ -52,7 +67,7 @@
 
 /* Decorative glowing line behind title */
 .hero::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -1px;
   left: 50%;
@@ -85,12 +100,12 @@
   color: #fff;
   margin: 0 0 1.5rem 0;
   letter-spacing: -0.02em;
-  
+
   /* Text gradient */
   background: linear-gradient(180deg, #ffffff 0%, #b4b4b4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
 }
 
 .heroSubtitle {
@@ -108,7 +123,7 @@
   gap: 3rem;
   margin-top: 3rem;
   padding-top: 2rem;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .heroStatLabel {
@@ -125,7 +140,7 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: #fff;
-  text-shadow: 0 0 10px rgba(255,255,255,0.2);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 /* --- CARDS & GRIDS --- */
@@ -137,22 +152,38 @@
   align-items: start;
 }
 
-/* Shared styling for "Tech" containers */
+/* Shared styling for “Tech” containers */
 .featuredColumn,
 .upcomingColumn,
-.howCard, 
+.howCard,
 .gamesCard {
   background: var(--c-surface);
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 2rem;
   position: relative;
-  
-  /* The "Esports" Cutout Corner Effect */
+
+  /* The “Esports” cutout corner effect */
   clip-path: polygon(
-    0 0, 
-    100% 0, 
-    100% calc(100% - 20px), 
-    calc(100% - 20px) 100%, 
+    0 0,
+    100% 0,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    0 100%
+  );
+}
+
+/* Generic card used on tournament details (FORMAT / RULES / etc.) */
+.card {
+  background: var(--c-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
     0 100%
   );
 }
@@ -160,7 +191,7 @@
 /* Add a subtle corner accent to cards */
 .featuredColumn::before,
 .upcomingColumn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -176,7 +207,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   padding-bottom: 1rem;
 }
 
@@ -194,7 +225,7 @@
 
 /* Small square decoration next to titles */
 .cardTitle::before {
-  content: '';
+  content: "";
   display: block;
   width: 8px;
   height: 8px;
@@ -205,7 +236,7 @@
 .gamePill {
   font-size: 0.7rem;
   font-weight: 700;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   padding: 0.2rem 0.6rem;
   border-radius: 2px;
   text-transform: uppercase;
@@ -231,8 +262,8 @@
 .featuredMetaRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  column-gap: 1.2rem;          /* small general gap */
-  background: rgba(0,0,0,0.3);
+  column-gap: 1.2rem;
+  background: rgba(0, 0, 0, 0.3);
   padding: 1rem;
   margin-bottom: 2rem;
   border-left: 2px solid var(--c-accent);
@@ -277,16 +308,16 @@
   transition: all 0.2s ease;
   border: none;
   cursor: pointer;
-  
+
   /* Slanted button shape */
   transform: skewX(-10deg);
 }
 
 /* Counter-skew text so it's straight */
 .heroPrimary span,
-.heroPrimary:after { 
+.heroPrimary:after {
   display: block;
-  transform: skewX(10deg); 
+  transform: skewX(10deg);
 }
 
 .heroPrimary:hover {
@@ -312,14 +343,14 @@
 }
 
 .eventItem {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   padding: 1rem;
   border-left: 2px solid transparent;
   transition: 0.2s;
 }
 
 .eventItem:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   border-left: 2px solid var(--c-primary);
 }
 
@@ -360,6 +391,26 @@
   color: var(--c-primary);
 }
 
+/* Detail grid used in SCHEDULE & REPORTING */
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 2fr);
+  column-gap: 1.25rem;
+  row-gap: 0.75rem;
+}
+
+.detailLabel {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--c-text-dim);
+}
+
+.detailValue {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
 .gamesRow {
   display: flex;
   flex-direction: column;
@@ -370,9 +421,9 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
   padding: 0.8rem;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .gameBadge {
@@ -402,7 +453,7 @@
 /* --- FOOTER --- */
 .footer {
   width: 100%;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding: 2rem;
   text-align: center;
   margin-top: auto;
