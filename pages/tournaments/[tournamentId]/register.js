@@ -62,17 +62,21 @@ function extractGameProfile(player, gameCode) {
   };
 }
 
-// Map meta.game (lowercase) → gameCode we use on the client/API
-function resolveGameCodeFromMeta(meta) {
-  const raw = (meta?.game || "").toString().toLowerCase().trim();
+// Map a tournament's game/meta → our internal gameCode
+function resolveGameCodeFromTournament(tournamentDoc) {
+  const meta = tournamentDoc.meta || {};
+  const rawGame =
+    (tournamentDoc.game ||
+      meta.game ||
+      "").toString().toLowerCase().trim();
 
-  if (raw === "valorant") return "VALORANT";
-  if (raw === "hok" || raw === "honorofkings" || raw === "honor_of_kings")
+  if (rawGame === "valorant") return "VALORANT";
+  if (rawGame === "hok" || rawGame === "honorofkings" || rawGame === "honor_of_kings")
     return "HOK";
-  if (raw === "tft" || raw === "teamfighttactics" || raw === "teamfight_tactics")
+  if (rawGame === "tft" || rawGame === "teamfighttactics" || rawGame === "teamfight_tactics")
     return "TFT";
 
-  // fallback so nothing breaks
+  // fallback so nothing explodes
   return "VALORANT";
 }
 
@@ -123,15 +127,15 @@ export async function getServerSideProps({ req, params }) {
       return { notFound: true };
     }
 
+    const meta = tournamentDoc.meta || {};
+
     const capacity =
       typeof tournamentDoc.capacity === "number"
         ? tournamentDoc.capacity
         : FALLBACK_CAPACITY;
 
-    const meta = tournamentDoc.meta || {};
-
-    // ✅ THIS is the field we weren’t using before
-    const gameCode = resolveGameCodeFromMeta(meta);
+    // ✅ Use tournament.game/meta.game instead of meta.game only
+    const gameCode = resolveGameCodeFromTournament(tournamentDoc);
 
     // Check if THIS player is already registered
     const alreadyInRegistration = await Registration.findOne({
@@ -150,11 +154,19 @@ export async function getServerSideProps({ req, params }) {
       "registeredFor.tournamentId": tournamentId,
     });
 
+    // Pick correct "full" destination by game
+    let fullDestination = "/tournaments-hub/valorant-types?full=1";
+    if (gameCode === "TFT") {
+      fullDestination = "/tournaments-hub/tft-types?full=1";
+    } else if (gameCode === "HOK") {
+      fullDestination = "/tournaments-hub/hok-types?full=1";
+    }
+
     // If full AND user is not already registered → block access to register
     if (currentSlotsUsed >= capacity && !alreadyRegistered) {
       return {
         redirect: {
-          destination: "/tournaments-hub/valorant-types?full=1",
+          destination: fullDestination,
           permanent: false,
         },
       };
@@ -619,7 +631,7 @@ export default function DynamicRegisterPage(props) {
               </>
             ) : (
               <>
-                We weren’t able to find {gameLabel} details on your profile.
+                We weren&apos;t able to find {gameLabel} details on your profile.
                 Please fill everything in carefully — these values will be used
                 as your profile info for this game and must match your in-game
                 details, otherwise you may not be able to play.

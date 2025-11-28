@@ -18,6 +18,7 @@ export default async function handler(req, res) {
       gameCode,  // "VALORANT" | "HOK" | "TFT"
       region,    // optional region/server (HOK/TFT)
       hokPeakScore, // optional number for HOK
+      updateProfileFromRegistration,
     } = req.body;
 
     const cleanIgn = typeof ign === "string" ? ign.trim() : "";
@@ -84,8 +85,8 @@ export default async function handler(req, res) {
     player.registeredFor = player.registeredFor || [];
     player.registeredFor.push(registeredEntry);
 
-    // ---- Update the correct game profile ----
-    const shouldUpdateProfile = true;
+    // ---- Update the correct game profile (if requested) ----
+    const shouldUpdateProfile = !!updateProfileFromRegistration;
 
     if (shouldUpdateProfile) {
       if (!player.gameProfiles) {
