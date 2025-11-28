@@ -112,7 +112,7 @@ export default function TftSoloListPage({ tournaments }) {
       <div className={styles.contentWrap}>
         {/* HERO */}
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>TFT • SOLO</div>
+          <div className={styles.heroBadge}>TEAMFIGHT TACTICS • SOLO</div>
           <h1 className={styles.heroTitle}>Upcoming Solo Tournaments</h1>
           <p className={styles.heroSubtitle}>
             Eight-player FFA lobbies with point systems and cuts. Bring your

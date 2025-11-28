@@ -112,7 +112,7 @@ export default function TftDuoListPage({ tournaments }) {
       <div className={styles.contentWrap}>
         {/* HERO */}
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>TFT • DOUBLE UP</div>
+          <div className={styles.heroBadge}>TEAMFIGHT TACTICS • DOUBLE UP</div>
           <h1 className={styles.heroTitle}>Upcoming Double Up Tournaments</h1>
           <p className={styles.heroSubtitle}>
             Queue with a partner, share units and health, and try to be the
