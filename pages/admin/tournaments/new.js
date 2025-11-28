@@ -6,7 +6,7 @@ import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 // ---- constants for dropdowns ----
 const GAME_OPTIONS = [
   { value: "valorant", label: "VALORANT" },
-  { value: "tft", label: "TFT" },
+  { value: "tft", label: "TEAMFIGHT TACTICS" },
   { value: "hok", label: "HONOR OF KINGS" },
 ];
 
