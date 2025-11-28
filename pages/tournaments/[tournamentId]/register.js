@@ -92,9 +92,17 @@ function extractGameProfile(player, gameCode) {
   };
 }
 
-// Map meta.game (lowercase) → gameCode we use on the client/API
-function resolveGameCodeFromMeta(meta) {
-  const raw = (meta?.game || "").toString().toLowerCase().trim();
+// Robust resolver: look at root `game` OR meta.game
+function resolveGameCodeFromTournament(tournamentDoc) {
+  const meta = tournamentDoc.meta || {};
+
+  const rawRoot = (tournamentDoc.game || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+  const rawMeta = (meta.game || "").toString().toLowerCase().trim();
+
+  const raw = rawRoot || rawMeta;
 
   if (raw === "valorant") return "VALORANT";
   if (raw === "hok" || raw === "honorofkings" || raw === "honor_of_kings")
@@ -160,8 +168,8 @@ export async function getServerSideProps({ req, params }) {
 
     const meta = tournamentDoc.meta || {};
 
-    // Game code for this tournament
-    const gameCode = resolveGameCodeFromMeta(meta);
+    // 🔹 Use robust resolver so older tournaments don’t default to Valorant
+    const gameCode = resolveGameCodeFromTournament(tournamentDoc);
 
     // Check if THIS player is already registered
     const alreadyInRegistration = await Registration.findOne({
@@ -1293,7 +1301,7 @@ export default function DynamicRegisterPage(props) {
               }}
             >
               {message}
-          </div>
+            </div>
           )}
         </form>
 
