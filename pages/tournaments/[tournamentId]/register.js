@@ -23,7 +23,7 @@ function extractGameProfile(player, gameCode) {
       rankTierFromProfile: "",
       rankDivisionFromProfile: "",
       regionFromProfile: "",
-      hokPeakScoreFromProfile: null,
+      hokPeakScoreFromProfile: "",
     };
   }
 
@@ -50,7 +50,7 @@ function extractGameProfile(player, gameCode) {
   const rankDivisionFromProfile = profile.rankDivision || "";
   const regionFromProfile = profile.region || "";
   const hokPeakScoreFromProfile =
-    typeof profile.hokPeakScore === "number" ? profile.hokPeakScore : null;
+    typeof profile.hokPeakScore === "number" ? profile.hokPeakScore : "";
 
   return {
     ignFromProfile,
@@ -60,6 +60,20 @@ function extractGameProfile(player, gameCode) {
     regionFromProfile,
     hokPeakScoreFromProfile,
   };
+}
+
+// Map meta.game (lowercase) → gameCode we use on the client/API
+function resolveGameCodeFromMeta(meta) {
+  const raw = (meta?.game || "").toString().toLowerCase().trim();
+
+  if (raw === "valorant") return "VALORANT";
+  if (raw === "hok" || raw === "honorofkings" || raw === "honor_of_kings")
+    return "HOK";
+  if (raw === "tft" || raw === "teamfighttactics" || raw === "teamfight_tactics")
+    return "TFT";
+
+  // fallback so nothing breaks
+  return "VALORANT";
 }
 
 // ---------- SERVER SIDE ----------
@@ -114,6 +128,11 @@ export async function getServerSideProps({ req, params }) {
         ? tournamentDoc.capacity
         : FALLBACK_CAPACITY;
 
+    const meta = tournamentDoc.meta || {};
+
+    // ✅ THIS is the field we weren’t using before
+    const gameCode = resolveGameCodeFromMeta(meta);
+
     // Check if THIS player is already registered
     const alreadyInRegistration = await Registration.findOne({
       discordTag: player.discordId,
@@ -141,13 +160,8 @@ export async function getServerSideProps({ req, params }) {
       };
     }
 
-    const meta = tournamentDoc.meta || {};
-
     const displayName = tournamentDoc.name || "Tournament";
     const heroBadge = meta.displayGameLabel || "Tournament";
-
-    const gameCode = tournamentDoc.gameCode || "VALORANT";
-    const registrationType = tournamentDoc.registrationType || "SOLO";
 
     const {
       ignFromProfile,
@@ -171,14 +185,12 @@ export async function getServerSideProps({ req, params }) {
         displayName,
         heroBadge,
         gameCode,
-        registrationType,
         ignFromProfile: ignFromProfile || "",
         tagFromProfile: tagFromProfile || "",
         rankTierFromProfile: rankTierFromProfile || "",
         rankDivisionFromProfile: rankDivisionFromProfile || "",
         regionFromProfile: regionFromProfile || "",
-        hokPeakScoreFromProfile:
-          hokPeakScoreFromProfile !== null ? hokPeakScoreFromProfile : "",
+        hokPeakScoreFromProfile: hokPeakScoreFromProfile || "",
       },
     };
   } catch (err) {
@@ -199,7 +211,6 @@ export async function getServerSideProps({ req, params }) {
         displayName: "Tournament",
         heroBadge: "Tournament",
         gameCode: "VALORANT",
-        registrationType: "SOLO",
         ignFromProfile: "",
         tagFromProfile: "",
         rankTierFromProfile: "",
@@ -225,7 +236,6 @@ export default function DynamicRegisterPage(props) {
     displayName,
     heroBadge,
     gameCode,
-    registrationType,
     ignFromProfile,
     tagFromProfile,
     rankTierFromProfile,
@@ -237,7 +247,7 @@ export default function DynamicRegisterPage(props) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Combined rank string for non-Valorant games (e.g. "King 50 stars")
+  // Combined rank string for non-Valorant games (e.g. "King 50 stars", "Diamond IV")
   const combinedRankFromProfile =
     rankTierFromProfile && rankDivisionFromProfile
       ? `${rankTierFromProfile} ${rankDivisionFromProfile}`
@@ -306,28 +316,6 @@ export default function DynamicRegisterPage(props) {
         >
           {errorMessage}
         </pre>
-      </div>
-    );
-  }
-
-  // For now, we only handle SOLO registration with this page
-  if (registrationType !== "SOLO") {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#0f0f0f",
-          color: "white",
-          padding: 24,
-        }}
-      >
-        <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-          Team registration not configured yet
-        </h1>
-        <p style={{ opacity: 0.8 }}>
-          This tournament uses team registration. The new captain + pending flow
-          will go here later.
-        </p>
       </div>
     );
   }
@@ -404,7 +392,7 @@ export default function DynamicRegisterPage(props) {
       }
 
       payload.ign = ignTrimmed; // name only
-      payload.fullIgn = ignTrimmed; // for history; no tag concept
+      payload.fullIgn = ignTrimmed; // no tag concept
       payload.rank = rankTrimmed;
       if (regionTrimmed) {
         payload.region = regionTrimmed;
@@ -480,7 +468,8 @@ export default function DynamicRegisterPage(props) {
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
 
-  const isRadiant = gameCode === "VALORANT" && peakRankTier === "Radiant";
+  const isRadiant =
+    gameCode === "VALORANT" && peakRankTier === "Radiant";
 
   return (
     <div
@@ -856,7 +845,6 @@ export default function DynamicRegisterPage(props) {
           {/* HOK FORM */}
           {gameCode === "HOK" && (
             <>
-              {/* IGN */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -899,7 +887,6 @@ export default function DynamicRegisterPage(props) {
                 </div>
               </div>
 
-              {/* Region / Server */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -930,7 +917,6 @@ export default function DynamicRegisterPage(props) {
                 />
               </div>
 
-              {/* Rank */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -973,7 +959,6 @@ export default function DynamicRegisterPage(props) {
                 </div>
               </div>
 
-              {/* Peak tournament score */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1010,7 +995,6 @@ export default function DynamicRegisterPage(props) {
           {/* TFT FORM */}
           {gameCode === "TFT" && (
             <>
-              {/* IGN */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1053,7 +1037,6 @@ export default function DynamicRegisterPage(props) {
                 </div>
               </div>
 
-              {/* Region */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1084,7 +1067,6 @@ export default function DynamicRegisterPage(props) {
                 />
               </div>
 
-              {/* Peak Rank */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
