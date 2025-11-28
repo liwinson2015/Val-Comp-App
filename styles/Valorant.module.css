@@ -332,6 +332,34 @@
   box-shadow: none;
 }
 
+/* --- BACK BUTTON ROW ON DETAIL PAGE --- */
+.backRow {
+  margin: 0 0 2rem 0;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #cbd5e1;
+  background: transparent;
+  transition: all 0.18s ease;
+}
+
+.backBtn:hover {
+  border-color: #e5e7eb;
+  color: #e5e7eb;
+  background: rgba(15, 23, 42, 0.85);
+}
+
 /* --- UPCOMING & LISTS --- */
 .eventList {
   list-style: none;
