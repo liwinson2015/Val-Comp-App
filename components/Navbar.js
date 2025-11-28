@@ -225,7 +225,7 @@ export default function Navbar() {
                     style={dropdownItem}
                     onClick={() => setProfileOpen(false)}
                   >
-                    Team Registrations
+                    Team Invites
                   </a>
                   {/* Match Records / History */}
                   <a
