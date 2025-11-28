@@ -9,17 +9,6 @@ import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 
 const FALLBACK_CAPACITY = 16;
 
-/** --- HUB PATHS PER GAME --- */
-const HUB_PATHS = {
-  valorant: "/tournaments-hub/valorant-types",
-  tft: "/tournaments-hub/tft-types",
-  hok: "/tournaments-hub/hok-types",
-};
-
-function getHubPath(gameKey) {
-  return HUB_PATHS[gameKey] || HUB_PATHS.valorant;
-}
-
 /** --- THEME CONFIG PER GAME --- */
 const GAME_THEMES = {
   valorant: {
@@ -306,8 +295,7 @@ function normalizeTournamentStatus(doc) {
 /** Build quick facts using templates + meta overrides */
 function buildQuickFacts(gameKey, modeKey, meta, displayEntry, displayPrize) {
   const rulesKey = `${gameKey}_${modeKey}`;
-  const base =
-    QUICK_FACTS_TEMPLATES[rulesKey] || QUICK_FACTS_TEMPLATES["valorant_1v1"];
+  const base = QUICK_FACTS_TEMPLATES[rulesKey] || QUICK_FACTS_TEMPLATES["valorant_1v1"];
 
   const mode = meta.displayMode || base.mode;
   const format = meta.displayFormat || base.format;
@@ -347,14 +335,10 @@ export async function getServerSideProps({ req, params }) {
 
     const legacy = catalog[tournamentId] || {};
 
-    // game / mode keys for theming + rules
-    const rawGame = tournamentDoc.game || legacy.game || "valorant";
-    const rawMode = tournamentDoc.mode || legacy.mode || "1v1";
-    const gameKey = String(rawGame).toLowerCase();
-    const modeKey = String(rawMode).toLowerCase();
-
     const capacity =
-      tournamentDoc.capacity ?? legacy.capacity ?? FALLBACK_CAPACITY;
+      tournamentDoc.capacity ??
+      legacy.capacity ??
+      FALLBACK_CAPACITY;
 
     // registered players
     const registeredCount = await Player.countDocuments({
@@ -369,11 +353,11 @@ export async function getServerSideProps({ req, params }) {
       Array.isArray(player.registeredFor) &&
       player.registeredFor.some((entry) => entry.tournamentId === tournamentId);
 
-    // if full & not registered → bounce back to correct hub
+    // if full & not registered → bounce back to hub
     if (isFull && !userIsRegistered) {
       return {
         redirect: {
-          destination: `${getHubPath(gameKey)}?full=1`,
+          destination: "/tournaments-hub/valorant-types?full=1",
           permanent: false,
         },
       };
@@ -382,7 +366,9 @@ export async function getServerSideProps({ req, params }) {
     const meta = tournamentDoc.meta || {};
 
     const displayName =
-      tournamentDoc.name || legacy.name || "Valorant Skirmish Tournament #1";
+      tournamentDoc.name ||
+      legacy.name ||
+      "Valorant Skirmish Tournament #1";
 
     const displaySubtitle =
       meta.displayDescription ||
@@ -390,17 +376,31 @@ export async function getServerSideProps({ req, params }) {
       "Solo 1v1 skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.";
 
     const heroBadge =
-      meta.displayGameLabel || legacy.game || "Valorant 1v1";
+      meta.displayGameLabel ||
+      legacy.game ||
+      "Valorant 1v1";
+
+    // game / mode keys for theming + rules
+    const gameKey = String(tournamentDoc.game || legacy.game || "valorant").toLowerCase();
+    const modeKey = String(tournamentDoc.mode || legacy.mode || "1v1").toLowerCase();
 
     // Host
-    const displayHost = meta.displayHost || legacy.displayHost || "5TQ";
+    const displayHost =
+      meta.displayHost ||
+      legacy.displayHost ||
+      "5TQ";
 
     // Prize
     const displayPrize =
-      meta.displayPrize || legacy.displayPrize || "$20 Valorant Gift Card";
+      meta.displayPrize ||
+      legacy.displayPrize ||
+      "$20 Valorant Gift Card";
 
     // Entry
-    const displayEntry = meta.displayEntry || legacy.displayEntry || "Free";
+    const displayEntry =
+      meta.displayEntry ||
+      legacy.displayEntry ||
+      "Free";
 
     // Start time
     let startsText = "TBD";
@@ -514,8 +514,6 @@ export default function TournamentDetailPage({
   const facts = quickFacts || [];
   const ruleBlocks = rules || pickRules("valorant", "1v1");
 
-  const hubPath = getHubPath(gameKey || "valorant");
-
   useEffect(() => {
     let ignore = false;
 
@@ -604,13 +602,6 @@ export default function TournamentDetailPage({
   ]
     .filter(Boolean)
     .join(" ");
-
-  const backLabel =
-    gameKey === "tft"
-      ? "Back to TFT tournaments"
-      : gameKey === "hok"
-      ? "Back to Honor of Kings tournaments"
-      : "Back to Valorant tournaments";
 
   return (
     <div className={shellClass}>
@@ -871,13 +862,6 @@ export default function TournamentDetailPage({
               </div>
             </div>
           </div>
-        </section>
-
-        {/* BACK TO HUB BUTTON */}
-        <section className={styles.backRow}>
-          <a href={hubPath} className={styles.backBtn}>
-            ← {backLabel}
-          </a>
         </section>
 
         {/* FORMAT & SCORING */}
