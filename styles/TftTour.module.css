@@ -27,7 +27,6 @@
 
 .hero {
   margin-bottom: 40px;
-  text-align: center; /* center like Valorant */
 }
 
 .heroBadge {
@@ -60,20 +59,12 @@
   max-width: 580px;
   color: #9ca3af;
   line-height: 1.6;
-  margin: 0 auto; /* center paragraph under title */
 }
 
 /* PANEL & CARDS */
 
 .panel {
   margin-top: 36px;
-  position: relative;
-  padding: 36px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
 }
 
 .cardGrid {
@@ -179,49 +170,34 @@
   color: #bbf7d0;
 }
 
-/* INFO STRIP (Host / Region / Rules) */
+/* BACK BUTTON ROW */
 
-.infoRow {
+.backRow {
   margin-top: 30px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.infoItem {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  padding: 15px 20px;
-  border-radius: 6px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-start;
 }
 
-.infoLabel {
-  color: #64748b;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.infoValue {
-  color: #e5f9ff;
-  font-weight: 700;
+.ghostBtn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #e5e7eb;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  font-weight: 600;
   font-size: 0.9rem;
 }
 
-/* Responsive */
+.ghostBtn:hover {
+  border-color: #f9fafb;
+  color: #f9fafb;
+}
+
 @media (max-width: 768px) {
   .heroTitle {
     font-size: 2.4rem;
-  }
-
-  .panel {
-    padding: 24px;
-  }
-
-  .infoRow {
-    grid-template-columns: 1fr;
   }
 }
