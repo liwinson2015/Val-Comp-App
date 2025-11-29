@@ -39,6 +39,31 @@ const TeamSchema = new Schema(
     },
     // ----------------------------------
 
+    // ⭐ NEW: Tournament History
+    // This allows the "End Tournament" API to save results here.
+    tournamentHistory: [
+      {
+        tournamentId: {
+          type: String,
+          required: true,
+        },
+        // We use "ign" to store the Team Name snapshot (consistency with Player model)
+        ign: {
+          type: String, 
+          default: "", 
+        },
+        // e.g. "1st", "2nd", "Top 8"
+        placement: {
+          type: String,
+          default: "",
+        },
+        endedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     // Captain (owner) of the team
     captain: {
       type: Schema.Types.ObjectId,
