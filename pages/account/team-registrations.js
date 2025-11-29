@@ -49,12 +49,9 @@ export async function getServerSideProps({ req }) {
     };
   }
 
-  // ✅ Populate members.player so we can show real names instead of "Unknown"
   const regsRaw = await TeamTournamentRegistration.find({
     "members.player": player._id,
-  })
-    .populate("members.player", "username discordId")
-    .lean();
+  }).lean();
 
   if (!regsRaw || regsRaw.length === 0) {
     return {
@@ -87,27 +84,9 @@ export async function getServerSideProps({ req }) {
     const tMeta = tournamentMap[r.tournamentId] || {};
     const tourName = tMeta.name || "Tournament";
 
-    const membersArray = r.members || [];
-
-    // Handle both populated + non-populated shapes:
-    // m.player can be an ObjectId or a populated object with _id.
-    const me = membersArray.find((m) => {
-      const p = m.player;
-      const pid = p && (p._id || p);
-      return pid && pid.toString() === myIdStr;
-    });
-
-    const members = membersArray.map((m) => {
-      const p = m.player || {};
-      // Prefer snapshot fields if they exist, otherwise fall back to populated player
-      const username = m.username || p.username || "";
-      const discordId = m.discordId || p.discordId || "";
-      return {
-        username,
-        discordId,
-        status: m.status || "pending",
-      };
-    });
+    const me = (r.members || []).find(
+      (m) => m.player && m.player.toString() === myIdStr
+    );
 
     return {
       id: r._id.toString(),
@@ -118,7 +97,11 @@ export async function getServerSideProps({ req }) {
       modeKey: r.modeKey || "",
       status: r.status || "pending",
       myStatus: me ? me.status || "pending" : "pending",
-      members,
+      members: (r.members || []).map((m) => ({
+        username: m.username || "",
+        discordId: m.discordId || "",
+        status: m.status || "pending",
+      })),
       createdAt: r.createdAt ? r.createdAt.toISOString() : null,
     };
   });
@@ -143,6 +126,13 @@ export default function TeamRegistrationsPage({ username, registrations }) {
   const [globalMsg, setGlobalMsg] = useState("");
 
   async function handleRespond(regId, action) {
+    // We now ONLY use this for "decline".
+    if (action === "accept") {
+      // Safety fallback (but normal Accept button does a direct redirect)
+      window.location.href = `/team-invite/${regId}/accept`;
+      return;
+    }
+
     setBusyId(regId);
     setGlobalMsg("");
 
@@ -173,7 +163,6 @@ export default function TeamRegistrationsPage({ username, registrations }) {
             ...r,
             status: newStatus || r.status,
             myStatus: memberStatus || r.myStatus,
-            // chips will refresh on page reload; keeping members array as-is here
             members: r.members.map((m) => m),
           };
         })
@@ -499,6 +488,7 @@ function TeamRegistrationCard({ reg, busy, onRespond }) {
               flexShrink: 0,
             }}
           >
+            {/* Decline still uses API */}
             <button
               type="button"
               disabled={busy}
@@ -516,10 +506,13 @@ function TeamRegistrationCard({ reg, busy, onRespond }) {
             >
               Decline
             </button>
+
+            {/* Accept now goes to the new per-invite form page */}
             <button
               type="button"
-              disabled={busy}
-              onClick={() => onRespond(reg.id, "accept")}
+              onClick={() => {
+                window.location.href = `/team-invite/${reg.id}/accept`;
+              }}
               style={{
                 padding: "0.35rem 0.9rem",
                 borderRadius: "999px",
@@ -529,11 +522,11 @@ function TeamRegistrationCard({ reg, busy, onRespond }) {
                 color: "#f9fafb",
                 fontSize: "0.78rem",
                 fontWeight: 600,
-                cursor: busy ? "default" : "pointer",
-                opacity: busy ? 0.8 : 1,
+                cursor: "pointer",
+                opacity: 1,
               }}
             >
-              {busy ? "Updating..." : "Accept"}
+              Accept &amp; Fill Info
             </button>
           </div>
         )}
