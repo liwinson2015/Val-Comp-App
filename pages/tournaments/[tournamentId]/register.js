@@ -289,6 +289,7 @@ export async function getServerSideProps({ req, params }) {
         .map((t) => ({
           id: t._id.toString(),
           name: t.name || t.teamName || "Unnamed team",
+          tag: t.tag || t.teamTag || "", // ✅ include tag for "TAG | Name" label
         }));
     }
 
@@ -677,11 +678,14 @@ export default function DynamicRegisterPage(props) {
                   }}
                 >
                   <option value="">Select a team</option>
-                  {teamsForGame.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
+                  {teamsForGame.map((t) => {
+                    const label = t.tag ? `${t.tag} | ${t.name}` : t.name; // ✅ TAG | Name
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
               ) : (
                 <div
