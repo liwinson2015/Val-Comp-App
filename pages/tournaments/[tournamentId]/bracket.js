@@ -10,6 +10,69 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Tournament from "../../../models/Tournament";
 import Player from "../../../models/Player";
 
+// ---------- HELPERS FOR GAME / MODE / ELIM TYPE ----------
+
+function resolveGameCodeFromDoc(doc) {
+  const meta = doc.meta || {};
+  const raw = (
+    doc.game ||
+    meta.game ||
+    meta.Game ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  if (raw === "valorant") return "VALORANT";
+  if (raw === "hok" || raw === "honorofkings" || raw === "honor_of_kings")
+    return "HOK";
+  if (raw === "tft" || raw === "teamfighttactics" || raw === "teamfight_tactics")
+    return "TFT";
+
+  // fallback for older data
+  return "VALORANT";
+}
+
+function resolveModeKeyFromDoc(doc) {
+  const meta = doc.meta || {};
+  const raw = (
+    doc.mode ||
+    meta.mode ||
+    meta.Mode ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  if (!raw) return "1v1"; // default for old Valorant 1v1 brackets
+  return raw;
+}
+
+function resolveEliminationTypeFromDoc(doc) {
+  const meta = doc.meta || {};
+  const raw = (
+    doc.elimination ||
+    meta.elimination ||
+    meta.Elimination ||
+    meta.bracketType ||
+    meta.BracketType ||
+    meta.format ||
+    meta.Format ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  if (raw.includes("single")) return "single";
+  if (raw.includes("double")) return "double";
+
+  // default: keep current behavior as double elim
+  return "double";
+}
+
 // ===== SERVER SIDE: load published bracket + players =====
 export async function getServerSideProps({ params }) {
   await connectToDatabase();
@@ -25,13 +88,45 @@ export async function getServerSideProps({ params }) {
         published: false,
         bracket: null,
         players: [],
+        gameCode: null,
+        gameKey: null,
+        modeKey: null,
+        eliminationType: "double",
+        bracketSupported: false,
       },
     };
   }
 
   const bracket = t.bracket;
 
-  // Collect all playerIds
+  // --- GAME / MODE / ELIM TYPE ---
+  const gameCode = resolveGameCodeFromDoc(t); // "VALORANT" | "HOK" | "TFT"
+  let gameKey = "valorant";
+  if (gameCode === "TFT") gameKey = "tft";
+  if (gameCode === "HOK") gameKey = "hok";
+
+  const modeKey = resolveModeKeyFromDoc(t); // e.g. "1v1", "2v2", "5v5", "solo", "doubleup"
+  const eliminationType = resolveEliminationTypeFromDoc(t); // "single" | "double"
+
+  // Only use this bracket layout for:
+  // - Valorant: 1v1, 2v2, 5v5
+  // - HoK: 5v5
+  const mk = (modeKey || "").toLowerCase();
+  let bracketSupported = false;
+  if (gameKey === "valorant") {
+    if (mk.includes("1v1") || mk.includes("2v2") || mk.includes("5v5")) {
+      bracketSupported = true;
+    }
+  } else if (gameKey === "hok") {
+    if (mk.includes("5v5")) {
+      bracketSupported = true;
+    }
+  } else {
+    // TFT and anything else: not yet using this visual layout
+    bracketSupported = false;
+  }
+
+  // Collect all playerIds involved in bracket
   const idSet = new Set();
 
   (bracket.rounds || []).forEach((r) => {
@@ -97,6 +192,11 @@ export async function getServerSideProps({ params }) {
         })
       ),
       players,
+      gameCode,
+      gameKey,
+      modeKey,
+      eliminationType,
+      bracketSupported,
     },
   };
 }
@@ -115,6 +215,11 @@ export default function BracketPage({
   published,
   bracket,
   players,
+  gameCode,
+  gameKey,
+  modeKey,
+  eliminationType,
+  bracketSupported,
 }) {
   const capacity = 16; // still a 16-player bracket layout
   const registered = players.length;
@@ -122,6 +227,11 @@ export default function BracketPage({
   const slotsText = `${registered} / ${capacity}`;
   const statusText =
     registered >= capacity ? "Full — waitlist" : `Open — ${remaining} left`;
+
+  const elimLabel =
+    eliminationType === "single"
+      ? "Single Elimination"
+      : "Double Elimination";
 
   if (!published) {
     return (
@@ -147,7 +257,7 @@ export default function BracketPage({
     return out;
   };
 
-  // --- MAPPINGS ---
+  // --- MAPPINGS (WINNERS BRACKET) ---
   const rounds = bracket?.rounds || [];
   const r1Matches =
     (rounds.find((r) => r.roundNumber === 1 && r.type === "winners") || {})
@@ -206,11 +316,13 @@ export default function BracketPage({
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
+  // --- LOSERS BRACKET MAPPING ---
   const losersRounds = bracket?.losersRounds || [];
   const getLbRound = (n) =>
     (losersRounds.find((r) => r.roundNumber === n && r.type === "losers") || {
       matches: [],
     }).matches;
+
   const lb_r1 = padNames(
     (getLbRound(1) || []).map((m) => [
       getLabel(m.player1Id),
@@ -257,12 +369,16 @@ export default function BracketPage({
     : "TBD";
 
   const grandFinal = bracket?.grandFinal || null;
+
+  // For the champion, fall back to winnersFinal if there is no separate grand final
+  const effectiveFinal = grandFinal || winnersFinal || null;
+
   const wbFinalWinner = winnersFinal?.winnerId
     ? getLabel(winnersFinal.winnerId)
     : "TBD";
   const lbFinalWinner = lb_winner;
-  const grandChampion = grandFinal?.winnerId
-    ? getLabel(grandFinal.winnerId)
+  const grandChampion = effectiveFinal?.winnerId
+    ? getLabel(effectiveFinal.winnerId)
     : "TBD";
 
   // --- RANKING LOGIC ---
@@ -275,14 +391,19 @@ export default function BracketPage({
   };
 
   const placements = {
-    first: grandFinal?.winnerId ? getLabel(grandFinal.winnerId) : "TBD",
-    second: grandFinal?.winnerId
+    // 1st / 2nd from "effective" final (grandFinal if present, else winnersFinal)
+    first: effectiveFinal?.winnerId
+      ? getLabel(effectiveFinal.winnerId)
+      : "TBD",
+    second: effectiveFinal?.winnerId
       ? getLabel(
-          grandFinal.winnerId === grandFinal.player1Id
-            ? grandFinal.player2Id
-            : grandFinal.player1Id
+          effectiveFinal.winnerId === effectiveFinal.player1Id
+            ? effectiveFinal.player2Id
+            : effectiveFinal.player1Id
         )
       : "TBD",
+    // Below still uses losers-side logic (best for double elim);
+    // for single-elim these may remain "TBD" which is fine for now.
     third: losersFinal?.winnerId
       ? getLabel(
           losersFinal.winnerId === losersFinal.player1Id
@@ -306,7 +427,9 @@ export default function BracketPage({
           <div className={styles.infoCard}>
             <h2 className={styles.tournamentTitle}>Championship Bracket</h2>
             <div className={styles.tournamentSubtitle}>
-              // 16 PLAYERS • DOUBLE ELIMINATION
+              {/* Example: // VALORANT 1v1 • DOUBLE ELIMINATION */}
+              {/* We keep the old comment-style look but make it dynamic */}
+              {`// ${gameCode || "GAME"} ${modeKey?.toUpperCase() || ""} • ${elimLabel.toUpperCase()}`}
             </div>
 
             <div className={styles.statsGrid}>
@@ -328,12 +451,13 @@ export default function BracketPage({
               </div>
               <div className={styles.statBox}>
                 <span className={styles.statLabel}>Format</span>
-                <span className={styles.statValue}>Double Elimination</span>
+                <span className={styles.statValue}>{elimLabel}</span>
               </div>
             </div>
           </div>
 
-          {/* RIGHT: Rankings */}
+          {/* RIGHT: Rankings (still shown for both single & double; 
+              for single some rows may stay TBD until we customize it later) */}
           <div className={styles.rankingContainer}>
             <div className={styles.rankingHeader}>
               <span>Place</span>
@@ -384,26 +508,50 @@ export default function BracketPage({
         </div>
       </div>
 
-      {/* ===== 1. WINNERS BRACKET (TOP) ===== */}
-      <Bracket16 data={bracketData} />
+      {/* ===== BRACKET RENDERING ===== */}
 
-      {/* ===== 2. GRAND FINAL (CENTER) ===== */}
-      <GrandFinalCenter
-        wbChampion={wbFinalWinner}
-        lbChampion={lbFinalWinner}
-        champion={grandChampion}
-      />
+      {!bracketSupported ? (
+        // For TFT or any unsupported game/mode combo
+        <div className={styles.contentWrap}>
+          <div className={styles.infoCard}>
+            <h2 className={styles.tournamentTitle}>
+              Bracket view coming soon
+            </h2>
+            <p style={{ color: "#8b9bb4" }}>
+              Visual brackets for this game / mode aren&apos;t configured yet.
+              Results are still being tracked internally.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* 1. WINNERS BRACKET (always used for supported combos) */}
+          <Bracket16 data={bracketData} />
 
-      {/* ===== 3. LOSERS BRACKET (BOTTOM) ===== */}
-      <LosersBracket16
-        r1={lb_r1}
-        r2={lb_r2}
-        r3a={lb_r3a}
-        r3b={lb_r3b}
-        r4={lb_r4}
-        lbFinal={lb_final}
-        lbWinner={lb_winner}
-      />
+          {/* 2 & 3 only for DOUBLE ELIMINATION */}
+          {eliminationType === "double" && (
+            <>
+              {/* GRAND FINAL (CENTER) */}
+              <GrandFinalCenter
+                wbChampion={wbFinalWinner}
+                lbChampion={lbFinalWinner}
+                champion={grandChampion}
+              />
+
+              {/* LOSERS BRACKET (BOTTOM) */}
+              <LosersBracket16
+                r1={lb_r1}
+                r2={lb_r2}
+                r3a={lb_r3a}
+                r3b={lb_r3b}
+                r4={lb_r4}
+                lbFinal={lb_final}
+                lbWinner={lb_winner}
+              />
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
