@@ -4,8 +4,8 @@ import styles from "../../../styles/Valorant.module.css";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
+import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration";
 import { tournamentsById as catalog } from "../../../lib/tournaments";
-import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 
 const FALLBACK_CAPACITY = 16;
 
@@ -295,7 +295,9 @@ function normalizeTournamentStatus(doc) {
 /** Build quick facts using templates + meta overrides */
 function buildQuickFacts(gameKey, modeKey, meta, displayEntry, displayPrize) {
   const rulesKey = `${gameKey}_${modeKey}`;
-  const base = QUICK_FACTS_TEMPLATES[rulesKey] || QUICK_FACTS_TEMPLATES["valorant_1v1"];
+  const base =
+    QUICK_FACTS_TEMPLATES[rulesKey] ||
+    QUICK_FACTS_TEMPLATES["valorant_1v1"];
 
   const mode = meta.displayMode || base.mode;
   const format = meta.displayFormat || base.format;
@@ -320,12 +322,27 @@ function pickRules(gameKey, modeKey) {
   return RULE_TEMPLATES[key] || RULE_TEMPLATES["valorant_1v1"];
 }
 
+/** Decide if this tournament is team-based (for slots counting) */
+function isTeamMode(gameKey, modeKey) {
+  const g = (gameKey || "").toLowerCase();
+  const m = (modeKey || "").toLowerCase();
+
+  // Team events:
+  // Valorant 2v2, 5v5
+  if (g === "valorant" && (m === "2v2" || m === "5v5")) return true;
+  // TFT Double Up (support "doubleup" or "double" just in case)
+  if (g === "tft" && (m === "doubleup" || m === "double")) return true;
+  // HoK 5v5
+  if (g === "hok" && m === "5v5") return true;
+
+  return false;
+}
+
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
   const { tournamentId } = params;
 
   try {
-    const player = await getCurrentPlayerFromReq(req);
     await connectToDatabase();
 
     const tournamentDoc = await Tournament.findOne({ tournamentId }).lean();
@@ -340,30 +357,33 @@ export async function getServerSideProps({ req, params }) {
       legacy.capacity ??
       FALLBACK_CAPACITY;
 
-    // registered players
-    const registeredCount = await Player.countDocuments({
-      "registeredFor.tournamentId": tournamentId,
-    });
+    const meta = tournamentDoc.meta || {};
 
-    const isFull = registeredCount >= capacity;
+    // game / mode keys for theming + rules
+    const gameKey = String(
+      tournamentDoc.game || legacy.game || "valorant"
+    ).toLowerCase();
+    const modeKey = String(
+      tournamentDoc.mode || legacy.mode || "1v1"
+    ).toLowerCase();
 
-    // is current player registered here?
-    const userIsRegistered =
-      !!player &&
-      Array.isArray(player.registeredFor) &&
-      player.registeredFor.some((entry) => entry.tournamentId === tournamentId);
+    const teamMode = isTeamMode(gameKey, modeKey);
 
-    // if full & not registered → bounce back to hub
-    if (isFull && !userIsRegistered) {
-      return {
-        redirect: {
-          destination: "/tournaments-hub/valorant-types?full=1",
-          permanent: false,
-        },
-      };
+    // 🔹 count slots: players for solo, teams for teamMode
+    let registeredCount = 0;
+
+    if (teamMode) {
+      registeredCount = await TeamTournamentRegistration.countDocuments({
+        tournamentId,
+        status: { $ne: "cancelled" },
+      });
+    } else {
+      registeredCount = await Player.countDocuments({
+        "registeredFor.tournamentId": tournamentId,
+      });
     }
 
-    const meta = tournamentDoc.meta || {};
+    const isFull = registeredCount >= capacity;
 
     const displayName =
       tournamentDoc.name ||
@@ -376,19 +396,11 @@ export async function getServerSideProps({ req, params }) {
       "Solo 1v1 skirmish hosted by 5TQ. Claim your slot, climb the bracket, and show off your aim.";
 
     const heroBadge =
-      meta.displayGameLabel ||
-      legacy.game ||
-      "Valorant 1v1";
-
-    // game / mode keys for theming + rules
-    const gameKey = String(tournamentDoc.game || legacy.game || "valorant").toLowerCase();
-    const modeKey = String(tournamentDoc.mode || legacy.mode || "1v1").toLowerCase();
+      meta.displayGameLabel || legacy.game || "Valorant 1v1";
 
     // Host
     const displayHost =
-      meta.displayHost ||
-      legacy.displayHost ||
-      "5TQ";
+      meta.displayHost || legacy.displayHost || "5TQ";
 
     // Prize
     const displayPrize =
@@ -398,9 +410,7 @@ export async function getServerSideProps({ req, params }) {
 
     // Entry
     const displayEntry =
-      meta.displayEntry ||
-      legacy.displayEntry ||
-      "Free";
+      meta.displayEntry || legacy.displayEntry || "Free";
 
     // Start time
     let startsText = "TBD";
@@ -439,13 +449,17 @@ export async function getServerSideProps({ req, params }) {
         displayEntry,
         displayHost,
         gameKey,
+        teamMode,
         theme,
         quickFacts,
         rules,
       },
     };
   } catch (err) {
-    console.error("[/tournaments/[tournamentId]] getServerSideProps error:", err);
+    console.error(
+      "[/tournaments/[tournamentId]] getServerSideProps error:",
+      err
+    );
     const theme = DEFAULT_THEME;
     const quickFacts = buildQuickFacts(
       "valorant",
@@ -472,6 +486,7 @@ export async function getServerSideProps({ req, params }) {
         displayEntry: "Free",
         displayHost: "5TQ",
         gameKey: "valorant",
+        teamMode: false,
         theme,
         quickFacts,
         rules,
@@ -495,6 +510,7 @@ export default function TournamentDetailPage({
   displayEntry,
   displayHost,
   gameKey,
+  teamMode,
   theme,
   quickFacts,
   rules,
@@ -777,7 +793,9 @@ export default function TournamentDetailPage({
                 >
                   {slotsUsed == null || slotsCapacity == null
                     ? "16 / 16"
-                    : `${slotsUsed} / ${slotsCapacity}`}
+                    : `${slotsUsed} / ${slotsCapacity} ${
+                        teamMode ? "Teams" : "Players"
+                      }`}
                 </div>
               </div>
 
