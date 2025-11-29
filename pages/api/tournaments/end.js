@@ -3,10 +3,9 @@
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
-import Registration from "../../../models/Registration";
-import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration";
+import Registration from "../../../models/Registration"; // Solo Regs
+import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration"; // Team Regs
 import Player from "../../../models/Player";
-import Team from "../../../models/Team"; 
 import Tournament from "../../../models/Tournament";
 
 export default async function handler(req, res) {
@@ -26,11 +25,11 @@ export default async function handler(req, res) {
     }
 
     await connectToDatabase();
-    console.log(`[END-TOURNAMENT] Starting end process for: ${tournamentId}`);
+    console.log(`[END] Ending tournament: ${tournamentId}`);
 
     const endedAt = new Date();
 
-    // 1. Load Tournament & Determine Type
+    // 1. Load Tournament Info
     const tDoc = await Tournament.findOne({ tournamentId }).lean();
     if (!tDoc) return res.status(404).json({ ok: false, error: "Tournament not found" });
 
@@ -39,9 +38,9 @@ export default async function handler(req, res) {
       tDoc.mode === "5v5" ||
       tDoc.meta?.isTeamTournament === true;
 
-    // 2. Map Placements
+    // 2. Map Placements (Who got 1st, 2nd, etc.)
     const ranking = tDoc?.bracket?.ranking || null;
-    const placementById = {};
+    const placementById = {}; // Key = TeamID (for team tourney) or PlayerID (for solo)
 
     if (ranking) {
       const addPlacement = (ids, label) => {
@@ -61,7 +60,7 @@ export default async function handler(req, res) {
       addPlacement(ranking.thirteenToSixteen, "13th-16th");
     }
 
-    // 3. Mark Tournament as Completed
+    // 3. Mark Tournament as Completed in DB
     await TournamentState.findOneAndUpdate(
       { tournamentId },
       { 
@@ -82,68 +81,66 @@ export default async function handler(req, res) {
     );
 
     // ---------------------------------------------------------
-    // 4. PROCESS HISTORY (TEAM vs SOLO)
+    // 4. PROCESS HISTORY (THE IMPORTANT PART)
     // ---------------------------------------------------------
 
     if (isTeamTournament) {
-      console.log(`[END-TOURNAMENT] Detected TEAM tournament.`);
+      // === TEAM LOGIC ===
+      // Goal: Find every PLAYER in every TEAM and update their personal history
       
-      const teamRegs = await TeamTournamentRegistration.find({ tournamentId });
-      console.log(`[END-TOURNAMENT] Found ${teamRegs.length} team registrations.`);
+      const teamRegs = await TeamTournamentRegistration.find({ tournamentId }).lean();
+      
+      console.log(`[END] Found ${teamRegs.length} team registrations.`);
 
-      // Use a Loop instead of BulkWrite for better debugging and reliability with mixed schemas
       for (const reg of teamRegs) {
-        // A. Update Registration Status
-        reg.status = "completed";
-        reg.completedAt = endedAt;
-        reg.placement = placementById[reg.team.toString()] || "";
-        await reg.save();
-
-        // B. Push to Team History
-        const teamName = reg.teamName || reg.teamTag || "Unnamed Team";
-        const placement = placementById[reg.team.toString()] || "";
-        
-        console.log(`[END-TOURNAMENT] Updating Team ID: ${reg.team} | Place: ${placement}`);
-
-        const updateResult = await Team.findByIdAndUpdate(
-          reg.team, 
-          {
-            $push: {
-              tournamentHistory: {
-                tournamentId: tournamentId,
-                ign: teamName,
-                placement: placement,
-                endedAt: endedAt
-              }
-            }
-          },
-          { new: true } // Return updated doc so we can verify
+        // A. Update the Registration Document status
+        await TeamTournamentRegistration.updateOne(
+          { _id: reg._id },
+          { $set: { status: "completed", completedAt: endedAt } }
         );
 
-        if (!updateResult) {
-          console.error(`[END-TOURNAMENT] ❌ Failed to find Team with ID: ${reg.team}`);
-        } else {
-          // Check if history was actually added (helps debug Schema issues)
-          const historyAdded = updateResult.tournamentHistory.find(h => h.tournamentId === tournamentId);
-          if (!historyAdded) {
-            console.error(`[END-TOURNAMENT] ⚠️ Team found, but history NOT added. Schema issue?`);
-          } else {
-            console.log(`[END-TOURNAMENT] ✅ History saved for ${teamName}`);
-          }
+        // B. Update PLAYERS inside this team
+        const teamId = reg.team.toString();
+        const placement = placementById[teamId] || ""; // e.g. "1st"
+        const teamName = reg.teamName || reg.teamTag || "Unnamed Team";
+
+        // reg.members contains the list of players on this team
+        if (reg.members && reg.members.length > 0) {
+          const memberIds = reg.members.map(m => m.player);
+          
+          console.log(`[END] Updating ${memberIds.length} players for Team ${teamName} (${placement})`);
+
+          await Player.updateMany(
+            { _id: { $in: memberIds } },
+            {
+              // 1. Remove from Active
+              $pull: { registeredFor: { tournamentId } },
+              
+              // 2. Add to History
+              $push: {
+                tournamentHistory: {
+                  tournamentId,
+                  ign: teamName, // ⭐ Shows Team Name as IGN in history
+                  fullIgn: "",   // Optional
+                  rank: "N/A",   // Team rank not usually stored on player
+                  placement: placement,
+                  endedAt: endedAt
+                }
+              }
+            }
+          );
         }
       }
 
     } else {
       // === SOLO LOGIC ===
-      console.log(`[END-TOURNAMENT] Detected SOLO tournament.`);
+      // (This part was already working for you)
       
-      // Update Registrations
       await Registration.updateMany(
         { $or: [{ tournament: tournamentId }, { tournamentId: tournamentId }] },
         { $set: { status: "completed", completedAt: endedAt, tournamentId } }
       );
 
-      // Update Players
       const players = await Player.find({ "registeredFor.tournamentId": tournamentId });
       
       for (const p of players) {
