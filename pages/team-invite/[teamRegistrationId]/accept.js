@@ -1,5 +1,4 @@
 // pages/team-invite/[teamRegistrationId]/accept.js
-import * as cookie from "cookie";
 import { useState } from "react";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
@@ -70,6 +69,7 @@ function extractGameProfile(player, gameCode) {
       rankDivisionFromProfile: "",
       regionFromProfile: "",
       hokPeakScoreFromProfile: "",
+      hokStarsFromProfile: "",
     };
   }
 
@@ -99,6 +99,8 @@ function extractGameProfile(player, gameCode) {
   const regionFromProfile = profile.region || "";
   const hokPeakScoreFromProfile =
     typeof profile.hokPeakScore === "number" ? profile.hokPeakScore : "";
+  const hokStarsFromProfile =
+    typeof profile.hokStars === "number" ? profile.hokStars : "";
 
   return {
     ignFromProfile,
@@ -107,6 +109,7 @@ function extractGameProfile(player, gameCode) {
     rankDivisionFromProfile,
     regionFromProfile,
     hokPeakScoreFromProfile,
+    hokStarsFromProfile,
   };
 }
 
@@ -205,6 +208,7 @@ export async function getServerSideProps({ req, params }) {
     rankDivisionFromProfile,
     regionFromProfile,
     hokPeakScoreFromProfile,
+    hokStarsFromProfile,
   } = extractGameProfile(player, gameCode);
 
   return {
@@ -226,7 +230,10 @@ export async function getServerSideProps({ req, params }) {
       rankTierFromProfile: rankTierFromProfile || "",
       rankDivisionFromProfile: rankDivisionFromProfile || "",
       regionFromProfile: regionFromProfile || "",
-      hokPeakScoreFromProfile: hokPeakScoreFromProfile || "",
+      hokPeakScoreFromProfile:
+        hokPeakScoreFromProfile === "" ? "" : String(hokPeakScoreFromProfile),
+      hokStarsFromProfile:
+        hokStarsFromProfile === "" ? "" : String(hokStarsFromProfile),
     },
   };
 }
@@ -241,7 +248,6 @@ export default function TeamInviteAcceptPage(props) {
     discordId,
     avatar,
     teamRegistrationId,
-    tournamentId,
     displayName,
     heroBadge,
     gameCode,
@@ -251,8 +257,9 @@ export default function TeamInviteAcceptPage(props) {
     tagFromProfile,
     rankTierFromProfile,
     rankDivisionFromProfile,
-    regionFromProfile,
+    regionFromProfile, // unused for HoK on this page, but still passed through
     hokPeakScoreFromProfile,
+    hokStarsFromProfile,
   } = props || {};
 
   const [submitting, setSubmitting] = useState(false);
@@ -297,7 +304,7 @@ export default function TeamInviteAcceptPage(props) {
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
 
-  // Rank constants
+  // ---- Rank constants (match profile config) ----
   const VALORANT_RANK_TIERS = [
     "Iron",
     "Bronze",
@@ -325,7 +332,7 @@ export default function TeamInviteAcceptPage(props) {
   ];
   const TFT_DIVISIONS = ["IV", "III", "II", "I"];
 
-  // HOK rank options – adjust to match your real profile if needed
+  // HoK rank tiers & divisions as in profile.js
   const HOK_RANK_TIERS = [
     "Bronze",
     "Silver",
@@ -338,7 +345,23 @@ export default function TeamInviteAcceptPage(props) {
     "Grandmaster Epic",
     "Grandmaster Legend",
   ];
-  const HOK_RANK_DIVISIONS = ["V", "IV", "III", "II", "I"];
+
+  const HOK_DIVISIONS_BY_TIER = {
+    Bronze: ["III", "II", "I"],
+    Silver: ["III", "II", "I"],
+    Gold: ["III", "II", "I"],
+    Platinum: ["IV", "III", "II", "I"],
+    Diamond: ["V", "IV", "III", "II", "I"],
+    Master: ["V", "IV", "III", "II", "I"],
+    // Grandmaster family uses stars instead of divisions
+  };
+
+  const HOK_GM_TIERS = [
+    "Grandmaster",
+    "Grandmaster Mythic",
+    "Grandmaster Epic",
+    "Grandmaster Legend",
+  ];
 
   // Initial state from profile
   const [riotName, setRiotName] = useState(
@@ -356,6 +379,7 @@ export default function TeamInviteAcceptPage(props) {
   const isRadiant =
     gameCode === "VALORANT" && peakRankTier === "Radiant";
 
+  // HOK state (IGN + tier/div/stars/peak score, NO server field on this page)
   const [hokIgn, setHokIgn] = useState(
     gameCode === "HOK" ? ignFromProfile || "" : ""
   );
@@ -365,10 +389,18 @@ export default function TeamInviteAcceptPage(props) {
   const [hokRankDivision, setHokRankDivision] = useState(
     gameCode === "HOK" ? rankDivisionFromProfile || "" : ""
   );
+  const [hokStars, setHokStars] = useState(
+    gameCode === "HOK" && hokStarsFromProfile !== ""
+      ? hokStarsFromProfile
+      : ""
+  );
   const [hokPeakScore, setHokPeakScore] = useState(
-    gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
+    gameCode === "HOK" && hokPeakScoreFromProfile !== ""
+      ? hokPeakScoreFromProfile
+      : ""
   );
 
+  // TFT state
   const [tftName, setTftName] = useState(
     gameCode === "TFT" ? ignFromProfile || "" : ""
   );
@@ -381,9 +413,13 @@ export default function TeamInviteAcceptPage(props) {
   const [tftRankDivision, setTftRankDivision] = useState(
     gameCode === "TFT" ? rankDivisionFromProfile || "" : ""
   );
+
   const isTftHighRank =
     gameCode === "TFT" &&
     ["Master", "Grandmaster", "Challenger"].includes(tftRankTier);
+
+  const hasProfileIgn = !!ignFromProfile;
+  const hasProfileRank = !!rankTierFromProfile;
 
   function buildGameProfilePayload() {
     if (gameCode === "VALORANT") {
@@ -412,8 +448,7 @@ export default function TeamInviteAcceptPage(props) {
       return {
         ok: true,
         profileData: {
-          ign: nameTrimmed,
-          fullIgn,
+          ign: fullIgn,
           rank: rankString,
           rankTier: peakRankTier,
           rankDivision: peakRankDivision,
@@ -424,36 +459,56 @@ export default function TeamInviteAcceptPage(props) {
     if (gameCode === "HOK") {
       const ignTrimmed = hokIgn.trim();
       const tierTrimmed = hokRankTier.trim();
-      const divisionTrimmed = hokRankDivision.trim();
+      const divTrimmed = hokRankDivision.trim();
+      const starsTrimmed = hokStars.trim();
+      const peakTrimmed = hokPeakScore.trim();
 
       if (!ignTrimmed || !tierTrimmed) {
         return {
           ok: false,
           error:
-            "Please fill in your Honor of Kings IGN and rank before accepting.",
+            "Please fill in your Honor of Kings IGN and peak rank.",
         };
       }
 
-      const peakScoreNum =
-        hokPeakScore === "" ? NaN : Number(hokPeakScore);
+      const isGmTier = HOK_GM_TIERS.includes(tierTrimmed);
+      const needsDivision =
+        !isGmTier && !!tierTrimmed && !!HOK_DIVISIONS_BY_TIER[tierTrimmed];
 
-      const rankString = divisionTrimmed
-        ? `${tierTrimmed} ${divisionTrimmed}`
-        : tierTrimmed;
+      if (needsDivision && !divTrimmed) {
+        return {
+          ok: false,
+          error: "Please select your division/sub-tier.",
+        };
+      }
+
+      const starsNum =
+        starsTrimmed === "" ? null : Number(starsTrimmed);
+      const peakNum =
+        peakTrimmed === "" ? null : Number(peakTrimmed);
+
+      let rankString = tierTrimmed;
+      if (isGmTier && starsTrimmed) {
+        rankString = `${tierTrimmed} (${starsTrimmed}★)`;
+      } else if (!isGmTier && divTrimmed) {
+        rankString = `${tierTrimmed} ${divTrimmed}`;
+      }
 
       return {
         ok: true,
         profileData: {
           ign: ignTrimmed,
-          fullIgn: ignTrimmed,
           rank: rankString,
           rankTier: tierTrimmed,
-          rankDivision: divisionTrimmed,
-          // no server/region collected here
-          region: "",
-          hokPeakScore: Number.isNaN(peakScoreNum)
-            ? undefined
-            : peakScoreNum,
+          rankDivision: isGmTier ? "" : divTrimmed,
+          hokStars:
+            starsNum === null || Number.isNaN(starsNum)
+              ? undefined
+              : starsNum,
+          hokPeakScore:
+            peakNum === null || Number.isNaN(peakNum)
+              ? undefined
+              : peakNum,
         },
       };
     }
@@ -485,8 +540,7 @@ export default function TeamInviteAcceptPage(props) {
       return {
         ok: true,
         profileData: {
-          ign: nameTrimmed,
-          fullIgn,
+          ign: fullIgn,
           rank: rankString,
           rankTier: tftRankTier,
           rankDivision: isTftHighRank ? "" : tftRankDivision,
@@ -566,7 +620,6 @@ export default function TeamInviteAcceptPage(props) {
       setMessage(
         "Network error while accepting invite. Please try again."
       );
-    } finally {
       setSubmitting(false);
     }
   }
@@ -711,7 +764,7 @@ export default function TeamInviteAcceptPage(props) {
             color: "#e5e7eb",
           }}
         >
-          {ignFromProfile || rankTierFromProfile ? (
+          {hasProfileIgn || hasProfileRank ? (
             <>
               We pre-filled some details from your{" "}
               <span style={{ fontWeight: 600 }}>{gameLabel}</span> profile.
@@ -882,6 +935,7 @@ export default function TeamInviteAcceptPage(props) {
           {/* HOK */}
           {gameCode === "HOK" && (
             <>
+              {/* IGN */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -912,6 +966,7 @@ export default function TeamInviteAcceptPage(props) {
                 />
               </div>
 
+              {/* Rank + stars + peak score */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -922,15 +977,26 @@ export default function TeamInviteAcceptPage(props) {
                     marginBottom: "0.4rem",
                   }}
                 >
-                  Rank (Honor of Kings) *
+                  Peak rank (Honor of Kings) *
                 </label>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, 1.6fr)",
+                    gap: "0.5rem",
+                  }}
+                >
+                  {/* Tier */}
                   <select
                     required
                     value={hokRankTier}
-                    onChange={(e) => setHokRankTier(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setHokRankTier(v);
+                      setHokRankDivision("");
+                    }}
                     style={{
-                      flex: 2,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
@@ -948,58 +1014,71 @@ export default function TeamInviteAcceptPage(props) {
                     ))}
                   </select>
 
-                  <select
-                    value={hokRankDivision}
-                    onChange={(e) => setHokRankDivision(e.target.value)}
+                  {/* Division OR Stars */}
+                  {HOK_GM_TIERS.includes(hokRankTier) ? (
+                    <input
+                      type="number"
+                      min="0"
+                      max="500"
+                      value={hokStars}
+                      onChange={(e) => setHokStars(e.target.value)}
+                      placeholder="Stars (0 - 500)"
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#0f0f10",
+                        border: "1px solid #4b5563",
+                        borderRadius: "0.5rem",
+                        padding: "0.6rem 0.75rem",
+                        color: "white",
+                        fontSize: "0.9rem",
+                        outline: "none",
+                      }}
+                    />
+                  ) : (
+                    <select
+                      value={hokRankDivision}
+                      onChange={(e) => setHokRankDivision(e.target.value)}
+                      style={{
+                        backgroundColor: "#0f0f10",
+                        border: "1px solid #4b5563",
+                        borderRadius: "0.5rem",
+                        padding: "0.6rem 0.75rem",
+                        color: "white",
+                        fontSize: "0.9rem",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="">
+                        {hokRankTier ? "Division" : "Division"}
+                      </option>
+                      {(HOK_DIVISIONS_BY_TIER[hokRankTier] || []).map(
+                        (div) => (
+                          <option key={div} value={div}>
+                            {div}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  )}
+
+                  {/* Peak Tournament score */}
+                  <input
+                    type="number"
+                    value={hokPeakScore}
+                    onChange={(e) => setHokPeakScore(e.target.value)}
+                    placeholder="Peak score (1200 - 3000)"
                     style={{
-                      flex: 1,
+                      width: "100%",
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: hokRankTier ? "white" : "#6b7280",
+                      color: "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
-                  >
-                    <option value="">Div / Stars</option>
-                    {HOK_RANK_DIVISIONS.map((div) => (
-                      <option key={div} value={div}>
-                        {div}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    fontWeight: 500,
-                    color: "#e5e7eb",
-                    marginBottom: "0.4rem",
-                  }}
-                >
-                  Peak Tournament Score (optional)
-                </label>
-                <input
-                  type="number"
-                  value={hokPeakScore}
-                  onChange={(e) => setHokPeakScore(e.target.value)}
-                  placeholder="e.g. 1200–3000"
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
               </div>
             </>
           )}
@@ -1090,9 +1169,7 @@ export default function TeamInviteAcceptPage(props) {
                       const v = e.target.value;
                       setTftRankTier(v);
                       if (
-                        ["Master", "Grandmaster", "Challenger"].includes(
-                          v
-                        )
+                        ["Master", "Grandmaster", "Challenger"].includes(v)
                       ) {
                         setTftRankDivision("");
                       }
