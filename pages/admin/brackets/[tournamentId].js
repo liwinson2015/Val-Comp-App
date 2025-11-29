@@ -6,19 +6,6 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 import TournamentState from "../../../models/TournamentState";
-import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration";
-
-// ----- HELPERS (server side) -----
-function isTeamMode(gameKey, modeKey) {
-  const g = (gameKey || "").toLowerCase();
-  const m = (modeKey || "").toLowerCase();
-
-  // Treat these as team-based tournaments
-  if (g === "valorant" && (m === "2v2" || m === "5v5")) return true;
-  if (g === "tft" && m === "doubleup") return true;
-  if (g === "hok" && m === "5v5") return true;
-  return false;
-}
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
@@ -50,59 +37,29 @@ export async function getServerSideProps({ req, params }) {
   const rawId = params.tournamentId;
   const tournamentId = decodeURIComponent(rawId);
 
-  // Main tournament doc (we need this early to know game/mode)
-  const t = await Tournament.findOne({ tournamentId }).lean();
-  if (!t) {
-    return { notFound: true };
-  }
+  const players = await Player.find({
+    "registeredFor.tournamentId": tournamentId,
+  }).lean();
 
-  const gameKey = t.game || t.meta?.gameKey || "";
-  const modeKey = t.mode || t.meta?.modeKey || "";
-  const teamMode = isTeamMode(gameKey, modeKey);
+  const playerRows = players.map((p) => {
+    const reg = (p.registeredFor || []).find(
+      (r) => r.tournamentId === tournamentId
+    );
 
-  let playerRows = [];
-
-  if (teamMode) {
-    // ---------- TEAM TOURNAMENT: one entrant per team registration ----------
-    const regs = await TeamTournamentRegistration.find({
-      tournamentId,
-      status: { $ne: "cancelled" }, // usually "pending" or "active"
-    }).lean();
-
-    playerRows = regs.map((r) => ({
-      _id: r._id.toString(), // this ID will be used in the bracket as the "player" id
-      username: r.teamName || "Unnamed team",
-      discordId: "", // could be captain's discord if you want later
-      ign: r.teamName || "Unnamed team",
-      rank: "",
-      registeredAt: r.createdAt
-        ? new Date(r.createdAt).toISOString()
+    return {
+      _id: p._id.toString(),
+      username: p.username || "",
+      discordId: p.discordId || "",
+      ign: reg?.ign || "",
+      rank: reg?.rank || "",
+      registeredAt: reg?.createdAt
+        ? new Date(reg.createdAt).toISOString()
         : null,
-    }));
-  } else {
-    // ---------- SOLO TOURNAMENT: one entrant per player ----------
-    const players = await Player.find({
-      "registeredFor.tournamentId": tournamentId,
-    }).lean();
+    };
+  });
 
-    playerRows = players.map((p) => {
-      const reg = (p.registeredFor || []).find(
-        (r) => r.tournamentId === tournamentId
-      );
-
-      return {
-        _id: p._id.toString(),
-        username: p.username || "",
-        discordId: p.discordId || "",
-        ign: reg?.ign || "",
-        rank: reg?.rank || "",
-        registeredAt: reg?.createdAt
-          ? new Date(reg.createdAt).toISOString()
-          : null,
-      };
-    });
-  }
-
+  // Main tournament doc
+  const t = await Tournament.findOne({ tournamentId }).lean();
   const isPublished = !!t?.bracket?.isPublished;
 
   // --- DETAILS / HUB META (from Tournament.meta) ---
@@ -1566,6 +1523,58 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
       return copy;
     });
   }
+
+  // 🔹 UPDATED: allow creating the first match / new matches instead of "no empty slots"
+  function handleAddPlayerToBracket(playerId) {
+    setMatches((prev) => {
+      const copy = (prev || []).map((m) => ({ ...m }));
+
+      // 1) If there are no matches yet, create the first one
+      if (copy.length === 0) {
+        setSaveMessage("Created Match 1 and added player.");
+        return [
+          {
+            player1Id: playerId,
+            player2Id: null,
+            winnerId: null,
+          },
+        ];
+      }
+
+      // 2) Prevent duplicates
+      const alreadyPlaced = copy.some(
+        (m) => m.player1Id === playerId || m.player2Id === playerId
+      );
+      if (alreadyPlaced) {
+        setSaveMessage("Player already placed.");
+        return copy;
+      }
+
+      // 3) Try to fill any existing empty slot
+      for (let m of copy) {
+        if (!m.player1Id) {
+          m.player1Id = playerId;
+          setSaveMessage("Added to empty slot.");
+          return copy;
+        }
+        if (!m.player2Id) {
+          m.player2Id = playerId;
+          setSaveMessage("Added to empty slot.");
+          return copy;
+        }
+      }
+
+      // 4) If everything is full, create a new match at the end
+      copy.push({
+        player1Id: playerId,
+        player2Id: null,
+        winnerId: null,
+      });
+      setSaveMessage("Created a new match for this player.");
+      return copy;
+    });
+  }
+
   async function handleRandomizeR1() {
     setRandomizing(true);
     setSaveMessage("");
@@ -1602,32 +1611,6 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
     } finally {
       setRandomizing(false);
     }
-  }
-  function handleAddPlayerToBracket(playerId) {
-    setMatches((prev) => {
-      const copy = prev.map((m) => ({ ...m }));
-      const alreadyPlaced = copy.some(
-        (m) => m.player1Id === playerId || m.player2Id === playerId
-      );
-      if (alreadyPlaced) {
-        setSaveMessage("Player already placed.");
-        return copy;
-      }
-      for (let m of copy) {
-        if (!m.player1Id) {
-          m.player1Id = playerId;
-          setSaveMessage("Added to empty slot.");
-          return copy;
-        }
-        if (!m.player2Id) {
-          m.player2Id = playerId;
-          setSaveMessage("Added to empty slot.");
-          return copy;
-        }
-      }
-      setSaveMessage("No empty slots left.");
-      return copy;
-    });
   }
 
   const usedIds = new Set();
@@ -2030,7 +2013,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
         <button
           type="button"
           onClick={handleRandomizeR1}
-          disabled={randomizing || players.length < 1}
+          disabled={randomizing || players.length < 2}
           className={`${styles["btn"]} ${styles["btn-primary"]}`}
         >
           {randomizing ? "Randomizing..." : "🔀 Randomize R1"}
