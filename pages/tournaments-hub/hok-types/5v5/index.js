@@ -6,7 +6,7 @@ import styles from "../../../../styles/Hok5v5.module.css";
 
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
-import Player from "../../../../models/Player";
+import TeamTournamentRegistration from "../../../../models/TeamTournamentRegistration"; // 🔹 NEW
 
 // ----- SERVER SIDE: load HOK 5v5 tournaments from Tournament collection -----
 export async function getServerSideProps() {
@@ -14,8 +14,8 @@ export async function getServerSideProps() {
 
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    game: "hok",  // 🔹 Honor of Kings only
-    mode: "5v5",  // 🔹 full team format
+    game: "hok", // 🔹 Honor of Kings only
+    mode: "5v5", // 🔹 full team format
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -33,70 +33,54 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
-    // Count how many teams/entries are registered for this tournament
-    const registered = await Player.countDocuments({
-      "registeredFor.tournamentId": tid,
+    // 🔹 Count how many teams are registered for this tournament
+    const registered = await TeamTournamentRegistration.countDocuments({
+      tournamentId: tid,
+      status: { $ne: "cancelled" }, // pending + active = taking a slot
     });
 
-    const capacity = doc.capacity || 8; // often fewer full teams
+    const capacity = doc.capacity || 8; // number of teams
     const status = doc.status || "upcoming";
     const meta = doc.meta || {};
 
     const displayName =
-      doc.name ||
-      meta.displayName ||
-      "Honor of Kings Team Tournament #1";
+      doc.name || meta.displayName || "Honor of Kings Team Tournament #1";
 
     const displayDescription =
       meta.displayDescription ||
       "Bring your full squad and push lanes through organised 5v5 tournaments hosted by 5TQ.";
 
-    const displayTime =
-      meta.displayTime ||
-      "TBD";
+    const displayTime = meta.displayTime || "TBD";
 
     const displayFormat =
       meta.displayFormat ||
       meta.displayModeLabel ||
       "5v5 • Standard Team Format";
 
-    const displayCheckIn =
-      meta.displayCheckIn ||
-      "30 min before start";
+    const displayCheckIn = meta.displayCheckIn || "30 min before start";
 
     const displayPrize =
-      meta.displayPrize ||
-      "Skins / gift cards (per team)";
+      meta.displayPrize || "Skins / gift cards (per team)";
 
-    const displayEntry =
-      meta.displayEntry ||
-      "Free";
+    const displayEntry = meta.displayEntry || "Free";
 
-    const displayHost =
-      meta.displayHost ||
-      "5TQ";
+    const displayHost = meta.displayHost || "5TQ";
 
     const displayServer =
-      meta.displayServer ||
-      "NA (Custom Lobbies)";
+      meta.displayServer || "NA (Custom Lobbies)";
 
     const displayMaps =
-      meta.displayMaps ||
-      "Classic 5v5 Lane Map";
+      meta.displayMaps || "Classic 5v5 Lane Map";
 
-    const displayRules =
-      meta.displayRules ||
-      "No Cheating";
+    const displayRules = meta.displayRules || "No Cheating";
 
-    const detailsUrl =
-      meta.detailsUrl ||
-      `/tournaments/${tid}`;
+    const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 
     tournaments.push({
       tournamentId: tid,
       status,
       capacity,
-      registered,
+      registered, // 🔹 number of TEAMS
       displayName,
       displayDescription,
       displayTime,
@@ -148,7 +132,7 @@ export default function Hok5v5ListPage({ tournaments }) {
             <div className={styles.cardGrid}>
               {tournaments.map((t) => {
                 const capacity = t.capacity ?? 8;
-                const registered = t.registered ?? 0;
+                const registered = t.registered ?? 0; // 🔹 # of teams
                 const isFull = registered >= capacity;
                 const isCompleted = t.status === "completed";
 
@@ -168,7 +152,9 @@ export default function Hok5v5ListPage({ tournaments }) {
 
                       <p className={styles.tMeta}>
                         Team bracket hosted by{" "}
-                        <span style={{ color: "#e0f2fe" }}>{t.displayHost}</span>
+                        <span style={{ color: "#e0f2fe" }}>
+                          {t.displayHost}
+                        </span>
                         {" • "}
                         Starts {t.displayTime}
                       </p>

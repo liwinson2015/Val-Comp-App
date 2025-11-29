@@ -6,7 +6,7 @@ import styles from "../../../../styles/Valorant2v2.module.css";
 
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
-import Player from "../../../../models/Player";
+import TeamTournamentRegistration from "../../../../models/TeamTournamentRegistration"; // 🔹 NEW
 
 // ----- SERVER SIDE: load Valorant 2v2 tournaments from Tournament collection -----
 export async function getServerSideProps() {
@@ -15,7 +15,7 @@ export async function getServerSideProps() {
   const docs = await Tournament.find({
     status: { $ne: "completed" },
     game: "valorant", // 🔹 must match what you store in admin
-    mode: "2v2",      // 🔹 Valorant 2v2 format
+    mode: "2v2", // 🔹 Valorant 2v2 format
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -33,12 +33,13 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
-    // Count how many teams/entries are registered for this tournament
-    const registered = await Player.countDocuments({
-      "registeredFor.tournamentId": tid,
+    // 🔹 Count how many *teams/duos* are registered for this tournament
+    const registered = await TeamTournamentRegistration.countDocuments({
+      tournamentId: tid,
+      status: { $ne: "cancelled" }, // pending + active count as using a slot
     });
 
-    const capacity = doc.capacity || 16;
+    const capacity = doc.capacity || 16; // capacity = # of teams/duos
 
     // Read status directly (default to "upcoming" if missing)
     const status = doc.status || "upcoming";
@@ -46,9 +47,7 @@ export async function getServerSideProps() {
     const meta = doc.meta || {};
 
     const displayName =
-      doc.name ||
-      meta.displayName ||
-      "Valorant Duo Tournament #1";
+      doc.name || meta.displayName || "Valorant Duo Tournament #1";
 
     const displayDescription =
       meta.displayDescription ||
@@ -57,17 +56,12 @@ export async function getServerSideProps() {
     const displayTime = meta.displayTime || "Jan 2025";
 
     const displayFormat =
-      meta.displayFormat ||
-      meta.displayModeLabel ||
-      "2v2 • Double Elimination";
+      meta.displayFormat || meta.displayModeLabel || "2v2 • Double Elimination";
 
-    const displayCheckIn =
-      meta.displayCheckIn ||
-      "15 min before start";
+    const displayCheckIn = meta.displayCheckIn || "15 min before start";
 
     const displayPrize =
-      meta.displayPrize ||
-      "$20 Valorant Gift Card (per team)";
+      meta.displayPrize || "$20 Valorant Gift Card (per team)";
 
     const displayEntry = meta.displayEntry || "Free";
 
@@ -77,9 +71,7 @@ export async function getServerSideProps() {
 
     const displayMaps = meta.displayMaps || "Skirmish A/B/C(Random)";
 
-    const displayRules =
-      meta.displayRules ||
-      "No Cheats";
+    const displayRules = meta.displayRules || "No Cheats";
 
     const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 
@@ -123,8 +115,8 @@ export default function Valorant2v2ListPage({ tournaments }) {
           <div className={styles.heroBadge}>VALORANT 2v2</div>
           <h1 className={styles.heroTitle}>UPCOMING DUO TOURNAMENTS</h1>
           <p className={styles.heroSubtitle}>
-            Grab your duo and queue into organized skirmishes. All matches
-            are hosted through custom lobbies and coordinated in the 5TQ Discord.
+            Grab your duo and queue into organized skirmishes. All matches are
+            hosted through custom lobbies and coordinated in the 5TQ Discord.
           </p>
         </section>
 
@@ -133,13 +125,15 @@ export default function Valorant2v2ListPage({ tournaments }) {
           {!hasAny ? (
             <div style={{ padding: "2rem 0", color: "#9ca3af" }}>
               <p>No Valorant 2v2 tournaments are scheduled yet.</p>
-              <p>Watch the Discord announcements channel for the next event.</p>
+              <p>
+                Watch the Discord announcements channel for the next event.
+              </p>
             </div>
           ) : (
             <div className={styles.cardGrid}>
               {tournaments.map((t) => {
                 const capacity = t.capacity ?? 16;
-                const registered = t.registered ?? 0;
+                const registered = t.registered ?? 0; // 🔹 now = # of duos
                 const isFull = registered >= capacity;
                 const isCompleted = t.status === "completed";
 
@@ -192,7 +186,7 @@ export default function Valorant2v2ListPage({ tournaments }) {
                         </div>
                       </div>
                       <div className={styles.factRow}>
-                        <div className={styles.factLabel}>Slots</div>
+                        <div className={styles.factLabel}>Team Slots</div>
                         <div className={styles.factValue}>
                           <span
                             style={{

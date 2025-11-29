@@ -6,7 +6,7 @@ import styles from "../../../../styles/Valorant5v5.module.css";
 
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
-import Player from "../../../../models/Player";
+import TeamTournamentRegistration from "../../../../models/TeamTournamentRegistration"; // 🔹 NEW
 
 // ----- SERVER SIDE: load Valorant 5v5 tournaments from Tournament collection -----
 export async function getServerSideProps() {
@@ -15,7 +15,7 @@ export async function getServerSideProps() {
   const docs = await Tournament.find({
     status: { $ne: "completed" },
     game: "valorant", // 🔹 Valorant only
-    mode: "5v5",      // 🔹 full team format
+    mode: "5v5", // 🔹 full team format
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -33,64 +33,46 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
-    // Count how many teams/entries are registered for this tournament
-    const registered = await Player.countDocuments({
-      "registeredFor.tournamentId": tid,
+    // 🔹 Count how many *teams* are registered for this tournament
+    const registered = await TeamTournamentRegistration.countDocuments({
+      tournamentId: tid,
+      status: { $ne: "cancelled" }, // pending + active both count as using a slot
     });
 
-    const capacity = doc.capacity || 8; // often fewer full teams
+    const capacity = doc.capacity || 8; // capacity = # of teams
     const status = doc.status || "upcoming";
     const meta = doc.meta || {};
 
     const displayName =
-      doc.name ||
-      meta.displayName ||
-      "Valorant Team Tournament #1";
+      doc.name || meta.displayName || "Valorant Team Tournament #1";
 
     const displayDescription =
       meta.displayDescription ||
       "Bring your full squad and play through organized team brackets hosted by 5TQ.";
 
-    const displayTime =
-      meta.displayTime ||
-      "Spring 2025";
+    const displayTime = meta.displayTime || "Spring 2025";
 
     const displayFormat =
       meta.displayFormat ||
       meta.displayModeLabel ||
       "5v5 • Single Elimination";
 
-    const displayCheckIn =
-      meta.displayCheckIn ||
-      "30 min before start";
+    const displayCheckIn = meta.displayCheckIn || "30 min before start";
 
     const displayPrize =
-      meta.displayPrize ||
-      "$50+ in skins / gift cards (per team)";
+      meta.displayPrize || "$50+ in skins / gift cards (per team)";
 
-    const displayEntry =
-      meta.displayEntry ||
-      "Free";
+    const displayEntry = meta.displayEntry || "Free";
 
-    const displayHost =
-      meta.displayHost ||
-      "5TQ";
+    const displayHost = meta.displayHost || "5TQ";
 
-    const displayServer =
-      meta.displayServer ||
-      "NA (Custom)";
+    const displayServer = meta.displayServer || "NA (Custom)";
 
-    const displayMaps =
-      meta.displayMaps ||
-      "Competitive Map Pool";
+    const displayMaps = meta.displayMaps || "Competitive Map Pool";
 
-    const displayRules =
-      meta.displayRules ||
-      "No Cheating";
+    const displayRules = meta.displayRules || "No Cheating";
 
-    const detailsUrl =
-      meta.detailsUrl ||
-      `/tournaments/${tid}`;
+    const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 
     tournaments.push({
       tournamentId: tid,
@@ -142,13 +124,15 @@ export default function Valorant5v5ListPage({ tournaments }) {
           {!hasAny ? (
             <div style={{ padding: "2rem 0", color: "#9ca3af" }}>
               <p>No Valorant 5v5 tournaments are scheduled yet.</p>
-              <p>Keep an eye on Discord announcements for roster signup dates.</p>
+              <p>
+                Keep an eye on Discord announcements for roster signup dates.
+              </p>
             </div>
           ) : (
             <div className={styles.cardGrid}>
               {tournaments.map((t) => {
                 const capacity = t.capacity ?? 8;
-                const registered = t.registered ?? 0;
+                const registered = t.registered ?? 0; // 🔹 now = # of teams
                 const isFull = registered >= capacity;
                 const isCompleted = t.status === "completed";
 

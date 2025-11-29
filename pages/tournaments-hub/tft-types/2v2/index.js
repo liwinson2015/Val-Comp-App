@@ -6,7 +6,7 @@ import styles from "../../../../styles/Tft2v2.module.css";
 
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Tournament from "../../../../models/Tournament";
-import Player from "../../../../models/Player";
+import TeamTournamentRegistration from "../../../../models/TeamTournamentRegistration"; // 🔹 NEW
 
 // Load TFT Double Up tournaments
 export async function getServerSideProps() {
@@ -14,8 +14,8 @@ export async function getServerSideProps() {
 
   const docs = await Tournament.find({
     status: { $ne: "completed" },
-    game: "tft",       // 🔹 must match what you store in admin
-    mode: "doubleup",  // 🔹 TFT double up format
+    game: "tft",      // 🔹 must match what you store in admin
+    mode: "doubleup", // 🔹 TFT double up format
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -29,8 +29,10 @@ export async function getServerSideProps() {
   for (const doc of docs) {
     const tid = doc.tournamentId;
 
-    const registered = await Player.countDocuments({
-      "registeredFor.tournamentId": tid,
+    // 🔹 Count how many duos (teams) are registered for this tournament
+    const registered = await TeamTournamentRegistration.countDocuments({
+      tournamentId: tid,
+      status: { $ne: "cancelled" }, // pending + active use a slot
     });
 
     const capacity = doc.capacity || 8; // 8 duos / 16 players, up to you
@@ -38,9 +40,7 @@ export async function getServerSideProps() {
     const meta = doc.meta || {};
 
     const displayName =
-      doc.name ||
-      meta.displayName ||
-      "TFT Double Up Tournament #1";
+      doc.name || meta.displayName || "TFT Double Up Tournament #1";
 
     const displayDescription =
       meta.displayDescription ||
@@ -48,21 +48,14 @@ export async function getServerSideProps() {
 
     const displayTime = meta.displayTime || "TBD";
 
-    const displayFormat =
-      meta.displayFormat ||
-      "Double Up • Duo Lobbies";
+    const displayFormat = meta.displayFormat || "Double Up • Duo Lobbies";
 
-    const displayCheckIn =
-      meta.displayCheckIn ||
-      "15 min before first lobby";
+    const displayCheckIn = meta.displayCheckIn || "15 min before first lobby";
 
     const displayPrize =
-      meta.displayPrize ||
-      "Skins / RP / Gift Cards (per duo)";
+      meta.displayPrize || "Skins / RP / Gift Cards (per duo)";
 
-    const displayEntry =
-      meta.displayEntry ||
-      "Free";
+    const displayEntry = meta.displayEntry || "Free";
 
     const displayHost = meta.displayHost || "5TQ";
 
@@ -71,8 +64,7 @@ export async function getServerSideProps() {
     const displaySet = meta.displaySet || "Current Set";
 
     const displayNotes =
-      meta.displayNotes ||
-      "Bring a Duo, No Win-Trading";
+      meta.displayNotes || "Bring a Duo, No Win-Trading";
 
     const detailsUrl = meta.detailsUrl || `/tournaments/${tid}`;
 
@@ -115,8 +107,8 @@ export default function TftDuoListPage({ tournaments }) {
           <div className={styles.heroBadge}>TEAMFIGHT TACTICS • DOUBLE UP</div>
           <h1 className={styles.heroTitle}>Upcoming Double Up Tournaments</h1>
           <p className={styles.heroSubtitle}>
-            Queue with a partner, share units and health, and try to be the
-            last duo standing across your lobbies.
+            Queue with a partner, share units and health, and try to be the last
+            duo standing across your lobbies.
           </p>
         </section>
 
@@ -131,7 +123,7 @@ export default function TftDuoListPage({ tournaments }) {
             <div className={styles.cardGrid}>
               {tournaments.map((t) => {
                 const capacity = t.capacity ?? 8;
-                const registered = t.registered ?? 0;
+                const registered = t.registered ?? 0; // 🔹 # of duos
                 const isFull = registered >= capacity;
                 const isCompleted = t.status === "completed";
 
@@ -151,7 +143,9 @@ export default function TftDuoListPage({ tournaments }) {
 
                       <p className={styles.tMeta}>
                         Duo event hosted by{" "}
-                        <span style={{ color: "#e0f2fe" }}>{t.displayHost}</span>
+                        <span style={{ color: "#e0f2fe" }}>
+                          {t.displayHost}
+                        </span>
                         {" • "}
                         Starts {t.displayTime}
                       </p>
