@@ -203,6 +203,16 @@ export default function BracketPage({
     return out;
   };
 
+  // Generic helper: losers from a list of matches
+  const getLoserNamesFromMatches = (matches) =>
+    (matches || [])
+      .filter((m) => m.winnerId)
+      .map((m) =>
+        getLabel(
+          m.winnerId === m.player1Id ? m.player2Id : m.player1Id
+        )
+      );
+
   // --- MAPPINGS ---
   const rounds = bracket?.rounds || [];
   const r1Matches =
@@ -262,6 +272,7 @@ export default function BracketPage({
     final: { left: finalLeft, right: finalRight, champion: finalChamp },
   };
 
+  // ===== LOSERS DATA (double elim) =====
   const losersRounds = bracket?.losersRounds || [];
   const getLbRound = (n) =>
     (losersRounds.find((r) => r.roundNumber === n && r.type === "losers") || {
@@ -321,37 +332,62 @@ export default function BracketPage({
     ? getLabel(grandFinal.winnerId)
     : "TBD";
 
-  // --- RANKING LOGIC (still double-elim style; single will just show TBD for many slots) ---
-  const getLoserNames = (matches) => {
-    return (matches || [])
-      .filter((m) => m.winnerId)
-      .map((m) =>
-        getLabel(m.winnerId === m.player1Id ? m.player2Id : m.player1Id)
-      );
-  };
+  // ===== RANKING LOGIC =====
 
-  const placements = {
-    first: grandFinal?.winnerId ? getLabel(grandFinal.winnerId) : "TBD",
-    second: grandFinal?.winnerId
+  let placements;
+
+  if (isDoubleElim) {
+    // ---- DOUBLE ELIM (original logic) ----
+    const getLoserNames = (matches) => getLoserNamesFromMatches(matches);
+
+    placements = {
+      first: grandFinal?.winnerId ? getLabel(grandFinal.winnerId) : "TBD",
+      second: grandFinal?.winnerId
+        ? getLabel(
+            grandFinal.winnerId === grandFinal.player1Id
+              ? grandFinal.player2Id
+              : grandFinal.player1Id
+          )
+        : "TBD",
+      third: losersFinal?.winnerId
+        ? getLabel(
+            losersFinal.winnerId === losersFinal.player1Id
+              ? losersFinal.player2Id
+              : losersFinal.player1Id
+          )
+        : "TBD",
+      fourth: getLoserNames(getLbRound(5))[0] || "TBD",
+      fifthToSixth: padNames(getLoserNames(getLbRound(4)), 2),
+      seventhToEighth: padNames(getLoserNames(getLbRound(3)), 2),
+      ninthToTwelfth: padNames(getLoserNames(getLbRound(2)), 4),
+      thirteenthToSixteenth: padNames(getLoserNames(getLbRound(1)), 4),
+    };
+  } else {
+    // ---- SINGLE ELIM ----
+    // mapping: R1 losers → 9–16, R2 losers → 5–8, R3 losers → 3–4, final loser → 2, winner → 1
+    const r1Losers = padNames(getLoserNamesFromMatches(r1Matches), 8);
+    const r2Losers = padNames(getLoserNamesFromMatches(r2Matches), 4);
+    const r3Losers = padNames(getLoserNamesFromMatches(r3Matches), 2);
+
+    const singleChampion = winnersFinal?.winnerId
+      ? getLabel(winnersFinal.winnerId)
+      : "TBD";
+    const singleSecond = winnersFinal?.winnerId
       ? getLabel(
-          grandFinal.winnerId === grandFinal.player1Id
-            ? grandFinal.player2Id
-            : grandFinal.player1Id
+          winnersFinal.winnerId === winnersFinal.player1Id
+            ? winnersFinal.player2Id
+            : winnersFinal.player1Id
         )
-      : "TBD",
-    third: losersFinal?.winnerId
-      ? getLabel(
-          losersFinal.winnerId === losersFinal.player1Id
-            ? losersFinal.player2Id
-            : losersFinal.player1Id
-        )
-      : "TBD",
-    fourth: getLoserNames(getLbRound(5))[0] || "TBD",
-    fifthToSixth: padNames(getLoserNames(getLbRound(4)), 2),
-    seventhToEighth: padNames(getLoserNames(getLbRound(3)), 2),
-    ninthToTwelfth: padNames(getLoserNames(getLbRound(2)), 4),
-    thirteenthToSixteenth: padNames(getLoserNames(getLbRound(1)), 4),
-  };
+      : "TBD";
+
+    placements = {
+      first: singleChampion,
+      second: singleSecond,
+      thirdToFourth: r3Losers, // length 2
+      fifthToEighth: r2Losers, // length 4
+      ninthToSixteenth: r1Losers, // length 8
+    };
+  }
 
   return (
     <div className={styles.shell}>
@@ -401,46 +437,89 @@ export default function BracketPage({
               <span>Player</span>
             </div>
 
-            <div className={styles.rankRow}>
-              <div className={`${styles.rankBadge} ${styles.gold}`}>1st</div>
-              <div className={styles.rankName}>{placements.first}</div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={`${styles.rankBadge} ${styles.silver}`}>2nd</div>
-              <div className={styles.rankName}>{placements.second}</div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={`${styles.rankBadge} ${styles.bronze}`}>3rd</div>
-              <div className={styles.rankName}>{placements.third}</div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={styles.rankBadge}>4th</div>
-              <div className={styles.rankName}>{placements.fourth}</div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={styles.rankBadge}>5-6</div>
-              <div className={styles.rankName}>
-                {placements.fifthToSixth.join(" • ")}
-              </div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={styles.rankBadge}>7-8</div>
-              <div className={styles.rankName}>
-                {placements.seventhToEighth.join(" • ")}
-              </div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={styles.rankBadge}>9-12</div>
-              <div className={styles.rankName}>
-                {placements.ninthToTwelfth.join(" • ")}
-              </div>
-            </div>
-            <div className={styles.rankRow}>
-              <div className={styles.rankBadge}>13-16</div>
-              <div className={styles.rankName}>
-                {placements.thirteenthToSixteenth.join(" • ")}
-              </div>
-            </div>
+            {isDoubleElim ? (
+              <>
+                <div className={styles.rankRow}>
+                  <div className={`${styles.rankBadge} ${styles.gold}`}>
+                    1st
+                  </div>
+                  <div className={styles.rankName}>{placements.first}</div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={`${styles.rankBadge} ${styles.silver}`}>
+                    2nd
+                  </div>
+                  <div className={styles.rankName}>{placements.second}</div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={`${styles.rankBadge} ${styles.bronze}`}>
+                    3rd
+                  </div>
+                  <div className={styles.rankName}>{placements.third}</div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>4th</div>
+                  <div className={styles.rankName}>{placements.fourth}</div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>5-6</div>
+                  <div className={styles.rankName}>
+                    {placements.fifthToSixth.join(" • ")}
+                  </div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>7-8</div>
+                  <div className={styles.rankName}>
+                    {placements.seventhToEighth.join(" • ")}
+                  </div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>9-12</div>
+                  <div className={styles.rankName}>
+                    {placements.ninthToTwelfth.join(" • ")}
+                  </div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>13-16</div>
+                  <div className={styles.rankName}>
+                    {placements.thirteenthToSixteenth.join(" • ")}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.rankRow}>
+                  <div className={`${styles.rankBadge} ${styles.gold}`}>
+                    1st
+                  </div>
+                  <div className={styles.rankName}>{placements.first}</div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={`${styles.rankBadge} ${styles.silver}`}>
+                    2nd
+                  </div>
+                  <div className={styles.rankName}>{placements.second}</div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>3-4</div>
+                  <div className={styles.rankName}>
+                    {placements.thirdToFourth.join(" • ")}
+                  </div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>5-8</div>
+                  <div className={styles.rankName}>
+                    {placements.fifthToEighth.join(" • ")}
+                  </div>
+                </div>
+                <div className={styles.rankRow}>
+                  <div className={styles.rankBadge}>9-16</div>
+                  <div className={styles.rankName}>
+                    {placements.ninthToSixteenth.join(" • ")}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
