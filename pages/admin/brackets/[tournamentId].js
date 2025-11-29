@@ -1522,11 +1522,10 @@ function BracketEditor({ tournamentId, players, entryType, featuredMeta, details
   useEffect(() => {
     const winnersSF = computeWinnersFromMatches(sfMatches);
     // ⭐ FIX: REMOVED "if (winnersSF.length < 2) return;" 
-    // This allows single winners to advance in test cases/byes.
     
     setWbFinalMatches((prev) => {
       const current = (prev && prev[0]) || emptyFinalMatch;
-      // We also remove the "if exists return" check so it updates dynamically
+      // Removed check here too so it updates dynamically
       return [
         {
           player1Id: winnersSF[0] || null,
@@ -1946,29 +1945,67 @@ function BracketEditor({ tournamentId, players, entryType, featuredMeta, details
     try {
       const uniq = (arr) =>
         Array.from(new Set((arr || []).filter(Boolean)));
-      const ranking = {
-        first: grandFinalMatches[0]?.winnerId || null,
-        second: grandFinalMatches[0]?.winnerId
-          ? grandFinalMatches[0].winnerId ===
-            grandFinalMatches[0].player1Id
-            ? grandFinalMatches[0].player2Id
-            : grandFinalMatches[0].player1Id
-          : null,
-        third: lbFinalMatches[0]?.winnerId
-          ? lbFinalMatches[0].winnerId === lbFinalMatches[0].player1Id
-            ? lbFinalMatches[0].player2Id
-            : lbFinalMatches[0].player1Id
-          : null,
-        fourth: lbMatches4[0]?.winnerId
-          ? lbMatches4[0].winnerId === lbMatches4[0].player1Id
-            ? lbMatches4[0].player2Id
-            : lbMatches4[0].player1Id
-          : null,
-        fiveToSix: uniq(computeLosersFromMatches(lbMatches3b)),
-        sevenToEight: uniq(computeLosersFromMatches(lbMatches3a)),
-        nineToTwelve: uniq(computeLosersFromMatches(lbMatches2)),
-        thirteenToSixteen: uniq(computeLosersFromMatches(lbMatches1)),
-      };
+      
+      // ⭐ NEW RANKING LOGIC
+      let ranking = {};
+
+      // Check if this is effectively Single Elim (no LB matches)
+      const isSingleElim = !lbMatches1 || lbMatches1.length === 0;
+
+      if (isSingleElim) {
+        // === SINGLE ELIMINATION RANKING ===
+        const wbFinal = wbFinalMatches[0] || {};
+        
+        // 1st & 2nd comes from Winners Final
+        ranking.first = wbFinal.winnerId || null;
+        ranking.second = wbFinal.winnerId 
+          ? (wbFinal.winnerId === wbFinal.player1Id ? wbFinal.player2Id : wbFinal.player1Id) 
+          : null;
+        
+        // 3rd-4th comes from Semifinal Losers
+        const sfLosers = computeLosersFromMatches(sfMatches);
+        // We just put them in the 3rd/4th slots arbitrarily since there is no match to decide
+        ranking.third = sfLosers[0] || null; 
+        ranking.fourth = sfLosers[1] || null;
+
+        // 5th-8th comes from QF Losers
+        // The DB schema expects specific fields, so we map them as best we can
+        // We'll store them in the 'fiveToSix' and 'sevenToEight' fields effectively
+        const qfLosers = uniq(computeLosersFromMatches(qfMatches));
+        ranking.fiveToSix = qfLosers.slice(0, 2); 
+        ranking.sevenToEight = qfLosers.slice(2, 4);
+
+        // 9th-16th comes from R1 Losers
+        const r1Losers = uniq(computeLosersFromMatches(matches));
+        ranking.nineToTwelve = r1Losers.slice(0, 4);
+        ranking.thirteenToSixteen = r1Losers.slice(4, 8);
+
+      } else {
+        // === DOUBLE ELIMINATION RANKING (Original Logic) ===
+        ranking = {
+          first: grandFinalMatches[0]?.winnerId || null,
+          second: grandFinalMatches[0]?.winnerId
+            ? grandFinalMatches[0].winnerId ===
+              grandFinalMatches[0].player1Id
+              ? grandFinalMatches[0].player2Id
+              : grandFinalMatches[0].player1Id
+            : null,
+          third: lbFinalMatches[0]?.winnerId
+            ? lbFinalMatches[0].winnerId === lbFinalMatches[0].player1Id
+              ? lbFinalMatches[0].player2Id
+              : lbFinalMatches[0].player1Id
+            : null,
+          fourth: lbMatches4[0]?.winnerId
+            ? lbMatches4[0].winnerId === lbMatches4[0].player1Id
+              ? lbMatches4[0].player2Id
+              : lbMatches4[0].player1Id
+            : null,
+          fiveToSix: uniq(computeLosersFromMatches(lbMatches3b)),
+          sevenToEight: uniq(computeLosersFromMatches(lbMatches3a)),
+          nineToTwelve: uniq(computeLosersFromMatches(lbMatches2)),
+          thirteenToSixteen: uniq(computeLosersFromMatches(lbMatches1)),
+        };
+      }
 
       const res = await fetch(
         `/api/admin/brackets/${encodeURIComponent(
