@@ -6,6 +6,19 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 import TournamentState from "../../../models/TournamentState";
+import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration";
+
+// ----- HELPERS (server side) -----
+function isTeamMode(gameKey, modeKey) {
+  const g = (gameKey || "").toLowerCase();
+  const m = (modeKey || "").toLowerCase();
+
+  // Treat these as team-based tournaments
+  if (g === "valorant" && (m === "2v2" || m === "5v5")) return true;
+  if (g === "tft" && m === "doubleup") return true;
+  if (g === "hok" && m === "5v5") return true;
+  return false;
+}
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
@@ -37,29 +50,59 @@ export async function getServerSideProps({ req, params }) {
   const rawId = params.tournamentId;
   const tournamentId = decodeURIComponent(rawId);
 
-  const players = await Player.find({
-    "registeredFor.tournamentId": tournamentId,
-  }).lean();
-
-  const playerRows = players.map((p) => {
-    const reg = (p.registeredFor || []).find(
-      (r) => r.tournamentId === tournamentId
-    );
-
-    return {
-      _id: p._id.toString(),
-      username: p.username || "",
-      discordId: p.discordId || "",
-      ign: reg?.ign || "",
-      rank: reg?.rank || "",
-      registeredAt: reg?.createdAt
-        ? new Date(reg.createdAt).toISOString()
-        : null,
-    };
-  });
-
-  // Main tournament doc
+  // Main tournament doc (we need this early to know game/mode)
   const t = await Tournament.findOne({ tournamentId }).lean();
+  if (!t) {
+    return { notFound: true };
+  }
+
+  const gameKey = t.game || t.meta?.gameKey || "";
+  const modeKey = t.mode || t.meta?.modeKey || "";
+  const teamMode = isTeamMode(gameKey, modeKey);
+
+  let playerRows = [];
+
+  if (teamMode) {
+    // ---------- TEAM TOURNAMENT: one entrant per team registration ----------
+    const regs = await TeamTournamentRegistration.find({
+      tournamentId,
+      status: { $ne: "cancelled" }, // usually "pending" or "active"
+    }).lean();
+
+    playerRows = regs.map((r) => ({
+      _id: r._id.toString(), // this ID will be used in the bracket as the "player" id
+      username: r.teamName || "Unnamed team",
+      discordId: "", // could be captain's discord if you want later
+      ign: r.teamName || "Unnamed team",
+      rank: "",
+      registeredAt: r.createdAt
+        ? new Date(r.createdAt).toISOString()
+        : null,
+    }));
+  } else {
+    // ---------- SOLO TOURNAMENT: one entrant per player ----------
+    const players = await Player.find({
+      "registeredFor.tournamentId": tournamentId,
+    }).lean();
+
+    playerRows = players.map((p) => {
+      const reg = (p.registeredFor || []).find(
+        (r) => r.tournamentId === tournamentId
+      );
+
+      return {
+        _id: p._id.toString(),
+        username: p.username || "",
+        discordId: p.discordId || "",
+        ign: reg?.ign || "",
+        rank: reg?.rank || "",
+        registeredAt: reg?.createdAt
+          ? new Date(reg.createdAt).toISOString()
+          : null,
+      };
+    });
+  }
+
   const isPublished = !!t?.bracket?.isPublished;
 
   // --- DETAILS / HUB META (from Tournament.meta) ---
