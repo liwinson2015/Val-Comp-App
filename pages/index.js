@@ -4,6 +4,8 @@ import styles from "../styles/Valorant.module.css";
 import { connectToDatabase } from "../lib/mongodb";
 import Player from "../models/Player";
 import TournamentState from "../models/TournamentState";
+import Tournament from "../models/Tournament"; // ⭐ NEW IMPORT
+import TeamTournamentRegistration from "../models/TeamTournamentRegistration"; // ⭐ NEW IMPORT
 
 const DEFAULT_MAX_SLOTS = 16;
 
@@ -20,10 +22,37 @@ export async function getServerSideProps() {
 
   const tournamentId = state.tournamentId;
 
-  // 2) Count registrations for this tournament
-  const currentCount = await Player.countDocuments({
-    "registeredFor.tournamentId": tournamentId,
-  });
+  // ---------------------------------------------------------
+  // 2) DETERMINE COUNT (Team vs Player)
+  // ---------------------------------------------------------
+  
+  // Load actual tournament details to check the mode
+  const tDoc = await Tournament.findOne({ tournamentId }).lean();
+  
+  // Check if Team Tournament
+  const isTeamTournament = tDoc && (
+    /-5V5-/i.test(tournamentId) ||
+    tDoc.mode === "5v5" ||
+    tDoc.modeKey === "5v5" ||
+    tDoc.type === "team" ||
+    tDoc.format === "team" ||
+    tDoc.meta?.isTeamTournament === true
+  );
+
+  let currentCount = 0;
+
+  if (isTeamTournament) {
+    // ⭐ Count TEAMS (Registrations), not players
+    currentCount = await TeamTournamentRegistration.countDocuments({
+      tournamentId: tournamentId,
+      status: { $ne: "cancelled" }
+    });
+  } else {
+    // ⭐ Count PLAYERS (Old logic for Solo)
+    currentCount = await Player.countDocuments({
+      "registeredFor.tournamentId": tournamentId,
+    });
+  }
 
   // Allow capacity override from state if you ever add it
   const maxSlots =
@@ -89,6 +118,9 @@ export default function HomePage({ featured }) {
   }
 
   const slotsText = hasFeatured ? `${currentCount} / ${maxSlots}` : "-- / --";
+  
+  // Update label to differentiate Team vs Player count if you want, 
+  // currently we just say "Registered" which applies to both.
   const playersText = hasFeatured
     ? `${currentCount} REGISTERED`
     : "COMING SOON";
