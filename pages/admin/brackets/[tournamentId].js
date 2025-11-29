@@ -7,7 +7,7 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 import TournamentState from "../../../models/TournamentState";
-import Team from "../../../models/Team"; // ⭐ NEW: for team tournaments
+import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration"; // ⭐ NEW IMPORT
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
@@ -45,46 +45,43 @@ export async function getServerSideProps({ req, params }) {
     return { notFound: true };
   }
 
-  // Heuristic: treat as "team tournament" when it's 5v5
+  // 1. ROBUST TEAM DETECTION
   const isTeamTournament =
     /-5V5-/i.test(tournamentId) ||
     t.mode === "5v5" ||
     t.modeKey === "5v5" ||
+    t.type === "team" ||
+    t.format === "team" ||
     t.meta?.isTeamTournament === true;
 
   let playerRows = [];
+  // Tells the UI if we are looking at Teams or Players
+  const entryType = isTeamTournament ? "Team" : "Player";
 
   if (isTeamTournament) {
-    // 🔹 TEAM-BASED ENTRY (one entry per team)
-    const teams = await Team.find({
-      "registeredFor.tournamentId": tournamentId,
+    // 🔹 TEAM ENTRY
+    // We fetch from TeamTournamentRegistration to get the link between Team & Tourney
+    const registrations = await TeamTournamentRegistration.find({
+      tournamentId: tournamentId,
+      status: { $ne: "cancelled" },
     }).lean();
 
-    playerRows = teams.map((team) => {
-      const reg = (team.registeredFor || []).find(
-        (r) => r.tournamentId === tournamentId
-      );
-
+    playerRows = registrations.map((reg) => {
       return {
-        // still called "_id" so existing editor code works,
-        // but it represents a TEAM id
-        _id: team._id.toString(),
-        username: "",
+        // ⭐ CRITICAL: Use the Team ID so it matches the Team Model
+        _id: reg.team.toString(), 
+        username: "", // Teams don't have usernames
         discordId: "",
-        ign:
-          reg?.teamName ||
-          reg?.name ||
-          team.teamName ||
-          team.name ||
-          "Unnamed Team",
-        rank: reg?.rank || "",
-        registeredAt: reg?.createdAt
+        // Use snapshot name or fallback
+        ign: reg.teamName || reg.teamTag || "Unnamed Team", 
+        rank: "N/A",
+        registeredAt: reg.createdAt
           ? new Date(reg.createdAt).toISOString()
           : null,
       };
     });
   } else {
-    // 🔹 SOLO ENTRY (old behavior)
+    // 🔹 SOLO ENTRY
     const players = await Player.find({
       "registeredFor.tournamentId": tournamentId,
     }).lean();
@@ -154,11 +151,12 @@ export async function getServerSideProps({ req, params }) {
     props: {
       tournamentId,
       players: playerRows, // can be teams or players
+      entryType, // ⭐ Pass this to UI
       isPublished,
       tournamentStatus,
       isFeatured,
       featuredMeta,
-      detailsMeta, // ⭐ for details + hub cards
+      detailsMeta, 
     },
   };
 }
@@ -1197,6 +1195,7 @@ function HomepageFeaturedForm({ tournamentId, initialMeta }) {
 export default function BracketAdminPage({
   tournamentId,
   players,
+  entryType, // ⭐ NEW PROP
   isPublished,
   tournamentStatus,
   isFeatured,
@@ -1294,6 +1293,7 @@ export default function BracketAdminPage({
       <BracketEditor
         tournamentId={tournamentId}
         players={players}
+        entryType={entryType || "Player"} // ⭐ Pass it down
         featuredMeta={featuredMeta}
         detailsMeta={detailsMeta}
       />
@@ -1333,7 +1333,7 @@ function buildPairsFromIds(ids) {
 }
 
 // ---------- BRACKET EDITOR ----------
-function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
+function BracketEditor({ tournamentId, players, entryType, featuredMeta, detailsMeta }) {
   const emptyFinalMatch = { player1Id: null, player2Id: null, winnerId: null };
   const [loading, setLoading] = useState(true);
 
@@ -1360,11 +1360,15 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
   const [saveMessage, setSaveMessage] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
+  // ⭐ UPDATE LABEL LOGIC
   const idToLabel = {};
   for (const p of players || []) {
-    // For teams, "ign" is the team name; for solos, it's the IGN
     const base = p.ign || p.username || "Unknown";
-    const extra = p.username && p.ign ? ` (${p.username})` : "";
+    let extra = "";
+    // Only show extra if there is a username AND it differs (for players)
+    if (p.username && p.ign && p.username !== p.ign) {
+        extra = ` (${p.username})`;
+    }
     idToLabel[p._id] = `${base}${extra}`;
   }
   const allOptions = players.map((p) => ({
@@ -1616,7 +1620,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
         (m) => m.player1Id === playerId || m.player2Id === playerId
       );
       if (alreadyPlaced) {
-        setSaveMessage("Player already placed.");
+        setSaveMessage(`${entryType} already placed.`);
         return copy;
       }
       for (let m of copy) {
@@ -2074,7 +2078,10 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
       </div>
 
       <div className={styles["player-pool"]}>
-        <div className={styles["pool-title"]}>Unplaced Players (Round 1)</div>
+        <div className={styles["pool-title"]}>
+          {/* Dynamic Label */}
+          Unplaced {entryType === "Team" ? "Teams" : "Players"} (Round 1)
+        </div>
         {unusedPlayers.length === 0 ? (
           <span
             style={{
@@ -2082,13 +2089,13 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
               fontSize: "0.85rem",
             }}
           >
-            All players placed.
+            All {entryType === "Team" ? "teams" : "players"} placed.
           </span>
         ) : (
           <div className={styles["tag-cloud"]}>
             {unusedPlayers.map((p) => (
               <div key={p._id} className={styles["player-tag"]}>
-                <span>{p.ign || p.username || "Unknown"}</span>
+                <span>{idToLabel[p._id]}</span>
                 <button
                   type="button"
                   onClick={() => handleAddPlayerToBracket(p._id)}
@@ -2109,7 +2116,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
           <strong>Warning:</strong> Duplicates:{" "}
           {duplicatePlayers.map(
             (p) =>
-              `${p.ign || p.username} (x${placedCount[p._id]}), `
+              `${idToLabel[p._id]} (x${placedCount[p._id]}), `
           )}
         </div>
       )}

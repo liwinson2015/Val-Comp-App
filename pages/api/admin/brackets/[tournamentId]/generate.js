@@ -3,7 +3,7 @@ import { getCurrentPlayerFromReq } from "../../../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../../../lib/mongodb";
 import Player from "../../../../../models/Player";
 import Tournament from "../../../../../models/Tournament";
-import TeamTournamentRegistration from "../../../../../models/TeamTournamentRegistration";
+import TeamTournamentRegistration from "../../../../../models/TeamTournamentRegistration"; // ⭐ CORRECT IMPORT
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -21,32 +21,40 @@ export default async function handler(req, res) {
   const rawId = req.query.tournamentId;
   const tournamentId = decodeURIComponent(rawId || "");
 
-  // ---- LOAD TOURNAMENT (to know if team vs solo) ----
+  // ---- LOAD TOURNAMENT ----
   const t = await Tournament.findOne({ tournamentId }).lean();
   if (!t) {
     return res.status(404).json({ error: "Tournament not found." });
   }
 
-  const game = t.game || "";
-  const mode = t.mode || "";
+  // 1. ROBUST TEAM DETECTION (Matches your Frontend logic)
   const isTeamTournament =
-    (game === "valorant" || game === "hok") && mode === "5v5";
+    /-5V5-/i.test(tournamentId) ||
+    t.mode === "5v5" ||
+    t.modeKey === "5v5" ||
+    t.type === "team" ||
+    t.format === "team" ||
+    t.meta?.isTeamTournament === true;
 
   let entrants = [];
 
   if (isTeamTournament) {
-    // ========= TEAM TOURNAMENT (each entrant is a team) =========
-    const teamRegs = await TeamTournamentRegistration.find({
+    // ========= TEAM TOURNAMENT =========
+    // 1. Fetch Registrations (NOT Teams directly, to ensure we get registered teams)
+    const registrations = await TeamTournamentRegistration.find({
       tournamentId,
-      status: { $ne: "cancelled" }, // active / pending etc.
+      status: { $ne: "cancelled" },
     }).lean();
 
-    entrants = (teamRegs || []).map((r) => ({
-      id: r._id.toString(),
-      name: r.teamName || "Unnamed team",
+    // 2. Map to Entrants
+    entrants = registrations.map((reg) => ({
+      // ⭐ MATCHING ID: We use reg.team which is the Team ID
+      id: reg.team.toString(), 
+      name: reg.teamName || reg.teamTag || "Unnamed Team",
     }));
+
   } else {
-    // ========= SOLO TOURNAMENT (each entrant is a player) =========
+    // ========= SOLO TOURNAMENT =========
     const players = await Player.find({
       "registeredFor.tournamentId": tournamentId,
     }).lean();
@@ -61,7 +69,9 @@ export default async function handler(req, res) {
   if (entrants.length < 1) {
     return res
       .status(400)
-      .json({ error: "No entrants found to generate a bracket." });
+      .json({ 
+        error: `No ${isTeamTournament ? "teams" : "players"} found to generate a bracket.` 
+      });
   }
 
   // ---- SHUFFLE ENTRANTS ----
@@ -81,6 +91,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // NOTE: We Do NOT save here. The admin editor decides when to save.
-  return res.status(200).json({ matches });
+  // Return the matches (Admin UI will save them)
+  return res.status(200).json({ matches, ok: true });
 }
