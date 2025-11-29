@@ -67,6 +67,7 @@ function extractGameProfile(player, gameCode) {
       rankDivisionFromProfile: "",
       regionFromProfile: "",
       hokPeakScoreFromProfile: "",
+      hokStarsFromProfile: "",
     };
   }
 
@@ -95,8 +96,16 @@ function extractGameProfile(player, gameCode) {
   const rankTierFromProfile = profile.rankTier || "";
   const rankDivisionFromProfile = profile.rankDivision || "";
   const regionFromProfile = profile.region || "";
+
   const hokPeakScoreFromProfile =
-    typeof profile.hokPeakScore === "number" ? profile.hokPeakScore : "";
+    typeof profile.hokPeakScore === "number"
+      ? profile.hokPeakScore
+      : profile.hokPeakScore || "";
+
+  const hokStarsFromProfile =
+    typeof profile.hokStars === "number"
+      ? profile.hokStars
+      : profile.hokStars || "";
 
   return {
     ignFromProfile,
@@ -105,6 +114,7 @@ function extractGameProfile(player, gameCode) {
     rankDivisionFromProfile,
     regionFromProfile,
     hokPeakScoreFromProfile,
+    hokStarsFromProfile,
   };
 }
 
@@ -304,6 +314,7 @@ export async function getServerSideProps({ req, params }) {
       rankDivisionFromProfile,
       regionFromProfile,
       hokPeakScoreFromProfile,
+      hokStarsFromProfile,
     } = extractGameProfile(player, gameCode);
 
     const theme = GAME_THEMES[gameKey] || DEFAULT_THEME;
@@ -332,6 +343,7 @@ export async function getServerSideProps({ req, params }) {
         rankDivisionFromProfile: rankDivisionFromProfile || "",
         regionFromProfile: regionFromProfile || "",
         hokPeakScoreFromProfile: hokPeakScoreFromProfile || "",
+        hokStarsFromProfile: hokStarsFromProfile || "",
       },
     };
   } catch (err) {
@@ -363,6 +375,7 @@ export async function getServerSideProps({ req, params }) {
         rankDivisionFromProfile: "",
         regionFromProfile: "",
         hokPeakScoreFromProfile: "",
+        hokStarsFromProfile: "",
       },
     };
   }
@@ -391,8 +404,9 @@ export default function DynamicRegisterPage(props) {
     tagFromProfile,
     rankTierFromProfile,
     rankDivisionFromProfile,
-    regionFromProfile,
+    regionFromProfile, // not used in HOK form now, but kept in case
     hokPeakScoreFromProfile,
+    hokStarsFromProfile,
   } = props || {};
 
   const [submitting, setSubmitting] = useState(false);
@@ -475,6 +489,37 @@ export default function DynamicRegisterPage(props) {
   ];
   const TFT_DIVISIONS = ["IV", "III", "II", "I"];
 
+  // HOK rank options (match profile.js GAME_DEFS)
+  const HOK_RANK_TIERS = [
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Diamond",
+    "Master",
+    "Grandmaster",
+    "Grandmaster Mythic",
+    "Grandmaster Epic",
+    "Grandmaster Legend",
+  ];
+
+  const HOK_DIVISIONS_BY_TIER = {
+    Bronze: ["III", "II", "I"],
+    Silver: ["III", "II", "I"],
+    Gold: ["III", "II", "I"],
+    Platinum: ["IV", "III", "II", "I"],
+    Diamond: ["V", "IV", "III", "II", "I"],
+    Master: ["V", "IV", "III", "II", "I"],
+    // Grandmaster family uses stars instead of divisions
+  };
+
+  const GM_TIERS = [
+    "Grandmaster",
+    "Grandmaster Mythic",
+    "Grandmaster Epic",
+    "Grandmaster Legend",
+  ];
+
   // Profile flags
   const hasProfileIgn = !!ignFromProfile;
   const hasProfileRank = !!rankTierFromProfile;
@@ -497,25 +542,31 @@ export default function DynamicRegisterPage(props) {
   const isRadiant =
     gameCode === "VALORANT" && peakRankTier === "Radiant";
 
-  // ---- HOK state ----
+  // ---- HOK state (tier + division OR stars, peak score; NO region/server here) ----
   const [hokIgn, setHokIgn] = useState(
     gameCode === "HOK" ? ignFromProfile || "" : ""
   );
-  const [hokRegion, setHokRegion] = useState(
-    gameCode === "HOK" ? regionFromProfile || "" : ""
+  const [hokRankTier, setHokRankTier] = useState(
+    gameCode === "HOK" ? rankTierFromProfile || "" : ""
   );
-  const [hokRank, setHokRank] = useState(
-    gameCode === "HOK"
-      ? (rankTierFromProfile &&
-          rankDivisionFromProfile &&
-          `${rankTierFromProfile} ${rankDivisionFromProfile}`) ||
-        rankTierFromProfile ||
-        ""
+  const [hokRankDivision, setHokRankDivision] = useState(
+    gameCode === "HOK" ? rankDivisionFromProfile || "" : ""
+  );
+  const [hokStars, setHokStars] = useState(
+    gameCode === "HOK" && hokStarsFromProfile !== ""
+      ? String(hokStarsFromProfile)
       : ""
   );
   const [hokPeakScore, setHokPeakScore] = useState(
-    gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
+    gameCode === "HOK" && hokPeakScoreFromProfile !== ""
+      ? String(hokPeakScoreFromProfile)
+      : ""
   );
+
+  const isHokGrandmasterFamily =
+    gameCode === "HOK" && GM_TIERS.includes(hokRankTier);
+  const hokDivisionOptions =
+    HOK_DIVISIONS_BY_TIER[hokRankTier] || [];
 
   // ---- TFT state (Riot-style, Name#Tag + tier/div) ----
   const [tftName, setTftName] = useState(
@@ -575,14 +626,45 @@ export default function DynamicRegisterPage(props) {
 
     if (gameCode === "HOK") {
       const ignTrimmed = hokIgn.trim();
-      const rankTrimmed = hokRank.trim();
-      const regionTrimmed = hokRegion.trim();
+      const tierTrimmed = hokRankTier.trim();
+      const divTrimmed = hokRankDivision.trim();
+      const starsTrimmed = hokStars.trim();
 
-      if (!ignTrimmed || !rankTrimmed) {
+      if (!ignTrimmed || !tierTrimmed) {
         return {
           ok: false,
-          error: "Please fill in your IGN and rank for Honor of Kings.",
+          error: "Please fill in your IGN and peak rank tier for Honor of Kings.",
         };
+      }
+
+      const isGM = GM_TIERS.includes(tierTrimmed);
+
+      let starsNum = null;
+      if (isGM) {
+        if (!starsTrimmed) {
+          return {
+            ok: false,
+            error:
+              "Please enter your Grandmaster stars (0–500) for Honor of Kings.",
+          };
+        }
+        const n = Number(starsTrimmed);
+        if (Number.isNaN(n) || n < 0) {
+          return {
+            ok: false,
+            error: "Grandmaster stars must be a non-negative number.",
+          };
+        }
+        starsNum = n;
+      }
+
+      let rankString = "";
+      if (isGM) {
+        rankString = `${tierTrimmed} ${starsNum} stars`;
+      } else if (divTrimmed) {
+        rankString = `${tierTrimmed} ${divTrimmed}`;
+      } else {
+        rankString = tierTrimmed;
       }
 
       const peakScoreNum =
@@ -593,10 +675,10 @@ export default function DynamicRegisterPage(props) {
         profileData: {
           ign: ignTrimmed,
           fullIgn: ignTrimmed,
-          rank: rankTrimmed,
-          rankTier: rankTrimmed, // you can refine later if you split tier/div
-          rankDivision: "",
-          region: regionTrimmed || "",
+          rank: rankString,
+          rankTier: tierTrimmed,
+          rankDivision: isGM ? "" : divTrimmed,
+          hokStars: starsNum,
           hokPeakScore: Number.isNaN(peakScoreNum)
             ? undefined
             : peakScoreNum,
@@ -1151,9 +1233,10 @@ export default function DynamicRegisterPage(props) {
             </>
           )}
 
-          {/* HOK FORM */}
+          {/* HOK FORM (tier + division OR GM stars, no server) */}
           {gameCode === "HOK" && (
             <>
+              {/* IGN */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1196,6 +1279,7 @@ export default function DynamicRegisterPage(props) {
                 </div>
               </div>
 
+              {/* Rank tier + division OR GM stars + peak score */}
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1206,55 +1290,111 @@ export default function DynamicRegisterPage(props) {
                     marginBottom: "0.4rem",
                   }}
                 >
-                  Region / Server
+                  Peak rank (Honor of Kings) *
                 </label>
-                <input
-                  value={hokRegion}
-                  onChange={(e) => setHokRegion(e.target.value)}
-                  placeholder="e.g. SEA, Asia, CN, etc."
-                  disabled={resolvedAlreadyRegistered}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
-              </div>
 
-              <div style={{ marginBottom: "1rem" }}>
-                <label
+                <div
                   style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    fontWeight: 500,
-                    color: "#e5e7eb",
-                    marginBottom: "0.4rem",
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr)",
+                    gap: "0.5rem",
                   }}
                 >
-                  Rank (Honor of Kings) *
-                </label>
-                <input
-                  required
-                  value={hokRank}
-                  onChange={(e) => setHokRank(e.target.value)}
-                  placeholder="e.g. King 50 stars"
-                  disabled={resolvedAlreadyRegistered}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
+                  {/* Rank tier */}
+                  <select
+                    required
+                    value={hokRankTier}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setHokRankTier(v);
+                      setHokRankDivision("");
+                      // If switching out of GM family, keep stars but division can be used again
+                    }}
+                    disabled={resolvedAlreadyRegistered}
+                    style={{
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">Select rank tier</option>
+                    {HOK_RANK_TIERS.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {tier}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Division OR GM stars */}
+                  {isHokGrandmasterFamily ? (
+                    <input
+                      type="number"
+                      value={hokStars}
+                      onChange={(e) => setHokStars(e.target.value)}
+                      placeholder="GM stars (0–500)"
+                      disabled={resolvedAlreadyRegistered}
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#0f0f10",
+                        border: "1px solid #4b5563",
+                        borderRadius: "0.5rem",
+                        padding: "0.6rem 0.75rem",
+                        color: resolvedAlreadyRegistered ? "#6b7280" : "white",
+                        fontSize: "0.9rem",
+                        outline: "none",
+                      }}
+                    />
+                  ) : (
+                    <select
+                      value={hokRankDivision}
+                      onChange={(e) =>
+                        setHokRankDivision(e.target.value)
+                      }
+                      disabled={resolvedAlreadyRegistered}
+                      style={{
+                        backgroundColor: "#0f0f10",
+                        border: "1px solid #4b5563",
+                        borderRadius: "0.5rem",
+                        padding: "0.6rem 0.75rem",
+                        color: resolvedAlreadyRegistered ? "#6b7280" : "white",
+                        fontSize: "0.9rem",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="">Sub-tier / Division</option>
+                      {hokDivisionOptions.map((div) => (
+                        <option key={div} value={div}>
+                          {div}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Peak tournament score */}
+                  <input
+                    type="number"
+                    value={hokPeakScore}
+                    onChange={(e) => setHokPeakScore(e.target.value)}
+                    placeholder="Peak score (1200–3000)"
+                    disabled={resolvedAlreadyRegistered}
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
                 <div
                   style={{
                     marginTop: "0.35rem",
@@ -1263,40 +1403,9 @@ export default function DynamicRegisterPage(props) {
                   }}
                 >
                   {hasProfileRank
-                    ? "Loaded your current rank from your Honor of Kings profile."
-                    : "We couldn’t find your rank on your Honor of Kings profile, so we’ll use what you enter here."}
+                    ? "Peak rank was loaded from your Honor of Kings profile. Make sure this still matches your main account."
+                    : "We couldn’t find a peak rank on your Honor of Kings profile, so we’ll use what you enter here."}
                 </div>
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    fontWeight: 500,
-                    color: "#e5e7eb",
-                    marginBottom: "0.4rem",
-                  }}
-                >
-                  Peak Tournament Score (optional)
-                </label>
-                <input
-                  type="number"
-                  value={hokPeakScore}
-                  onChange={(e) => setHokPeakScore(e.target.value)}
-                  placeholder="e.g. 1200–3000"
-                  disabled={resolvedAlreadyRegistered}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
               </div>
             </>
           )}
