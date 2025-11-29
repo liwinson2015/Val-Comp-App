@@ -1,3 +1,4 @@
+// pages/admin/brackets/[tournamentId].js
 import React, { useEffect, useState } from "react";
 import styles from "../../../styles/BracketsAdmin.module.css";
 
@@ -6,6 +7,7 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 import TournamentState from "../../../models/TournamentState";
+import Team from "../../../models/Team"; // ⭐ NEW: for team tournaments
 
 // ---------- SERVER SIDE ----------
 export async function getServerSideProps({ req, params }) {
@@ -37,29 +39,74 @@ export async function getServerSideProps({ req, params }) {
   const rawId = params.tournamentId;
   const tournamentId = decodeURIComponent(rawId);
 
-  const players = await Player.find({
-    "registeredFor.tournamentId": tournamentId,
-  }).lean();
-
-  const playerRows = players.map((p) => {
-    const reg = (p.registeredFor || []).find(
-      (r) => r.tournamentId === tournamentId
-    );
-
-    return {
-      _id: p._id.toString(),
-      username: p.username || "",
-      discordId: p.discordId || "",
-      ign: reg?.ign || "",
-      rank: reg?.rank || "",
-      registeredAt: reg?.createdAt
-        ? new Date(reg.createdAt).toISOString()
-        : null,
-    };
-  });
-
-  // Main tournament doc
+  // Load tournament first so we can see game/mode info
   const t = await Tournament.findOne({ tournamentId }).lean();
+  if (!t) {
+    return { notFound: true };
+  }
+
+  // Heuristic: treat as "team tournament" when it's 5v5
+  const isTeamTournament =
+    /-5V5-/i.test(tournamentId) ||
+    t.mode === "5v5" ||
+    t.modeKey === "5v5" ||
+    t.meta?.isTeamTournament === true;
+
+  let playerRows = [];
+
+  if (isTeamTournament) {
+    // 🔹 TEAM-BASED ENTRY (one entry per team)
+    const teams = await Team.find({
+      "registeredFor.tournamentId": tournamentId,
+    }).lean();
+
+    playerRows = teams.map((team) => {
+      const reg = (team.registeredFor || []).find(
+        (r) => r.tournamentId === tournamentId
+      );
+
+      return {
+        // still called "_id" so existing editor code works,
+        // but it represents a TEAM id
+        _id: team._id.toString(),
+        username: "",
+        discordId: "",
+        ign:
+          reg?.teamName ||
+          reg?.name ||
+          team.teamName ||
+          team.name ||
+          "Unnamed Team",
+        rank: reg?.rank || "",
+        registeredAt: reg?.createdAt
+          ? new Date(reg.createdAt).toISOString()
+          : null,
+      };
+    });
+  } else {
+    // 🔹 SOLO ENTRY (old behavior)
+    const players = await Player.find({
+      "registeredFor.tournamentId": tournamentId,
+    }).lean();
+
+    playerRows = players.map((p) => {
+      const reg = (p.registeredFor || []).find(
+        (r) => r.tournamentId === tournamentId
+      );
+
+      return {
+        _id: p._id.toString(),
+        username: p.username || "",
+        discordId: p.discordId || "",
+        ign: reg?.ign || "",
+        rank: reg?.rank || "",
+        registeredAt: reg?.createdAt
+          ? new Date(reg.createdAt).toISOString()
+          : null,
+      };
+    });
+  }
+
   const isPublished = !!t?.bracket?.isPublished;
 
   // --- DETAILS / HUB META (from Tournament.meta) ---
@@ -106,7 +153,7 @@ export async function getServerSideProps({ req, params }) {
   return {
     props: {
       tournamentId,
-      players: playerRows,
+      players: playerRows, // can be teams or players
       isPublished,
       tournamentStatus,
       isFeatured,
@@ -1315,6 +1362,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
 
   const idToLabel = {};
   for (const p of players || []) {
+    // For teams, "ign" is the team name; for solos, it's the IGN
     const base = p.ign || p.username || "Unknown";
     const extra = p.username && p.ign ? ` (${p.username})` : "";
     idToLabel[p._id] = `${base}${extra}`;
@@ -1523,58 +1571,6 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
       return copy;
     });
   }
-
-  // 🔹 UPDATED: allow creating the first match / new matches instead of "no empty slots"
-  function handleAddPlayerToBracket(playerId) {
-    setMatches((prev) => {
-      const copy = (prev || []).map((m) => ({ ...m }));
-
-      // 1) If there are no matches yet, create the first one
-      if (copy.length === 0) {
-        setSaveMessage("Created Match 1 and added player.");
-        return [
-          {
-            player1Id: playerId,
-            player2Id: null,
-            winnerId: null,
-          },
-        ];
-      }
-
-      // 2) Prevent duplicates
-      const alreadyPlaced = copy.some(
-        (m) => m.player1Id === playerId || m.player2Id === playerId
-      );
-      if (alreadyPlaced) {
-        setSaveMessage("Player already placed.");
-        return copy;
-      }
-
-      // 3) Try to fill any existing empty slot
-      for (let m of copy) {
-        if (!m.player1Id) {
-          m.player1Id = playerId;
-          setSaveMessage("Added to empty slot.");
-          return copy;
-        }
-        if (!m.player2Id) {
-          m.player2Id = playerId;
-          setSaveMessage("Added to empty slot.");
-          return copy;
-        }
-      }
-
-      // 4) If everything is full, create a new match at the end
-      copy.push({
-        player1Id: playerId,
-        player2Id: null,
-        winnerId: null,
-      });
-      setSaveMessage("Created a new match for this player.");
-      return copy;
-    });
-  }
-
   async function handleRandomizeR1() {
     setRandomizing(true);
     setSaveMessage("");
@@ -1586,7 +1582,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
         { method: "POST", headers: { "Content-Type": "application/json" } }
       );
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.ok) {
         setSaveMessage(data.error || "Failed to randomize.");
       } else {
         const fresh = (data.matches || []).map((m) => ({
@@ -1607,10 +1603,37 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
         setSaveMessage("Random Round 1 generated.");
       }
     } catch (err) {
+      console.error(err);
       setSaveMessage("Error generating.");
     } finally {
       setRandomizing(false);
     }
+  }
+  function handleAddPlayerToBracket(playerId) {
+    setMatches((prev) => {
+      const copy = prev.map((m) => ({ ...m }));
+      const alreadyPlaced = copy.some(
+        (m) => m.player1Id === playerId || m.player2Id === playerId
+      );
+      if (alreadyPlaced) {
+        setSaveMessage("Player already placed.");
+        return copy;
+      }
+      for (let m of copy) {
+        if (!m.player1Id) {
+          m.player1Id = playerId;
+          setSaveMessage("Added to empty slot.");
+          return copy;
+        }
+        if (!m.player2Id) {
+          m.player2Id = playerId;
+          setSaveMessage("Added to empty slot.");
+          return copy;
+        }
+      }
+      setSaveMessage("No empty slots left.");
+      return copy;
+    });
   }
 
   const usedIds = new Set();
@@ -1967,6 +1990,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
       if (!res.ok) setSaveMessage("Failed to save.");
       else setSaveMessage("Saved.");
     } catch (err) {
+      console.error(err);
       setSaveMessage("Error saving.");
     } finally {
       setSaving(false);
@@ -1984,6 +2008,7 @@ function BracketEditor({ tournamentId, players, featuredMeta, detailsMeta }) {
       );
       window.location.reload();
     } catch (e) {
+      console.error(e);
       setSaveMessage("Error resetting");
     } finally {
       setResetting(false);

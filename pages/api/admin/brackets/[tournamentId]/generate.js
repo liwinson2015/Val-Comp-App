@@ -2,12 +2,15 @@
 import { getCurrentPlayerFromReq } from "../../../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../../../lib/mongodb";
 import Player from "../../../../../models/Player";
+import Tournament from "../../../../../models/Tournament";
+import TeamTournamentRegistration from "../../../../../models/TeamTournamentRegistration";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // ---- ADMIN CHECK ----
   const admin = await getCurrentPlayerFromReq(req);
   if (!admin || !admin.isAdmin) {
     return res.status(403).json({ error: "Not authorized" });
@@ -16,42 +19,68 @@ export default async function handler(req, res) {
   await connectToDatabase();
 
   const rawId = req.query.tournamentId;
-  const tournamentId = decodeURIComponent(rawId);
+  const tournamentId = decodeURIComponent(rawId || "");
 
-  // Get all players registered for this tournament
-  const players = await Player.find({
-    "registeredFor.tournamentId": tournamentId,
-  }).lean();
-
-  if (players.length < 2) {
-    return res
-      .status(400)
-      .json({ error: "Not enough players to generate a bracket." });
+  // ---- LOAD TOURNAMENT (to know if team vs solo) ----
+  const t = await Tournament.findOne({ tournamentId }).lean();
+  if (!t) {
+    return res.status(404).json({ error: "Tournament not found." });
   }
 
-  // Build list of minimal player info
-  let playerList = players.map((p) => ({
-    id: p._id.toString(),
-    username: p.username || "",
-  }));
+  const game = t.game || "";
+  const mode = t.mode || "";
+  const isTeamTournament =
+    (game === "valorant" || game === "hok") && mode === "5v5";
 
-  // Shuffle
-  playerList = playerList.sort(() => Math.random() - 0.5);
+  let entrants = [];
 
-  // Pair into matches
+  if (isTeamTournament) {
+    // ========= TEAM TOURNAMENT (each entrant is a team) =========
+    const teamRegs = await TeamTournamentRegistration.find({
+      tournamentId,
+      status: { $ne: "cancelled" }, // active / pending etc.
+    }).lean();
+
+    entrants = (teamRegs || []).map((r) => ({
+      id: r._id.toString(),
+      name: r.teamName || "Unnamed team",
+    }));
+  } else {
+    // ========= SOLO TOURNAMENT (each entrant is a player) =========
+    const players = await Player.find({
+      "registeredFor.tournamentId": tournamentId,
+    }).lean();
+
+    entrants = (players || []).map((p) => ({
+      id: p._id.toString(),
+      name: p.username || "",
+    }));
+  }
+
+  // Need at least ONE entrant to make sense
+  if (entrants.length < 1) {
+    return res
+      .status(400)
+      .json({ error: "No entrants found to generate a bracket." });
+  }
+
+  // ---- SHUFFLE ENTRANTS ----
+  let shuffled = [...entrants];
+  shuffled = shuffled.sort(() => Math.random() - 0.5);
+
+  // ---- PAIR INTO MATCHES ----
   const matches = [];
-  for (let i = 0; i < playerList.length; i += 2) {
-    const p1 = playerList[i];
-    const p2 = playerList[i + 1] || null; // odd → bye
+  for (let i = 0; i < shuffled.length; i += 2) {
+    const e1 = shuffled[i] || null;
+    const e2 = shuffled[i + 1] || null; // odd → bye
 
     matches.push({
-      player1Id: p1?.id || null,
-      player2Id: p2?.id || null,
+      player1Id: e1 ? e1.id : null,
+      player2Id: e2 ? e2.id : null,
       winnerId: null,
     });
   }
 
-  // 🔥 IMPORTANT: do NOT save to DB here
-  // Just return the suggested matches for the editor to use
+  // NOTE: We Do NOT save here. The admin editor decides when to save.
   return res.status(200).json({ matches });
 }
