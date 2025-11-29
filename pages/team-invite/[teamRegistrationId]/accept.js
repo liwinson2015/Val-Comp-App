@@ -325,6 +325,19 @@ export default function TeamInviteAcceptPage(props) {
   ];
   const TFT_DIVISIONS = ["IV", "III", "II", "I"];
 
+  // HOK rank options – adjust to match your real profile if needed
+  const HOK_RANK_TIERS = [
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Diamond",
+    "Master",
+    "Grandmaster",
+    "King",
+  ];
+  const HOK_RANK_DIVISIONS = ["V", "IV", "III", "II", "I"];
+
   // Initial state from profile
   const [riotName, setRiotName] = useState(
     gameCode === "VALORANT" ? ignFromProfile || "" : ""
@@ -344,17 +357,11 @@ export default function TeamInviteAcceptPage(props) {
   const [hokIgn, setHokIgn] = useState(
     gameCode === "HOK" ? ignFromProfile || "" : ""
   );
-  const [hokRegion, setHokRegion] = useState(
-    gameCode === "HOK" ? regionFromProfile || "" : ""
+  const [hokRankTier, setHokRankTier] = useState(
+    gameCode === "HOK" ? rankTierFromProfile || "" : ""
   );
-  const [hokRank, setHokRank] = useState(
-    gameCode === "HOK"
-      ? (rankTierFromProfile &&
-          rankDivisionFromProfile &&
-          `${rankTierFromProfile} ${rankDivisionFromProfile}`) ||
-        rankTierFromProfile ||
-        ""
-      : ""
+  const [hokRankDivision, setHokRankDivision] = useState(
+    gameCode === "HOK" ? rankDivisionFromProfile || "" : ""
   );
   const [hokPeakScore, setHokPeakScore] = useState(
     gameCode === "HOK" ? hokPeakScoreFromProfile || "" : ""
@@ -375,9 +382,6 @@ export default function TeamInviteAcceptPage(props) {
   const isTftHighRank =
     gameCode === "TFT" &&
     ["Master", "Grandmaster", "Challenger"].includes(tftRankTier);
-
-  const hasProfileIgn = !!ignFromProfile;
-  const hasProfileRank = !!rankTierFromProfile;
 
   function buildGameProfilePayload() {
     if (gameCode === "VALORANT") {
@@ -417,10 +421,10 @@ export default function TeamInviteAcceptPage(props) {
 
     if (gameCode === "HOK") {
       const ignTrimmed = hokIgn.trim();
-      const rankTrimmed = hokRank.trim();
-      const regionTrimmed = hokRegion.trim();
+      const tierTrimmed = hokRankTier.trim();
+      const divisionTrimmed = hokRankDivision.trim();
 
-      if (!ignTrimmed || !rankTrimmed) {
+      if (!ignTrimmed || !tierTrimmed) {
         return {
           ok: false,
           error:
@@ -431,15 +435,20 @@ export default function TeamInviteAcceptPage(props) {
       const peakScoreNum =
         hokPeakScore === "" ? NaN : Number(hokPeakScore);
 
+      const rankString = divisionTrimmed
+        ? `${tierTrimmed} ${divisionTrimmed}`
+        : tierTrimmed;
+
       return {
         ok: true,
         profileData: {
           ign: ignTrimmed,
           fullIgn: ignTrimmed,
-          rank: rankTrimmed,
-          rankTier: rankTrimmed,
-          rankDivision: "",
-          region: regionTrimmed || "",
+          rank: rankString,
+          rankTier: tierTrimmed,
+          rankDivision: divisionTrimmed,
+          // no server/region collected here
+          region: "",
           hokPeakScore: Number.isNaN(peakScoreNum)
             ? undefined
             : peakScoreNum,
@@ -911,53 +920,54 @@ export default function TeamInviteAcceptPage(props) {
                     marginBottom: "0.4rem",
                   }}
                 >
-                  Region / Server
-                </label>
-                <input
-                  value={hokRegion}
-                  onChange={(e) => setHokRegion(e.target.value)}
-                  placeholder="e.g. SEA, Asia, CN, etc."
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    fontWeight: 500,
-                    color: "#e5e7eb",
-                    marginBottom: "0.4rem",
-                  }}
-                >
                   Rank (Honor of Kings) *
                 </label>
-                <input
-                  required
-                  value={hokRank}
-                  onChange={(e) => setHokRank(e.target.value)}
-                  placeholder="e.g. King 50 stars"
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <select
+                    required
+                    value={hokRankTier}
+                    onChange={(e) => setHokRankTier(e.target.value)}
+                    style={{
+                      flex: 2,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">Select rank</option>
+                    {HOK_RANK_TIERS.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {tier}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={hokRankDivision}
+                    onChange={(e) => setHokRankDivision(e.target.value)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: hokRankTier ? "white" : "#6b7280",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">Div / Stars</option>
+                    {HOK_RANK_DIVISIONS.map((div) => (
+                      <option key={div} value={div}>
+                        {div}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div style={{ marginBottom: "1rem" }}>
