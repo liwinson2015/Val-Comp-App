@@ -9,16 +9,15 @@ import GrandFinalCenter from "../../../components/GrandFinalCenter";
 import { connectToDatabase } from "../../../lib/mongodb";
 import Tournament from "../../../models/Tournament";
 import Player from "../../../models/Player";
+import Team from "../../../models/Team"; // ⭐ NEW IMPORT
 
 // ===== HELPERS (ELIMINATION TYPE) =====
 
-// Try to read an explicit elimination type from the Tournament doc.
-// Return "single", "double", or null if not sure.
 function resolveEliminationTypeFromDoc(doc) {
   const meta = doc.meta || {};
 
   const rawSource =
-    doc.bracketStyle || // 👈 your main field
+    doc.bracketStyle ||
     doc.elimination ||
     meta.bracketStyle ||
     meta.BracketStyle ||
@@ -35,11 +34,9 @@ function resolveEliminationTypeFromDoc(doc) {
   if (raw.includes("single")) return "single";
   if (raw.includes("double")) return "double";
 
-  // Unknown / not set, let the bracket structure inference handle it
   return null;
 }
 
-// If doc doesn't say, try to infer based on presence of losers rounds/finals.
 function inferEliminationFromStructure(bracket) {
   if (!bracket) return null;
   const hasLosersRounds =
@@ -51,7 +48,7 @@ function inferEliminationFromStructure(bracket) {
   return "single";
 }
 
-// ===== SERVER SIDE: load published bracket + players =====
+// ===== SERVER SIDE: load published bracket + players/teams =====
 export async function getServerSideProps({ params }) {
   await connectToDatabase();
 
@@ -71,9 +68,18 @@ export async function getServerSideProps({ params }) {
     };
   }
 
+  // 1. DETECT TOURNAMENT TYPE
+  const isTeamTournament =
+    /-5V5-/i.test(tournamentId) ||
+    t.mode === "5v5" ||
+    t.modeKey === "5v5" ||
+    t.type === "team" ||
+    t.format === "team" ||
+    t.meta?.isTeamTournament === true;
+
   const rawBracket = t.bracket;
 
-  // Collect all playerIds
+  // Collect all IDs (could be PlayerIDs or TeamIDs)
   const idSet = new Set();
 
   (rawBracket.rounds || []).forEach((r) => {
@@ -102,28 +108,44 @@ export async function getServerSideProps({ params }) {
   });
 
   const ids = Array.from(idSet);
-  let playerDocs = [];
+  let participants = [];
+
+  // 2. FETCH PARTICIPANTS BASED ON TYPE
   if (ids.length > 0) {
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
-    playerDocs = await Player.find({ _id: { $in: objectIds } }).lean();
+
+    if (isTeamTournament) {
+      // === FETCH TEAMS ===
+      const teamDocs = await Team.find({ _id: { $in: objectIds } }).lean();
+      
+      participants = teamDocs.map((team) => ({
+        _id: team._id.toString(),
+        username: "", // Teams don't have usernames
+        // Map Team Name to "ign" so the frontend displays it correctly
+        ign: team.name || team.tag || "Unnamed Team", 
+      }));
+
+    } else {
+      // === FETCH PLAYERS (Original Logic) ===
+      const playerDocs = await Player.find({ _id: { $in: objectIds } }).lean();
+
+      participants = playerDocs.map((p) => {
+        const activeReg = (p.registeredFor || []).find(
+          (r) => r.tournamentId === tournamentId
+        );
+        const historyReg = (p.tournamentHistory || []).find(
+          (r) => r.tournamentId === tournamentId
+        );
+        const reg = activeReg || historyReg || null;
+
+        return {
+          _id: p._id.toString(),
+          username: p.username || "",
+          ign: reg?.ign || "",
+        };
+      });
+    }
   }
-
-  // ⭐ Look in both registeredFor (ongoing) and tournamentHistory (ended)
-  const players = playerDocs.map((p) => {
-    const activeReg = (p.registeredFor || []).find(
-      (r) => r.tournamentId === tournamentId
-    );
-    const historyReg = (p.tournamentHistory || []).find(
-      (r) => r.tournamentId === tournamentId
-    );
-    const reg = activeReg || historyReg || null;
-
-    return {
-      _id: p._id.toString(),
-      username: p.username || "",
-      ign: reg?.ign || "", // IGN used for this tournament
-    };
-  });
 
   // Normalized bracket we send to client
   const bracket = JSON.parse(
@@ -136,7 +158,6 @@ export async function getServerSideProps({ params }) {
     })
   );
 
-  // Figure out "single" vs "double"
   const eliminationDirect = resolveEliminationTypeFromDoc(t);
   const eliminationFromStructure = inferEliminationFromStructure(bracket);
   const finalEliminationType =
@@ -147,7 +168,7 @@ export async function getServerSideProps({ params }) {
       tournamentId,
       published: true,
       bracket,
-      players,
+      players: participants, // Pass teams OR players here
       eliminationType: finalEliminationType,
     },
   };
@@ -157,11 +178,15 @@ export async function getServerSideProps({ params }) {
 function buildIdToLabel(players) {
   const idToLabel = {};
   for (const p of players || []) {
-    idToLabel[p._id] = p.ign || p.username || "Unknown";
+    // For teams: p.ign is the Team Name, p.username is empty
+    // For players: uses both
+    const name = p.ign || p.username || "Unknown";
+    idToLabel[p._id] = name;
   }
   return idToLabel;
 }
 
+// ... The rest of your component remains EXACTLY the same ...
 export default function BracketPage({
   tournamentId,
   published,
@@ -169,7 +194,7 @@ export default function BracketPage({
   players,
   eliminationType = "double",
 }) {
-  const capacity = 16; // still a 16-player bracket layout
+  const capacity = 16; 
   const registered = players.length;
   const remaining = Math.max(capacity - registered, 0);
   const slotsText = `${registered} / ${capacity}`;
@@ -364,7 +389,6 @@ export default function BracketPage({
     };
   } else {
     // ---- SINGLE ELIM ----
-    // mapping: R1 losers → 9–16, R2 losers → 5–8, R3 losers → 3–4, final loser → 2, winner → 1
     const r1Losers = padNames(getLoserNamesFromMatches(r1Matches), 8);
     const r2Losers = padNames(getLoserNamesFromMatches(r2Matches), 4);
     const r3Losers = padNames(getLoserNamesFromMatches(r3Matches), 2);
@@ -398,7 +422,6 @@ export default function BracketPage({
           <div className={styles.infoCard}>
             <h2 className={styles.tournamentTitle}>Championship Bracket</h2>
             <div className={styles.tournamentSubtitle}>
-              {/* e.g. // 16 PLAYERS • SINGLE ELIMINATION */}
               {`// 16 PLAYERS • ${
                 isSingleElim ? "SINGLE ELIMINATION" : "DOUBLE ELIMINATION"
               }`}
