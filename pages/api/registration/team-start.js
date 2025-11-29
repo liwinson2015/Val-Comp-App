@@ -46,6 +46,30 @@ function resolveGameCodeFromTournament(doc) {
   return "VALORANT";
 }
 
+// determine required team size for this game+mode
+function getExpectedTeamSize(gameCode, modeKey) {
+  const g = (gameCode || "").toUpperCase();   // "VALORANT" | "HOK" | "TFT"
+  const m = (modeKey || "").toLowerCase();    // "2v2", "5v5", "doubleup", etc.
+
+  // Valorant 2v2 / 5v5
+  if (g === "VALORANT" && m === "2v2") return 2;
+  if (g === "VALORANT" && m === "5v5") return 5;
+
+  // TFT Double Up (allow a couple of possible strings)
+  if (
+    g === "TFT" &&
+    (m === "doubleup" || m === "double_up" || m === "double" || m === "duo")
+  ) {
+    return 2;
+  }
+
+  // Honor of Kings 5v5
+  if (g === "HOK" && m === "5v5") return 5;
+
+  // Anything else: no strict check
+  return null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -150,7 +174,7 @@ export default async function handler(req, res) {
       .toLowerCase()
       .trim();
 
-    // Build member list from team.members
+    // ------- Build member list from team.members -------
     const memberDocs = [];
     const rawMembers = team.members || [];
     const playerIdStr = player._id.toString();
@@ -190,6 +214,36 @@ export default async function handler(req, res) {
     );
     if (!hasCaptainInMembers) {
       pushMember(player._id, true);
+    }
+
+    // ------- Enforce team size based on game + mode -------
+    // Unique players only (in case of accidental duplicates in team.members)
+    const uniqueMemberIds = Array.from(
+      new Set(memberDocs.map((m) => m.player.toString()))
+    );
+    const memberCount = uniqueMemberIds.length;
+
+    const expectedTeamSize = getExpectedTeamSize(gameCode, modeKey);
+
+    if (expectedTeamSize !== null && memberCount !== expectedTeamSize) {
+      let formatLabel;
+      if (expectedTeamSize === 2) formatLabel = "2v2";
+      else if (expectedTeamSize === 5) formatLabel = "5v5";
+      else formatLabel = `${expectedTeamSize}-player`;
+
+      return res.status(400).json({
+        ok: false,
+        error: `This is a ${formatLabel} tournament, but your team currently has ${memberCount} member${
+          memberCount === 1 ? "" : "s"
+        }. Please update your team to have exactly ${expectedTeamSize} players before registering.`,
+      });
+    }
+
+    if (memberCount === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "This team has no members. Add players to the team before registering.",
+      });
     }
 
     // Save registration with teamName + teamTag for brackets
