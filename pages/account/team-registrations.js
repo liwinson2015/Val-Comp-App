@@ -49,9 +49,12 @@ export async function getServerSideProps({ req }) {
     };
   }
 
+  // ✅ Populate members.player so we can show real names instead of "Unknown"
   const regsRaw = await TeamTournamentRegistration.find({
     "members.player": player._id,
-  }).lean();
+  })
+    .populate("members.player", "username discordId")
+    .lean();
 
   if (!regsRaw || regsRaw.length === 0) {
     return {
@@ -84,9 +87,27 @@ export async function getServerSideProps({ req }) {
     const tMeta = tournamentMap[r.tournamentId] || {};
     const tourName = tMeta.name || "Tournament";
 
-    const me = (r.members || []).find(
-      (m) => m.player && m.player.toString() === myIdStr
-    );
+    const membersArray = r.members || [];
+
+    // Handle both populated + non-populated shapes:
+    // m.player can be an ObjectId or a populated object with _id.
+    const me = membersArray.find((m) => {
+      const p = m.player;
+      const pid = p && (p._id || p);
+      return pid && pid.toString() === myIdStr;
+    });
+
+    const members = membersArray.map((m) => {
+      const p = m.player || {};
+      // Prefer snapshot fields if they exist, otherwise fall back to populated player
+      const username = m.username || p.username || "";
+      const discordId = m.discordId || p.discordId || "";
+      return {
+        username,
+        discordId,
+        status: m.status || "pending",
+      };
+    });
 
     return {
       id: r._id.toString(),
@@ -97,11 +118,7 @@ export async function getServerSideProps({ req }) {
       modeKey: r.modeKey || "",
       status: r.status || "pending",
       myStatus: me ? me.status || "pending" : "pending",
-      members: (r.members || []).map((m) => ({
-        username: m.username || "",
-        discordId: m.discordId || "",
-        status: m.status || "pending",
-      })),
+      members,
       createdAt: r.createdAt ? r.createdAt.toISOString() : null,
     };
   });
@@ -156,7 +173,8 @@ export default function TeamRegistrationsPage({ username, registrations }) {
             ...r,
             status: newStatus || r.status,
             myStatus: memberStatus || r.myStatus,
-            members: r.members.map((m) => m), // leave others unchanged
+            // chips will refresh on page reload; keeping members array as-is here
+            members: r.members.map((m) => m),
           };
         })
       );
