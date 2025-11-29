@@ -49,6 +49,7 @@ export async function getServerSideProps({ req }) {
     };
   }
 
+  // All team registrations this player is part of
   const regsRaw = await TeamTournamentRegistration.find({
     "members.player": player._id,
   }).lean();
@@ -62,6 +63,7 @@ export async function getServerSideProps({ req }) {
     };
   }
 
+  // ---- Load tournaments for labels ----
   const tournamentIds = [
     ...new Set(regsRaw.map((r) => r.tournamentId || "").filter(Boolean)),
   ];
@@ -80,9 +82,55 @@ export async function getServerSideProps({ req }) {
 
   const myIdStr = player._id.toString();
 
+  // ---- Collect all member playerIds so we can look up their Player docs ----
+  const memberIdSet = new Set();
+  regsRaw.forEach((r) => {
+    (r.members || []).forEach((m) => {
+      if (m.player) {
+        memberIdSet.add(m.player.toString());
+      }
+    });
+  });
+
+  let playersById = {};
+  if (memberIdSet.size > 0) {
+    const memberIds = Array.from(memberIdSet);
+    const memberDocs = await Player.find({
+      _id: { $in: memberIds },
+    }).lean();
+
+    playersById = memberDocs.reduce((acc, p) => {
+      acc[p._id.toString()] = p;
+      return acc;
+    }, {});
+  }
+
+  // Helper to compute display name for a member in a given registration
+  function buildMemberDisplayName(memberDoc, regGameCode, memberRaw) {
+    if (!memberDoc) {
+      // fall back to whatever was stored on the registration doc
+      return (
+        memberRaw.username ||
+        memberRaw.discordId ||
+        "Unknown"
+      );
+    }
+
+    const gameProfiles = memberDoc.gameProfiles || {};
+    const gameProfile =
+      gameProfiles[regGameCode] || gameProfiles[regGameCode?.toUpperCase()] || {};
+
+    const ign = gameProfile.ign || "";
+    const username = memberDoc.username || "";
+    const discordTag = memberDoc.discordTag || memberDoc.discordId || "";
+
+    return ign || username || discordTag || memberRaw.username || "Unknown";
+  }
+
   const registrations = regsRaw.map((r) => {
     const tMeta = tournamentMap[r.tournamentId] || {};
     const tourName = tMeta.name || "Tournament";
+    const gameCode = r.gameCode || "VALORANT";
 
     const me = (r.members || []).find(
       (m) => m.player && m.player.toString() === myIdStr
@@ -93,15 +141,25 @@ export async function getServerSideProps({ req }) {
       tournamentId: r.tournamentId,
       tournamentName: tourName,
       teamName: r.teamName || "Unnamed team",
-      gameCode: r.gameCode || "VALORANT",
+      gameCode,
       modeKey: r.modeKey || "",
       status: r.status || "pending",
       myStatus: me ? me.status || "pending" : "pending",
-      members: (r.members || []).map((m) => ({
-        username: m.username || "",
-        discordId: m.discordId || "",
-        status: m.status || "pending",
-      })),
+      members: (r.members || []).map((m) => {
+        const pid = m.player ? m.player.toString() : null;
+        const memberDoc = pid ? playersById[pid] : null;
+        const displayName = buildMemberDisplayName(
+          memberDoc,
+          gameCode,
+          m
+        );
+
+        return {
+          username: displayName,
+          discordId: m.discordId || "",
+          status: m.status || "pending",
+        };
+      }),
       createdAt: r.createdAt ? r.createdAt.toISOString() : null,
     };
   });
