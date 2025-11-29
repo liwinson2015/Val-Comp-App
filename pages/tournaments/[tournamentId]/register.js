@@ -289,15 +289,13 @@ export async function getServerSideProps({ req, params }) {
         .map((t) => ({
           id: t._id.toString(),
           name: t.name || t.teamName || "Unnamed team",
-          tag: t.tag || t.teamTag || "", // ✅ include tag for "TAG | Name" label
+          tag: t.tag || t.teamTag || "",
         }));
     }
 
     const displayName = tournamentDoc.name || "Tournament";
     const heroBadge =
-      meta.displayGameLabel ||
-      GAME_LABELS[gameCode] ||
-      "Tournament";
+      meta.displayGameLabel || GAME_LABELS[gameCode] || "Tournament";
 
     const {
       ignFromProfile,
@@ -407,11 +405,7 @@ export default function DynamicRegisterPage(props) {
 
   const effectiveGameKey =
     gameKey ||
-    (gameCode === "HOK"
-      ? "hok"
-      : gameCode === "TFT"
-      ? "tft"
-      : "valorant");
+    (gameCode === "HOK" ? "hok" : gameCode === "TFT" ? "tft" : "valorant");
   const resolvedTheme =
     theme || GAME_THEMES[effectiveGameKey] || DEFAULT_THEME;
 
@@ -450,344 +444,7 @@ export default function DynamicRegisterPage(props) {
       ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`
       : null;
 
-  // ---------- TEAM MODE UI (VAL 2v2/5v5, TFT doubleup, HOK 5v5) ----------
-  async function handleTeamSubmit(e) {
-    e.preventDefault();
-    if (!teamMode) return;
-
-    if (!selectedTeamId) {
-      setTeamMessage("Please select a team to register.");
-      return;
-    }
-
-    setTeamSubmitting(true);
-    setTeamMessage("");
-
-    try {
-      const res = await fetch("/api/registration/team-start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId,
-          teamId: selectedTeamId,
-          tournamentId,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data.ok) {
-        setTeamMessage(
-          data.error || (await res.text()) || "Failed to register team."
-        );
-      } else {
-        setTeamMessage(
-          "Team registered as pending. Your teammates will need to confirm from their accounts."
-        );
-      }
-    } catch (err) {
-      console.error("team registration submit error:", err);
-      setTeamMessage("Network error submitting team registration.");
-    } finally {
-      setTeamSubmitting(false);
-    }
-  }
-
-  if (teamMode) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          backgroundColor: "#050816",
-          color: "white",
-          fontFamily:
-            'system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif',
-          padding: "2rem 1rem",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: "520px",
-            background: resolvedTheme.cardGradient,
-            border: "1px solid #2d2d2d",
-            borderRadius: "1rem",
-            boxShadow: resolvedTheme.primaryShadow,
-            padding: "1.6rem 1.6rem 2.1rem",
-          }}
-        >
-          {/* header */}
-          <div style={{ marginBottom: "1.5rem" }}>
-            <div
-              style={{
-                fontSize: "0.7rem",
-                letterSpacing: "0.18em",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                marginBottom: "0.45rem",
-                padding: "0.15rem 0.8rem",
-                display: "inline-flex",
-                borderRadius: "999px",
-                border: resolvedTheme.badgeBorder,
-                color: resolvedTheme.badgeColor,
-                background: resolvedTheme.badgeBg,
-              }}
-            >
-              {heroBadge}
-            </div>
-            <div
-              style={{
-                fontSize: "1.35rem",
-                fontWeight: 600,
-                lineHeight: 1.2,
-                color: "white",
-              }}
-            >
-              {displayName}
-            </div>
-            <div
-              style={{
-                fontSize: "0.8rem",
-                lineHeight: 1.4,
-                color: "#9ca3af",
-                marginTop: "0.5rem",
-              }}
-            >
-              Team Tournament Registration (ID: {tournamentId})
-            </div>
-          </div>
-
-          {/* player card */}
-          <div
-            style={{
-              display: "flex",
-              gap: "0.75rem",
-              alignItems: "center",
-              backgroundColor: "#111827",
-              border: "1px solid #374151",
-              borderRadius: "0.75rem",
-              padding: "0.75rem 1rem",
-              marginBottom: "1.5rem",
-            }}
-          >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="discord avatar"
-                style={{
-                  borderRadius: "0.5rem",
-                  width: "56px",
-                  height: "56px",
-                  border: "1px solid #52525b",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  borderRadius: "0.5rem",
-                  width: "56px",
-                  height: "56px",
-                  backgroundColor: "#3f3f46",
-                  border: "1px solid #52525b",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  fontSize: "0.6rem",
-                  color: "#a1a1aa",
-                }}
-              >
-                no avatar
-              </div>
-            )}
-
-            <div style={{ lineHeight: 1.3 }}>
-              <div
-                style={{
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: "0.9rem",
-                }}
-              >
-                {username}
-              </div>
-              <div
-                style={{
-                  color: "#a1a1aa",
-                  fontSize: "0.7rem",
-                  wordBreak: "break-word",
-                }}
-              >
-                Discord ID {discordId}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginBottom: "1rem",
-              padding: "0.7rem 0.8rem",
-              borderRadius: "0.7rem",
-              backgroundColor: "#020617",
-              border: "1px solid #1f2937",
-              fontSize: "0.8rem",
-              lineHeight: 1.5,
-              color: "#e5e7eb",
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
-              Team-based registration.
-            </div>
-            <div style={{ color: "#9ca3af" }}>
-              This is a team tournament for {gameLabel}. Only the{" "}
-              <span style={{ fontWeight: 600 }}>team captain</span> can submit
-              the team. When you register, every teammate will be marked as{" "}
-              <span style={{ fontWeight: 600 }}>pending</span> until they
-              confirm their spot.
-            </div>
-          </div>
-
-          <form onSubmit={handleTeamSubmit}>
-            <div style={{ marginBottom: "1rem" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.8rem",
-                  fontWeight: 500,
-                  color: "#e5e7eb",
-                  marginBottom: "0.4rem",
-                }}
-              >
-                Your team for this tournament
-              </label>
-              {teamsForGame && teamsForGame.length > 0 ? (
-                <select
-                  value={selectedTeamId}
-                  onChange={(e) => setSelectedTeamId(e.target.value)}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#0f0f10",
-                    border: "1px solid #4b5563",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.75rem",
-                    color: "white",
-                    fontSize: "0.9rem",
-                    outline: "none",
-                  }}
-                >
-                  <option value="">Select a team</option>
-                  {teamsForGame.map((t) => {
-                    const label = t.tag ? `${t.tag} | ${t.name}` : t.name; // ✅ TAG | Name
-                    return (
-                      <option key={t.id} value={t.id}>
-                        {label}
-                      </option>
-                    );
-                  })}
-                </select>
-              ) : (
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#fbbf24",
-                    padding: "0.5rem 0.35rem",
-                  }}
-                >
-                  You don&apos;t have any teams linked to this account for this
-                  game yet. Create a team first, then come back to register.
-                </div>
-              )}
-              {teamsForGame && teamsForGame.length > 0 && (
-                <div
-                  style={{
-                    marginTop: "0.35rem",
-                    fontSize: "0.75rem",
-                    color: "#9ca3af",
-                  }}
-                >
-                  We&apos;ll check that you are the captain of this team before
-                  completing the registration.
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={
-                teamSubmitting ||
-                !teamsForGame ||
-                teamsForGame.length === 0
-              }
-              style={{
-                width: "100%",
-                backgroundColor:
-                  !teamsForGame || teamsForGame.length === 0
-                    ? "#4b5563"
-                    : teamSubmitting
-                    ? "#4b5563"
-                    : resolvedTheme.primaryButton,
-                color: "white",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                border: "none",
-                borderRadius: "0.6rem",
-                padding: "0.75rem 1rem",
-                cursor:
-                  !teamsForGame || teamsForGame.length === 0 || teamSubmitting
-                    ? "not-allowed"
-                    : "pointer",
-                boxShadow:
-                  !teamsForGame || teamsForGame.length === 0
-                    ? "none"
-                    : resolvedTheme.primaryShadow,
-                opacity:
-                  !teamsForGame || teamsForGame.length === 0 ? 0.6 : 1,
-              }}
-            >
-              {teamSubmitting
-                ? "Submitting..."
-                : "Register team (pending approval)"}
-            </button>
-
-            {teamMessage && (
-              <div
-                style={{
-                  marginTop: "0.75rem",
-                  fontSize: "0.8rem",
-                  color: "#e5e7eb",
-                  lineHeight: 1.4,
-                  textAlign: "center",
-                }}
-              >
-                {teamMessage}
-              </div>
-            )}
-          </form>
-
-          <div
-            style={{
-              marginTop: "1.4rem",
-              fontSize: "0.7rem",
-              lineHeight: 1.4,
-              color: "#6b7280",
-              textAlign: "center",
-            }}
-          >
-            Format:{" "}
-            <span style={{ fontWeight: 600 }}>
-              {gameKey.toUpperCase()} {modeKey.toUpperCase()}
-            </span>
-            . We&apos;ll add a confirmation screen for teammates so they can
-            accept or decline their spot.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------- SOLO MODE (VAL 1v1, TFT solo, etc.) ----------
+  // ---------- RANK / FORM OPTIONS ----------
 
   // VALORANT rank options
   const VALORANT_RANK_TIERS = [
@@ -877,17 +534,9 @@ export default function DynamicRegisterPage(props) {
     gameCode === "TFT" &&
     ["Master", "Grandmaster", "Challenger"].includes(tftRankTier);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (alreadyRegistered) return;
-
-    let payload = {
-      playerId,
-      tournamentId,
-      gameCode,
-    };
-
-    // --- VALORANT SOLO ---
+  // ---------- SHARED: build game profile payload (VALIDATION) ----------
+  function buildGameProfilePayload() {
+    // this returns { ok: true, profileData } or { ok: false, error: "..." }
     if (gameCode === "VALORANT") {
       const nameTrimmed = riotName.trim();
       const tagTrimmed = riotTag.trim();
@@ -899,52 +548,63 @@ export default function DynamicRegisterPage(props) {
         !peakRankTier ||
         (needsDivision && !peakRankDivision)
       ) {
-        setMessage("Please fill in your Riot ID and peak rank.");
-        return;
+        return {
+          ok: false,
+          error: "Please fill in your Riot ID and peak rank.",
+        };
       }
 
-      const ign = nameTrimmed; // name only
-      const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // name#tag
+      const fullIgn = `${nameTrimmed}#${tagTrimmed}`; // stored in profile.ign
 
-      const rank =
+      const rankString =
         peakRankTier === "Radiant"
           ? "Radiant"
           : `${peakRankTier} ${peakRankDivision}`;
 
-      payload.ign = ign;
-      payload.fullIgn = fullIgn;
-      payload.rank = rank;
+      return {
+        ok: true,
+        profileData: {
+          ign: nameTrimmed,
+          fullIgn,
+          rank: rankString,
+          rankTier: peakRankTier,
+          rankDivision: peakRankDivision,
+        },
+      };
     }
 
-    // --- HONOR OF KINGS SOLO ---
-    else if (gameCode === "HOK") {
+    if (gameCode === "HOK") {
       const ignTrimmed = hokIgn.trim();
       const rankTrimmed = hokRank.trim();
       const regionTrimmed = hokRegion.trim();
 
       if (!ignTrimmed || !rankTrimmed) {
-        setMessage(
-          "Please fill in your IGN and rank for Honor of Kings."
-        );
-        return;
-      }
-
-      payload.ign = ignTrimmed; // name only
-      payload.fullIgn = ignTrimmed; // no tag concept
-      payload.rank = rankTrimmed;
-      if (regionTrimmed) {
-        payload.region = regionTrimmed;
+        return {
+          ok: false,
+          error: "Please fill in your IGN and rank for Honor of Kings.",
+        };
       }
 
       const peakScoreNum =
         hokPeakScore === "" ? NaN : Number(hokPeakScore);
-      if (!Number.isNaN(peakScoreNum)) {
-        payload.hokPeakScore = peakScoreNum;
-      }
+
+      return {
+        ok: true,
+        profileData: {
+          ign: ignTrimmed,
+          fullIgn: ignTrimmed,
+          rank: rankTrimmed,
+          rankTier: rankTrimmed, // you can refine later if you split tier/div
+          rankDivision: "",
+          region: regionTrimmed || "",
+          hokPeakScore: Number.isNaN(peakScoreNum)
+            ? undefined
+            : peakScoreNum,
+        },
+      };
     }
 
-    // --- TFT SOLO (Riot-style) ---
-    else if (gameCode === "TFT") {
+    if (gameCode === "TFT") {
       const nameTrimmed = tftName.trim();
       const tagTrimmed = tftTag.trim();
       const needsDivision =
@@ -957,31 +617,55 @@ export default function DynamicRegisterPage(props) {
         !tftRankTier ||
         (needsDivision && !tftRankDivision)
       ) {
-        setMessage(
-          "Please fill in your Riot ID and peak rank for Teamfight Tactics."
-        );
-        return;
+        return {
+          ok: false,
+          error:
+            "Please fill in your Riot ID and peak rank for Teamfight Tactics.",
+        };
       }
 
-      const ign = nameTrimmed; // name only
       const fullIgn = `${nameTrimmed}#${tagTrimmed}`;
-
-      const rank = isTftHighRank
+      const rankString = isTftHighRank
         ? tftRankTier
         : `${tftRankTier} ${tftRankDivision}`;
 
-      payload.ign = ign;
-      payload.fullIgn = fullIgn;
-      payload.rank = rank;
+      return {
+        ok: true,
+        profileData: {
+          ign: nameTrimmed,
+          fullIgn,
+          rank: rankString,
+          rankTier: tftRankTier,
+          rankDivision: isTftHighRank ? "" : tftRankDivision,
+        },
+      };
     }
 
-    // Unsupported game
-    else {
-      setMessage(
-        "This game's registration form is not configured yet."
-      );
+    return {
+      ok: false,
+      error: "This game's registration form is not configured yet.",
+    };
+  }
+
+  // ---------- SOLO SUBMIT ----------
+  async function handleSoloSubmit(e) {
+    e.preventDefault();
+    if (alreadyRegistered) return;
+
+    const result = buildGameProfilePayload();
+    if (!result.ok) {
+      setMessage(result.error);
       return;
     }
+
+    const { profileData } = result;
+
+    const payload = {
+      playerId,
+      tournamentId,
+      gameCode,
+      ...profileData,
+    };
 
     setSubmitting(true);
     setMessage("");
@@ -1012,6 +696,91 @@ export default function DynamicRegisterPage(props) {
     }
   }
 
+  // ---------- TEAM SUBMIT (captain) ----------
+  async function handleTeamSubmit(e) {
+    e.preventDefault();
+    if (!teamMode) return;
+
+    if (!selectedTeamId) {
+      setTeamMessage("Please select a team to register.");
+      return;
+    }
+
+    // 1) validate + build game profile payload
+    const result = buildGameProfilePayload();
+    if (!result.ok) {
+      setTeamMessage(result.error);
+      return;
+    }
+
+    const { profileData } = result;
+
+    setTeamSubmitting(true);
+    setTeamMessage("");
+
+    try {
+      // 2) save game info into Player.gameProfiles
+      const profileRes = await fetch(
+        "/api/profile/save-from-game-form",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            playerId,
+            gameCode,
+            ...profileData,
+          }),
+        }
+      );
+
+      const profileJson = await profileRes.json().catch(() => ({}));
+      if (!profileRes.ok || !profileJson.ok) {
+        setTeamMessage(
+          profileJson.error ||
+            "Failed to save your in-game profile info."
+        );
+        setTeamSubmitting(false);
+        return;
+      }
+
+      // 3) start team registration
+      const teamRes = await fetch("/api/registration/team-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          teamId: selectedTeamId,
+          tournamentId,
+        }),
+      });
+
+      const teamJson = await teamRes.json().catch(() => ({}));
+
+      if (!teamRes.ok || !teamJson.ok) {
+        setTeamMessage(
+          teamJson.error || "Failed to register your team."
+        );
+        setTeamSubmitting(false);
+        return;
+      }
+
+      // 4) redirect to a "pending" page with next steps
+      window.location.href = `/tournaments/${encodeURIComponent(
+        tournamentId
+      )}/team-pending`;
+    } catch (err) {
+      console.error("team registration submit error:", err);
+      setTeamMessage(
+        "Network error submitting team registration. Please try again."
+      );
+      setTeamSubmitting(false);
+    }
+  }
+
+  // ---------- RENDER ----------
+
+  const resolvedAlreadyRegistered = !teamMode && alreadyRegistered;
+
   return (
     <div
       style={{
@@ -1028,12 +797,12 @@ export default function DynamicRegisterPage(props) {
       <div
         style={{
           width: "100%",
-          maxWidth: "480px",
+          maxWidth: "520px",
           background: resolvedTheme.cardGradient,
           border: "1px solid #2d2d2d",
           borderRadius: "1rem",
           boxShadow: resolvedTheme.primaryShadow,
-          padding: "1.5rem 1.5rem 2rem",
+          padding: "1.6rem 1.6rem 2.1rem",
         }}
       >
         {/* Header */}
@@ -1057,7 +826,7 @@ export default function DynamicRegisterPage(props) {
           </div>
           <div
             style={{
-              fontSize: "1.25rem",
+              fontSize: "1.35rem",
               fontWeight: 600,
               lineHeight: 1.2,
               color: "white",
@@ -1069,11 +838,13 @@ export default function DynamicRegisterPage(props) {
             style={{
               fontSize: "0.8rem",
               lineHeight: 1.4,
-              color: "#e5e7eb",
+              color: "#9ca3af",
               marginTop: "0.5rem",
             }}
           >
-            Tournament Registration (ID: {tournamentId})
+            {teamMode
+              ? `Team Tournament Registration (ID: ${tournamentId})`
+              : `Tournament Registration (ID: ${tournamentId})`}
           </div>
         </div>
 
@@ -1164,9 +935,8 @@ export default function DynamicRegisterPage(props) {
             ) : (
               <>
                 We weren&apos;t able to find {gameLabel} details on your
-                profile. Please fill everything in carefully — these values
-                will be used as your profile info for this game and must match
-                your in-game details, otherwise you may not be able to play.
+                profile. Please fill everything in carefully — these values will
+                be saved to your profile and must match your in-game details.
               </>
             )}
           </div>
@@ -1186,7 +956,8 @@ export default function DynamicRegisterPage(props) {
           Your {gameLabel} info
         </div>
 
-        <form onSubmit={handleSubmit}>
+        {/* FORM (game info + solo/team footer) */}
+        <form onSubmit={teamMode ? handleTeamSubmit : handleSoloSubmit}>
           {/* VALORANT FORM */}
           {gameCode === "VALORANT" && (
             <>
@@ -1224,14 +995,14 @@ export default function DynamicRegisterPage(props) {
                     value={riotName}
                     onChange={(e) => setRiotName(e.target.value)}
                     placeholder="Name (e.g. 5TQ)"
-                    disabled={alreadyRegistered}
+                    disabled={resolvedAlreadyRegistered}
                     style={{
                       flex: 2,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: alreadyRegistered ? "#6b7280" : "white",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
@@ -1250,14 +1021,14 @@ export default function DynamicRegisterPage(props) {
                     value={riotTag}
                     onChange={(e) => setRiotTag(e.target.value)}
                     placeholder="Tag (e.g. NA1)"
-                    disabled={alreadyRegistered}
+                    disabled={resolvedAlreadyRegistered}
                     style={{
                       flex: 1,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: alreadyRegistered ? "#6b7280" : "white",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
@@ -1300,14 +1071,14 @@ export default function DynamicRegisterPage(props) {
                         setPeakRankDivision("");
                       }
                     }}
-                    disabled={alreadyRegistered}
+                    disabled={resolvedAlreadyRegistered}
                     style={{
                       flex: 2,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: alreadyRegistered ? "#6b7280" : "white",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
@@ -1322,11 +1093,9 @@ export default function DynamicRegisterPage(props) {
 
                   <select
                     value={peakRankDivision}
-                    onChange={(e) =>
-                      setPeakRankDivision(e.target.value)
-                    }
+                    onChange={(e) => setPeakRankDivision(e.target.value)}
                     disabled={
-                      alreadyRegistered || !peakRankTier || isRadiant
+                      resolvedAlreadyRegistered || !peakRankTier || isRadiant
                     }
                     style={{
                       flex: 1,
@@ -1335,18 +1104,14 @@ export default function DynamicRegisterPage(props) {
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
                       color:
-                        alreadyRegistered ||
-                        !peakRankTier ||
-                        isRadiant
+                        resolvedAlreadyRegistered || !peakRankTier || isRadiant
                           ? "#6b7280"
                           : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
                   >
-                    <option value="">
-                      {isRadiant ? "N/A" : "Div"}
-                    </option>
+                    <option value="">{isRadiant ? "N/A" : "Div"}</option>
                     {!isRadiant &&
                       VALORANT_DIVISIONS.map((div) => (
                         <option key={div} value={div}>
@@ -1365,10 +1130,7 @@ export default function DynamicRegisterPage(props) {
                     }}
                   >
                     Radiant has no divisions. We’ll store your rank as{" "}
-                    <span style={{ color: "#e5e7eb" }}>
-                      “Radiant”
-                    </span>
-                    .
+                    <span style={{ color: "#e5e7eb" }}>“Radiant”</span>.
                   </div>
                 )}
 
@@ -1409,14 +1171,14 @@ export default function DynamicRegisterPage(props) {
                   value={hokIgn}
                   onChange={(e) => setHokIgn(e.target.value)}
                   placeholder="Your Honor of Kings IGN"
-                  disabled={alreadyRegistered}
+                  disabled={resolvedAlreadyRegistered}
                   style={{
                     width: "100%",
                     backgroundColor: "#0f0f10",
                     border: "1px solid #4b5563",
                     borderRadius: "0.5rem",
                     padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
+                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                     fontSize: "0.9rem",
                     outline: "none",
                   }}
@@ -1450,14 +1212,14 @@ export default function DynamicRegisterPage(props) {
                   value={hokRegion}
                   onChange={(e) => setHokRegion(e.target.value)}
                   placeholder="e.g. SEA, Asia, CN, etc."
-                  disabled={alreadyRegistered}
+                  disabled={resolvedAlreadyRegistered}
                   style={{
                     width: "100%",
                     backgroundColor: "#0f0f10",
                     border: "1px solid #4b5563",
                     borderRadius: "0.5rem",
                     padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
+                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                     fontSize: "0.9rem",
                     outline: "none",
                   }}
@@ -1481,14 +1243,14 @@ export default function DynamicRegisterPage(props) {
                   value={hokRank}
                   onChange={(e) => setHokRank(e.target.value)}
                   placeholder="e.g. King 50 stars"
-                  disabled={alreadyRegistered}
+                  disabled={resolvedAlreadyRegistered}
                   style={{
                     width: "100%",
                     backgroundColor: "#0f0f10",
                     border: "1px solid #4b5563",
                     borderRadius: "0.5rem",
                     padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
+                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                     fontSize: "0.9rem",
                     outline: "none",
                   }}
@@ -1523,14 +1285,14 @@ export default function DynamicRegisterPage(props) {
                   value={hokPeakScore}
                   onChange={(e) => setHokPeakScore(e.target.value)}
                   placeholder="e.g. 1200–3000"
-                  disabled={alreadyRegistered}
+                  disabled={resolvedAlreadyRegistered}
                   style={{
                     width: "100%",
                     backgroundColor: "#0f0f10",
                     border: "1px solid #4b5563",
                     borderRadius: "0.5rem",
                     padding: "0.6rem 0.75rem",
-                    color: alreadyRegistered ? "#6b7280" : "white",
+                    color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                     fontSize: "0.9rem",
                     outline: "none",
                   }}
@@ -1576,14 +1338,14 @@ export default function DynamicRegisterPage(props) {
                     value={tftName}
                     onChange={(e) => setTftName(e.target.value)}
                     placeholder="Name (e.g. 5TQ)"
-                    disabled={alreadyRegistered}
+                    disabled={resolvedAlreadyRegistered}
                     style={{
                       flex: 2,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: alreadyRegistered ? "#6b7280" : "white",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
@@ -1602,14 +1364,14 @@ export default function DynamicRegisterPage(props) {
                     value={tftTag}
                     onChange={(e) => setTftTag(e.target.value)}
                     placeholder="Tag (e.g. NA1)"
-                    disabled={alreadyRegistered}
+                    disabled={resolvedAlreadyRegistered}
                     style={{
                       flex: 1,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: alreadyRegistered ? "#6b7280" : "white",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
@@ -1649,21 +1411,19 @@ export default function DynamicRegisterPage(props) {
                       const v = e.target.value;
                       setTftRankTier(v);
                       if (
-                        ["Master", "Grandmaster", "Challenger"].includes(
-                          v
-                        )
+                        ["Master", "Grandmaster", "Challenger"].includes(v)
                       ) {
                         setTftRankDivision("");
                       }
                     }}
-                    disabled={alreadyRegistered}
+                    disabled={resolvedAlreadyRegistered}
                     style={{
                       flex: 2,
                       backgroundColor: "#0f0f10",
                       border: "1px solid #4b5563",
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
-                      color: alreadyRegistered ? "#6b7280" : "white",
+                      color: resolvedAlreadyRegistered ? "#6b7280" : "white",
                       fontSize: "0.9rem",
                       outline: "none",
                     }}
@@ -1678,13 +1438,9 @@ export default function DynamicRegisterPage(props) {
 
                   <select
                     value={tftRankDivision}
-                    onChange={(e) =>
-                      setTftRankDivision(e.target.value)
-                    }
+                    onChange={(e) => setTftRankDivision(e.target.value)}
                     disabled={
-                      alreadyRegistered ||
-                      !tftRankTier ||
-                      isTftHighRank
+                      resolvedAlreadyRegistered || !tftRankTier || isTftHighRank
                     }
                     style={{
                       flex: 1,
@@ -1693,7 +1449,7 @@ export default function DynamicRegisterPage(props) {
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.75rem",
                       color:
-                        alreadyRegistered ||
+                        resolvedAlreadyRegistered ||
                         !tftRankTier ||
                         isTftHighRank
                           ? "#6b7280"
@@ -1729,15 +1485,122 @@ export default function DynamicRegisterPage(props) {
             </>
           )}
 
-          {/* Submit */}
+          {/* TEAM SECTION (only when teamMode) */}
+          {teamMode && (
+            <div
+              style={{
+                marginTop: "1.25rem",
+                marginBottom: "0.75rem",
+                padding: "0.7rem 0.8rem",
+                borderRadius: "0.7rem",
+                backgroundColor: "#020617",
+                border: "1px solid #1f2937",
+                fontSize: "0.8rem",
+                lineHeight: 1.5,
+                color: "#e5e7eb",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                Team-based registration.
+              </div>
+              <div style={{ color: "#9ca3af", marginBottom: "0.5rem" }}>
+                This is a team tournament for {gameLabel}. You&apos;ll register
+                your whole team, and each teammate will receive an invite in
+                their account under <strong>Team Invites</strong> to accept.
+              </div>
+
+              <div style={{ marginBottom: "0.6rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    color: "#e5e7eb",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Your team for this tournament
+                </label>
+                {teamsForGame && teamsForGame.length > 0 ? (
+                  <select
+                    value={selectedTeamId}
+                    onChange={(e) => setSelectedTeamId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#0f0f10",
+                      border: "1px solid #4b5563",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.75rem",
+                      color: "white",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="">Select a team</option>
+                    {teamsForGame.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.tag ? `${t.tag} | ${t.name}` : t.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#fbbf24",
+                      padding: "0.5rem 0.35rem",
+                    }}
+                  >
+                    You don&apos;t have any teams linked to this account for
+                    this game yet. Create a team first, then come back to
+                    register.
+                  </div>
+                )}
+                {teamsForGame && teamsForGame.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "0.35rem",
+                      fontSize: "0.75rem",
+                      color: "#9ca3af",
+                    }}
+                  >
+                    We&apos;ll check that you are the captain of this team
+                    before completing the registration.
+                  </div>
+                )}
+              </div>
+
+              {teamMessage && (
+                <div
+                  style={{
+                    marginTop: "0.3rem",
+                    fontSize: "0.78rem",
+                    color: "#fecaca",
+                  }}
+                >
+                  {teamMessage}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Submit button */}
           <button
             type="submit"
-            disabled={submitting || alreadyRegistered}
+            disabled={
+              teamMode
+                ? teamSubmitting ||
+                  !teamsForGame ||
+                  teamsForGame.length === 0
+                : submitting || resolvedAlreadyRegistered
+            }
             style={{
               width: "100%",
-              backgroundColor: alreadyRegistered
-                ? "#4b5563"
-                : submitting
+              backgroundColor: teamMode
+                ? !teamsForGame || teamsForGame.length === 0 || teamSubmitting
+                  ? "#4b5563"
+                  : resolvedTheme.primaryButton
+                : resolvedAlreadyRegistered || submitting
                 ? "#4b5563"
                 : resolvedTheme.primaryButton,
               color: "white",
@@ -1747,22 +1610,46 @@ export default function DynamicRegisterPage(props) {
               borderRadius: "0.6rem",
               padding: "0.75rem 1rem",
               cursor:
-                submitting || alreadyRegistered ? "not-allowed" : "pointer",
-              boxShadow: alreadyRegistered
-                ? "none"
-                : resolvedTheme.primaryShadow,
-              opacity: alreadyRegistered ? 0.6 : 1,
+                (teamMode &&
+                  (!teamsForGame ||
+                    teamsForGame.length === 0 ||
+                    teamSubmitting)) ||
+                (!teamMode && (submitting || resolvedAlreadyRegistered))
+                  ? "not-allowed"
+                  : "pointer",
+              boxShadow:
+                (teamMode &&
+                  (!teamsForGame ||
+                    teamsForGame.length === 0 ||
+                    teamSubmitting)) ||
+                (!teamMode && (submitting || resolvedAlreadyRegistered))
+                  ? "none"
+                  : resolvedTheme.primaryShadow,
+              opacity:
+                (teamMode &&
+                  (!teamsForGame ||
+                    teamsForGame.length === 0 ||
+                    teamSubmitting)) ||
+                (!teamMode && (submitting || resolvedAlreadyRegistered))
+                  ? 0.6
+                  : 1,
               transition: "background-color .15s",
+              marginTop: teamMode ? "0.5rem" : "0",
             }}
           >
-            {alreadyRegistered
+            {teamMode
+              ? teamSubmitting
+                ? "Submitting team..."
+                : "Register team (pending invites)"
+              : resolvedAlreadyRegistered
               ? "Already Registered"
               : submitting
               ? "Submitting..."
               : "Confirm Registration"}
           </button>
 
-          {message && (
+          {/* Messages */}
+          {!teamMode && message && (
             <div
               style={{
                 marginTop: "0.75rem",
@@ -1773,6 +1660,19 @@ export default function DynamicRegisterPage(props) {
               }}
             >
               {message}
+            </div>
+          )}
+          {teamMode && teamMessage && (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                fontSize: "0.8rem",
+                color: "#e5e7eb",
+                lineHeight: 1.4,
+                textAlign: "center",
+              }}
+            >
+              {teamMessage}
             </div>
           )}
         </form>
@@ -1786,8 +1686,19 @@ export default function DynamicRegisterPage(props) {
             textAlign: "center",
           }}
         >
-          By confirming, you agree to play at the scheduled time. No smurfing.
-          No cheats. Clips may be streamed.
+          {teamMode ? (
+            <>
+              By confirming, you agree to register your team for this event.
+              Your registration will stay in{" "}
+              <span style={{ fontWeight: 600 }}>pending</span> until all
+              teammates accept their invites.
+            </>
+          ) : (
+            <>
+              By confirming, you agree to play at the scheduled time. No
+              smurfing. No cheats. Clips may be streamed.
+            </>
+          )}
         </div>
       </div>
     </div>
