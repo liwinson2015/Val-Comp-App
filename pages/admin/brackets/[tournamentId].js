@@ -2042,7 +2042,7 @@ function BracketEditor({ tournamentId, players, entryType, featuredMeta, details
         <button
           type="button"
           onClick={handleRandomizeR1}
-          disabled={randomizing || players.length < 2}
+          disabled={randomizing || players.length < 1}
           className={`${styles["btn"]} ${styles["btn-primary"]}`}
         >
           {randomizing ? "Randomizing..." : "🔀 Randomize R1"}
