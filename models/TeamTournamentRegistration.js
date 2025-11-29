@@ -3,61 +3,96 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-const TeamMemberStatusSchema = new Schema(
+const MemberSchema = new Schema(
   {
-    player: { type: Schema.Types.ObjectId, ref: "Player", required: true },
-    username: { type: String, default: "" },
-    discordId: { type: String, default: "" },
+    player: {
+      type: Schema.Types.ObjectId,
+      ref: "Player",
+      required: true,
+    },
     status: {
       type: String,
       enum: ["pending", "accepted", "declined"],
       default: "pending",
     },
-    respondedAt: { type: Date, default: null },
+    invitedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    respondedAt: {
+      type: Date,
+    },
   },
   { _id: false }
 );
 
 const TeamTournamentRegistrationSchema = new Schema(
   {
-    tournamentId: { type: String, required: true, index: true },
-
-    team: { type: Schema.Types.ObjectId, ref: "Team", required: true },
-    teamName: { type: String, required: true },
-
-    gameCode: {
-      type: String,
-      enum: ["VALORANT", "HOK", "TFT"],
+    // Tournament identity
+    tournamentId: {
+      type: String, // your public ID like "321"
       required: true,
     },
-    modeKey: { type: String, default: "" }, // e.g. "2v2", "5v5", "doubleup"
+    tournamentRef: {
+      type: Schema.Types.ObjectId,
+      ref: "Tournament",
+    },
 
-    // Who submitted the registration
-    captain: { type: Schema.Types.ObjectId, ref: "Player", required: true },
+    // Game + mode info (optional but helpful for brackets/filters)
+    gameCode: {
+      type: String, // "VALORANT" | "HOK" | "TFT"
+      default: "VALORANT",
+    },
+    modeKey: {
+      type: String, // "1v1", "2v2", "5v5", "doubleup", etc.
+      default: "",
+    },
 
-    // Overall status of this registration
+    // Team identity
+    team: {
+      type: Schema.Types.ObjectId,
+      ref: "Team",
+      required: true,
+    },
+    teamName: {
+      type: String, // e.g. "Edward Gaming"
+    },
+    teamTag: {
+      type: String, // e.g. "EDG"
+    },
+
+    // Captain
+    captain: {
+      type: Schema.Types.ObjectId,
+      ref: "Player",
+      required: true,
+    },
+
+    // Overall status of this team registration
     status: {
       type: String,
       enum: ["pending", "active", "cancelled"],
       default: "pending",
-      index: true,
     },
 
-    // All members and their per-player status
-    members: {
-      type: [TeamMemberStatusSchema],
-      default: [],
+    // One entry per player on the team
+    members: [MemberSchema],
+
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
   }
-);
-
-// One team can only have one registration per tournament
-TeamTournamentRegistrationSchema.index(
-  { tournamentId: 1, team: 1 },
-  { unique: true }
 );
 
 export default mongoose.models.TeamTournamentRegistration ||

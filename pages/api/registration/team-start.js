@@ -5,8 +5,23 @@ import Team from "../../../models/Team";
 import Tournament from "../../../models/Tournament";
 import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration";
 
-// Helpers copied from the register page logic
-function resolveGameCodeFromDoc(doc) {
+function parseCookies(header = "") {
+  return Object.fromEntries(
+    (header || "")
+      .split(";")
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .map((c) => {
+        const [k, ...rest] = c.split("=");
+        return [k, decodeURIComponent(rest.join("=") || "")];
+      })
+  );
+}
+
+// helper to resolve gameCode from tournament doc
+function resolveGameCodeFromTournament(doc) {
+  if (!doc) return "VALORANT";
+
   const meta = doc.meta || {};
   const raw = (
     doc.game ||
@@ -31,17 +46,6 @@ function resolveGameCodeFromDoc(doc) {
   return "VALORANT";
 }
 
-function isTeamMode(gameKey, modeKey) {
-  const g = (gameKey || "").toLowerCase();
-  const m = (modeKey || "").toLowerCase();
-
-  if (g === "valorant" && (m === "2v2" || m === "5v5")) return true;
-  if (g === "tft" && m === "doubleup") return true;
-  if (g === "hok" && m === "5v5") return true;
-
-  return false;
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -49,177 +53,173 @@ export default async function handler(req, res) {
   }
 
   try {
+    const cookies = parseCookies(req.headers.cookie || "");
+    const cookiePlayerId = cookies.playerId || null;
+
+    if (!cookiePlayerId) {
+      return res
+        .status(401)
+        .json({ ok: false, error: "Not logged in. Please re-login." });
+    }
+
     const { playerId, teamId, tournamentId } = req.body || {};
 
-    if (!playerId || !teamId || !tournamentId) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "Missing playerId, teamId, or tournamentId" });
+    if (!teamId || !tournamentId) {
+      return res.status(400).json({
+        ok: false,
+        error: "Missing teamId or tournamentId.",
+      });
     }
 
     await connectToDatabase();
 
-    const player = await Player.findById(playerId);
+    // Logged-in player
+    const player = await Player.findById(cookiePlayerId);
     if (!player) {
-      return res.status(404).json({ ok: false, error: "Player not found" });
+      return res
+        .status(401)
+        .json({ ok: false, error: "Player not found. Please re-login." });
     }
 
+    // Optional: make sure body.playerId matches cookie
+    if (playerId && playerId !== cookiePlayerId) {
+      return res.status(403).json({
+        ok: false,
+        error: "Player mismatch. Please refresh and try again.",
+      });
+    }
+
+    // Team
     const team = await Team.findById(teamId);
     if (!team) {
-      return res.status(404).json({ ok: false, error: "Team not found" });
-    }
-
-    const tournament = await Tournament.findOne({ tournamentId }).lean();
-    if (!tournament) {
       return res
         .status(404)
-        .json({ ok: false, error: "Tournament not found" });
+        .json({ ok: false, error: "Team not found." });
     }
 
-    const gameCode = resolveGameCodeFromDoc(tournament); // "VALORANT" | "HOK" | "TFT"
-    let gameKey = "valorant";
-    if (gameCode === "TFT") gameKey = "tft";
-    if (gameCode === "HOK") gameKey = "hok";
+    // captain check (we assume a captain / captainId field exists)
+    const captainField =
+      team.captain ||
+      team.captainId ||
+      (team.owner && team.owner.player) ||
+      null;
 
-    const meta = tournament.meta || {};
+    if (
+      !captainField ||
+      captainField.toString() !== player._id.toString()
+    ) {
+      return res.status(403).json({
+        ok: false,
+        error: "Only the team captain can register this team.",
+      });
+    }
+
+    // Tournament
+    const tournament = await Tournament.findOne({ tournamentId }).lean();
+    if (!tournament) {
+      return res.status(404).json({
+        ok: false,
+        error: "Tournament not found.",
+      });
+    }
+
+    // Avoid duplicates for same team + tournament (if not cancelled)
+    const existing = await TeamTournamentRegistration.findOne({
+      tournamentId,
+      team: team._id,
+      status: { $ne: "cancelled" },
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        ok: false,
+        error: "This team is already registered for this tournament.",
+      });
+    }
+
+    const now = new Date();
+    const gameCode = resolveGameCodeFromTournament(tournament);
+
     const modeKey = (
       tournament.mode ||
-      meta.mode ||
-      meta.Mode ||
+      (tournament.meta &&
+        (tournament.meta.mode || tournament.meta.Mode)) ||
       ""
     )
       .toString()
       .toLowerCase()
-      .trim() || "1v1";
+      .trim();
 
-    if (!isTeamMode(gameKey, modeKey)) {
-      return res.status(400).json({
-        ok: false,
-        error: "This tournament uses solo registration, not team registration.",
-      });
-    }
-
+    // Build member list from team.members
+    const memberDocs = [];
+    const rawMembers = team.members || [];
     const playerIdStr = player._id.toString();
 
-    // --- Check membership ---
-    let membersList = [];
-    let isMember = false;
+    function pushMember(playerObjId, isCaptain = false) {
+      if (!playerObjId) return;
+      memberDocs.push({
+        player: playerObjId,
+        status: isCaptain ? "accepted" : "pending",
+        invitedAt: now,
+        respondedAt: isCaptain ? now : undefined,
+      });
+    }
 
-    if (Array.isArray(team.members)) {
-      for (const m of team.members) {
-        if (!m) continue;
-        let pid = null;
+    for (const m of rawMembers) {
+      if (!m) continue;
 
-        if (typeof m === "string") {
-          pid = m;
-        } else if (m._id) {
-          pid = m._id.toString();
-        } else if (m.player) {
-          pid = m.player.toString();
-        } else if (m.playerId) {
-          pid = m.playerId.toString();
-        }
-
-        if (!pid) continue;
-        membersList.push(pid);
-        if (pid === playerIdStr) {
-          isMember = true;
-        }
+      if (m.player) {
+        pushMember(
+          m.player,
+          m.player.toString() === playerIdStr
+        );
+      } else if (m.playerId) {
+        pushMember(
+          m.playerId,
+          m.playerId.toString() === playerIdStr
+        );
+      } else {
+        // might be stored as a bare ObjectId
+        pushMember(m, m.toString() === playerIdStr);
       }
     }
 
-    if (!isMember) {
-      return res.status(403).json({
-        ok: false,
-        error: "You are not a member of this team.",
-      });
-    }
-
-    // --- Determine captain ---
-    let captainId = null;
-
-    if (team.captain) {
-      captainId = team.captain.toString();
-    } else if (team.captainId) {
-      captainId = team.captainId.toString();
-    } else if (team.owner) {
-      captainId = team.owner.toString();
-    } else if (team.captainPlayer) {
-      captainId = team.captainPlayer.toString();
-    } else if (team.captainDiscordId && player.discordId) {
-      // Fallback for Discord-based captain
-      if (team.captainDiscordId === player.discordId) {
-        captainId = playerIdStr;
-      }
-    }
-
-    if (!captainId && membersList.length > 0) {
-      // last fallback: treat first member as captain
-      captainId = membersList[0];
-    }
-
-    const isCaptain = captainId === playerIdStr;
-
-    if (!isCaptain) {
-      return res.status(403).json({
-        ok: false,
-        error: "Only the team captain can register the team for a tournament.",
-      });
-    }
-
-    // --- Check if this team is already registered for this tournament ---
-    const existing = await TeamTournamentRegistration.findOne({
-      tournamentId,
-      team: team._id,
-    });
-    if (existing) {
-      return res.status(409).json({
-        ok: false,
-        error: "This team is already registered (or pending) for this tournament.",
-      });
-    }
-
-    // --- Build members array with statuses ---
-    // Need Player docs for each memberId to get username + discordId
-    const uniqueMemberIds = [...new Set(membersList)];
-    const memberDocs = await Player.find({
-      _id: { $in: uniqueMemberIds },
-    });
-
-    const memberMap = new Map(
-      memberDocs.map((p) => [p._id.toString(), p])
+    // Ensure captain is in members even if team.members didn't include them
+    const hasCaptainInMembers = memberDocs.some(
+      (m) => m.player.toString() === playerIdStr
     );
+    if (!hasCaptainInMembers) {
+      pushMember(player._id, true);
+    }
 
-    const members = uniqueMemberIds.map((id) => {
-      const p = memberMap.get(id);
-      const isSelf = id === playerIdStr;
-      return {
-        player: p ? p._id : id,
-        username: p ? p.username || p.discordTag || "" : "",
-        discordId: p ? p.discordId || "" : "",
-        status: isSelf ? "accepted" : "pending",
-        respondedAt: isSelf ? new Date() : null,
-      };
-    });
-
+    // Save registration with teamName + teamTag for brackets
     const regDoc = await TeamTournamentRegistration.create({
       tournamentId,
-      team: team._id,
-      teamName: team.name || team.teamName || "Unnamed team",
+      tournamentRef: tournament._id,
       gameCode,
       modeKey,
+      team: team._id,
+      teamName: team.name || team.teamName || "Unnamed team",
+      teamTag: team.tag || team.teamTag || "",
       captain: player._id,
-      members,
+      status:
+        memberDocs.length > 0 &&
+        memberDocs.every((m) => m.status === "accepted")
+          ? "active"
+          : "pending",
+      members: memberDocs,
     });
 
     return res.status(200).json({
       ok: true,
       teamRegistrationId: regDoc._id.toString(),
+      status: regDoc.status,
     });
   } catch (err) {
     console.error("[registration/team-start] error:", err);
-    return res
-      .status(500)
-      .json({ ok: false, error: "Server error starting team registration." });
+    return res.status(500).json({
+      ok: false,
+      error: "Server error starting team registration.",
+    });
   }
 }
