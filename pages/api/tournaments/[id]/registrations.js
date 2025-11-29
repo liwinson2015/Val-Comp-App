@@ -24,7 +24,7 @@ function isTeamMode(gameKey, modeKey) {
 
 export default async function handler(req, res) {
   try {
-    const { id } = req.query; // tournamentId, e.g. "VALO-SOLO-SKIRMISH-1"
+    const { id } = req.query; // tournamentId
 
     await connectToDatabase();
 
@@ -89,15 +89,12 @@ export default async function handler(req, res) {
 
     if (teamMode) {
       // TEAM TOURNAMENTS (VAL 2v2/5v5, TFT Double Up, HOK 5v5)
-      // Each ACTIVE team registration counts as ONE slot
+      // ⭐ FIX: Count anything NOT cancelled (pending, active, completed)
       registered = await TeamTournamentRegistration.countDocuments({
         tournamentId: id,
-        status: "active",
+        status: { $ne: "cancelled" },
       });
 
-      // (Optional) If you ever want a list of teams,
-      // you could query TeamTournamentRegistration here
-      // and map teamName, members, etc.
     } else {
       // SOLO TOURNAMENTS (VAL 1v1, TFT solo)
       // Use Player.registeredFor as the source of truth
