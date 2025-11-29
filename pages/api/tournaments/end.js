@@ -3,7 +3,8 @@
 import { getCurrentPlayerFromReq } from "../../../lib/getCurrentPlayer";
 import { connectToDatabase } from "../../../lib/mongodb";
 import TournamentState from "../../../models/TournamentState";
-import Registration from "../../../models/Registration";
+import Registration from "../../../models/Registration"; // Solo Regs
+import TeamTournamentRegistration from "../../../models/TeamTournamentRegistration"; // ⭐ Team Regs
 import Player from "../../../models/Player";
 import Tournament from "../../../models/Tournament";
 
@@ -38,12 +39,27 @@ export default async function handler(req, res) {
     const endedAt = new Date();
 
     // -------------------------------------------------------------------
-    // 0) Read bracket.ranking from Tournament so we know placements
+    // 0) Load Tournament to Check Type & Bracket
     // -------------------------------------------------------------------
     const tournamentDoc = await Tournament.findOne({ tournamentId }).lean();
-    const ranking = tournamentDoc?.bracket?.ranking || null;
+    if (!tournamentDoc) {
+      return res.status(404).json({ ok: false, error: "Tournament not found" });
+    }
 
-    const placementByPlayerId = {};
+    // ⭐ Detect if Team Tournament
+    const isTeamTournament =
+      /-5V5-/i.test(tournamentId) ||
+      tournamentDoc.mode === "5v5" ||
+      tournamentDoc.modeKey === "5v5" ||
+      tournamentDoc.type === "team" ||
+      tournamentDoc.format === "team" ||
+      tournamentDoc.meta?.isTeamTournament === true;
+
+    // -------------------------------------------------------------------
+    // 1) Read bracket.ranking to map IDs -> Placements
+    // -------------------------------------------------------------------
+    const ranking = tournamentDoc?.bracket?.ranking || null;
+    const placementById = {}; // Keys can be PlayerIDs OR TeamIDs
 
     if (ranking) {
       const addPlacement = (ids, label) => {
@@ -52,9 +68,8 @@ export default async function handler(req, res) {
         arr.forEach((id) => {
           if (!id) return;
           const key = id.toString();
-          // don't overwrite if already assigned a better placement
-          if (!placementByPlayerId[key]) {
-            placementByPlayerId[key] = label;
+          if (!placementById[key]) {
+            placementById[key] = label;
           }
         });
       };
@@ -70,119 +85,143 @@ export default async function handler(req, res) {
     }
 
     // -------------------------------------------------------------------
-    // 1) Update TournamentState: mark it completed and un-feature it
+    // 2) Update TournamentState & Main Doc
     // -------------------------------------------------------------------
-    const update = {
+    const updateState = {
       tournamentId,
       status: "completed",
       isFeatured: false,
       endedAt,
       endedBy: player._id,
     };
-
-    if (winnerTeamId && typeof winnerTeamId === "string") {
-      update.winnerTeamId = winnerTeamId;
-    }
+    if (winnerTeamId) updateState.winnerTeamId = winnerTeamId;
 
     const doc = await TournamentState.findOneAndUpdate(
       { tournamentId },
-      { $set: update },
+      { $set: updateState },
       { upsert: true, new: true }
     ).lean();
 
-    // -------------------------------------------------------------------
-    // 1.5) NEW: Update the main Tournament doc so the frontend sees it
-    // -------------------------------------------------------------------
     const tournamentUpdate = {
       status: "completed",
       endedAt,
     };
+    if (winnerTeamId) tournamentUpdate.winnerTeamId = winnerTeamId;
 
-    if (winnerTeamId && typeof winnerTeamId === "string") {
-      tournamentUpdate.winnerTeamId = winnerTeamId;
-    }
-
-    await Tournament.updateOne(
-      { tournamentId },
-      { $set: tournamentUpdate }
-    );
+    await Tournament.updateOne({ tournamentId }, { $set: tournamentUpdate });
 
     // -------------------------------------------------------------------
-    // 2) Update all registrations for this tournament
+    // 3) Update Registrations & History (Branch Logic)
     // -------------------------------------------------------------------
-    await Registration.updateMany(
-      {
-        $or: [{ tournament: tournamentId }, { tournamentId: tournamentId }],
-      },
-      {
-        $set: {
-          status: "completed",
-          completedAt: endedAt,
-          // Keep tournamentId in sync going forward
-          tournamentId: tournamentId,
-        },
-      }
-    );
 
-    // -------------------------------------------------------------------
-    // 3) Move players' active registrations into tournamentHistory
-    //    and attach placement if we know it from the bracket
-    // -------------------------------------------------------------------
-    const playersWithReg = await Player.find({
-      "registeredFor.tournamentId": tournamentId,
-    }).lean();
+    if (isTeamTournament) {
+      // ==========================================
+      // 🟦 TEAM TOURNAMENT LOGIC
+      // ==========================================
+      
+      // 1. Find all team registrations
+      const teamRegs = await TeamTournamentRegistration.find({
+        tournamentId,
+      }).lean();
 
-    if (playersWithReg.length > 0) {
-      const bulkOps = playersWithReg
-        .map((p) => {
-          const activeRegs = (p.registeredFor || []).filter(
-            (r) => r.tournamentId === tournamentId
-          );
-
-          if (!activeRegs.length) return null;
-
-          const placementKey = p._id.toString();
-          const placement = placementByPlayerId[placementKey] || "";
-
-          const historyEntries = activeRegs.map((r) => ({
-            tournamentId: r.tournamentId,
-            ign: r.ign,
-            fullIgn: r.fullIgn,
-            rank: r.rank,
-            placement, // ⭐ pulled from bracket.ranking (or "" if unknown)
-            endedAt,
-          }));
+      if (teamRegs.length > 0) {
+        // 2. Prepare Bulk Updates for Team Registrations
+        // We act on the Registration doc because that IS the history record for teams.
+        const bulkOps = teamRegs.map((reg) => {
+          const teamId = reg.team.toString();
+          const placement = placementById[teamId] || ""; // e.g. "1st"
 
           return {
             updateOne: {
-              filter: { _id: p._id },
+              filter: { _id: reg._id },
               update: {
-                // remove from active registrations
-                $pull: { registeredFor: { tournamentId } },
-                // add to history
-                $push: {
-                  tournamentHistory: { $each: historyEntries },
+                $set: {
+                  status: "completed",
+                  completedAt: endedAt,
+                  placement: placement, // Save result directly to registration
+                  // Ensure name is synced if needed
+                  ign: reg.teamName || reg.teamTag || "Unnamed Team", 
                 },
               },
             },
           };
-        })
-        .filter(Boolean);
+        });
 
-      if (bulkOps.length > 0) {
-        await Player.bulkWrite(bulkOps);
+        await TeamTournamentRegistration.bulkWrite(bulkOps);
+      }
+
+    } else {
+      // ==========================================
+      // 👤 SOLO TOURNAMENT LOGIC (Your Old Code)
+      // ==========================================
+
+      // 1. Mark Registrations as completed
+      await Registration.updateMany(
+        {
+          $or: [{ tournament: tournamentId }, { tournamentId: tournamentId }],
+        },
+        {
+          $set: {
+            status: "completed",
+            completedAt: endedAt,
+            tournamentId: tournamentId,
+          },
+        }
+      );
+
+      // 2. Move to Player History
+      const playersWithReg = await Player.find({
+        "registeredFor.tournamentId": tournamentId,
+      }).lean();
+
+      if (playersWithReg.length > 0) {
+        const bulkOps = playersWithReg
+          .map((p) => {
+            const activeRegs = (p.registeredFor || []).filter(
+              (r) => r.tournamentId === tournamentId
+            );
+
+            if (!activeRegs.length) return null;
+
+            const placementKey = p._id.toString();
+            const placement = placementById[placementKey] || "";
+
+            const historyEntries = activeRegs.map((r) => ({
+              tournamentId: r.tournamentId,
+              ign: r.ign,
+              fullIgn: r.fullIgn,
+              rank: r.rank,
+              placement, // 1st, 2nd, etc.
+              endedAt,
+            }));
+
+            return {
+              updateOne: {
+                filter: { _id: p._id },
+                update: {
+                  $pull: { registeredFor: { tournamentId } },
+                  $push: {
+                    tournamentHistory: { $each: historyEntries },
+                  },
+                },
+              },
+            };
+          })
+          .filter(Boolean);
+
+        if (bulkOps.length > 0) {
+          await Player.bulkWrite(bulkOps);
+        }
       }
     }
 
     return res.status(200).json({
       ok: true,
       state: doc
-        ? {
-            ...doc,
-            _id: doc._id.toString(),
-          }
+        ? { ...doc, _id: doc._id.toString() }
         : null,
     });
+
   } catch (err) {
     console.error("Error ending tournament:", err);
     return res.status(500).json({ ok: false, error: "Server error" });
