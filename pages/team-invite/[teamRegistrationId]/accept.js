@@ -334,7 +334,9 @@ export default function TeamInviteAcceptPage(props) {
     "Diamond",
     "Master",
     "Grandmaster",
-    "King",
+    "Grandmaster Mythic",
+    "Grandmaster Epic",
+    "Grandmaster Legend",
   ];
   const HOK_RANK_DIVISIONS = ["V", "IV", "III", "II", "I"];
 
