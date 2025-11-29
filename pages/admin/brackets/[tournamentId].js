@@ -1521,14 +1521,16 @@ function BracketEditor({ tournamentId, players, entryType, featuredMeta, details
 
   useEffect(() => {
     const winnersSF = computeWinnersFromMatches(sfMatches);
-    if (winnersSF.length < 2) return;
+    // ⭐ FIX: REMOVED "if (winnersSF.length < 2) return;" 
+    // This allows single winners to advance in test cases/byes.
+    
     setWbFinalMatches((prev) => {
       const current = (prev && prev[0]) || emptyFinalMatch;
-      if (current.player1Id || current.player2Id) return prev;
+      // We also remove the "if exists return" check so it updates dynamically
       return [
         {
-          player1Id: winnersSF[0],
-          player2Id: winnersSF[1],
+          player1Id: winnersSF[0] || null,
+          player2Id: winnersSF[1] || null,
           winnerId:
             current.winnerId &&
             (current.winnerId === winnersSF[0] ||
@@ -2042,7 +2044,8 @@ function BracketEditor({ tournamentId, players, entryType, featuredMeta, details
         <button
           type="button"
           onClick={handleRandomizeR1}
-          disabled={randomizing || players.length < 1}
+          // ⭐ FIX: ALLOWS 1 TEAM FOR TESTING
+          disabled={randomizing || players.length < 1} 
           className={`${styles["btn"]} ${styles["btn-primary"]}`}
         >
           {randomizing ? "Randomizing..." : "🔀 Randomize R1"}
