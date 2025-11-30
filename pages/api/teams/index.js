@@ -32,7 +32,6 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: "Not logged in" });
     }
 
-    // --- UPDATED: Extract new fields from body ---
     const { name, tag, game, rank, rolesNeeded } = req.body || {};
 
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -47,15 +46,16 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "Team tag is required." });
     }
 
-    // Sanitize: letters only, uppercase, max 4
+    // ⭐ FIX: SANITIZE (Allow Letters AND Numbers)
     const rawTag = tag.trim();
-    const lettersOnly = rawTag.replace(/[^a-zA-Z]/g, "");
-    const tagUpper = lettersOnly.toUpperCase().slice(0, 4);
+    // Allow a-z, A-Z, and 0-9. Remove symbols/spaces.
+    const alphanumeric = rawTag.replace(/[^a-zA-Z0-9]/g, ""); 
+    const tagUpper = alphanumeric.toUpperCase().slice(0, 4);
 
     if (!tagUpper) {
       return res.status(400).json({
         ok: false,
-        error: "Team tag must contain at least one English letter (A–Z).",
+        error: "Team tag must contain valid alphanumeric characters (A-Z, 0-9).",
       });
     }
 
@@ -100,17 +100,17 @@ export default async function handler(req, res) {
     // Generate Invite Code
     const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // --- UPDATED: Create Team with Rank and Roles ---
+    // Create Team
     const team = await Team.create({
       name: name.trim().toUpperCase(),
-      tag: tagUpper,
+      tag: tagUpper, // Saves the tag with numbers included
       game: gameCode,
       captain: captain._id,
       members: [captain._id],
       joinCode: joinCode,
       maxSize: 7,
       
-      // Save new fields (with defaults)
+      // Save new fields
       rank: rank || "Unranked",
       rolesNeeded: Array.isArray(rolesNeeded) ? rolesNeeded : [],
     });
@@ -126,7 +126,6 @@ export default async function handler(req, res) {
         memberCount: team.members.length,
         maxSize: team.maxSize,
         joinCode: team.joinCode,
-        // Return new fields so frontend updates immediately
         rank: team.rank,
         rolesNeeded: team.rolesNeeded,
       },
