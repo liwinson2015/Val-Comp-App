@@ -844,7 +844,7 @@ export default function TournamentDetailPage({
 
                 {/* Discord button */}
                 <a
-                  href="https://discord.gg/qUzCCK8nuc"
+                  href="https://discord.gg/4fsGnvsWhq"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
