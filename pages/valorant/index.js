@@ -367,7 +367,7 @@ export default function ValorantEventPage({
 
                 {/* Gray Discord button */}
                 <a
-                  href="https://discord.gg/qUzCCK8nuc"
+                  href="https://discord.gg/4fsGnvsWhq"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
