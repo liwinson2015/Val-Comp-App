@@ -139,7 +139,7 @@ export default function Navbar() {
           {/* Discord shortcut (only when logged in) */}
           {!loading && loggedIn && (
             <a
-              href="https://discord.gg/qUzCCK8nuc"
+              href="https://discord.gg/4fsGnvsWhq"
               className="nav-link external"
               target="_blank"
               rel="noopener noreferrer"
